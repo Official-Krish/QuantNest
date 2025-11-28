@@ -1,4 +1,4 @@
-import type { TradingMetadata } from "@/types";
+import type { TradingMetadata } from "@n8n-trading/types";
 import { Handle, Position } from "@xyflow/react";
 
 export const growwAction = ({data}: {

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
-import { type EdgeType, type NodeType } from '../types';
+import { type EdgeType, type NodeType } from "@n8n-trading/types";
 import { TriggerSheet } from './TriggerSheet';
 import { PriceTrigger } from './nodes/triggers/PriceTrigger';
 import { Timer } from './nodes/triggers/timers';

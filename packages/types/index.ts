@@ -1,5 +1,3 @@
-import type { SUPPORTED_ASSETS } from "@/constants";
-
 export type NodeKind = "price-trigger" | "timer-trigger" | "Zerodha" | "Groww";
 
 export interface NodeType {
@@ -35,3 +33,5 @@ export interface TradingMetadata {
     qty: number;
     symbol: typeof SUPPORTED_ASSETS[number];
 }
+
+export const SUPPORTED_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE"];

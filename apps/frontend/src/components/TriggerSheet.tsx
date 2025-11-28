@@ -1,4 +1,4 @@
-import type { NodeKind, NodeMetadata, PriceTriggerNodeMetadata, TimerNodeMetadata } from "../types";
+import type { NodeKind, NodeMetadata, PriceTriggerNodeMetadata, TimerNodeMetadata } from "@n8n-trading/types";
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/sheet"
 import { useState } from "react";
 import { Input } from "./ui/input";
-import { SUPPORTED_ASSETS } from "@/constants";
+import { SUPPORTED_ASSETS } from "@n8n-trading/types";
 
 const SUPPORTED_TRIGGERS = [
     {

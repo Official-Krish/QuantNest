@@ -1,4 +1,4 @@
-import type { TimerNodeMetadata } from "@/types"
+import type { TimerNodeMetadata } from "@n8n-trading/types"
 import { Handle, Position } from "@xyflow/react"
 
 export const Timer = ({data, isConnectable}: {
