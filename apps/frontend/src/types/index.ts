@@ -1,11 +1,10 @@
 export type NodeKind = "price-trigger" | "timer-trigger" | "zerodha" | "Groww";
 
 export interface NodeType {
+    type: NodeKind;
     data: {
-        type: "action" | "trigger";
-        kind: NodeKind;
+        kind: "action" | "trigger";
         metadata: NodeMetadata;
-        label: string;
     },
     id: string;
     position: { x: number; y: number };
@@ -18,3 +17,13 @@ export interface EdgeType {
 }
 
 export type NodeMetadata = any;
+
+export interface TimerNodeMetadata extends NodeMetadata {
+    time: number;
+}
+
+export interface PriceTriggerNodeMetadata {
+    asset: string;
+    targetPrice: number;
+    condition: "above" | "below";
+}

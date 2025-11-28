@@ -2,6 +2,13 @@ import { useCallback, useState } from 'react';
 import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge } from '@xyflow/react';
 import { type EdgeType, type NodeType } from '../types';
 import { TriggerSheet } from './TriggerSheet';
+import { PriceTrigger } from './nodes/triggers/PriceTrigger';
+import { Timer } from './nodes/triggers/timers';
+
+const nodeTypes = {
+    "price-trigger": PriceTrigger,
+    "timer": Timer
+};
 
 export const CreateWorkflow = () => {
     const [nodes, setNodes] = useState<NodeType[]>([]);
@@ -21,19 +28,19 @@ export const CreateWorkflow = () => {
     );
     return (
         <div style={{ width: '100vw', height: '100vh' }} >
-            {!nodes.length && <TriggerSheet onSelect={(kind, metadata) => {
+            {!nodes.length && <TriggerSheet onSelect={(type, metadata) => {
                 setNodes([...nodes, {
                     id: Math.random().toString(),
+                    type,
                     data: {
-                        type: "trigger",
-                        kind,
+                        kind: "trigger",
                         metadata,
-                        label: kind,
                     },
                     position: { x: 0, y: 0 }
                 }]);
             }} />}
             <ReactFlow
+                nodeTypes={nodeTypes}
                 nodes={nodes}
                 edges={edges}
                 onNodesChange={onNodesChange}
