@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sheet"
 import { useState } from "react";
 import { Input } from "./ui/input";
+import { SUPPORTED_ASSETS } from "@/constants";
 
 const SUPPORTED_TRIGGERS = [
     {
@@ -33,8 +34,6 @@ const SUPPORTED_TRIGGERS = [
     }
 ]
 
-const SUPPORTED_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE"];
-
 export const TriggerSheet = ({ onSelect} : {
     onSelect: (kind: NodeKind, metadata: NodeMetadata) => void;
 }) => {
@@ -42,7 +41,6 @@ export const TriggerSheet = ({ onSelect} : {
         time: 3600
     });
     const [selectedTrigger, setSelectedTrigger] = useState("");
-    console.log("trigger",{selectedTrigger});
     return (
         <Sheet open={true}>
             <SheetContent>

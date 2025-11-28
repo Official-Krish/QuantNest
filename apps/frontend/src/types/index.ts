@@ -1,4 +1,6 @@
-export type NodeKind = "price-trigger" | "timer-trigger" | "zerodha" | "Groww";
+import type { SUPPORTED_ASSETS } from "@/constants";
+
+export type NodeKind = "price-trigger" | "timer-trigger" | "Zerodha" | "Groww";
 
 export interface NodeType {
     type: NodeKind;
@@ -7,7 +9,7 @@ export interface NodeType {
         metadata: NodeMetadata;
     },
     id: string;
-    position: { x: number; y: number };
+    position: { x: number; y: number }; 
 }
 
 export interface EdgeType {
@@ -16,9 +18,9 @@ export interface EdgeType {
     target: string;
 }
 
-export type NodeMetadata = any;
+export type NodeMetadata = TradingMetadata | TimerNodeMetadata | PriceTriggerNodeMetadata | {};
 
-export interface TimerNodeMetadata extends NodeMetadata {
+export interface TimerNodeMetadata {
     time: number;
 }
 
@@ -26,4 +28,10 @@ export interface PriceTriggerNodeMetadata {
     asset: string;
     targetPrice: number;
     condition: "above" | "below";
+}
+
+export interface TradingMetadata {
+    type: "buy" | "sell";
+    qty: number;
+    symbol: typeof SUPPORTED_ASSETS[number];
 }
