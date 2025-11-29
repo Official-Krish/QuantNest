@@ -10,6 +10,10 @@
     "typescript": "^5"
   },
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./metadata": "./backend.ts"
+  },
+  "dependencies": {
+    "zod": "^4.1.13"
   }
 }

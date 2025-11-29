@@ -1,5 +1,5 @@
 {
-  "name": "db",
+  "name": "@n8n-trading/db",
   "module": "index.ts",
   "type": "module",
   "private": true,
