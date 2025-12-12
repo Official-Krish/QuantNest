@@ -95,7 +95,7 @@ export const ActionSheet = ({ onSelect} : {
                             <Select onValueChange={(value) => setMetadata(metadata => ({
                                 ...metadata,
                                 symbol: value as typeof SUPPORTED_ASSETS[number]
-                            }) )}>
+                            }))}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select asset" />
                                 </SelectTrigger>
