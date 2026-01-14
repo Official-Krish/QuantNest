@@ -32,6 +32,7 @@ export interface TradingMetadata {
     type: "buy" | "sell";
     qty: number;
     symbol: typeof SUPPORTED_ASSETS[number];
+    apiKey: string;
 }
 
 export const SUPPORTED_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE"];

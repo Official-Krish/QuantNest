@@ -1,11 +1,11 @@
-import useRouter  from 'express';
+import { Router } from 'express';
 import { SigninSchema, SignupSchema } from "@n8n-trading/types/metadata";
 import { UserModel } from '@n8n-trading/db/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../middleware';
 
-const userRouter = useRouter();
+const userRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'JWT_SECRET_KEY';
 
 userRouter.post('/signup', async (req, res) => {

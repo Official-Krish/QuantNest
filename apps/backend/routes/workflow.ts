@@ -1,9 +1,9 @@
-import useRouter  from 'express';
+import { Router } from 'express';
 import { authMiddleware } from '../middleware';
 import { CreateWorkflowSchema, UpdateWorkflowSchema } from '@n8n-trading/types/metadata';
 import { ExecutionModel, WorkflowModel } from '@n8n-trading/db/client';
 
-const workFlowRouter = useRouter();
+const workFlowRouter = Router();
 
 workFlowRouter.post('/', authMiddleware, async (req, res) => {
     const userId = req.userId;

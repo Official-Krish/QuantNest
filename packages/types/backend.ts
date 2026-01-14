@@ -12,9 +12,13 @@ export const SigninSchema = z.object({
 
 export const CreateWorkflowSchema = z.object({
     nodes: z.array(z.object({
-        nodeId: z.string(),
+        nodeId: z.string().optional(),
+        type: z.string().optional(),
         data: z.object({
-            kind: z.enum (['TRIGGER', 'ACTION']),
+            kind: z.union([
+                z.enum(['TRIGGER', 'ACTION']),
+                z.enum(['trigger', 'action']),
+            ]),
             metadata: z.any(),
         }),
         id: z.string(),
@@ -33,9 +37,13 @@ export const CreateWorkflowSchema = z.object({
 
 export const UpdateWorkflowSchema = z.object({
     nodes: z.array(z.object({
-        nodeId: z.string(),
+        nodeId: z.string().optional(),
+        type: z.string().optional(),
         data: z.object({
-            kind: z.enum (['TRIGGER', 'ACTION']),
+            kind: z.union([
+                z.enum(['TRIGGER', 'ACTION']),
+                z.enum(['trigger', 'action']),
+            ]),
             metadata: z.any(),
         }),
         id: z.string(),
