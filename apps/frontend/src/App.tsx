@@ -1,18 +1,17 @@
 import '@xyflow/react/dist/style.css';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { CreateWorkflow } from './components/CreateWorkflow';
 import { Auth } from './components/Auth';
+import { Landing } from './components/Landing';
 
 export function App() {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Auth mode="signin" />} />
-          <Route path="/signin" element={<Auth mode="signin" />} />
-          <Route path="/signup" element={<Auth mode="signup" />} />
-          <Route path="/create" element={<CreateWorkflow />} />
-        </Routes>
-      </BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/signin" element={<Auth mode="signin" />} />
+        <Route path="/signup" element={<Auth mode="signup" />} />
+        <Route path="/create" element={<CreateWorkflow />} />
+      </Routes>
     )
 }
 
