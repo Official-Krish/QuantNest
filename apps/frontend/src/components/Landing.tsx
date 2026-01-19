@@ -1,6 +1,8 @@
 import { AnimatedCard } from "./LandingPage/3dcard"
 import { Features } from "./LandingPage/Features"
 import { Hero } from "./LandingPage/Hero"
+import { Start } from "./LandingPage/Start"
+import { UseCase } from "./LandingPage/useCase"
 
 export const Landing = () => {
     return (
@@ -8,6 +10,8 @@ export const Landing = () => {
             <Hero />
             <AnimatedCard />
             <Features />
+            <UseCase />
+            <Start />
         </div>
     )
 }

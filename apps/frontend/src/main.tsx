@@ -4,12 +4,14 @@ import './index.css'
 import App from './App.tsx'
 import { BrowserRouter } from 'react-router-dom'
 import { Appbar } from './components/Appbar.tsx'
+import Footer from './components/Footer.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
       <BrowserRouter>
         <Appbar />
         <App />
+        <Footer />
       </BrowserRouter>
   </StrictMode>,
 )

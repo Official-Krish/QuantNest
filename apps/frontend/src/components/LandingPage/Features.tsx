@@ -6,7 +6,7 @@ import {
   InputIcon,
 } from "@radix-ui/react-icons"
 
-import { BentoCard, BentoGrid } from "@/components/ui/bento-grid"
+import { BentoCard, BentoGrid } from "@/components/ui/bento-grid-feature"
 import { AnimatedList } from "../ui/animated-list"
 import NotificationCard from "./NotificationCard"
 
