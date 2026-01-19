@@ -80,7 +80,13 @@ export const Appbar = () => {
                             className="px-4 py-2 text-neutral-800 rounded-lg font-normal bg-neutral-200 cursor-pointer shadow-md shadow-neutral-200/30"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => window.location.href = "/signin"}
+                            onClick={() => {
+                                if (localStorage.getItem("token")) {
+                                    window.location.href = "/dashboard";
+                                } else {
+                                    window.location.href = "/signup";
+                                }
+                            }}
                         >
                             Start Building
                         </motion.button>

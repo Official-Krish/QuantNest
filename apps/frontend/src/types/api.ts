@@ -2,6 +2,7 @@ export interface IdResponse {
   message: string;
   workflowId?: string;
   userId?: string;
+  token?: string;
 }
 
 export interface SigninResponse {

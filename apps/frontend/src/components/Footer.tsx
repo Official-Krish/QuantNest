@@ -66,7 +66,15 @@ const Footer: React.FC = () => {
             <p className="text-gray-400 mb-6">
               Manage and simulate agentic workflows
             </p>
-            <button className="px-4 py-2 mt-4 bg-white text-neutral-800 rounded-lg cursor-pointer hover:bg-gray-200 hover:scale-105 transform transition duration-300">
+            <button className="px-4 py-2 mt-4 bg-white text-neutral-800 rounded-lg cursor-pointer hover:bg-gray-200 hover:scale-105 transform transition duration-300"
+              onClick={() => {
+                if (localStorage.getItem("token")){
+                  window.location.href = "/dashboard"
+                } else {
+                  window.location.href = "/signup"
+                }
+              }}
+            >
                 Start Building
             </button>
           </div>

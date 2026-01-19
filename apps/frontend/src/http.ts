@@ -2,7 +2,7 @@ import axios from "axios";
 import type { IdResponse, SigninResponse, Workflow } from "./types/api";
 
 const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE?.toString?.() ??
+  (import.meta as any).env?.VITE_BACKEND_URL?.toString?.() ??
   "http://localhost:3000/api/v1";
 
 export const api = axios.create({
@@ -11,7 +11,7 @@ export const api = axios.create({
 
 
 export function setAuthToken(token: string) {
-  localStorage.setItem("token", token);
+  localStorage.setItem("token", `Bearer ${token}`);
   api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 }
 
@@ -24,11 +24,19 @@ if (existing) {
 
 export async function apiSignup(body: { username: string; password: string }): Promise<IdResponse> {
   const res = await api.post<IdResponse>("/user/signup", body);
+  if (res.data.token) {
+    setAuthToken(res.data.token);
+  } else {
+    throw new Error("No token received");
+  }
   return res.data;
 }
 
 export async function apiSignin(body: { username: string; password: string }): Promise<SigninResponse> {
   const res = await api.post<SigninResponse>("/user/signin", body);
+  if (!res.data.token) {
+    throw new Error("No token received");
+  }
   setAuthToken(res.data.token);
   return res.data;
 }
