@@ -3,7 +3,7 @@ import type { IdResponse, SigninResponse, Workflow } from "./types/api";
 
 const API_BASE =
   (import.meta as any).env?.VITE_BACKEND_URL?.toString?.() ??
-  "http://localhost:3000/api/v1";
+  "http://localhost:3001/api/v1";
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -44,26 +44,46 @@ export async function apiSignin(body: { username: string; password: string }): P
 // WORKFLOW
 
 export async function apiCreateWorkflow(body: any): Promise<IdResponse> {
-  const res = await api.post<IdResponse>("/workflow", body);
+  const res = await api.post<IdResponse>("/workflow", body, {
+    headers: {
+      Authorization: localStorage.getItem("token") || "",
+    },
+  });
   return res.data;
 }
 
 export async function apiUpdateWorkflow(workflowId: string, body: any): Promise<IdResponse> {
-  const res = await api.put<IdResponse>(`/workflow/${workflowId}`, body);
+  const res = await api.put<IdResponse>(`/workflow/${workflowId}`, body, {
+    headers: {
+      Authorization: localStorage.getItem("token") || "",
+    },
+  });
   return res.data;
 }
 
 export async function apiGetWorkflow(workflowId: string): Promise<Workflow> {
-  const res = await api.get<Workflow>(`/workflow/${workflowId}`);
-  return res.data;
+  const res = await api.get<{ message: string; workflow: Workflow }>(`/workflow/${workflowId}`, {
+    headers: {
+      Authorization: localStorage.getItem("token") || "",
+    },
+  });
+  return res.data.workflow;
 }
 
 export async function apiGetAllWorkflows(): Promise<{ workflows: Workflow[] }> {
-  const res = await api.get<{ message: string; workflows: Workflow[] }>("/workflow/getAll");
+  const res = await api.get<{ message: string; workflows: Workflow[] }>("/workflow/getAll", {
+    headers: {
+      Authorization: localStorage.getItem("token") || "",
+    },
+  });
   return res.data;
 }
 
 export async function apiGetExecution(workflowId: string) {
-  const res = await api.get(`/workflow/executions/${workflowId}`);
+  const res = await api.get(`/workflow/executions/${workflowId}`, {
+    headers: {
+      Authorization: localStorage.getItem("token") || "",
+    },
+  });
   return res.data;
-}
+} 

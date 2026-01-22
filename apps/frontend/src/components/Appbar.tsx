@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "motion/react";
+import { ProfileDropDown } from "./Profile-Dropdown";
 
 export const Appbar = () => {
     const [hovered, setHovered] = useState<number | null>(null);
@@ -80,20 +81,23 @@ export const Appbar = () => {
                         ))}
                     </div>
                     <div className="flex justify-center items-center">
-                        <motion.button 
-                            className="px-4 py-2 text-neutral-800 rounded-lg font-normal bg-neutral-200 cursor-pointer shadow-md shadow-neutral-200/30"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                                if (localStorage.getItem("token")) {
-                                    window.location.href = "/dashboard";
-                                } else {
-                                    window.location.href = "/signup";
-                                }
-                            }}
-                        >
-                            Start Building
-                        </motion.button>
+                        {!localStorage.getItem("token") && (
+                            <motion.button 
+                                className="px-4 py-2 text-neutral-800 rounded-lg font-normal bg-neutral-200 cursor-pointer shadow-md shadow-neutral-200/30 "
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                    if (localStorage.getItem("token")) {
+                                        window.location.href = "/dashboard";
+                                    } else {
+                                        window.location.href = "/signup";
+                                    }
+                                }}
+                            >
+                                Start Building
+                            </motion.button>
+                        )}
+                        {localStorage.getItem("token") && <ProfileDropDown />}
                     </div>
                 </div>
             </motion.div>

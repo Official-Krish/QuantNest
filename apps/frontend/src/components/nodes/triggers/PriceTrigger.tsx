@@ -10,7 +10,7 @@ export const PriceTrigger = ({
   };
   isConnectable: boolean;
 }) => {
-  const { asset, condition, targetPrice } = data.metadata;
+  const { asset = "-", condition = "above", targetPrice = 0 } = data.metadata || {};
 
   return (
     <div className="min-w-[220px] rounded-2xl border border-neutral-700/80 bg-neutral-950/90 px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
