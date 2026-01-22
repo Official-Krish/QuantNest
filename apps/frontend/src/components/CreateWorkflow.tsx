@@ -57,29 +57,21 @@ export const CreateWorkflow = () => {
       try {
         const workflow = await apiGetWorkflow(routeWorkflowId);
         const normalizedNodes = workflow.nodes.map((node: any) => {
-          // Ensure nodeId exists (use id as fallback)
           const nodeId = node.nodeId || node.id;
-          // Ensure type exists and matches nodeTypes keys
           let nodeType = node.type;
           if (nodeType) {
             nodeType = nodeType.toLowerCase();
-            // Map alternative type names to nodeTypes keys
             if (nodeType === "price") nodeType = "price-trigger";
           }
-          // If type is missing, try to infer from metadata structure
           if (!nodeType) {
             const metadata = node.data?.metadata || {};
-            // Infer type from metadata structure
             if (metadata.time !== undefined) {
               nodeType = "timer";
             } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined) {
               nodeType = "price-trigger";
             } else if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {
-              // Can't distinguish between zerodha and groww from metadata alone
-              // Default to zerodha, but this should ideally be stored in the type field
               nodeType = "zerodha";
             } else {
-              // Default fallback based on kind
               const kind = node.data?.kind?.toLowerCase();
               nodeType = kind === "action" ? "zerodha" : "timer";
             }

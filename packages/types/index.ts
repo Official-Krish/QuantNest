@@ -1,4 +1,4 @@
-export type NodeKind = "price-trigger" | "timer-trigger" | "Zerodha" | "Groww";
+export type NodeKind = "price" | "timer" | "Zerodha" | "Groww";
 
 export interface NodeType {
     type: NodeKind;
@@ -6,7 +6,7 @@ export interface NodeType {
         kind: "action" | "trigger";
         metadata: NodeMetadata;
     },
-    id: string;
+    nodeId: string;
     position: { x: number; y: number }; 
 }
 
