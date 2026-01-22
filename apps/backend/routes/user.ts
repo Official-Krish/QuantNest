@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../middleware';
 
 const userRouter = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'JWT_SECRET_KEY';
+const JWT_SECRET = process.env.JWT_SECRET || "JWT_SECRET"; ;
 
 userRouter.post('/signup', async (req, res) => {
     const parsedData = SignupSchema.safeParse(req.body);

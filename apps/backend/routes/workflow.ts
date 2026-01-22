@@ -20,7 +20,20 @@ workFlowRouter.post('/', authMiddleware, async (req, res) => {
         });
         res.status(200).json({ message: "Workflow created", workflowId: workflow._id });
     } catch (error) {
+        console.error(error);
         res.status(411).json({ message: "Workflow creation failed" });
+    }
+});
+
+workFlowRouter.get('/getAll', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+
+    try {
+        const workflows = await WorkflowModel.find({ userId });
+        res.status(200).json({ message: "Workflows retrieved", workflows });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error", error });
     }
 });
 
@@ -75,17 +88,6 @@ workFlowRouter.get('/executions/:workflowId', authMiddleware, async (req, res) =
             return;
         }
         res.status(200).json({ message: "Execution retrieved", execution });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
-});
-
-workFlowRouter.get('/getAll', authMiddleware, async (req, res) => {
-    const userId = req.userId;
-
-    try {
-        const workflows = await WorkflowModel.find({ userId });
-        res.status(200).json({ message: "Workflows retrieved", workflows });
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
     }
