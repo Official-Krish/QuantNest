@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiGetAllWorkflows } from "@/http";
 import type { Workflow } from "@/types/api";
 import { Button } from "@/components/ui/button";
+import { WorkflowTable } from "./dashboard/workflowTable";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -139,49 +140,7 @@ export const Dashboard = () => {
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-neutral-800/80 bg-neutral-950/60">
-              <div className="grid grid-cols-[1.4fr,1fr,1fr,auto] border-b border-neutral-800/80 bg-neutral-950/80 px-4 py-3 text-xs uppercase tracking-[0.16em] text-neutral-500">
-                <span>Name / ID</span>
-                <span className="hidden md:block">Nodes</span>
-                <span className="hidden md:block">Edges</span>
-                <span className="text-right">Actions</span>
-              </div>
-              <div>
-                {workflows.map((wf, idx) => (
-                  <div
-                    key={wf._id}
-                    className="group grid cursor-pointer grid-cols-[1.4fr,1fr,1fr,auto] items-center border-t border-neutral-900/80 px-4 py-3 text-sm text-neutral-200 hover:bg-neutral-900/60"
-                    onClick={() => navigate(`/workflow/${wf._id}`)}
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="font-medium text-neutral-50">
-                        {wf.workflowName || "Untitled Workflow"}
-                      </span>
-                      <span className="font-mono text-[11px] text-neutral-500">
-                        {wf._id}
-                      </span>
-                    </div>
-                    <span className="hidden text-sm text-neutral-300 md:block">
-                      {wf.nodes?.length ?? 0}
-                    </span>
-                    <span className="hidden text-sm text-neutral-300 md:block">
-                      {wf.edges?.length ?? 0}
-                    </span>
-                    <div className="flex justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 border-neutral-700 bg-neutral-900/80 text-xs text-neutral-200 hover:bg-neutral-800 group-hover:border-neutral-500"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/workflow/${wf._id}`);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <WorkflowTable workflows={workflows} loading={loading} />
             </div>
           )}
         </section>

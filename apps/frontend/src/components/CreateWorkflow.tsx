@@ -7,7 +7,7 @@ import {
   BackgroundVariant,
   Background,
 } from "@xyflow/react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { type EdgeType, type NodeType } from "@n8n-trading/types";
 import { TriggerSheet } from "./TriggerSheet";
 import { PriceTrigger } from "./nodes/triggers/PriceTrigger";
@@ -35,6 +35,7 @@ const nodeTypes = {
 const POSITION_OFFSET = 50;
 
 export const CreateWorkflow = () => {
+  const navigate = useNavigate();
   const { workflowId: routeWorkflowId } = useParams<{ workflowId: string }>();
 
   const [nodes, setNodes] = useState<NodeType[]>([]);
@@ -155,7 +156,7 @@ export const CreateWorkflow = () => {
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
         if (!res.workflowId) throw new Error("Missing workflowId from server");
-        setWorkflowId(res.workflowId);
+        navigate(`/workflow/${res.workflowId}`);
       } else {
         await apiUpdateWorkflow(workflowId, payload);
       }
