@@ -41,6 +41,15 @@ export async function apiSignin(body: { username: string; password: string }): P
   return res.data;
 }
 
+export async function apiVerifyToken(): Promise<{ message: string }> {
+  const res = await api.get<{ message: string }>("/user/verify", {
+    headers: {
+      Authorization: localStorage.getItem("token") || "",
+    },
+  });
+  return res.data;
+}
+
 // WORKFLOW
 
 export async function apiCreateWorkflow(body: any): Promise<IdResponse> {

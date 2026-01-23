@@ -206,12 +206,12 @@ export const CreateWorkflow = () => {
               </div>
               <div className="flex flex-col items-end gap-2 text-xs md:text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
+                  {routeWorkflowId && <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
                     <span className="mr-1 text-neutral-500">Name:</span>
                     <span className="font-mono text-neutral-200">
                       {workflowName || "-"}
                     </span>
-                  </div>
+                  </div>}
                 {workflowId && (
                   <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
                     <span className="mr-1 text-neutral-500">Workflow ID:</span>
@@ -239,20 +239,22 @@ export const CreateWorkflow = () => {
                         ? "Update workflow"
                         : "Save workflow"}
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="mt-1 border-neutral-800 bg-neutral-950 px-5 py-2 text-xs font-medium text-neutral-200 md:text-sm cursor-pointer"
-                    onClick={() => {
-                      setNodes([]);
-                      setEdges([]);
-                      setWorkflowId(null);
-                      setWorkflowName("");
-                      navigate("/workflow");
-                      setShowNameDialog(true);
-                    }}
-                  >
-                    New workflow
-                  </Button>
+                  {routeWorkflowId && 
+                    <Button
+                      variant="outline"
+                      className="mt-1 border-neutral-800 bg-neutral-950 px-5 py-2 text-xs font-medium text-neutral-200 md:text-sm cursor-pointer"
+                      onClick={() => {
+                        setNodes([]);
+                        setEdges([]);
+                        setWorkflowId(null);
+                        setWorkflowName("");
+                        navigate("/create");
+                        setShowNameDialog(true);
+                      }}
+                    >
+                      New workflow
+                    </Button>
+                  }
                 </div>
               </div>
             </div>

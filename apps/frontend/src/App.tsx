@@ -4,6 +4,7 @@ import { CreateWorkflow } from "./components/CreateWorkflow";
 import { Auth } from "./components/Auth";
 import { Landing } from "./components/Landing";
 import { Dashboard } from "./components/Dashboard";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export function App() {
   return (
@@ -11,9 +12,30 @@ export function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/signin" element={<Auth mode="signin" />} />
       <Route path="/signup" element={<Auth mode="signup" />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/create" element={<CreateWorkflow />} />
-      <Route path="/workflow/:workflowId" element={<CreateWorkflow />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create"
+        element={
+          <ProtectedRoute>
+            <CreateWorkflow />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workflow/:workflowId"
+        element={
+          <ProtectedRoute>
+            <CreateWorkflow />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

@@ -44,7 +44,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
         <div className="flex-1 space-y-6 text-neutral-200">
           <div className="space-y-4">
             <h1
-              className="text-5xl font-bold bg-gradient-to-r from-[#f17463] via-[#f4937d] to-[#fde1d6] bg-clip-text text-transparent"
+              className="text-5xl font-bold bg-linear-to-r from-[#f17463] via-[#f4937d] to-[#fde1d6] bg-clip-text text-transparent"
             >
               {mode === "signin" ? "Welcome Back" : "Get Started"}
             </h1>
