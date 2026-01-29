@@ -1,6 +1,8 @@
-import { Resend } from 'resend';
-import { getNotificationContent, type EventType, type NotificationDetails } from './notificationContent';
 require("dotenv").config();
+import { Resend } from 'resend';
+import { getNotificationContent } from './notificationContent';
+import type { EventType, NotificationDetails } from '../types';
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendEmail(

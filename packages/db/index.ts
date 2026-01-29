@@ -144,6 +144,10 @@ const ExecutionSchema = new Schema({
         enum: ["Pending", "InProgress", "Success", "Failed"],
         required: true,
     },
+    message: {
+        type: String,
+        default: "Execution completed",
+    },
     startTime: {
         type: Date,
         default: Date.now,

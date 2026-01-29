@@ -38,3 +38,17 @@ export interface TradingMetadata {
 }
 
 export const SUPPORTED_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE"];
+export const assetMapped: Record<string, string> = {
+    "CDSL": "CDSL",
+    "HDFC": "HDFCBANK",
+    "TCS": "TCS",
+    "INFY": "INFY",
+    "RELIANCE": "RELIANCE"
+};
+export const assetCompanyName: Record<string, string> = {
+    "CDSL": "Central-Depository-Services-(India)-Limited",
+    "HDFC": "HDFC-Bank-Limited",
+    "TCS": "Tata-Consultancy-Services-Limited",
+    "INFY": "Infosys-Limited",
+    "RELIANCE": "Reliance Industries Limited"
+};

@@ -8,7 +8,8 @@ interface Execution {
   _id: string;
   workflowId: string;
   userId: string;
-  status: "Pending" | "InProgress" | "Success" | "Failed";
+  status: string;
+  message?: string;
   startTime: string;
   endTime?: string;
 }
@@ -169,8 +170,9 @@ export const Executions = () => {
           ) : (
             <>
               {/* Column Headers */}
-              <div className="grid grid-cols-5 gap-4 items-center px-6 py-3 bg-neutral-700/20 border-b border-neutral-700/50">
+              <div className="grid grid-cols-6 gap-4 items-center px-6 py-3 bg-neutral-700/20 border-b border-neutral-700/50">
                 <span className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Status</span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Message</span>
                 <span className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Started At</span>
                 <span className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Ended At</span>
                 <span className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Duration</span>
@@ -181,7 +183,7 @@ export const Executions = () => {
                 {executions.map((execution) => (
                   <div
                     key={execution._id}
-                    className="grid grid-cols-5 gap-4 items-center px-6 py-4 hover:bg-neutral-700/30 transition-colors group"
+                    className="grid grid-cols-6 gap-4 items-center px-6 py-4 hover:bg-neutral-700/30 transition-colors group"
                   >
                     <div className="flex items-center gap-3">
                       {getStatusIcon(execution.status)}
@@ -189,6 +191,9 @@ export const Executions = () => {
                         {execution.status}
                       </span>
                     </div>
+                    <span className="text-sm text-neutral-400 truncate" title={execution.message || ""}>
+                      {execution.message || "-"}
+                    </span>
                     <span className="text-sm text-neutral-400">
                       {formatDate(execution.startTime)}
                     </span>

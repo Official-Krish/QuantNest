@@ -1,20 +1,4 @@
-export type EventType = "buy" | "sell" | "price_trigger" | "trade_failed";
-
-export interface NotificationDetails {
-    symbol?: string;
-    quantity?: number;
-    price?: number;
-    exchange?: string;
-    targetPrice?: number;
-    condition?: "above" | "below";
-    tradeType?: "buy" | "sell";
-    failureReason?: string;
-}
-
-export interface NotificationContent {
-    subject: string;
-    message: string;
-}
+import type { EventType, NotificationContent, NotificationDetails } from "../types";
 
 export function getNotificationContent(
     name: string,

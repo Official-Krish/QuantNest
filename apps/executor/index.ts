@@ -107,15 +107,18 @@ async function executeWorkflowSafe(workflow: WorkflowType) {
         workflowId: workflow._id,
         userId: workflow.userId,
         status: "InProgress",
+        message: "Workflow execution started",
         startTime: new Date(),
     });
 
     try {
         const res = await executeWorkflow(workflow.nodes, workflow.edges);
-        execution.status = res || "Unknown";
-    } catch (err) {
+        execution.status = res.status;
+        execution.message = res.message;
+    } catch (err: any) {
         console.error(`Execution error (${workflow.workflowName})`, err);
         execution.status = "Failed";
+        execution.message = err.message || "Workflow execution failed with an error";
     } finally {
         execution.endTime = new Date();
         await execution.save();

@@ -1,5 +1,6 @@
 import axios from "axios";
-import { getNotificationContent, type EventType, type NotificationDetails } from './notificationContent';
+import { getNotificationContent } from './notificationContent';
+import type { EventType, NotificationDetails } from "../types";
 
 export const sendDiscordNotification = async (
   webhookUrl: string, 
