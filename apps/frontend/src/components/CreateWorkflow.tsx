@@ -8,6 +8,8 @@ import { PriceTrigger } from "./nodes/triggers/PriceTrigger";
 import { Timer } from "./nodes/triggers/timers";
 import { zerodhaAction } from "./nodes/actions/zerodha";
 import { growwAction } from "./nodes/actions/growwAction";
+import { gmailAction } from "./nodes/actions/gmailAction";
+import { discordAction } from "./nodes/actions/discordAction";
 import {
   apiCreateWorkflow,
   apiGetWorkflow,
@@ -20,6 +22,8 @@ const nodeTypes = {
   timer: Timer,
   zerodha: zerodhaAction,
   groww: growwAction,
+  gmail: gmailAction,
+  discord: discordAction,
 };
 
 const POSITION_OFFSET = 50;
@@ -66,7 +70,7 @@ export const CreateWorkflow = () => {
             const metadata = node.data?.metadata || {};
             if (metadata.time !== undefined) {
               nodeType = "timer";
-            } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined) {
+            } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined && metadata.condition !== undefined) {
               nodeType = "price-trigger";
             } else if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {
               nodeType = "zerodha";
