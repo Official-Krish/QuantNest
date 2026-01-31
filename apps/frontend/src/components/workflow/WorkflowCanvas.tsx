@@ -42,6 +42,8 @@ export interface WorkflowCanvasProps {
   onOpenNameDialog: () => void;
   onEditTriggerSave: (type: any, metadata: any) => void;
   onEditActionSave: (type: any, metadata: any) => void;
+  marketType: "Indian" | "Crypto";
+  setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto">>;
 }
 
 export const WorkflowCanvas = ({
@@ -77,6 +79,8 @@ export const WorkflowCanvas = ({
   onOpenNameDialog,
   onEditTriggerSave,
   onEditActionSave,
+  marketType,
+  setMarketType,
 }: WorkflowCanvasProps) => {
   return (
     <div
@@ -152,6 +156,8 @@ export const WorkflowCanvas = ({
             open={showTriggerSheet}
             onOpenChange={setShowTriggerSheet}
             onSelect={onTriggerSelect}
+            marketType={marketType}
+            setMarketType={setMarketType}
           />
         )}
 
@@ -167,6 +173,8 @@ export const WorkflowCanvas = ({
             submitLabel="Save trigger"
             title="Edit trigger"
             onSelect={onEditTriggerSave}
+            marketType={marketType}
+            setMarketType={setMarketType}
           />
         )}
 
@@ -179,6 +187,7 @@ export const WorkflowCanvas = ({
               }
             }}
             onSelect={onActionSelect}
+            marketType={marketType}
           />
         )}
 
@@ -194,6 +203,7 @@ export const WorkflowCanvas = ({
             submitLabel="Save action"
             title="Edit action"
             onSelect={onEditActionSave}
+            marketType={marketType}
           />
         )}
 

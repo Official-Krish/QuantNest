@@ -1,4 +1,4 @@
-export { BrokerSelector } from "./BrokerSelector";
+export { ActionTypeSelector } from "./ActionTypeSelector";
 export { TriggerTypeSelector } from "./TriggerTypeSelector";
 export { TradingForm } from "./TradingForm";
 export { TimerForm } from "./TimerForm";

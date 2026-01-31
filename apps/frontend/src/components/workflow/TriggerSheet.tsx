@@ -27,6 +27,8 @@ export const TriggerSheet = ({
   initialMetadata,
   submitLabel,
   title,
+  marketType,
+  setMarketType,
 }: {
   onSelect: (kind: NodeKind, metadata: NodeMetadata) => void;
   open: boolean;
@@ -35,11 +37,14 @@ export const TriggerSheet = ({
   initialMetadata?: NodeMetadata;
   submitLabel?: string;
   title?: string;
+  marketType: "Indian" | "Crypto";
+  setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto">>;
 }) => {
   const [metadata, setMetadata] = useState<
     PriceTriggerNodeMetadata | TimerNodeMetadata
   >(() => ({} as PriceTriggerNodeMetadata | TimerNodeMetadata));
   const [selectedTrigger, setSelectedTrigger] = useState("");
+  
 
   useEffect(() => {
     if (open) {
@@ -85,13 +90,16 @@ export const TriggerSheet = ({
             <TimerForm
               metadata={metadata as TimerNodeMetadata}
               setMetadata={setMetadata}
+              setMarketType={setMarketType}
             />
           )}
 
           {selectedTrigger === "price-trigger" && (
             <PriceTriggerForm
+              marketType={marketType}
               metadata={metadata as PriceTriggerNodeMetadata}
               setMetadata={setMetadata}
+              setMarketType={setMarketType}
             />
           )}
         </SheetHeader>
