@@ -20,18 +20,20 @@ export type NodeMetadata = TradingMetadata | TimerNodeMetadata | PriceTriggerNod
 
 export interface TimerNodeMetadata {
     time: number;
+    marketType: "indian" | "web3";
 }
 
 export interface PriceTriggerNodeMetadata {
     asset: string;
     targetPrice: number;
+    marketType: "indian" | "web3";
     condition: "above" | "below";
 }
 
 export interface TradingMetadata {
-    type: "buy" | "sell";
+    type: "buy" | "sell" | "long" | "short";
     qty: number;
-    symbol: typeof SUPPORTED_ASSETS[number];
+    symbol: typeof SUPPORTED_INDIAN_MARKET_ASSETS[number];
     apiKey: string;
     accessToken: string;
     exchange: "NSE" | "BSE";
@@ -43,7 +45,9 @@ export interface NotificationMetadata {
     webhookUrl?: string;
 }
 
-export const SUPPORTED_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE"];
+export const SUPPORTED_MARKETS = ["Indian", "Crypto"];
+
+export const SUPPORTED_INDIAN_MARKET_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE"];
 export const assetMapped: Record<string, string> = {
     "CDSL": "CDSL",
     "HDFC": "HDFCBANK",
@@ -58,6 +62,8 @@ export const assetCompanyName: Record<string, string> = {
     "INFY": "Infosys-Limited",
     "RELIANCE": "Reliance Industries Limited"
 };
+
+export const SUPPORTED_WEB3_ASSETS = ["ETH", "BTC", "SOL"];
 
 export interface ExecutionStep {
     step: number;
