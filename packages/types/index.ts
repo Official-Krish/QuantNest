@@ -16,11 +16,12 @@ export interface EdgeType {
     target: string;
 }
 
-export type NodeMetadata = TradingMetadata | TimerNodeMetadata | PriceTriggerNodeMetadata | NotificationMetadata | {};
+export type NodeMetadata = TradingMetadata | TimerNodeMetadata | PriceTriggerNodeMetadata | NotificationMetadata | LighterMetadata | {};
 
 export interface TimerNodeMetadata {
     time: number;
     marketType: "indian" | "web3";
+    
 }
 
 export interface PriceTriggerNodeMetadata {
@@ -43,6 +44,15 @@ export interface NotificationMetadata {
     recipientName: string;
     recipientEmail?: string;
     webhookUrl?: string;
+}
+
+export interface LighterMetadata {
+    type: "long" | "short";
+    qty: number;
+    symbol: typeof SUPPORTED_WEB3_ASSETS[number];
+    apiKey: string;
+    accountIndex: number;
+    apiKeyIndex: number;
 }
 
 export const SUPPORTED_MARKETS = ["Indian", "Crypto"];

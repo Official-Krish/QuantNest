@@ -6,9 +6,10 @@ import { executeZerodhaNode } from "./executors/zerodha";
 import type { EdgeType, NodeType } from "./types";
 import { isMarketOpen } from "./utils/market.utils";
 import { checkTokenStatus, getMarketStatus, getZerodhaToken } from "@n8n-trading/executor-utils";
+import { ExecuteLighter } from "./executors/lighter";
 
 interface ExecutionContext {
-    eventType?: "buy" | "sell" | "price_trigger" | "trade_failed";
+    eventType?: "buy" | "sell" | "price_trigger" | "trade_failed" | "Long" | "Short";
     userId?: string;
     workflowId?: string;
     details?: {
@@ -235,56 +236,132 @@ export async function executeRecursive(
                 }
 
             case "gmail": 
-                if (context.eventType && context.details) {
-                    await sendEmail(
-                        node.data?.metadata?.recipientEmail || "",
-                        node.data?.metadata?.recipientName || "User",
-                        context.eventType,
-                        context.details
-                    );
+                try {
+                    if (context.eventType && context.details) {
+                        await sendEmail(
+                            node.data?.metadata?.recipientEmail || "",
+                            node.data?.metadata?.recipientName || "User",
+                            context.eventType,
+                            context.details
+                        );
+                        steps.push({
+                            step: steps.length + 1,
+                            nodeId: node.nodeId,
+                            nodeType: "Gmail Action",
+                            status: "Success",
+                            message: "Email notification sent"
+                        });
+                        return;
+                    } else {
+                        await sendEmail(
+                            node.data?.metadata?.recipientEmail || "",
+                            node.data?.metadata?.recipientName || "User",
+                            "notification",
+                            {
+                                symbol: node.data?.metadata?.symbol,
+                                exchange: node.data?.metadata?.exchange || "NSE",
+                                targetPrice: node.data?.metadata?.targetPrice,
+                            }
+                        )
+                        steps.push({
+                            step: steps.length + 1,
+                            nodeId: node.nodeId,
+                            nodeType: "Gmail Action",
+                            status: "Success",
+                            message: "Email notification sent"
+                        });
+                        return;
+                    }
+                } catch (error) {
+                    console.error("Gmail execution error:", error);
                     steps.push({
                         step: steps.length + 1,
                         nodeId: node.nodeId,
                         nodeType: "Gmail Action",
-                        status: "Success",
-                        message: "Email notification sent"
+                        status: "Failed",
+                        message: "Failed to send email notification"
                     });
                     return;
                 }
-                steps.push({
-                    step: steps.length + 1,
-                    nodeId: node.nodeId,
-                    nodeType: "Gmail Action",
-                    status: "Failed",
-                    message: "Failed to send email notification - Missing Context"
-                });
-                return;
 
             case "discord": 
-                if (context.eventType && context.details) {
-                    await sendDiscordNotification(
-                        node.data?.metadata?.webhookUrl || "",
-                        node.data?.metadata?.recipientName || "User",
-                        context.eventType,
-                        context.details
-                    );
+                try {
+                    if (context.eventType && context.details) {
+                        await sendDiscordNotification(
+                            node.data?.metadata?.webhookUrl || "",
+                            node.data?.metadata?.recipientName || "User",
+                            context.eventType,
+                            context.details
+                        );
+                        steps.push({
+                            step: steps.length + 1,
+                            nodeId: node.nodeId,
+                            nodeType: "Discord Action",
+                            status: "Success",
+                            message: "Discord notification sent"
+                        });
+                        return;
+                    } else {
+                        await sendDiscordNotification(
+                            node.data?.metadata?.webhookUrl || "",
+                            node.data?.metadata?.recipientName || "User",
+                            "notification",
+                            {
+                                symbol: node.data?.metadata?.symbol,
+                                exchange: node.data?.metadata?.exchange || "NSE",
+                                targetPrice: node.data?.metadata?.targetPrice,
+                            }
+                        );
+                        steps.push({
+                            step: steps.length + 1,
+                            nodeId: node.nodeId,
+                            nodeType: "Discord Action",
+                            status: "Success",
+                            message: "Discord notification sent"
+                        });
+                        return;
+                    }   
+                } catch (error) {
+                    console.error("Discord execution error:", error);
                     steps.push({
                         step: steps.length + 1,
                         nodeId: node.nodeId,
                         nodeType: "Discord Action",
-                        status: "Success",
-                        message: "Discord notification sent"
+                        status: "Failed",
+                        message: "Failed to send Discord notification"
                     });
                     return;
                 }
-                steps.push({
-                    step: steps.length + 1,
-                    nodeId: node.nodeId,
-                    nodeType: "Discord Action",
-                    status: "Failed",
-                    message: "Failed to send Discord notification - Missing Context"
-                });
-                return;
+            
+            case "lighter": 
+                try {
+                    await ExecuteLighter(
+                        node.data?.metadata?.symbol, 
+                        node.data?.metadata?.amount, 
+                        node.data?.metadata?.type,
+                        node.data?.metadata?.apiKey,
+                        node.data?.metadata?.accountIndex,
+                        node.data?.metadata?.apiKeyIndex
+                    );
+                    steps.push({
+                        step: steps.length + 1,
+                        nodeId: node.nodeId,
+                        nodeType: "Lighter Action",
+                        status: "Success",
+                        message: "Lighter action executed (placeholder)"
+                    });
+                    return;
+                } catch (error) {
+                    console.error("Lighter execution error:", error);
+                    steps.push({
+                        step: steps.length + 1,
+                        nodeId: node.nodeId,
+                        nodeType: "Lighter Action",
+                        status: "Failed",
+                        message: "Lighter execution failed"
+                    });
+                    return;
+                }
         }
     }));
 

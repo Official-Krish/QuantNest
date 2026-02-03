@@ -1,7 +1,8 @@
-import type {
-  NodeKind,
-  NodeMetadata,
-  TradingMetadata,
+import {
+  type LighterMetadata,
+  type NodeKind,
+  type NodeMetadata,
+  type TradingMetadata,
 } from "@n8n-trading/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SUPPORTED_ACTIONS } from "./sheets/constants";
 import { ActionTypeSelector } from "./sheets/ActionTypeSelector";
 import { TradingForm } from "./sheets/TradingForm";
@@ -39,7 +40,7 @@ export const ActionSheet = ({
   title?: string;
   marketType: "Indian" | "Crypto";
 }) => {
-  const [metadata, setMetadata] = useState<TradingMetadata | {}>({});
+  const [metadata, setMetadata] = useState<TradingMetadata | LighterMetadata | {}>({});
   const [selectedAction, setSelectedAction] = useState("");
   const [initialAction, setInitialAction] = useState<"Order Notification" | "Order Execution" | undefined>(undefined);
 

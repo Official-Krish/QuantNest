@@ -88,7 +88,7 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
             </div>
 
             {/* Table Rows */}
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border-neutral-600">
                 {workflows.map((wf) => (
                     <div
                         key={wf._id}

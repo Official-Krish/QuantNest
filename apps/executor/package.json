@@ -7,7 +7,8 @@
     "@types/bun": "latest",
     "@n8n-trading/db": "workspace:^",
     "@n8n-trading/types": "workspace:^",
-    "@n8n-trading/executor-utils": "workspace:^"
+    "@n8n-trading/executor-utils": "workspace:^",
+    "@n8n-trading/lighter-sdk-ts": "workspace:^"
   },
   "peerDependencies": {
     "typescript": "^5"

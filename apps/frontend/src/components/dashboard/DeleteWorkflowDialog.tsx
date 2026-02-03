@@ -65,7 +65,7 @@ export const DeleteWorkflowDialog = ({ open, onOpenChange, workflowId, workflowN
                         variant="ghost"
                         onClick={() => onOpenChange(false)}
                         disabled={deleting}
-                        className="text-neutral-400 hover:text-neutral-200"
+                        className="text-neutral-400 hover:text-neutral-800 cursor-pointer transform transition-colors duration-200"
                     >
                         Cancel
                     </Button>
@@ -73,7 +73,7 @@ export const DeleteWorkflowDialog = ({ open, onOpenChange, workflowId, workflowN
                         variant="destructive"
                         onClick={handleDelete}
                         disabled={deleting}
-                        className="bg-red-600 hover:bg-red-700"
+                        className="bg-red-600 hover:bg-red-700 cursor-pointer"
                     >
                         {deleting ? "Deleting..." : "Delete Workflow"}
                     </Button>
