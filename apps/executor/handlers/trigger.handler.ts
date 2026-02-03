@@ -1,4 +1,4 @@
-import { SUPPORTED_ASSETS } from "@n8n-trading/types";
+import { SUPPORTED_INDIAN_MARKET_ASSETS } from "@n8n-trading/types";
 import type { NodeType, WorkflowType } from "../types";
 import { getCurrentPrice } from "../services/price.service";
 
@@ -28,7 +28,7 @@ export async function handlePriceTrigger(
     ];
 
     for (const asset of assets) {
-        if (!SUPPORTED_ASSETS.includes(asset as string)) {
+        if (!SUPPORTED_INDIAN_MARKET_ASSETS.includes(asset as string)) {
             console.error(`Unsupported asset ${asset}`);
             return false;
         }

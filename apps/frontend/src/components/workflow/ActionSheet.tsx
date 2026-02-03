@@ -1,7 +1,8 @@
-import type {
-  NodeKind,
-  NodeMetadata,
-  TradingMetadata,
+import {
+  type LighterMetadata,
+  type NodeKind,
+  type NodeMetadata,
+  type TradingMetadata,
 } from "@n8n-trading/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,12 +13,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SUPPORTED_ACTIONS } from "./sheets/constants";
-import { BrokerSelector } from "./sheets/BrokerSelector";
+import { ActionTypeSelector } from "./sheets/ActionTypeSelector";
 import { TradingForm } from "./sheets/TradingForm";
 import { GmailForm } from "./sheets/GmailForm";
 import { DiscordForm } from "./sheets/DiscordForm";
+import { ActionSheets } from "./sheets/ActionSheets";
 
 export const ActionSheet = ({
   onSelect,
@@ -27,6 +29,7 @@ export const ActionSheet = ({
   initialMetadata,
   submitLabel,
   title,
+  marketType,
 }: {
   onSelect: (kind: NodeKind, metadata: NodeMetadata) => void;
   open: boolean;
@@ -35,23 +38,11 @@ export const ActionSheet = ({
   initialMetadata?: NodeMetadata;
   submitLabel?: string;
   title?: string;
+  marketType: "Indian" | "Crypto";
 }) => {
-  const [metadata, setMetadata] = useState<TradingMetadata | {}>({});
+  const [metadata, setMetadata] = useState<TradingMetadata | LighterMetadata | {}>({});
   const [selectedAction, setSelectedAction] = useState("");
-
-  useEffect(() => {
-    if (open) {
-      if (initialKind && (["zerodha", "groww", "gmail", "discord"] as unknown as NodeKind[]).includes(initialKind)) {
-        setSelectedAction(initialKind);
-      }
-      if (initialMetadata) {
-        setMetadata((current) => ({
-          ...(current || {}),
-          ...(initialMetadata as TradingMetadata),
-        }));
-      }
-    }
-  }, [open, initialKind, initialMetadata]);
+  const [initialAction, setInitialAction] = useState<"Order Notification" | "Order Execution" | undefined>(undefined);
 
   const handleCreate = () => {
     if (!selectedAction) return;
@@ -65,25 +56,57 @@ export const ActionSheet = ({
         <SheetHeader className="gap-4 p-5">
           <div className="space-y-1">
             <SheetTitle className="text-base font-medium text-neutral-50">
-              {title ?? "Select broker action"}
+              {title ?? "Select Action"}
             </SheetTitle>
             <SheetDescription className="text-xs text-neutral-400">
               Connect this step of your workflow to a live brokerage
               integration.
             </SheetDescription>
           </div>
-
-          <BrokerSelector
-            value={selectedAction}
-            onValueChange={setSelectedAction}
-            actions={SUPPORTED_ACTIONS}
+          
+          {/* Step 1: Select Action Type */}
+          <ActionTypeSelector
+            value={initialAction || ""}
+            onValueChange={(value) => setInitialAction(value as "Order Notification" | "Order Execution")}
+            actions={[
+              {
+                id: "Order Execution",
+                title: "Order Execution",
+                description: "Execute trades on your selected brokerage",
+              },
+              {
+                id: "Order Notification",
+                title: "Order Notification",
+                description: "Send notifications for your order events",
+              },
+            ]}
           />
+          
+          {/* Step 2: Select Specific Broker/Service */}
+          {initialAction === "Order Notification" && (
+            <ActionSheets
+              value={selectedAction}
+              onValueChange={setSelectedAction}
+              actions={SUPPORTED_ACTIONS["Notification"]}
+              initialAction={initialAction}
+            />
+          )}
+          
+          {initialAction === "Order Execution" && (
+            <ActionSheets
+              value={selectedAction}
+              onValueChange={setSelectedAction}
+              actions={marketType in SUPPORTED_ACTIONS ? SUPPORTED_ACTIONS[marketType] : []}
+              initialAction={initialAction}
+            />
+          )}
 
-          {(selectedAction === "zerodha" || selectedAction === "groww") && (
+          {(selectedAction === "zerodha" || selectedAction === "groww" || selectedAction === "lighter") && (
             <TradingForm
               metadata={metadata}
               setMetadata={setMetadata}
               showApiKey={selectedAction === "zerodha"}
+              action={selectedAction as "zerodha" | "groww" | "lighter"}
             />
           )}
 

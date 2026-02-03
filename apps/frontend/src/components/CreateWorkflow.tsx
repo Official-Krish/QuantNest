@@ -16,6 +16,7 @@ import {
   apiUpdateWorkflow,
 } from "@/http";
 import { Button } from "@/components/ui/button";
+import { lighterAction } from "./nodes/actions/lighterAction";
 
 const nodeTypes = {
   "price-trigger": PriceTrigger,
@@ -24,6 +25,7 @@ const nodeTypes = {
   groww: growwAction,
   gmail: gmailAction,
   discord: discordAction,
+  lighter: lighterAction,
 };
 
 const POSITION_OFFSET = 50;
@@ -49,6 +51,7 @@ export const CreateWorkflow = () => {
   } | null>(null);
   const [showActionSheetEdit, setShowActionSheetEdit] = useState(false);
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
+  const [marketType, setMarketType] = useState<"Indian" | "Crypto">("Indian");
 
   // Load an existing workflow when opened from /workflow/:workflowId
   useEffect(() => {
@@ -94,6 +97,7 @@ export const CreateWorkflow = () => {
         setEdges(workflow.edges as EdgeType[]);
         setWorkflowId(workflow._id);
         setWorkflowName(workflow.workflowName || "");
+        setMarketType(workflow.marketType || "Indian");
       } catch (e: any) {
         setSaveError(
           e?.response?.data?.message ??
@@ -352,6 +356,8 @@ export const CreateWorkflow = () => {
             setShowActionSheetEdit(false);
             setEditingNode(null);
           }}
+          marketType={marketType}
+          setMarketType={setMarketType}
         />
         <WorkflowNameDialog
           open={showNameDialog}

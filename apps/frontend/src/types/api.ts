@@ -17,6 +17,7 @@ export interface Workflow {
   workflowName: string;
   nodes: any[];
   edges: any[];
+  marketType?: "Indian" | "Crypto";
 }
 
 export type marketStatus = {

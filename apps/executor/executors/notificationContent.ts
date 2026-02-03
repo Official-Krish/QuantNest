@@ -106,6 +106,73 @@ If the issue persists, please contact your broker or reach out to our support te
 Best regards,
 N8n Trading Team`;
             break;
+
+        case "Long":
+            subject = 'Position Opened: Long Position Executed';
+            message = `Dear ${name},
+
+Your long position has been successfully opened on N8n Trading.
+
+Position Details:
+• Asset: ${details.symbol}
+• Position Type: LONG
+• Quantity: ${details.quantity} units
+• Entry Price: ${details.price ? `$${details.price}` : 'Market Price'}
+• Executed At: ${new Date().toLocaleString()}
+
+A long position means you're betting on the price going up. Your position will profit if the asset price increases.
+
+You can monitor your position and set stop-loss or take-profit levels in your dashboard.
+
+If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+
+Best regards,
+N8n Trading Team`;
+            break;
+
+        case "Short":
+            subject = 'Position Opened: Short Position Executed';
+            message = `Dear ${name},
+
+Your short position has been successfully opened on N8n Trading.
+
+Position Details:
+• Asset: ${details.symbol}
+• Position Type: SHORT
+• Quantity: ${details.quantity} units
+• Entry Price: ${details.price ? `$${details.price}` : 'Market Price'}
+• Executed At: ${new Date().toLocaleString()}
+
+A short position means you're betting on the price going down. Your position will profit if the asset price decreases.
+
+You can monitor your position and set stop-loss or take-profit levels in your dashboard.
+
+If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+
+Best regards,
+N8n Trading Team`;
+            break;
+
+        case "notification":
+            subject = 'Workflow Notification: Action Completed';
+            message = `Dear ${name},
+
+Your workflow has completed an action on N8n Trading.
+
+Notification Details:
+• Workflow: ${details.symbol || 'Trading Workflow'}
+• Status: Completed
+• Executed At: ${new Date().toLocaleString()}
+
+${details.failureReason || 'Your workflow has been executed successfully as configured.'}
+
+You can view detailed execution logs and results in your dashboard.
+
+If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+
+Best regards,
+N8n Trading Team`;
+            break;
     }
 
     return { subject, message };

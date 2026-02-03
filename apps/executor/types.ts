@@ -46,7 +46,7 @@ export type WorkflowType = {
     _id: mongoose.Types.ObjectId;
 };
 
-export type EventType = "buy" | "sell" | "price_trigger" | "trade_failed";
+export type EventType = "buy" | "sell" | "price_trigger" | "trade_failed"| "Long" | "Short" | "notification";
 
 export interface NotificationDetails {
     symbol?: string;

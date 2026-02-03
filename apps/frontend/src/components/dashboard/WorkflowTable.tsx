@@ -24,6 +24,22 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
         ) ?? false;
     };
 
+    const getBrokerType = (workflow: Workflow): { type: string; color: string } | null => {
+        const node = workflow.nodes?.find((node: any) => 
+            ["zerodha", "groww", "lighter"].includes(node.type?.toLowerCase())
+        );
+        
+        if (!node) return null;
+        
+        const brokerColors: Record<string, { type: string; color: string }> = {
+            zerodha: { type: "Zerodha", color: "blue" },
+            groww: { type: "Groww", color: "green" },
+            lighter: { type: "Lighter", color: "purple" },
+        };
+        
+        return brokerColors[node.type.toLowerCase()] || null;
+    };
+
     if (loading) {
         return (
             <div className="flex h-48 items-center justify-center">
@@ -72,7 +88,7 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
             </div>
 
             {/* Table Rows */}
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border-neutral-600">
                 {workflows.map((wf) => (
                     <div
                         key={wf._id}
@@ -93,12 +109,23 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
                             {wf.edges?.length ?? 0}
                         </span>
                         <div className="hidden md:block">
-                            {hasZerodhaAction(wf) && (
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400 border border-blue-500/20">
-                                    <Key className="h-3 w-3" />
-                                    Zerodha
-                                </span>
-                            )}
+                            {(() => {
+                                const broker = getBrokerType(wf);
+                                if (!broker) return <span className="text-xs text-muted-foreground/50">—</span>;
+                                
+                                const colorClasses: Record<string, string> = {
+                                    blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                                    green: "bg-green-500/10 text-green-400 border-green-500/20",
+                                    purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                                };
+                                
+                                return (
+                                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border ${colorClasses[broker.color]}`}>
+                                        <Key className="h-3 w-3" />
+                                        {broker.type}
+                                    </span>
+                                );
+                            })()}
                         </div>
                         <div className="flex justify-end gap-2">
                             {hasZerodhaAction(wf) && (
