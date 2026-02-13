@@ -1,4 +1,4 @@
-import { SUPPORTED_INDIAN_MARKET_ASSETS } from "@n8n-trading/types";
+import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@n8n-trading/types";
 import type { NodeType, WorkflowType } from "../types";
 import { getCurrentPrice } from "../services/price.service";
 
@@ -12,6 +12,8 @@ export async function handlePriceTrigger(
         console.error("Invalid price trigger metadata");
         return false;
     }
+
+    const market = workflow.nodes[0]?.data?.metadata?.marketType || "Indian";
 
     const actions = workflow.nodes.filter(
         (n: any) => n?.data?.kind === "action" || n?.data?.kind === "ACTION"
@@ -28,7 +30,7 @@ export async function handlePriceTrigger(
     ];
 
     for (const asset of assets) {
-        if (!SUPPORTED_INDIAN_MARKET_ASSETS.includes(asset as string)) {
+        if ((market === "Indian" && !SUPPORTED_INDIAN_MARKET_ASSETS.includes(asset as string)) || (market === "Crypto" && !SUPPORTED_WEB3_ASSETS.includes(asset as string))) {
             console.error(`Unsupported asset ${asset}`);
             return false;
         }
@@ -37,7 +39,7 @@ export async function handlePriceTrigger(
     const priceMap: Record<string, number> = {};
 
     for (const asset of assets) {
-        priceMap[asset as string] = await getCurrentPrice(asset as string);
+        priceMap[asset as string] = await getCurrentPrice(asset as string, market);
     }
 
     for (const action of actions) {
