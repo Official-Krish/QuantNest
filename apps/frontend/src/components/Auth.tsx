@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiSignin, apiSignup } from "@/http";
 import { AVATAR_OPTIONS } from "@/lib/utils";
-
 import {
   Card,
   CardHeader,

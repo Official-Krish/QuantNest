@@ -38,7 +38,7 @@ export const ActionSheet = ({
   initialMetadata?: NodeMetadata;
   submitLabel?: string;
   title?: string;
-  marketType: "Indian" | "Crypto";
+  marketType: "Indian" | "Crypto" | null;
 }) => {
   const [metadata, setMetadata] = useState<TradingMetadata | LighterMetadata | {}>({});
   const [selectedAction, setSelectedAction] = useState("");
@@ -96,7 +96,7 @@ export const ActionSheet = ({
             <ActionSheets
               value={selectedAction}
               onValueChange={setSelectedAction}
-              actions={marketType in SUPPORTED_ACTIONS ? SUPPORTED_ACTIONS[marketType] : []}
+              actions={marketType && marketType in SUPPORTED_ACTIONS ? SUPPORTED_ACTIONS[marketType] : []}
               initialAction={initialAction}
             />
           )}

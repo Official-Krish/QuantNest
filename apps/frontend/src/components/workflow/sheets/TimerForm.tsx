@@ -12,7 +12,7 @@ import {
 import { SUPPORTED_MARKETS } from "@n8n-trading/types";
 
 interface TimerFormProps {
-    setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto">>;
+    setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
   metadata: TimerNodeMetadata;
   setMetadata: React.Dispatch<React.SetStateAction<any>>;
 }

@@ -42,8 +42,8 @@ export interface WorkflowCanvasProps {
   onOpenNameDialog: () => void;
   onEditTriggerSave: (type: any, metadata: any) => void;
   onEditActionSave: (type: any, metadata: any) => void;
-  marketType: "Indian" | "Crypto";
-  setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto">>;
+  marketType: "Indian" | "Crypto" | null;
+  setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
 }
 
 export const WorkflowCanvas = ({

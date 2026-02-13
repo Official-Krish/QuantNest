@@ -37,8 +37,8 @@ export const TriggerSheet = ({
   initialMetadata?: NodeMetadata;
   submitLabel?: string;
   title?: string;
-  marketType: "Indian" | "Crypto";
-  setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto">>;
+  marketType: "Indian" | "Crypto" | null;
+  setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
 }) => {
   const [metadata, setMetadata] = useState<
     PriceTriggerNodeMetadata | TimerNodeMetadata

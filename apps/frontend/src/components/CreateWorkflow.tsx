@@ -51,7 +51,7 @@ export const CreateWorkflow = () => {
   } | null>(null);
   const [showActionSheetEdit, setShowActionSheetEdit] = useState(false);
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
-  const [marketType, setMarketType] = useState<"Indian" | "Crypto">("Indian");
+  const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(null);
 
   // Load an existing workflow when opened from /workflow/:workflowId
   useEffect(() => {

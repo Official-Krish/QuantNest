@@ -12,8 +12,8 @@ import {
 import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_MARKETS, SUPPORTED_WEB3_ASSETS } from "@n8n-trading/types";
 
 interface PriceTriggerFormProps {
-    marketType: "Indian" | "Crypto";
-    setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto">>;
+    marketType: "Indian" | "Crypto" | null;
+    setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
     metadata: PriceTriggerNodeMetadata;
     setMetadata: React.Dispatch<React.SetStateAction<any>>;
 }
@@ -122,43 +122,45 @@ export const PriceTriggerForm = ({
         </Select>
       </div>
 
-        {/* Asset according to market */}
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Asset
-        </p>
-        <Select
-          onValueChange={(value) =>
-            setMetadata((current: any) => ({
-              ...current,
-              asset: value,
-            }))
-          }
-          value={metadata.asset}
-        >
-          <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
-            <SelectValue placeholder="Select an asset" />
-          </SelectTrigger>
-          <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            <SelectGroup>
-              <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">
-                Select asset
-              </SelectLabel>
-              {(marketType === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS).map((asset) => (
-                <SelectItem
-                  key={asset}
-                  value={asset}
-                  className="cursor-pointer text-sm text-neutral-100 focus:bg-neutral-800"
-                >
-                  <div className="w-64">
-                    <div className="font-medium text-neutral-50">{asset}</div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+      {/* Asset according to market */}
+      {marketType && 
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            Asset
+          </p>
+          <Select
+            onValueChange={(value) =>
+              setMetadata((current: any) => ({
+                ...current,
+                asset: value,
+              }))
+            }
+            value={metadata.asset}
+          >
+            <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+              <SelectValue placeholder="Select an asset" />
+            </SelectTrigger>
+            <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+              <SelectGroup>
+                <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">
+                  Select asset
+                </SelectLabel>
+                {(marketType === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS).map((asset) => (
+                  <SelectItem
+                    key={asset}
+                    value={asset}
+                    className="cursor-pointer text-sm text-neutral-100 focus:bg-neutral-800"
+                  >
+                    <div className="w-64">
+                      <div className="font-medium text-neutral-50">{asset}</div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
       </div>
+    }
     </div>
   );
 };
