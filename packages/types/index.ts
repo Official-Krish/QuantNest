@@ -25,6 +25,7 @@ export interface ConditionalTriggerMetadata {
     marketType: "indian" | "web3" | "Indian" | "Crypto";
     asset: typeof SUPPORTED_INDIAN_MARKET_ASSETS[number] | typeof SUPPORTED_WEB3_ASSETS[number];
     timeWindowMinutes: number;
+    startTime: Date;
 }
 
 export interface TimerNodeMetadata {
