@@ -1,4 +1,5 @@
 import {
+  type ConditionalTriggerMetadata,
   type NodeKind,
   type NodeMetadata,
   type PriceTriggerNodeMetadata,
@@ -18,6 +19,7 @@ import { SUPPORTED_TRIGGERS } from "./sheets/constants";
 import { TriggerTypeSelector } from "./sheets/TriggerTypeSelector";
 import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
+import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
 
 export const TriggerSheet = ({
   onSelect,
@@ -41,20 +43,20 @@ export const TriggerSheet = ({
   setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
 }) => {
   const [metadata, setMetadata] = useState<
-    PriceTriggerNodeMetadata | TimerNodeMetadata
-  >(() => ({} as PriceTriggerNodeMetadata | TimerNodeMetadata));
+    PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata
+  >(() => ({} as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata));
   const [selectedTrigger, setSelectedTrigger] = useState("");
   
 
   useEffect(() => {
     if (open) {
-      if (initialKind && (["timer", "price-trigger"] as unknown as NodeKind[]).includes(initialKind)) {
+      if (initialKind && (["timer", "price-trigger", "conditional-trigger"] as unknown as NodeKind[]).includes(initialKind)) {
         setSelectedTrigger(initialKind);
       }
       if (initialMetadata) {
         setMetadata((current) => ({
           ...(current || {}),
-          ...(initialMetadata as PriceTriggerNodeMetadata | TimerNodeMetadata),
+          ...(initialMetadata as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata),
         }));
       }
     }
@@ -102,6 +104,16 @@ export const TriggerSheet = ({
               setMarketType={setMarketType}
             />
           )}
+          {
+            selectedTrigger === "conditional-trigger" && (
+              <ConditionalTriggerForm
+                marketType={marketType}
+                setMarketType={setMarketType}
+                metadata={metadata as ConditionalTriggerMetadata}
+                setMetadata={setMetadata}
+              />
+             )
+          }
         </SheetHeader>
 
         <SheetFooter className="border-t border-neutral-900 bg-black/90 p-4">

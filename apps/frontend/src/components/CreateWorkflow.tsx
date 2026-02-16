@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { applyEdgeChanges, applyNodeChanges, addEdge } from "@xyflow/react";
+import { applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
 import { useNavigate, useParams } from "react-router-dom";
 import { type EdgeType, type NodeType } from "@n8n-trading/types";
 import { WorkflowCanvas } from "./workflow/WorkflowCanvas";
@@ -17,6 +17,7 @@ import {
 } from "@/http";
 import { Button } from "@/components/ui/button";
 import { lighterAction } from "./nodes/actions/lighterAction";
+import { conditionTrigger } from "./nodes/triggers/condtional";
 
 const nodeTypes = {
   "price-trigger": PriceTrigger,
@@ -26,6 +27,7 @@ const nodeTypes = {
   gmail: gmailAction,
   discord: discordAction,
   lighter: lighterAction,
+  "conditional-trigger": conditionTrigger,
 };
 
 const POSITION_OFFSET = 50;
@@ -48,6 +50,7 @@ export const CreateWorkflow = () => {
   const [selectedAction, setSelectedAction] = useState<{
     position: { x: number; y: number };
     startingNodeId: string;
+    sourceHandle?: string;
   } | null>(null);
   const [showActionSheetEdit, setShowActionSheetEdit] = useState(false);
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
@@ -68,13 +71,16 @@ export const CreateWorkflow = () => {
           if (nodeType) {
             nodeType = nodeType.toLowerCase();
             if (nodeType === "price") nodeType = "price-trigger";
+            if (nodeType === "conditional") nodeType = "conditional-trigger";
           }
           if (!nodeType) {
             const metadata = node.data?.metadata || {};
             if (metadata.time !== undefined) {
               nodeType = "timer";
             } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined && metadata.condition !== undefined) {
-              nodeType = "price-trigger";
+              nodeType = metadata.timeWindowMinutes !== undefined
+                ? "conditional-trigger"
+                : "price-trigger";
             } else if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {
               nodeType = "zerodha";
             } else {
@@ -127,9 +133,21 @@ export const CreateWorkflow = () => {
       setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
     [],
   );
+  // Custom onConnect to capture handleId (true/false) for conditional branching
   const onConnect = useCallback(
-    (params: any) =>
-      setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
+    (params: any) => {
+      // params: { source, sourceHandle, target, targetHandle, ... }
+      setEdges((edgesSnapshot) => [
+        ...edgesSnapshot,
+        {
+          id: `e${params.source}-${params.target}`,
+          source: params.source,
+          sourceHandle: params.sourceHandle, // 'true' or 'false' for conditional
+          target: params.target,
+          targetHandle: params.targetHandle,
+        },
+      ]);
+    },
     [],
   );
 
@@ -149,12 +167,14 @@ export const CreateWorkflow = () => {
 
   const onConnectEnd = useCallback((_params: any, connectionInfo: any) => {
     if (!connectionInfo.isValid) {
+      const sourceHandle = connectionInfo.fromHandle?.id || connectionInfo.handleId || connectionInfo.sourceHandle;
       setSelectedAction({
         startingNodeId: connectionInfo.fromNode.id,
         position: {
           x: connectionInfo.from.x + POSITION_OFFSET,
           y: connectionInfo.from.y + POSITION_OFFSET,
         },
+        sourceHandle,
       });
     }
   }, []);
@@ -300,13 +320,22 @@ export const CreateWorkflow = () => {
           setSelectedAction={setSelectedAction}
           onActionSelect={(type, metadata) => {
             if (!selectedAction) return;
+            // Use the sourceHandle from selectedAction (set by onConnectEnd)
+            let branch: 'true' | 'false' | undefined = undefined;
+            if (selectedAction.sourceHandle === 'true' || selectedAction.sourceHandle === 'false') {
+              branch = selectedAction.sourceHandle;
+            }
+            // Set condition boolean for conditional triggers
+            let condition: boolean | undefined = undefined;
+            if (branch === 'true') condition = true;
+            if (branch === 'false') condition = false;
             const nodeId = Math.random().toString();
             setNodes([
               ...nodes,
               {
                 nodeId,
                 type,
-                data: { kind: "action", metadata },
+                data: { kind: "action", metadata: { ...metadata, branch, ...(condition !== undefined ? { condition } : {}) } },
                 position: selectedAction.position,
               },
             ]);
@@ -316,6 +345,7 @@ export const CreateWorkflow = () => {
                 id: `e${selectedAction.startingNodeId}-${nodeId}`,
                 source: selectedAction.startingNodeId,
                 target: nodeId,
+                sourceHandle: branch,
               },
             ]);
             setSelectedAction(null);

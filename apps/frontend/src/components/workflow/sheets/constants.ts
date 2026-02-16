@@ -44,6 +44,12 @@ export const SUPPORTED_TRIGGERS = [
     description:
       "Run this trigger when a stock price crosses a certain threshold for an asset",
   },
+  {
+    id: "conditional-trigger",
+    title: "Conditional Trigger",
+    description:
+      "Run this trigger when a custom condition is met based on data from previous nodes",
+  }
 ];
 
 export const EXCHANGES = [

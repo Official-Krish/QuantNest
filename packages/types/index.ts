@@ -1,4 +1,4 @@
-export type NodeKind = "price" | "timer" | "Zerodha" | "Groww" | "gmail" | "discord";
+export type NodeKind = "price" | "timer" | "conditional-trigger" | "Zerodha" | "Groww" | "gmail" | "discord";
 
 export interface NodeType {
     type: NodeKind;
@@ -14,9 +14,18 @@ export interface EdgeType {
     id: string;
     source: string;
     target: string;
+    sourceHandle?: string;
 }
 
-export type NodeMetadata = TradingMetadata | TimerNodeMetadata | PriceTriggerNodeMetadata | NotificationMetadata | LighterMetadata | {};
+export type NodeMetadata = TradingMetadata | TimerNodeMetadata | PriceTriggerNodeMetadata | NotificationMetadata | LighterMetadata | ConditionalTriggerMetadata | {};
+
+export interface ConditionalTriggerMetadata {
+    condition: "above" | "below";
+    targetPrice: number;
+    marketType: "indian" | "web3" | "Indian" | "Crypto";
+    asset: typeof SUPPORTED_INDIAN_MARKET_ASSETS[number] | typeof SUPPORTED_WEB3_ASSETS[number];
+    timeWindowMinutes: number;
+}
 
 export interface TimerNodeMetadata {
     time: number;
@@ -38,12 +47,14 @@ export interface TradingMetadata {
     apiKey: string;
     accessToken: string;
     exchange: "NSE" | "BSE";
+    condition?: boolean;
 }
 
 export interface NotificationMetadata {
     recipientName: string;
     recipientEmail?: string;
     webhookUrl?: string;
+    condition?: boolean;
 }
 
 export interface LighterMetadata {
@@ -53,6 +64,7 @@ export interface LighterMetadata {
     apiKey: string;
     accountIndex: number;
     apiKeyIndex: number;
+    condition?: boolean;
 }
 
 export const SUPPORTED_MARKETS = ["Indian", "Crypto"];
