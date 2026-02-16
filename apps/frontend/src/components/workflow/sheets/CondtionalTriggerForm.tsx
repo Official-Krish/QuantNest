@@ -178,6 +178,7 @@ export const ConditionalTriggerForm = ({
                         setMetadata((current: any) => ({
                             ...current,
                             timeWindowMinutes: Number(e.target.value),
+                            startTime: new Date(),
                         }))
                     }
                     className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"

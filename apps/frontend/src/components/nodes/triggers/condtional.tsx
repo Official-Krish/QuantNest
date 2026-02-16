@@ -11,16 +11,17 @@ export const conditionTrigger = ({
       asset?: string;
       targetPrice?: number;
       timeWindowMinutes?: number;
+      startTime?: Date;
     };
   };
 }) => {
-  const { marketType, asset, targetPrice, timeWindowMinutes } = data.metadata || {};
-
+  const { marketType, asset, targetPrice, timeWindowMinutes, startTime } = data.metadata || {};
   // Compose extra details if present
   const details: Array<{ label: string; value: string | number }> = [];
   if (marketType) details.push({ label: "Market", value: marketType });
   if (asset) details.push({ label: "Asset", value: asset });
   if (typeof targetPrice === "number") details.push({ label: "Target Price", value: targetPrice });
+  if (startTime) details.push({ label: "Start Time", value: startTime.toLocaleString() });
   if (typeof timeWindowMinutes === "number") details.push({ label: "Time Window (min)", value: timeWindowMinutes });
 
   return (
