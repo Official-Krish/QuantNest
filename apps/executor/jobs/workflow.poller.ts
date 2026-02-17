@@ -1,9 +1,17 @@
 import { ExecutionModel, WorkflowModel } from "@n8n-trading/db/client";
 import { canExecute, executeWorkflowSafe } from "../services/execution.service";
-import { checkCondition, handleConditionalTrigger, handlePriceTrigger, handleTimerTrigger } from "../handlers/trigger.handler";
+import { evaluateConditionalMetadata, handleConditionalTrigger, handlePriceTrigger, handleTimerTrigger } from "../handlers/trigger.handler";
+import { indicatorEngine } from "../services/indicator.engine";
 
 export async function pollOnce() {
     const workflows = await WorkflowModel.find({});
+    for (const workflow of workflows) {
+        const trigger = workflow.nodes.find((n: any) => n?.type === "conditional-trigger");
+        if (trigger?.data?.metadata?.expression) {
+            indicatorEngine.registerExpression(trigger.data.metadata.expression);
+        }
+    }
+    await indicatorEngine.refreshSubscribedSymbols();
 
     for (const workflow of workflows) {
         try {
@@ -46,11 +54,11 @@ export async function pollOnce() {
                 case "conditional-trigger": {
                     const shouldExecute = await handleConditionalTrigger(
                         trigger.data?.metadata?.timeWindowMinutes,
-                        trigger.data?.metadata?.startTime,
+                        trigger.data?.metadata?.startTime ? new Date(trigger.data.metadata.startTime) : undefined,
                     );
                     if (shouldExecute) {
-                        const condition = await checkCondition(trigger.data?.metadata?.targetPrice, trigger.data?.metadata?.marketType, trigger.data?.metadata?.asset, trigger.data?.metadata?.condition);
-                        await executeWorkflowSafe(workflow);
+                        const condition = await evaluateConditionalMetadata(trigger.data?.metadata);
+                        await executeWorkflowSafe(workflow, condition);
                     }
                     break;
                 }

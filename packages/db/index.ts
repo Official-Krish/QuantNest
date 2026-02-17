@@ -37,6 +37,14 @@ const EdgesSchema = new Schema({
         type: String,
         required: true,
     },
+    sourceHandle: {
+        type: String,
+        required: false,
+    },
+    targetHandle: {
+        type: String,
+        required: false,
+    },
 }, {
     _id: false,
 });

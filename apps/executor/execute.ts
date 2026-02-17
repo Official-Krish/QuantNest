@@ -23,6 +23,19 @@ interface ExecutionContext {
     };
 }
 
+function shouldSkipActionByCondition(
+    workflowCondition: boolean | undefined,
+    nodeCondition: unknown
+): boolean {
+    if (typeof workflowCondition !== "boolean") {
+        return false;
+    }
+    if (typeof nodeCondition !== "boolean") {
+        return false;
+    }
+    return workflowCondition !== nodeCondition;
+}
+
 export async function executeWorkflow(nodes: NodeType[], edges: EdgeType[], userId?: string, workflowId?: string, condition?: boolean): Promise<ExecutionResponseType> {
     const trigger = nodes.find((node) => node?.data?.kind === "trigger" || node?.data?.kind === "TRIGGER");
 
@@ -73,8 +86,7 @@ export async function executeRecursive(
         switch (node.type) {
             case "zerodha": 
                 try {
-                    if (condition === false || condition === true) {
-                        node.data?.metadata.condition != condition;
+                    if (shouldSkipActionByCondition(condition, node.data?.metadata?.condition)) {
                         return;
                     }
                     if (!isMarketOpen()) {
@@ -178,8 +190,7 @@ export async function executeRecursive(
                 
             case "groww":
                 try {
-                    if (condition === false || condition === true) {
-                        node.data?.metadata.condition != condition;
+                    if (shouldSkipActionByCondition(condition, node.data?.metadata?.condition)) {
                         return;
                     }
                     const Gres = await executeGrowwNode(
@@ -245,8 +256,7 @@ export async function executeRecursive(
 
             case "gmail": 
                 try {
-                    if (condition === false || condition === true) {
-                        node.data?.metadata.condition != condition;
+                    if (shouldSkipActionByCondition(condition, node.data?.metadata?.condition)) {
                         return;
                     }
                     if (context.eventType && context.details) {
@@ -298,8 +308,7 @@ export async function executeRecursive(
 
             case "discord": 
                 try {
-                    if (condition === false || condition === true) {
-                        node.data?.metadata.condition != condition;
+                    if (shouldSkipActionByCondition(condition, node.data?.metadata?.condition)) {
                         return;
                     }
                     if (context.eventType && context.details) {
@@ -351,8 +360,7 @@ export async function executeRecursive(
             
             case "lighter": 
                 try {
-                    if (condition === false || condition === true) {
-                        node.data?.metadata.condition != condition;
+                    if (shouldSkipActionByCondition(condition, node.data?.metadata?.condition)) {
                         return;
                     }
                     await ExecuteLighter(

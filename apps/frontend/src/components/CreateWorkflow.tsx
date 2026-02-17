@@ -77,6 +77,8 @@ export const CreateWorkflow = () => {
             const metadata = node.data?.metadata || {};
             if (metadata.time !== undefined) {
               nodeType = "timer";
+            } else if (metadata.expression !== undefined) {
+              nodeType = "conditional-trigger";
             } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined && metadata.condition !== undefined) {
               nodeType = metadata.timeWindowMinutes !== undefined
                 ? "conditional-trigger"
@@ -99,8 +101,29 @@ export const CreateWorkflow = () => {
             position: node.position || { x: 0, y: 0 },
           };
         });
+        const nodeById = new Map(
+          normalizedNodes.map((node: any) => [node.nodeId, node]),
+        );
+        const normalizedEdges = (workflow.edges || []).map((edge: any) => {
+          if (edge.sourceHandle) {
+            return edge;
+          }
+          const sourceNode = nodeById.get(edge.source);
+          const targetNode = nodeById.get(edge.target);
+          if (sourceNode?.type !== "conditional-trigger") {
+            return edge;
+          }
+          const targetCondition = targetNode?.data?.metadata?.condition;
+          if (typeof targetCondition === "boolean") {
+            return {
+              ...edge,
+              sourceHandle: targetCondition ? "true" : "false",
+            };
+          }
+          return edge;
+        });
         setNodes(normalizedNodes as NodeType[]);
-        setEdges(workflow.edges as EdgeType[]);
+        setEdges(normalizedEdges as EdgeType[]);
         setWorkflowId(workflow._id);
         setWorkflowName(workflow.workflowName || "");
         setMarketType(workflow.marketType || "Indian");

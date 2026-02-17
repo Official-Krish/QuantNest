@@ -11,7 +11,8 @@
   },
   "exports": {
     ".": "./index.ts",
-    "./metadata": "./backend.ts"
+    "./metadata": "./backend.ts",
+    "./indicators": "./indicators.ts"
   },
   "dependencies": {
     "zod": "^4.1.13"

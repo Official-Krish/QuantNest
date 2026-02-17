@@ -1,3 +1,5 @@
+import type { IndicatorConditionGroup, IndicatorMarket } from "./indicators";
+
 export type NodeKind = "price" | "timer" | "conditional-trigger" | "Zerodha" | "Groww" | "gmail" | "discord";
 
 export interface NodeType {
@@ -15,17 +17,19 @@ export interface EdgeType {
     source: string;
     target: string;
     sourceHandle?: string;
+    targetHandle?: string;
 }
 
 export type NodeMetadata = TradingMetadata | TimerNodeMetadata | PriceTriggerNodeMetadata | NotificationMetadata | LighterMetadata | ConditionalTriggerMetadata | {};
 
 export interface ConditionalTriggerMetadata {
-    condition: "above" | "below";
-    targetPrice: number;
-    marketType: "indian" | "web3" | "Indian" | "Crypto";
-    asset: typeof SUPPORTED_INDIAN_MARKET_ASSETS[number] | typeof SUPPORTED_WEB3_ASSETS[number];
-    timeWindowMinutes: number;
-    startTime: Date;
+    condition?: "above" | "below";
+    targetPrice?: number;
+    marketType?: "indian" | "web3" | IndicatorMarket;
+    asset?: typeof SUPPORTED_INDIAN_MARKET_ASSETS[number] | typeof SUPPORTED_WEB3_ASSETS[number] | string;
+    timeWindowMinutes?: number;
+    startTime?: Date;
+    expression?: IndicatorConditionGroup;
 }
 
 export interface TimerNodeMetadata {
@@ -100,3 +104,5 @@ export interface ExecutionResponseType {
     steps: ExecutionStep[];
     status: "Success" | "Failed" | "InProgress";
 }
+
+export * from "./indicators";
