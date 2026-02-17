@@ -27,7 +27,7 @@ export async function getCurrentPrice(asset: string, market: "Indian" | "Crypto"
             let config = {
                 method: 'get',
                 maxBodyLength: Infinity,
-                url: `https://api.backpack.exchange/api/v1/trades?symbol=${asset}_USDC&limit=150`
+                url: `https://api.backpack.exchange/api/v1/trades?symbol=${asset}_USDC&limit=1`
             };
             const response = await axios(config);
             const price = response.data[0].price;

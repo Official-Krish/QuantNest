@@ -38,7 +38,7 @@ userRouter.post('/signup', async (req, res) => {
     }
 });
 
-userRouter.post('/signin', (req, res) => {
+userRouter.post('/signin', async (req, res) => {
     const parsedData = SigninSchema.safeParse(req.body);
     if (!parsedData.success) {
         res.status(400).json({ message: "Invalid request body" });
