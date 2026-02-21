@@ -177,3 +177,21 @@ N8n Trading Team`;
 
     return { subject, message };
 }
+
+export function appendAiInsight(message: string, details: NotificationDetails): string {
+    const insight = details.aiInsight;
+    if (!insight) {
+        return message;
+    }
+
+    const confidenceLine = `Confidence: ${insight.confidenceScore}/10 (${insight.confidence})`;
+
+    return `${message}
+
+AI Trade Insight:
+${confidenceLine}
+Reasoning: ${insight.reasoning}
+
+Risk Warning:
+${insight.riskFactors}`;
+}

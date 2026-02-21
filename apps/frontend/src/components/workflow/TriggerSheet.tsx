@@ -93,6 +93,7 @@ export const TriggerSheet = ({
               metadata={metadata as TimerNodeMetadata}
               setMetadata={setMetadata}
               setMarketType={setMarketType}
+              marketType={marketType}
             />
           )}
 

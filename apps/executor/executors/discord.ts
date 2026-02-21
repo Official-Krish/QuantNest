@@ -1,6 +1,7 @@
 import axios from "axios";
-import { getNotificationContent } from './notificationContent';
+import { appendAiInsight, getNotificationContent } from './notificationContent';
 import type { EventType, NotificationDetails } from "../types";
+import { generateTradeReasoning } from "../ai-models/gemini";
 
 export const sendDiscordNotification = async (
   webhookUrl: string, 
@@ -9,10 +10,16 @@ export const sendDiscordNotification = async (
   details: NotificationDetails
 ) => {
     try {
-        const { subject, message } = getNotificationContent(name, eventType, details);
+        const aiInsight = await generateTradeReasoning(eventType, details);
+        const enrichedDetails: NotificationDetails = {
+            ...details,
+            ...(aiInsight ? { aiInsight } : {}),
+        };
+        const { subject, message } = getNotificationContent(name, eventType, enrichedDetails);
+        const finalMessage = appendAiInsight(message, enrichedDetails);
 
         const payload = {
-        content: `**${subject}**\n\n${message}`, 
+        content: `**${subject}**\n\n${finalMessage}`, 
         username: "N8n Trading Bot", 
         avatar_url: "https://lh3.googleusercontent.com/-vU4ptXJemX0/AAAAAAAAAAI/AAAAAAAAAAA/ALKGfknUC98EoJllhyE3SFYkLuCTuPUwQA/s48-c/photo.jpg",
         };

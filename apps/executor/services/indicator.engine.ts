@@ -34,6 +34,15 @@ interface TickInput {
     timestamp?: number;
 }
 
+export interface IndicatorSnapshotEntry {
+    symbol: string;
+    marketType: IndicatorMarket;
+    timeframe: IndicatorTimeframe;
+    indicator: string;
+    period?: number;
+    value: number | null;
+}
+
 const timeframeMs: Record<IndicatorTimeframe, number> = {
     "1m": 60_000,
     "5m": 5 * 60_000,
@@ -73,6 +82,15 @@ export class IndicatorEngine {
         }
         this.collectIndicators(expression).forEach((ref) => {
             this.subscriptions.set(this.referenceKey(ref), ref);
+        });
+    }
+
+    registerReferences(references: IndicatorReference[]): void {
+        references.forEach((ref) => {
+            this.subscriptions.set(this.referenceKey(ref), {
+                ...ref,
+                marketType: toMarketType(ref.marketType),
+            });
         });
     }
 
@@ -151,6 +169,36 @@ export class IndicatorEngine {
         return outcomes.some(Boolean);
     }
 
+    async getExpressionSnapshot(expression: IndicatorConditionGroup): Promise<IndicatorSnapshotEntry[]> {
+        const refs = this.collectIndicators(expression);
+        return this.getSnapshotForReferences(refs);
+    }
+
+    async getSnapshotForReferences(references: IndicatorReference[]): Promise<IndicatorSnapshotEntry[]> {
+        const uniqueRefs = new Map<string, IndicatorReference>();
+        references.forEach((ref) => {
+            uniqueRefs.set(this.referenceKey(ref), ref);
+        });
+
+        const snapshot: IndicatorSnapshotEntry[] = [];
+        for (const ref of uniqueRefs.values()) {
+            const value = await this.resolveOperand({
+                type: "indicator",
+                indicator: ref,
+            });
+            snapshot.push({
+                symbol: ref.symbol,
+                marketType: toMarketType(ref.marketType),
+                timeframe: ref.timeframe,
+                indicator: ref.indicator,
+                period: ref.params?.period,
+                value,
+            });
+        }
+
+        return snapshot;
+    }
+
     private async evaluateClause(clause: IndicatorConditionClause): Promise<boolean> {
         const left = await this.resolveOperand(clause.left);
         const right = await this.resolveOperand(clause.right);
@@ -224,19 +272,22 @@ export class IndicatorEngine {
 
     private computeFromHistory(ref: IndicatorReference): number | null {
         const marketType = toMarketType(ref.marketType);
-        const history = this.candles.get(this.candleKey(marketType, ref.symbol, ref.timeframe)) || [];
-        if (history.length === 0) {
+        const key = this.candleKey(marketType, ref.symbol, ref.timeframe);
+        const history = this.candles.get(key) || [];
+        const active = this.activeCandles.get(key);
+        const series = active ? [...history, active] : history;
+        if (series.length === 0) {
             return null;
         }
 
         const period = normalizePeriod(ref.params?.period, 14);
-        const closes = history.map((candle) => candle.close);
+        const closes = series.map((candle) => candle.close);
 
         switch (ref.indicator) {
             case "price":
                 return closes[closes.length - 1] ?? null;
             case "volume":
-                return history[history.length - 1]?.volume ?? null;
+                return series[series.length - 1]?.volume ?? null;
             case "sma":
                 if (closes.length < period) {
                     return null;
