@@ -21,6 +21,17 @@ interface ExecutionContext {
         condition?: "above" | "below";
         tradeType?: "buy" | "sell";
         failureReason?: string;
+        aiContext?: {
+            triggerType?: string;
+            marketType?: "Indian" | "Crypto";
+            symbol?: string;
+            connectedSymbols?: string[];
+            targetPrice?: number;
+            condition?: "above" | "below";
+            timerIntervalSeconds?: number;
+            evaluatedCondition?: boolean;
+            expression?: any;
+        };
     };
 }
 
@@ -54,6 +65,36 @@ export async function executeWorkflow(nodes: NodeType[], edges: EdgeType[], user
             }]
         };
     }
+
+    const connectedSymbols = [
+        ...new Set(
+            nodes
+                .filter((node) => (node?.data?.kind || "").toLowerCase() === "action")
+                .map((node) => node?.data?.metadata?.symbol)
+                .filter((symbol): symbol is string => typeof symbol === "string" && symbol.length > 0),
+        ),
+    ];
+    const inferredSymbol = trigger.data?.metadata?.asset || connectedSymbols[0];
+    const inferredMarketType =
+        trigger.data?.metadata?.marketType === "Crypto" || trigger.data?.metadata?.marketType === "web3"
+            ? "Crypto"
+            : "Indian";
+
+    context.details = {
+        ...(context.details || {}),
+        symbol: context.details?.symbol || inferredSymbol,
+        aiContext: {
+            triggerType: trigger.type || "trigger",
+            marketType: inferredMarketType,
+            symbol: inferredSymbol,
+            connectedSymbols,
+            targetPrice: trigger.data?.metadata?.targetPrice,
+            condition: trigger.data?.metadata?.condition,
+            timerIntervalSeconds: trigger.type === "timer" ? trigger.data?.metadata?.time : undefined,
+            expression: trigger.data?.metadata?.expression,
+            evaluatedCondition: condition,
+        },
+    };
     
     if (trigger.type === "price-trigger") {
         context.eventType = "price_trigger";
@@ -61,6 +102,30 @@ export async function executeWorkflow(nodes: NodeType[], edges: EdgeType[], user
             symbol: trigger.data?.metadata?.asset,
             targetPrice: trigger.data?.metadata?.targetPrice,
             condition: trigger.data?.metadata?.condition,
+            aiContext: {
+                triggerType: "price-trigger",
+                marketType: trigger.data?.metadata?.marketType === "Crypto" ? "Crypto" : "Indian",
+                symbol: trigger.data?.metadata?.asset,
+                connectedSymbols,
+                targetPrice: trigger.data?.metadata?.targetPrice,
+                condition: trigger.data?.metadata?.condition,
+            },
+        };
+    }
+
+    if (trigger.type === "conditional-trigger" && trigger.data?.metadata) {
+        context.details = {
+            ...(context.details || {}),
+            aiContext: {
+                triggerType: "conditional-trigger",
+                marketType: trigger.data?.metadata?.marketType === "Crypto" ? "Crypto" : "Indian",
+                symbol: trigger.data?.metadata?.asset,
+                connectedSymbols,
+                targetPrice: trigger.data?.metadata?.targetPrice,
+                condition: trigger.data?.metadata?.condition,
+                expression: trigger.data?.metadata?.expression,
+                evaluatedCondition: condition,
+            },
         };
     }
     
@@ -94,6 +159,20 @@ export async function executeRecursive(
                 : await evaluateConditionalMetadata(sourceNode.data?.metadata);
 
         nextCondition = evaluatedCondition;
+        context.details = {
+            ...(context.details || {}),
+            aiContext: {
+                triggerType: "conditional-trigger",
+                marketType: sourceNode.data?.metadata?.marketType === "Crypto" ? "Crypto" : "Indian",
+                symbol: sourceNode.data?.metadata?.asset || context.details?.symbol,
+                connectedSymbols: context.details?.aiContext?.connectedSymbols,
+                targetPrice: sourceNode.data?.metadata?.targetPrice,
+                condition: sourceNode.data?.metadata?.condition,
+                timerIntervalSeconds: context.details?.aiContext?.timerIntervalSeconds,
+                expression: sourceNode.data?.metadata?.expression,
+                evaluatedCondition,
+            },
+        };
 
         targetEdges = outgoingEdges.filter((edge) => {
             if (edge.sourceHandle === "true" || edge.sourceHandle === "false") {
@@ -182,6 +261,7 @@ export async function executeRecursive(
                             symbol: node.data?.metadata?.symbol,
                             quantity: node.data?.metadata?.qty,
                             exchange: node.data?.metadata?.exchange || "NSE",
+                            aiContext: context.details?.aiContext,
                         };
                         steps.push({
                             step: steps.length + 1,
@@ -199,6 +279,7 @@ export async function executeRecursive(
                             exchange: node.data?.metadata?.exchange || "NSE",
                             tradeType: node.data?.metadata?.type,
                             failureReason: "Trade execution failed. Please check your broker account and credentials.",
+                            aiContext: context.details?.aiContext,
                         };
                         steps.push({
                             step: steps.length + 1,
@@ -218,6 +299,7 @@ export async function executeRecursive(
                         exchange: node.data?.metadata?.exchange || "NSE",
                         tradeType: node.data?.metadata?.type,
                         failureReason: error.message || "Unknown error occurred during trade execution.",
+                        aiContext: context.details?.aiContext,
                     };
                     steps.push({
                         step: steps.length + 1,
@@ -248,6 +330,7 @@ export async function executeRecursive(
                             symbol: node.data?.metadata?.symbol,
                             quantity: node.data?.metadata?.qty,
                             exchange: node.data?.metadata?.exchange || "NSE",
+                            aiContext: context.details?.aiContext,
                         };
                         steps.push({
                             step: steps.length + 1,
@@ -265,6 +348,7 @@ export async function executeRecursive(
                             exchange: node.data?.metadata?.exchange || "NSE",
                             tradeType: node.data?.metadata?.type,
                             failureReason: "Trade execution failed. Please check your broker account and credentials.",
+                            aiContext: context.details?.aiContext,
                         };
                         steps.push({
                             step: steps.length + 1,
@@ -284,6 +368,7 @@ export async function executeRecursive(
                         exchange: node.data?.metadata?.exchange || "NSE",
                         tradeType: node.data?.metadata?.type,
                         failureReason: error.message || "Unknown error occurred during trade execution.",
+                        aiContext: context.details?.aiContext,
                     };
                     steps.push({
                         step: steps.length + 1,
@@ -321,9 +406,10 @@ export async function executeRecursive(
                             node.data?.metadata?.recipientName || "User",
                             "notification",
                             {
-                                symbol: node.data?.metadata?.symbol,
+                                symbol: node.data?.metadata?.symbol || context.details?.symbol,
                                 exchange: node.data?.metadata?.exchange || "NSE",
                                 targetPrice: node.data?.metadata?.targetPrice,
+                                aiContext: context.details?.aiContext,
                             }
                         )
                         steps.push({
@@ -373,9 +459,10 @@ export async function executeRecursive(
                             node.data?.metadata?.recipientName || "User",
                             "notification",
                             {
-                                symbol: node.data?.metadata?.symbol,
+                                symbol: node.data?.metadata?.symbol || context.details?.symbol,
                                 exchange: node.data?.metadata?.exchange || "NSE",
                                 targetPrice: node.data?.metadata?.targetPrice,
+                                aiContext: context.details?.aiContext,
                             }
                         );
                         steps.push({

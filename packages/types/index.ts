@@ -35,7 +35,7 @@ export interface ConditionalTriggerMetadata {
 export interface TimerNodeMetadata {
     time: number;
     marketType: "indian" | "web3";
-    
+    asset?: string;
 }
 
 export interface PriceTriggerNodeMetadata {

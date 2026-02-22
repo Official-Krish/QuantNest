@@ -1,4 +1,5 @@
 import type mongoose from "mongoose";
+import type { IndicatorConditionGroup } from "@n8n-trading/types";
 
 export interface EdgeType {
     id: string;
@@ -50,6 +51,25 @@ export type WorkflowType = {
 
 export type EventType = "buy" | "sell" | "price_trigger" | "trade_failed"| "Long" | "Short" | "notification";
 
+export interface NotificationAiContext {
+    triggerType?: string;
+    marketType?: "Indian" | "Crypto";
+    symbol?: string;
+    connectedSymbols?: string[];
+    targetPrice?: number;
+    condition?: "above" | "below";
+    timerIntervalSeconds?: number;
+    evaluatedCondition?: boolean;
+    expression?: IndicatorConditionGroup;
+}
+
+export interface NotificationAiInsight {
+    reasoning: string;
+    riskFactors: string;
+    confidence: "Low" | "Medium" | "High";
+    confidenceScore: number;
+}
+
 export interface NotificationDetails {
     symbol?: string;
     quantity?: number;
@@ -59,6 +79,8 @@ export interface NotificationDetails {
     condition?: "above" | "below";
     tradeType?: "buy" | "sell";
     failureReason?: string;
+    aiContext?: NotificationAiContext;
+    aiInsight?: NotificationAiInsight;
 }
 
 export interface NotificationContent {

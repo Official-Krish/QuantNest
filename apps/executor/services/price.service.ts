@@ -9,9 +9,8 @@ export async function getCurrentPrice(asset: string, market: "Indian" | "Crypto"
             url: `https://www.nseindia.com/api/NextApi/apiClient/GetQuoteApi?functionName=getSymbolData&marketType=N&series=EQ&symbol=${assetMapped[asset]}`,
             headers: { 
                 'accept': '*/*', 
-                'accept-language': 'en-GB,en;q=0.9', 
-                'referer': `https://www.nseindia.com/get-quote/equity/${assetMapped[asset]}/${assetCompanyName[asset]}`, 
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', 
+                'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,hi;q=0.7', 
+                'referer': `https://www.nseindia.com/get-quote/equity/${assetMapped[asset]}/${assetCompanyName[asset] || asset}`, 
             }
         };
 
