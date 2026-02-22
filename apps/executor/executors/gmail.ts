@@ -23,7 +23,7 @@ export async function sendEmail(
     
     try {
         await resend.emails.send({
-            from: 'N8n Trading <support@n8ntrading.com>',
+            from: 'QuantNest Trading <support@quantnesttrading.com>',
             to: recipientEmail,
             subject: subject,
             html: finalMessage.replace(/\n/g, '<br>')

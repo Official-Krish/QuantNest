@@ -42,7 +42,7 @@ export const Hero = () => {
                             </span>
                             <span className="mx-1 text-xs text-neutral-400">·</span>
                             <span className="text-xs font-semibold text-neutral-100">
-                                N8N Trading
+                                QuantNest Trading
                             </span>
                             <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 w-4 h-4 text-[#f17463]" viewBox="0 0 24 24" fill="none">
                                 <circle cx="12" cy="12" r="10" stroke="#f17463" strokeWidth="2" fill="currentColor" fillOpacity="0.15"/>

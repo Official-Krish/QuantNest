@@ -61,7 +61,7 @@ const Footer: React.FC = () => {
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <img src="Logo.png" width={24} height={24} alt="N8N Trading Logo" />
-              <h2 className="text-2xl font-semibold">N8N Trading</h2>
+              <h2 className="text-2xl font-semibold">QuantNest Trading</h2>
             </div>
             <p className="text-gray-400 mb-6">
               Manage and simulate agentic workflows
@@ -138,7 +138,7 @@ const Footer: React.FC = () => {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-zinc-800">
           <p className="text-gray-400 text-sm mb-4 md:mb-0">
-            © 2026 N8N Trading. All rights reserved.
+            © 2026 QuantNest Trading. All rights reserved.
           </p>
           <div className="flex gap-6">
             <a

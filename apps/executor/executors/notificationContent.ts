@@ -13,7 +13,7 @@ export function getNotificationContent(
             subject = 'Trade Executed: Buy Order Completed';
             message = `Dear ${name},
 
-Your buy order has been successfully executed on N8n Trading.
+Your buy order has been successfully executed on QuantNest Trading.
 
 Trade Details:
 • Symbol: ${details.symbol}
@@ -23,17 +23,17 @@ Trade Details:
 
 Your position has been updated accordingly. You can view your portfolio in the dashboard.
 
-If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+If you have any questions or concerns, please reach out to our support team at support@quantnesttrading.com.
 
 Best regards,
-N8n Trading Team`;
+QuantNest Trading Team`;
             break;
 
         case "sell":
             subject = 'Trade Executed: Sell Order Completed';
             message = `Dear ${name},
 
-Your sell order has been successfully executed on N8n Trading.
+Your sell order has been successfully executed on QuantNest Trading.
 
 Trade Details:
 • Symbol: ${details.symbol}
@@ -43,17 +43,17 @@ Trade Details:
 
 Your position has been updated accordingly. You can view your portfolio in the dashboard.
 
-If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+If you have any questions or concerns, please reach out to our support team at support@quantnesttrading.com.
 
 Best regards,
-N8n Trading Team`;
+QuantNest Trading Team`;
             break;
 
         case "price_trigger":
             subject = 'Price Alert: Target Price Reached';
             message = `Dear ${name},
 
-Your price alert has been triggered on N8n Trading.
+Your price alert has been triggered on QuantNest Trading.
 
 Price Alert Details:
 • Symbol: ${details.symbol}
@@ -63,17 +63,17 @@ Price Alert Details:
 
 Your workflow has been executed as configured. Check your dashboard for execution details.
 
-If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+If you have any questions or concerns, please reach out to our support team at support@quantnesttrading.com.
 
 Best regards,
-N8n Trading Team`;
+QuantNest Trading Team`;
             break;
 
         case "trade_failed":
             subject = 'Trade Failed: Action Required';
             message = `Dear ${name},
 
-Unfortunately, your ${details.tradeType || 'trade'} order could not be executed on N8n Trading.
+Unfortunately, your ${details.tradeType || 'trade'} order could not be executed on QuantNest Trading.
 
 Trade Details:
 • Symbol: ${details.symbol}
@@ -101,17 +101,17 @@ Recommended Actions:
 4. Review your broker account permissions
 5. Check the symbol and exchange settings
 
-If the issue persists, please contact your broker or reach out to our support team at support@n8ntrading.com.
+If the issue persists, please contact your broker or reach out to our support team at support@quantnesttrading.com.
 
 Best regards,
-N8n Trading Team`;
+QuantNest Trading Team`;
             break;
 
         case "Long":
             subject = 'Position Opened: Long Position Executed';
             message = `Dear ${name},
 
-Your long position has been successfully opened on N8n Trading.
+Your long position has been successfully opened on QuantNest Trading.
 
 Position Details:
 • Asset: ${details.symbol}
@@ -124,17 +124,17 @@ A long position means you're betting on the price going up. Your position will p
 
 You can monitor your position and set stop-loss or take-profit levels in your dashboard.
 
-If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+If you have any questions or concerns, please reach out to our support team at support@quantnesttrading.com.
 
 Best regards,
-N8n Trading Team`;
+QuantNest Trading Team`;
             break;
 
         case "Short":
             subject = 'Position Opened: Short Position Executed';
             message = `Dear ${name},
 
-Your short position has been successfully opened on N8n Trading.
+Your short position has been successfully opened on QuantNest Trading.
 
 Position Details:
 • Asset: ${details.symbol}
@@ -147,17 +147,17 @@ A short position means you're betting on the price going down. Your position wil
 
 You can monitor your position and set stop-loss or take-profit levels in your dashboard.
 
-If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+If you have any questions or concerns, please reach out to our support team at support@quantnesttrading.com.
 
 Best regards,
-N8n Trading Team`;
+QuantNest Trading Team`;
             break;
 
         case "notification":
             subject = 'Workflow Notification: Action Completed';
             message = `Dear ${name},
 
-Your workflow has completed an action on N8n Trading.
+Your workflow has completed an action on QuantNest Trading.
 
 Notification Details:
 • Workflow: ${details.symbol || 'Trading Workflow'}
@@ -168,10 +168,10 @@ ${details.failureReason || 'Your workflow has been executed successfully as conf
 
 You can view detailed execution logs and results in your dashboard.
 
-If you have any questions or concerns, please reach out to our support team at support@n8ntrading.com.
+If you have any questions or concerns, please reach out to our support team at support@quantnesttrading.com.
 
 Best regards,
-N8n Trading Team`;
+QuantNest Trading Team`;
             break;
     }
 

@@ -75,7 +75,7 @@ export const Appbar = () => {
                             width={30}
                             height={30}
                         />
-                        <span className="font-medium text-white">N8n Trading</span>
+                        <span className="font-medium text-white">QuantNest</span>
                     </div>
                     <div className="flex items-center max-w-lg">
                         {localStorage.getItem("token") ? navItemsAuth.map((item, idx) => (

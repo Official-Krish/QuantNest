@@ -55,7 +55,7 @@ export const Dashboard = () => {
               Your trading workflows
             </h1>
             <p className="mt-2 max-w-xl text-sm text-neutral-400">
-              Review and iterate on the strategies you have wired into N8N
+              Review and iterate on the strategies you have wired into QuantNest
               Trading. Open any workflow to edit it in the visual builder.
             </p>
           </div>

@@ -20,7 +20,7 @@ export const sendDiscordNotification = async (
 
         const payload = {
         content: `**${subject}**\n\n${finalMessage}`, 
-        username: "N8n Trading Bot", 
+        username: "QuantNest Trading Bot", 
         avatar_url: "https://lh3.googleusercontent.com/-vU4ptXJemX0/AAAAAAAAAAI/AAAAAAAAAAA/ALKGfknUC98EoJllhyE3SFYkLuCTuPUwQA/s48-c/photo.jpg",
         };
 
