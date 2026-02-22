@@ -1,5 +1,5 @@
 {
-  "name": "@n8n-trading/types",
+  "name": "@quantnest-trading/types",
   "module": "index.ts",
   "type": "module",
   "private": true,

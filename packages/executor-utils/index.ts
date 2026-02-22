@@ -1,4 +1,4 @@
-import { ZerodhaTokenModel } from "@n8n-trading/db/client";
+import { ZerodhaTokenModel } from "@quantnest-trading/db/client";
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 

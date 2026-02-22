@@ -1,15 +1,23 @@
-# types
+# QuantNest Types Package (`packages/types`)
 
-To install dependencies:
+Shared TypeScript contracts and request schemas used across frontend, backend, and executor.
 
-```bash
-bun install
-```
+## Responsibilities
+- Domain types for nodes, edges, metadata, execution steps
+- Indicator expression model types
+- Zod request validation schemas for backend metadata routes
 
-To run:
+## Exports
+- `@quantnest-trading/types`
+- `@quantnest-trading/types/metadata`
+- `@quantnest-trading/types/indicators`
 
-```bash
-bun run index.ts
-```
+## Key Files
+- `index.ts` - core shared platform types
+- `indicators.ts` - indicator expression schema/types
+- `backend.ts` - Zod schemas for workflow/auth payload validation
 
-This project was created using `bun init` in bun v1.2.18. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+## Notes
+- Keep cross-service contracts here to avoid drift.
+
+See root README for architecture and service wiring: `../../README.md`.

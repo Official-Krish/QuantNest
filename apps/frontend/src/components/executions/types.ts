@@ -1,4 +1,4 @@
-import type { ExecutionStep } from "@n8n-trading/types";
+import type { ExecutionStep } from "@quantnest-trading/types";
 
 export interface Execution {
   _id: string;

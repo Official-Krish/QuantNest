@@ -1,5 +1,5 @@
 import { Background, BackgroundVariant, ReactFlow } from "@xyflow/react";
-import type { EdgeType, NodeType } from "@n8n-trading/types";
+import type { EdgeType, NodeType } from "@quantnest-trading/types";
 import { Button } from "@/components/ui/button";
 import { TriggerSheet } from "./TriggerSheet";
 import { ActionSheet } from "./ActionSheet";

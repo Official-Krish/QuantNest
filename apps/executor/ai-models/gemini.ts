@@ -1,8 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import type { EventType, NotificationAiInsight, NotificationDetails } from "../types";
 import { indicatorEngine } from "../services/indicator.engine";
-import type { IndicatorMarket, IndicatorReference } from "@n8n-trading/types";
-import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@n8n-trading/types";
+import type { IndicatorMarket, IndicatorReference } from "@quantnest-trading/types";
+import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
 
 const apiKey = process.env.GOOGLE_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;

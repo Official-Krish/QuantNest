@@ -1,5 +1,5 @@
 import express from "express";
-import { saveZerodhaToken, checkTokenStatus, deleteZerodhaToken } from "@n8n-trading/executor-utils";
+import { saveZerodhaToken, checkTokenStatus, deleteZerodhaToken } from "@quantnest-trading/executor-utils";
 import { authMiddleware } from "../middleware";
 
 const ZerodhaTokenRouter = express.Router();

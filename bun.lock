@@ -10,7 +10,7 @@
       },
     },
     "apps/backend": {
-      "name": "@n8n-trading/backend",
+      "name": "@quantnest-trading/backend",
       "dependencies": {
         "@types/bcrypt": "^6.0.0",
         "@types/jsonwebtoken": "^9.0.10",
@@ -23,9 +23,9 @@
         "mongoose": "^9.1.5",
       },
       "devDependencies": {
-        "@n8n-trading/db": "workspace:^",
-        "@n8n-trading/executor-utils": "workspace:^",
-        "@n8n-trading/types": "workspace:^",
+        "@quantnest-trading/db": "workspace:^",
+        "@quantnest-trading/executor-utils": "workspace:^",
+        "@quantnest-trading/types": "workspace:^",
         "@types/bun": "latest",
       },
       "peerDependencies": {
@@ -42,10 +42,10 @@
         "resend": "^6.9.1",
       },
       "devDependencies": {
-        "@n8n-trading/db": "workspace:^",
-        "@n8n-trading/executor-utils": "workspace:^",
-        "@n8n-trading/lighter-sdk-ts": "workspace:^",
-        "@n8n-trading/types": "workspace:^",
+        "@quantnest-trading/db": "workspace:^",
+        "@quantnest-trading/executor-utils": "workspace:^",
+        "@quantnest-trading/lighter-sdk-ts": "workspace:^",
+        "@quantnest-trading/types": "workspace:^",
         "@types/bun": "latest",
       },
       "peerDependencies": {
@@ -53,7 +53,7 @@
       },
     },
     "apps/frontend": {
-      "name": "@n8n-trading/frontend",
+      "name": "@quantnest-trading/frontend",
       "version": "0.0.0",
       "dependencies": {
         "@radix-ui/react-avatar": "^1.1.11",
@@ -78,7 +78,7 @@
       },
       "devDependencies": {
         "@eslint/js": "^9.39.1",
-        "@n8n-trading/types": "workspace:^",
+        "@quantnest-trading/types": "workspace:^",
         "@types/node": "^24.10.1",
         "@types/react": "^19.2.5",
         "@types/react-dom": "^19.2.3",
@@ -94,7 +94,7 @@
       },
     },
     "packages/db": {
-      "name": "@n8n-trading/db",
+      "name": "@quantnest-trading/db",
       "dependencies": {
         "@types/mongoose": "^5.11.97",
         "mongoose": "^9.0.0",
@@ -125,7 +125,7 @@
       },
     },
     "packages/executor-utils": {
-      "name": "@n8n-trading/executor-utils",
+      "name": "@quantnest-trading/executor-utils",
       "dependencies": {
         "uuid": "^13.0.0",
       },
@@ -137,7 +137,7 @@
       },
     },
     "packages/lighter-sdk-ts": {
-      "name": "@n8n-trading/lighter-sdk-ts",
+      "name": "@quantnest-trading/lighter-sdk-ts",
       "dependencies": {
         "@types/node": "^24.9.1",
         "@types/ws": "^8.18.1",
@@ -150,7 +150,7 @@
       },
     },
     "packages/types": {
-      "name": "@n8n-trading/types",
+      "name": "@quantnest-trading/types",
       "dependencies": {
         "zod": "^4.1.13",
       },
@@ -332,17 +332,17 @@
 
     "@mongodb-js/saslprep": ["@mongodb-js/saslprep@1.3.2", "", { "dependencies": { "sparse-bitfield": "^3.0.3" } }, "sha512-QgA5AySqB27cGTXBFmnpifAi7HxoGUeezwo6p9dI03MuDB6Pp33zgclqVb6oVK3j6I9Vesg0+oojW2XxB59SGg=="],
 
-    "@n8n-trading/backend": ["@n8n-trading/backend@workspace:apps/backend"],
+    "@quantnest-trading/backend": ["@quantnest-trading/backend@workspace:apps/backend"],
 
-    "@n8n-trading/db": ["@n8n-trading/db@workspace:packages/db"],
+    "@quantnest-trading/db": ["@quantnest-trading/db@workspace:packages/db"],
 
-    "@n8n-trading/executor-utils": ["@n8n-trading/executor-utils@workspace:packages/executor-utils"],
+    "@quantnest-trading/executor-utils": ["@quantnest-trading/executor-utils@workspace:packages/executor-utils"],
 
-    "@n8n-trading/frontend": ["@n8n-trading/frontend@workspace:apps/frontend"],
+    "@quantnest-trading/frontend": ["@quantnest-trading/frontend@workspace:apps/frontend"],
 
-    "@n8n-trading/lighter-sdk-ts": ["@n8n-trading/lighter-sdk-ts@workspace:packages/lighter-sdk-ts"],
+    "@quantnest-trading/lighter-sdk-ts": ["@quantnest-trading/lighter-sdk-ts@workspace:packages/lighter-sdk-ts"],
 
-    "@n8n-trading/types": ["@n8n-trading/types@workspace:packages/types"],
+    "@quantnest-trading/types": ["@quantnest-trading/types@workspace:packages/types"],
 
     "@next/eslint-plugin-next": ["@next/eslint-plugin-next@15.5.6", "", { "dependencies": { "fast-glob": "3.3.1" } }, "sha512-YxDvsT2fwy1j5gMqk3ppXlsgDopHnkM4BoxSVASbvvgh5zgsK8lvWerDzPip8k3WVzsTZ1O7A7si1KNfN4OZfQ=="],
 
@@ -1886,15 +1886,15 @@
 
     "@isaacs/cliui/wrap-ansi": ["wrap-ansi@8.1.0", "", { "dependencies": { "ansi-styles": "^6.1.0", "string-width": "^5.0.1", "strip-ansi": "^7.0.1" } }, "sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ=="],
 
-    "@n8n-trading/db/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
+    "@quantnest-trading/db/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
 
-    "@n8n-trading/executor-utils/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
+    "@quantnest-trading/executor-utils/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
 
-    "@n8n-trading/frontend/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+    "@quantnest-trading/frontend/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "@n8n-trading/lighter-sdk-ts/typescript": ["typescript@4.9.5", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g=="],
+    "@quantnest-trading/lighter-sdk-ts/typescript": ["typescript@4.9.5", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g=="],
 
-    "@n8n-trading/types/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
+    "@quantnest-trading/types/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
 
     "@radix-ui/react-arrow/@radix-ui/react-primitive": ["@radix-ui/react-primitive@2.1.3", "", { "dependencies": { "@radix-ui/react-slot": "1.2.3" }, "peerDependencies": { "@types/react": "*", "@types/react-dom": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-m9gTwRkhy2lvCPe6QJp4d3G1TYEUHn/FzJUtq9MjH46an1wJU+GdoGC5VLof8RX8Ft/DlpshApkhswDLZzHIcQ=="],
 
@@ -2058,11 +2058,11 @@
 
     "@isaacs/cliui/wrap-ansi/ansi-styles": ["ansi-styles@6.2.3", "", {}, "sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg=="],
 
-    "@n8n-trading/db/@types/bun/bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
+    "@quantnest-trading/db/@types/bun/bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
 
-    "@n8n-trading/executor-utils/@types/bun/bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
+    "@quantnest-trading/executor-utils/@types/bun/bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
 
-    "@n8n-trading/types/@types/bun/bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
+    "@quantnest-trading/types/@types/bun/bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
 
     "@repo/ui/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 

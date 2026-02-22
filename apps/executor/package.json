@@ -5,10 +5,10 @@
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "@n8n-trading/db": "workspace:^",
-    "@n8n-trading/types": "workspace:^",
-    "@n8n-trading/executor-utils": "workspace:^",
-    "@n8n-trading/lighter-sdk-ts": "workspace:^"
+    "@quantnest-trading/db": "workspace:^",
+    "@quantnest-trading/types": "workspace:^",
+    "@quantnest-trading/executor-utils": "workspace:^",
+    "@quantnest-trading/lighter-sdk-ts": "workspace:^"
   },
   "peerDependencies": {
     "typescript": "^5"

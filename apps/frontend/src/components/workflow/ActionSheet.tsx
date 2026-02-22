@@ -3,7 +3,7 @@ import {
   type NodeKind,
   type NodeMetadata,
   type TradingMetadata,
-} from "@n8n-trading/types";
+} from "@quantnest-trading/types";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import {

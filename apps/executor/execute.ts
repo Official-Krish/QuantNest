@@ -1,11 +1,11 @@
-import type { ExecutionResponseType, ExecutionStep } from "@n8n-trading/types";
+import type { ExecutionResponseType, ExecutionStep } from "@quantnest-trading/types";
 import { sendDiscordNotification } from "./executors/discord";
 import { sendEmail } from "./executors/gmail";
 import { executeGrowwNode } from "./executors/groww";
 import { executeZerodhaNode } from "./executors/zerodha";
 import type { EdgeType, NodeType } from "./types";
 import { isMarketOpen } from "./utils/market.utils";
-import { checkTokenStatus, getMarketStatus, getZerodhaToken } from "@n8n-trading/executor-utils";
+import { checkTokenStatus, getMarketStatus, getZerodhaToken } from "@quantnest-trading/executor-utils";
 import { ExecuteLighter } from "./executors/lighter";
 import { evaluateConditionalMetadata } from "./handlers/trigger.handler";
 

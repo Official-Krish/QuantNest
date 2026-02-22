@@ -1,5 +1,5 @@
-import type { ConditionalTriggerMetadata, IndicatorConditionGroup } from "@n8n-trading/types";
-import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@n8n-trading/types";
+import type { ConditionalTriggerMetadata, IndicatorConditionGroup } from "@quantnest-trading/types";
+import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
 import type { NodeType, WorkflowType } from "../types";
 import { getCurrentPrice } from "../services/price.service";
 import { indicatorEngine } from "../services/indicator.engine";

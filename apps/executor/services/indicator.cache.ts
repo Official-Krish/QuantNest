@@ -1,4 +1,4 @@
-import type { IndicatorReference } from "@n8n-trading/types";
+import type { IndicatorReference } from "@quantnest-trading/types";
 
 export interface CachedIndicatorValue {
     value: number;

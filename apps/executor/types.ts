@@ -1,5 +1,5 @@
 import type mongoose from "mongoose";
-import type { IndicatorConditionGroup } from "@n8n-trading/types";
+import type { IndicatorConditionGroup } from "@quantnest-trading/types";
 
 export interface EdgeType {
     id: string;

@@ -4,7 +4,7 @@ import userRouter from './routes/user';
 import workFlowRouter from './routes/workflow';
 import mongoose from 'mongoose';
 import ZerodhaTokenRouter from './routes/token';
-import { getMarketStatus } from '@n8n-trading/executor-utils';
+import { getMarketStatus } from '@quantnest-trading/executor-utils';
 
 const app = express();
 app.use(express.json());

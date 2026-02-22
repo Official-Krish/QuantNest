@@ -1,5 +1,5 @@
 {
-  "name": "@n8n-trading/db",
+  "name": "@quantnest-trading/db",
   "module": "index.ts",
   "type": "module",
   "private": true,

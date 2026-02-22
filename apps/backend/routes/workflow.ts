@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware';
-import { CreateWorkflowSchema, UpdateWorkflowSchema } from '@n8n-trading/types/metadata';
-import { ExecutionModel, WorkflowModel } from '@n8n-trading/db/client';
-import { saveZerodhaToken } from '@n8n-trading/executor-utils';
+import { CreateWorkflowSchema, UpdateWorkflowSchema } from '@quantnest-trading/types/metadata';
+import { ExecutionModel, WorkflowModel } from '@quantnest-trading/db/client';
+import { saveZerodhaToken } from '@quantnest-trading/executor-utils';
 
 const workFlowRouter = Router();
 

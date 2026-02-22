@@ -1,5 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
-import type { IndicatorConditionGroup } from "@n8n-trading/types";
+import type { IndicatorConditionGroup } from "@quantnest-trading/types";
 
 function formatOperand(operand: any): string {
   if (!operand) return "-";

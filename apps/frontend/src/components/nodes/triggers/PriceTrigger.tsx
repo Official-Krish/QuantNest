@@ -1,4 +1,4 @@
-import type { PriceTriggerNodeMetadata } from "@n8n-trading/types";
+import type { PriceTriggerNodeMetadata } from "@quantnest-trading/types";
 import { Handle, Position } from "@xyflow/react";
 
 export const PriceTrigger = ({

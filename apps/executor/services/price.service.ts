@@ -1,5 +1,5 @@
 import axios from "axios";
-import { assetCompanyName, assetMapped } from "@n8n-trading/types";
+import { assetCompanyName, assetMapped } from "@quantnest-trading/types";
 
 export async function getCurrentPrice(asset: string, market: "Indian" | "Crypto"): Promise<number> {
     if (market === "Indian") {

@@ -6,7 +6,7 @@ import type {
     IndicatorMarket,
     IndicatorReference,
     IndicatorTimeframe,
-} from "@n8n-trading/types";
+} from "@quantnest-trading/types";
 import { getCurrentPrice } from "./price.service";
 import { indicatorCache } from "./indicator.cache";
 

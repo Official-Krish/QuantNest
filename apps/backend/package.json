@@ -1,13 +1,13 @@
 {
-  "name": "@n8n-trading/backend",
+  "name": "@quantnest-trading/backend",
   "module": "index.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
     "@types/bun": "latest",
-    "@n8n-trading/db": "workspace:^",
-    "@n8n-trading/types": "workspace:^",
-    "@n8n-trading/executor-utils": "workspace:^"
+    "@quantnest-trading/db": "workspace:^",
+    "@quantnest-trading/types": "workspace:^",
+    "@quantnest-trading/executor-utils": "workspace:^"
   },
   "peerDependencies": {
     "typescript": "^5"

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
 import { useNavigate, useParams } from "react-router-dom";
-import { type EdgeType, type NodeType } from "@n8n-trading/types";
+import { type EdgeType, type NodeType } from "@quantnest-trading/types";
 import { WorkflowCanvas } from "./workflow/WorkflowCanvas";
 import { WorkflowNameDialog } from "./workflow/WorkflowNameDialog";
 import { PriceTrigger } from "./nodes/triggers/PriceTrigger";

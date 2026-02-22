@@ -60,7 +60,7 @@ const Footer: React.FC = () => {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <img src="Logo.png" width={24} height={24} alt="N8N Trading Logo" />
+              <img src="Logo.png" width={24} height={24} alt="QuantNest Trading Logo" />
               <h2 className="text-2xl font-semibold">QuantNest Trading</h2>
             </div>
             <p className="text-gray-400 mb-6">

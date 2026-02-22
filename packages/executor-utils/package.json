@@ -1,5 +1,5 @@
 {
-  "name": "@n8n-trading/executor-utils",
+  "name": "@quantnest-trading/executor-utils",
   "module": "index.ts",
   "type": "module",
   "private": true,

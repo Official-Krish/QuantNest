@@ -1,5 +1,5 @@
-import { NonceManagerType } from "@n8n-trading/lighter-sdk-ts/nonce_manager";
-import { SignerClient } from "@n8n-trading/lighter-sdk-ts/signer";
+import { NonceManagerType } from "@quantnest-trading/lighter-sdk-ts/nonce_manager";
+import { SignerClient } from "@quantnest-trading/lighter-sdk-ts/signer";
 const MARKETS = {
     "BTC": {
         marketId: 1,

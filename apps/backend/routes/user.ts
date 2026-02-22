@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { SigninSchema, SignupSchema } from "@n8n-trading/types/metadata";
-import { UserModel, WorkflowModel } from '@n8n-trading/db/client';
+import { SigninSchema, SignupSchema } from "@quantnest-trading/types/metadata";
+import { UserModel, WorkflowModel } from '@quantnest-trading/db/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../middleware';

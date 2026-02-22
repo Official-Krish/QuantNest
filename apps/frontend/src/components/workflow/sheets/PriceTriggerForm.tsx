@@ -1,4 +1,4 @@
-import type { PriceTriggerNodeMetadata } from "@n8n-trading/types";
+import type { PriceTriggerNodeMetadata } from "@quantnest-trading/types";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_MARKETS, SUPPORTED_WEB3_ASSETS } from "@n8n-trading/types";
+import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_MARKETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
 
 interface PriceTriggerFormProps {
     marketType: "Indian" | "Crypto" | null;

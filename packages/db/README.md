@@ -1,15 +1,20 @@
-# db
+# QuantNest DB Package (`packages/db`)
 
-To install dependencies:
+Shared MongoDB models and DB client exports used by backend and executor services.
 
-```bash
-bun install
-```
+## Responsibilities
+- Define schema/model contracts for users, workflows, executions, and related records
+- Provide reusable model exports to app services
 
-To run:
+## Usage
+Imported as workspace package:
+- `@quantnest-trading/db/client`
 
-```bash
-bun run index.ts
-```
+## Key File
+- `index.ts` - model definitions and exports
 
-This project was created using `bun init` in bun v1.2.18. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+## Notes
+- Uses Mongoose.
+- Connection lifecycle is handled by app services (`apps/backend`, `apps/executor`), not this package.
+
+See root README for full platform context: `../../README.md`.

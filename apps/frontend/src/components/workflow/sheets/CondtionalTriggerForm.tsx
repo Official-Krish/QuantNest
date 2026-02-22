@@ -7,7 +7,7 @@ import type {
   IndicatorKind,
   IndicatorOperand,
   IndicatorTimeframe,
-} from "@n8n-trading/types";
+} from "@quantnest-trading/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,7 @@ import {
   SUPPORTED_INDIAN_MARKET_ASSETS,
   SUPPORTED_MARKETS,
   SUPPORTED_WEB3_ASSETS,
-} from "@n8n-trading/types";
+} from "@quantnest-trading/types";
 
 interface ConditionalTriggerFormProps {
   marketType: "Indian" | "Crypto" | null;

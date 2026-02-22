@@ -1,15 +1,20 @@
-# executor-utils
+# QuantNest Executor Utils (`packages/executor-utils`)
 
-To install dependencies:
+Shared runtime helpers used by backend and executor for operational concerns.
 
-```bash
-bun install
-```
+## Responsibilities
+- Market open/close status helpers
+- Zerodha token status and persistence helper surface
+- Shared utility functions used across app services
 
-To run:
+## Usage
+Imported as workspace package:
+- `@quantnest-trading/executor-utils`
 
-```bash
-bun run index.ts
-```
+## Key File
+- `index.ts` - exported utility functions
 
-This project was created using `bun init` in bun v1.2.18. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+## Notes
+- This package is intentionally runtime-focused and app-agnostic.
+
+See root README for full operational flow: `../../README.md`.

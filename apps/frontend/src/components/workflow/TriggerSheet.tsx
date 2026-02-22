@@ -4,7 +4,7 @@ import {
   type NodeMetadata,
   type PriceTriggerNodeMetadata,
   type TimerNodeMetadata,
-} from "@n8n-trading/types";
+} from "@quantnest-trading/types";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,

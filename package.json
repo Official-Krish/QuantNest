@@ -1,5 +1,5 @@
 {
-  "name": "n8n-trading",
+  "name": "quantnest-trading",
   "private": true,
   "scripts": {
     "build": "turbo build",

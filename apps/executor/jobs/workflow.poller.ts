@@ -1,4 +1,4 @@
-import { ExecutionModel, WorkflowModel } from "@n8n-trading/db/client";
+import { ExecutionModel, WorkflowModel } from "@quantnest-trading/db/client";
 import { canExecute, executeWorkflowSafe } from "../services/execution.service";
 import { evaluateConditionalMetadata, handleConditionalTrigger, handlePriceTrigger, handleTimerTrigger } from "../handlers/trigger.handler";
 import { indicatorEngine } from "../services/indicator.engine";
