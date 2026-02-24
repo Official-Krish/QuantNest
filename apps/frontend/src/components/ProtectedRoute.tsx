@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { apiVerifyToken } from "@/http";
+import { apiVerifyToken, clearAuthSession, setAuthSession } from "@/http";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const [isVerifying, setIsVerifying] = useState(true);
@@ -8,20 +8,13 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         const verifyAuth = async () => {
-        const token = localStorage.getItem("token");
-        
-        if (!token) {
-            setIsVerifying(false);
-            setIsAuthenticated(false);
-            return;
-        }
-
         try {
             await apiVerifyToken();
+            setAuthSession();
             setIsAuthenticated(true);
         } catch (error) {
             console.error("Token verification failed:", error);
-            localStorage.removeItem("token");
+            clearAuthSession();
             setIsAuthenticated(false);
         } finally {
             setIsVerifying(false);

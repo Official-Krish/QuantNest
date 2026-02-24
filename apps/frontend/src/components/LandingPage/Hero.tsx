@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import ShimmeringText from "../ui/shimmer-text"
+import { hasAuthSession } from "@/http";
 
 export const Hero = () => {
     const navigate = useNavigate();
@@ -20,7 +21,7 @@ export const Hero = () => {
                         <button 
                             className="bg-white text-neutral-800 font-normal px-6 py-2 cursor-pointer rounded-lg"
                             onClick={() => {
-                                if (localStorage.getItem("token")){
+                                if (hasAuthSession()){
                                     navigate("/create");
                                 } else {
                                     navigate("/signup");

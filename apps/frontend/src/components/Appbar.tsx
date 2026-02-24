@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "motion/react";
 import { ProfileDropDown } from "./Profile-Dropdown";
+import { apiVerifyToken, clearAuthSession, hasAuthSession, setAuthSession } from "@/http";
 
 export const Appbar = () => {
     const [hovered, setHovered] = useState<number | null>(null);
     const [scrolled, setScrolled] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => hasAuthSession());
     const { scrollY } = useScroll();
 
     const navItems = [
@@ -46,6 +48,20 @@ export const Appbar = () => {
             setScrolled(false);
         }
     });
+
+    useEffect(() => {
+        const syncSession = async () => {
+            try {
+                await apiVerifyToken();
+                setAuthSession();
+                setIsAuthenticated(true);
+            } catch {
+                clearAuthSession();
+                setIsAuthenticated(false);
+            }
+        };
+        void syncSession();
+    }, []);
     return (
         <div className="fixed top-0 left-0 right-0 z-50">
             <motion.div 
@@ -78,7 +94,7 @@ export const Appbar = () => {
                         <span className="font-medium text-white">QuantNest</span>
                     </div>
                     <div className="flex items-center max-w-lg">
-                        {localStorage.getItem("token") ? navItemsAuth.map((item, idx) => (
+                        {isAuthenticated ? navItemsAuth.map((item, idx) => (
                             <motion.div
                                 key={item.name}
                                 className="relative px-4 py-2 text-neutral-300 cursor-pointer"
@@ -109,13 +125,13 @@ export const Appbar = () => {
                         ))}
                     </div>
                     <div className="flex justify-center items-center">
-                        {!localStorage.getItem("token") && (
+                        {!isAuthenticated && (
                             <motion.button 
                                 className="px-4 py-2 text-neutral-800 rounded-lg font-normal bg-neutral-200 cursor-pointer shadow-md shadow-neutral-200/30 "
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => {
-                                    if (localStorage.getItem("token")) {
+                                    if (isAuthenticated) {
                                         window.location.href = "/dashboard";
                                     } else {
                                         window.location.href = "/signup";
@@ -125,7 +141,7 @@ export const Appbar = () => {
                                 Start Building
                             </motion.button>
                         )}
-                        {localStorage.getItem("token") && <ProfileDropDown />}
+                        {isAuthenticated && <ProfileDropDown />}
                     </div>
                 </div>
             </motion.div>

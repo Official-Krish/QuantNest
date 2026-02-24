@@ -15,11 +15,19 @@ import {
     LogOutIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react";
+import { apiSignout, clearAuthSession } from "@/http";
 
 export function ProfileDropDown() {
     const [avatarUrl, setAvatarUrl] = useState("");
-    const handleSignOut = () => {
-        localStorage.removeItem("token");
+    const handleSignOut = async () => {
+        try {
+            await apiSignout();
+        } catch (error) {
+            console.error("Signout failed:", error);
+        } finally {
+            clearAuthSession();
+            localStorage.removeItem("avatarUrl");
+        }
         window.location.href = "/"; 
     }
     useEffect(() => {
@@ -66,7 +74,7 @@ export function ProfileDropDown() {
                 <DropdownMenuSeparator className="bg-gray-700" />
                 <DropdownMenuItem className="text-red-400 cursor-pointer"
                     onClick={()=> {
-                        handleSignOut();
+                        void handleSignOut();
                     }}
                 >
                     <LogOutIcon className="mr-2" />

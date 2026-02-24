@@ -1,10 +1,11 @@
 import { OrbitingCircles } from "../ui/orbiting-circles"
+import { hasAuthSession } from "@/http";
 
 export const Start = () => {
   const handleGetStarted = () => {
     if (typeof window === "undefined") return
 
-    if (localStorage.getItem("token")) {
+    if (hasAuthSession()) {
       window.location.href = "/dashboard"
     } else {
       window.location.href = "/signup"

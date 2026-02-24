@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Check, User, Workflow, Calendar, Mail } from "lucide-react";
-import { apiGetProfile, apiUpdateProfile } from "@/http";
+import { apiGetProfile, apiUpdateProfile, clearAuthSession } from "@/http";
 import { AVATAR_OPTIONS } from "@/lib/utils";
 
 const Profile = () => {
@@ -27,7 +27,7 @@ const Profile = () => {
             setTotalWorkflows(res.totalWorkflows);
             setMemberSince(res.memberSince);
         } catch (err) {
-            localStorage.removeItem("token");
+            clearAuthSession();
             navigate("/signin");
         }
     };

@@ -46,5 +46,6 @@ bun run dev
 ## Notes
 - This app expects backend to expose APIs under `/api/v1/*`.
 - Market status is fetched from backend `/market-status` endpoint.
+- Auth uses HttpOnly JWT cookies (`withCredentials: true`) plus a local non-sensitive UI session flag.
 
 For platform-wide architecture and setup, see root README: `../../README.md`.
