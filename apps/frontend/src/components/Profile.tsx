@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Check, User, Workflow, Calendar, Mail } from "lucide-react";
 import { apiGetProfile, apiUpdateProfile, clearAuthSession } from "@/http";
 import { AVATAR_OPTIONS } from "@/lib/utils";
+import { toast } from "sonner";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -28,6 +29,9 @@ const Profile = () => {
             setMemberSince(res.memberSince);
         } catch (err) {
             clearAuthSession();
+            toast.warning("Session expired", {
+              description: "Please sign in again to continue.",
+            });
             navigate("/signin");
         }
     };
@@ -35,10 +39,19 @@ const Profile = () => {
   }, []);
 
   const handleSave = async () => {
-    await apiUpdateProfile({
-      email,
-      avatarUrl: selectedAvatar,
-    });
+    try {
+      await apiUpdateProfile({
+        email,
+        avatarUrl: selectedAvatar,
+      });
+      toast.success("Profile updated", {
+        description: "Your avatar preferences were saved.",
+      });
+    } catch (error: any) {
+      toast.error("Update failed", {
+        description: error?.response?.data?.message ?? "Could not save profile changes.",
+      });
+    }
   };
 
   return (

@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShineBorder } from "@/components/ui/shine-border";
+import { toast } from "sonner";
 
 export function Auth({ mode }: { mode: "signin" | "signup" }) {
   const nav = useNavigate();
@@ -36,15 +37,28 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
         });
         if ('status' in res && res.status === 409) {
           setError("Username already exists");
+          toast.warning("Signup blocked", {
+            description: "This username is already taken. Try another one.",
+          });
           setLoading(false);
           return;
         }
+        toast.success("Account created", {
+          description: "Your QuantNest account is ready. Signing you in now.",
+        });
       }
       await apiSignin({ username, password });
+      toast.success(mode === "signin" ? "Signed in" : "Welcome to QuantNest", {
+        description: "Redirecting you to the workflow builder.",
+      });
 
       nav("/create");
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? "Request failed");
+      const message = e?.response?.data?.message ?? e?.message ?? "Request failed";
+      setError(message);
+      toast.error(mode === "signin" ? "Signin failed" : "Signup failed", {
+        description: message,
+      });
     } finally {
       setLoading(false);
     }
