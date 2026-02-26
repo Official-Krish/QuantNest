@@ -52,7 +52,10 @@ export const ActionSheet = ({
   const [initialAction, setInitialAction] = useState<"Order Notification" | "Order Execution" | "Flow Control" | undefined>(undefined);
   const canCreateAction =
     !!selectedAction &&
-    (selectedAction !== "notion-daily-report" || Boolean((metadata as any)?.notionApiKey));
+    (
+      selectedAction !== "notion-daily-report" ||
+      (Boolean((metadata as any)?.notionApiKey) && Boolean((metadata as any)?.aiConsent))
+    );
 
   const handleCreate = () => {
     if (!selectedAction) return;

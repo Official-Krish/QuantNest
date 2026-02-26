@@ -1,176 +1,58 @@
-import { ExecutionModel } from "@quantnest-trading/db/client";
+import { Client } from "@notionhq/client";
 import { generateDailyPerformanceAnalysis } from "../ai-models/gemini";
 import type { NodeType } from "../types";
-import { Client } from "@notionhq/client";
+import {
+    asNotionText,
+    isNotionReportWindowOpen,
+    normalizeNotionId,
+    NOTION_VERSION,
+    toDateLabel,
+    wasNotionReportCreatedToday,
+} from "./notion/helpers";
+import { getZerodhaTradeSummary } from "./notion/zerodhaReportData";
 
 interface NotionDailyReportMetadata {
     notionApiKey?: string;
     parentPageId?: string;
+    aiConsent?: boolean;
 }
 
 interface CreateNotionReportInput {
     workflowId: string;
+    userId: string;
     nodes: NodeType[];
     metadata: NotionDailyReportMetadata;
 }
 
-const NOTION_VERSION = "2025-09-03";
-const REPORT_TIMEZONE = "Asia/Kolkata";
-const REPORT_CUTOFF_MINUTES = 15 * 60 + 30; // 3:30 PM
-
-function toDateLabel(date: Date): string {
-    return date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-    });
-}
-
-function asText(content: string) {
-    return {
-        type: "text",
-        text: { content },
-    } as const;
-}
-
-function normalizeNotionId(value: string): string {
-    const trimmed = value.trim();
-    if (!trimmed) return trimmed;
-    const lastSegment = trimmed.split("/").pop() || trimmed;
-    return lastSegment.split("?")[0] || trimmed;
-}
-
-function getNowInTimezone(timeZone: string): { hour: number; minute: number; dayKey: string } {
-    const now = new Date();
-    const parts = new Intl.DateTimeFormat("en-CA", {
-        timeZone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-    }).formatToParts(now);
-
-    const map: Record<string, string> = {};
-    for (const part of parts) {
-        if (part.type !== "literal") {
-            map[part.type] = part.value;
-        }
-    }
-
-    const year = map.year || "1970";
-    const month = map.month || "01";
-    const day = map.day || "01";
-    const hour = Number(map.hour || "0");
-    const minute = Number(map.minute || "0");
-
-    return {
-        hour,
-        minute,
-        dayKey: `${year}-${month}-${day}`,
-    };
-}
-
-function getDayKey(date: Date, timeZone: string): string {
-    return new Intl.DateTimeFormat("en-CA", {
-        timeZone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    }).format(date);
-}
-
-export function isNotionReportWindowOpen(): boolean {
-    const now = getNowInTimezone(REPORT_TIMEZONE);
-    return now.hour * 60 + now.minute >= REPORT_CUTOFF_MINUTES;
-}
-
-export async function wasNotionReportCreatedToday(workflowId: string, nodeId: string): Promise<boolean> {
-    const now = new Date();
-    const todayKey = getDayKey(now, REPORT_TIMEZONE);
-    const lookbackStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-
-    const executions = await ExecutionModel.find({
-        workflowId,
-        startTime: { $gte: lookbackStart },
-        steps: {
-            $elemMatch: {
-                nodeId,
-                nodeType: "Notion Daily Report",
-                status: "Success",
-            },
-        },
-    }).select({ startTime: 1, steps: 1 });
-
-    return executions.some((execution: any) => {
-        const executionDayKey = getDayKey(new Date(execution.startTime), REPORT_TIMEZONE);
-        if (executionDayKey !== todayKey) {
-            return false;
-        }
-        return (execution.steps || []).some(
-            (step: any) =>
-                step?.nodeId === nodeId &&
-                step?.nodeType === "Notion Daily Report" &&
-                step?.status === "Success" &&
-                String(step?.message || "").toLowerCase().includes("notion report created"),
-        );
-    });
-}
+export { isNotionReportWindowOpen, wasNotionReportCreatedToday };
 
 export async function createNotionDailyReport(input: CreateNotionReportInput): Promise<string> {
     const notionApiKey = input.metadata?.notionApiKey?.trim();
     if (!notionApiKey) {
         throw new Error("Missing Notion API key");
     }
+    if (input.metadata?.aiConsent !== true) {
+        throw new Error("AI consent is required for Notion trade analysis");
+    }
+
     const notion = new Client({
         auth: notionApiKey,
         notionVersion: NOTION_VERSION,
     });
 
-    const hasZerodhaAction = input.nodes.some(
-        (node) =>
-            String(node.data?.kind || "").toLowerCase() === "action" &&
-            String(node.type || "").toLowerCase() === "zerodha",
-    );
-    if (!hasZerodhaAction) {
-        throw new Error("Notion Daily Report is only supported when a Zerodha action node exists");
-    }
-
-    const now = new Date();
-    const dayStart = new Date(now);
-    dayStart.setHours(0, 0, 0, 0);
-
-    const executions = await ExecutionModel.find({
+    const summary = await getZerodhaTradeSummary({
         workflowId: input.workflowId,
-        startTime: { $gte: dayStart, $lte: now },
-        status: { $in: ["Success", "Failed"] },
-    }).sort({ startTime: -1 });
-
-    const totalRuns = executions.length;
-    const successfulRuns = executions.filter((execution) => execution.status === "Success").length;
-    const failedRuns = executions.filter((execution) => execution.status === "Failed").length;
-    const winRate = totalRuns > 0 ? Number(((successfulRuns / totalRuns) * 100).toFixed(1)) : 0;
-
-    const sampleFailures = executions
-        .flatMap((execution: any) => execution.steps || [])
-        .filter((step: any) => step?.status === "Failed")
-        .map((step: any) => String(step?.message || "").trim())
-        .filter(Boolean)
-        .slice(0, 3);
+        userId: input.userId,
+        nodes: input.nodes,
+    });
 
     const ai = await generateDailyPerformanceAnalysis({
         workflowId: input.workflowId,
-        date: now.toISOString().slice(0, 10),
-        totalRuns,
-        successfulRuns,
-        failedRuns,
-        winRate,
-        sampleFailures,
+        date: new Date().toISOString().slice(0, 10),
+        ...summary,
     });
 
-    const title = `Daily Report - ${toDateLabel(now)}`;
-
+    const title = `Daily Report - ${toDateLabel(new Date())}`;
     const parentPageId = input.metadata?.parentPageId?.trim();
     const parent = parentPageId
         ? { type: "page_id", page_id: normalizeNotionId(parentPageId) }
@@ -181,21 +63,33 @@ export async function createNotionDailyReport(input: CreateNotionReportInput): P
             object: "block",
             type: "heading_2",
             heading_2: {
-                rich_text: [asText("Win rate")],
+                rich_text: [asNotionText("Trade performance snapshot")],
             },
         },
         {
             object: "block",
             type: "paragraph",
             paragraph: {
-                rich_text: [asText(`${winRate}% (${successfulRuns}/${totalRuns} successful runs)`)],
+                rich_text: [asNotionText(
+                    `Order completion: ${summary.completionRate}% (${summary.completedOrders}/${summary.totalOrders}). ` +
+                    `Rejection rate: ${summary.rejectionRate}%. Trades analysed (30d): ${summary.last30DayTradeCount}.`,
+                )],
+            },
+        },
+        {
+            object: "block",
+            type: "paragraph",
+            paragraph: {
+                rich_text: [asNotionText(
+                    `PnL context -> Realized: ${summary.realizedPnl}, Unrealized: ${summary.unrealizedPnl}, Holdings PnL: ${summary.holdingsPnl}.`,
+                )],
             },
         },
         {
             object: "block",
             type: "heading_2",
             heading_2: {
-                rich_text: [asText("Mistakes")],
+                rich_text: [asNotionText("Mistakes")],
             },
         },
     ];
@@ -205,7 +99,7 @@ export async function createNotionDailyReport(input: CreateNotionReportInput): P
             object: "block",
             type: "bulleted_list_item",
             bulleted_list_item: {
-                rich_text: [asText(mistake)],
+                rich_text: [asNotionText(mistake)],
             },
         });
     });
@@ -214,7 +108,7 @@ export async function createNotionDailyReport(input: CreateNotionReportInput): P
         object: "block",
         type: "heading_2",
         heading_2: {
-            rich_text: [asText("Improvement suggestions")],
+            rich_text: [asNotionText("Improvement suggestions")],
         },
     });
 
@@ -223,16 +117,70 @@ export async function createNotionDailyReport(input: CreateNotionReportInput): P
             object: "block",
             type: "bulleted_list_item",
             bulleted_list_item: {
-                rich_text: [asText(suggestion)],
+                rich_text: [asNotionText(suggestion)],
             },
         });
     });
 
     children.push({
         object: "block",
+        type: "heading_2",
+        heading_2: {
+            rich_text: [asNotionText("Top traded symbols (30d)")],
+        },
+    });
+
+    if (!summary.topSymbols.length) {
+        children.push({
+            object: "block",
+            type: "paragraph",
+            paragraph: { rich_text: [asNotionText("No recent trade symbols available from Zerodha account.")] },
+        });
+    } else {
+        summary.topSymbols.forEach((item) => {
+            children.push({
+                object: "block",
+                type: "bulleted_list_item",
+                bulleted_list_item: {
+                    rich_text: [asNotionText(`${item.symbol} (${item.side}) -> qty ${item.quantity}, avg ${item.avgPrice}`)],
+                },
+            });
+        });
+    }
+
+    children.push({
+        object: "block",
+        type: "heading_2",
+        heading_2: {
+            rich_text: [asNotionText("Historical market context (30d)")],
+        },
+    });
+
+    if (!summary.historicalContext.length) {
+        children.push({
+            object: "block",
+            type: "paragraph",
+            paragraph: { rich_text: [asNotionText("No historical price context available for traded symbols.")] },
+        });
+    } else {
+        summary.historicalContext.forEach((item) => {
+            children.push({
+                object: "block",
+                type: "bulleted_list_item",
+                bulleted_list_item: {
+                    rich_text: [asNotionText(
+                        `${item.symbol} -> 30d change: ${item.changePct30d ?? "N/A"}%, last close: ${item.lastClose ?? "N/A"}`,
+                    )],
+                },
+            });
+        });
+    }
+
+    children.push({
+        object: "block",
         type: "paragraph",
         paragraph: {
-            rich_text: [asText(`AI Confidence: ${ai.confidenceScore}/10 (${ai.confidence})`)],
+            rich_text: [asNotionText(`AI Confidence: ${ai.confidenceScore}/10 (${ai.confidence})`)],
         },
     });
 
@@ -240,10 +188,11 @@ export async function createNotionDailyReport(input: CreateNotionReportInput): P
         parent: parent as any,
         properties: {
             title: {
-                title: [asText(title)],
+                title: [asNotionText(title)],
             },
         },
         children: children as any,
     });
+
     return result.id || "created";
 }

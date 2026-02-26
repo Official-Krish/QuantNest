@@ -34,10 +34,10 @@ export const NotionDailyReportForm = ({
 
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Parent Page ID (Optional)
+          Parent Page ID
         </p>
         <p className="text-xs text-neutral-400">
-          Recommended for internal integrations. If empty, API uses workspace parent.
+          Recommended for internal integrations.
         </p>
         <Input
           type="text"
@@ -53,10 +53,28 @@ export const NotionDailyReportForm = ({
         />
       </div>
 
+      <label className="flex items-start gap-2 rounded-lg border border-neutral-700/60 bg-neutral-900/40 p-3">
+        <input
+          type="checkbox"
+          checked={Boolean(metadata.aiConsent)}
+          onChange={(e) =>
+            setMetadata((current: any) => ({
+              ...current,
+              aiConsent: e.target.checked,
+            }))
+          }
+          className="mt-0.5 h-4 w-4 cursor-pointer accent-[#7ecb89]"
+        />
+        <span className="text-xs leading-relaxed text-neutral-300">
+          I consent to QuantNest fetching Zerodha order/trade/position/holding data and sending
+          relevant historical trade context to AI for analysis and Notion report generation.
+        </span>
+      </label>
+
       <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3">
         <p className="text-xs text-neutral-400">
-          This action creates a Notion page with: win rate, mistakes, and AI improvement suggestions.
-          It runs only when a Zerodha action exists in the workflow.
+          This action creates a structured Notion report from Zerodha account data and AI analysis.
+          It runs only when a Zerodha action exists in the workflow and consent is enabled.
         </p>
       </div>
     </div>

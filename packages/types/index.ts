@@ -80,7 +80,8 @@ export interface NotificationMetadata {
 
 export interface NotionDailyReportMetadata {
     notionApiKey: string;
-    parentPageId?: string;
+    parentPageId: string;
+    aiConsent: boolean;
     condition?: boolean;
 }
 

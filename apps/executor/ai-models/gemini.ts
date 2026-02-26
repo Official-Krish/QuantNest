@@ -17,10 +17,20 @@ interface GeminiInsightResponse {
 interface DailyPerformanceInput {
     workflowId: string;
     date: string;
-    totalRuns: number;
-    successfulRuns: number;
-    failedRuns: number;
-    winRate: number;
+    totalOrders: number;
+    completedOrders: number;
+    rejectedOrders: number;
+    totalTrades: number;
+    last30DayTradeCount: number;
+    dayPositionCount: number;
+    netPositionCount: number;
+    completionRate: number;
+    rejectionRate: number;
+    realizedPnl: number;
+    unrealizedPnl: number;
+    holdingsPnl: number;
+    topSymbols: Array<{ symbol: string; side: string; quantity: number; avgPrice: number }>;
+    historicalContext: Array<{ symbol: string; changePct30d: number | null; lastClose: number | null }>;
     sampleFailures: string[];
 }
 
@@ -200,17 +210,18 @@ export async function generateTradeReasoning(eventType: EventType, details: Noti
 export async function generateDailyPerformanceAnalysis(
     input: DailyPerformanceInput,
 ): Promise<DailyPerformanceAnalysis> {
+    const hasHealthyCompletion = input.completionRate >= 70 && input.rejectionRate <= 10;
     const fallback: DailyPerformanceAnalysis = {
         mistakes: input.sampleFailures.length
             ? input.sampleFailures.slice(0, 3)
-            : ["No major execution errors captured today."],
+            : ["Review rejected orders and low-conviction entries from the last 30 days."],
         suggestions: [
-            "Review stop-loss and position sizing before market open.",
-            "Validate trigger conditions against higher timeframe trend.",
-            "Track failed executions and remove unstable configurations.",
+            "Tighten entry filters for symbols with repeated rejections or low follow-through.",
+            "Reduce size on setups where realised PnL has been inconsistent.",
+            "Align trades with higher timeframe direction before opening new positions.",
         ],
-        confidence: input.winRate >= 70 ? "High" : input.winRate >= 45 ? "Medium" : "Low",
-        confidenceScore: input.winRate >= 70 ? 8 : input.winRate >= 45 ? 6 : 4,
+        confidence: hasHealthyCompletion ? "High" : input.completionRate >= 50 ? "Medium" : "Low",
+        confidenceScore: hasHealthyCompletion ? 8 : input.completionRate >= 50 ? 6 : 4,
     };
 
     if (!ai) {

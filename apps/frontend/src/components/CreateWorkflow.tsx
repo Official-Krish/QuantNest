@@ -87,7 +87,7 @@ export const CreateWorkflow = () => {
                 : "price-trigger";
             } else if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {
               nodeType = "zerodha";
-            } else if (metadata.notionApiKey !== undefined || metadata.parentPageId !== undefined) {
+            } else if (metadata.notionApiKey !== undefined || metadata.parentPageId !== undefined || metadata.aiConsent !== undefined) {
               nodeType = "notion-daily-report";
             } else {
               const kind = node.data?.kind?.toLowerCase();

@@ -7,10 +7,11 @@ export const notionDailyReportAction = ({
     metadata: {
       parentPageId?: string;
       notionApiKey?: string;
+      aiConsent?: boolean;
     };
   };
 }) => {
-  const { parentPageId, notionApiKey } = data.metadata || {};
+  const { parentPageId, notionApiKey, aiConsent } = data.metadata || {};
 
   return (
     <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 bg-neutral-950/90 px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
@@ -30,6 +31,9 @@ export const notionDailyReportAction = ({
       </div>
       <div className="mt-1 text-[11px] text-neutral-500">
         {notionApiKey ? "Notion key provided" : "Missing Notion API key"}
+      </div>
+      <div className="mt-1 text-[11px] text-neutral-500">
+        {aiConsent ? "AI consent enabled" : "AI consent required"}
       </div>
       <Handle
         type="target"

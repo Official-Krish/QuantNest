@@ -496,6 +496,9 @@ export async function executeRecursive(
                     if (!context.workflowId) {
                         throw new Error("Workflow ID is required to generate daily report");
                     }
+                    if (!context.userId) {
+                        throw new Error("User ID is required to generate daily report");
+                    }
                     if (!isNotionReportWindowOpen()) {
                         return;
                     }
@@ -505,10 +508,12 @@ export async function executeRecursive(
 
                     const reportId = await createNotionDailyReport({
                         workflowId: context.workflowId,
+                        userId: context.userId,
                         nodes,
                         metadata: {
                             notionApiKey: node.data?.metadata?.notionApiKey,
                             parentPageId: node.data?.metadata?.parentPageId,
+                            aiConsent: node.data?.metadata?.aiConsent,
                         },
                     });
 
