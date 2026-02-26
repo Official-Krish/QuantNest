@@ -3,6 +3,7 @@ import { sendDiscordNotification } from "./executors/discord";
 import { sendEmail } from "./executors/gmail";
 import { executeGrowwNode } from "./executors/groww";
 import { executeZerodhaNode } from "./executors/zerodha";
+import { createNotionDailyReport, isNotionReportWindowOpen, wasNotionReportCreatedToday } from "./executors/notion";
 import type { EdgeType, NodeType } from "./types";
 import { isMarketOpen } from "./utils/market.utils";
 import { checkTokenStatus, getMarketStatus, getZerodhaToken } from "@quantnest-trading/executor-utils";
@@ -223,6 +224,7 @@ export async function executeRecursive(
 
                     // Check if user has valid access token for this workflow
                     const tokenStatus = await checkTokenStatus(context.userId || "", context.workflowId || "");
+                    console.log("Zerodha token status:", tokenStatus);
                     if (!tokenStatus.hasValidToken) {
                         steps.push({
                             step: steps.length + 1,
@@ -482,6 +484,50 @@ export async function executeRecursive(
                         nodeType: "Discord Action",
                         status: "Failed",
                         message: "Failed to send Discord notification"
+                    });
+                    return;
+                }
+
+            case "notion-daily-report":
+                try {
+                    if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+                        return;
+                    }
+                    if (!context.workflowId) {
+                        throw new Error("Workflow ID is required to generate daily report");
+                    }
+                    if (!isNotionReportWindowOpen()) {
+                        return;
+                    }
+                    if (await wasNotionReportCreatedToday(context.workflowId, node.nodeId)) {
+                        return;
+                    }
+
+                    const reportId = await createNotionDailyReport({
+                        workflowId: context.workflowId,
+                        nodes,
+                        metadata: {
+                            notionApiKey: node.data?.metadata?.notionApiKey,
+                            parentPageId: node.data?.metadata?.parentPageId,
+                        },
+                    });
+
+                    steps.push({
+                        step: steps.length + 1,
+                        nodeId: node.nodeId,
+                        nodeType: "Notion Daily Report",
+                        status: "Success",
+                        message: `Notion report created (${reportId})`,
+                    });
+                    return;
+                } catch (error: any) {
+                    console.error("Notion report execution error:", error);
+                    steps.push({
+                        step: steps.length + 1,
+                        nodeId: node.nodeId,
+                        nodeType: "Notion Daily Report",
+                        status: "Failed",
+                        message: error?.message || "Failed to create Notion report",
                     });
                     return;
                 }

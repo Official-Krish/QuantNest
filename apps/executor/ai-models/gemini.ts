@@ -14,6 +14,23 @@ interface GeminiInsightResponse {
     confidenceScore?: number;
 }
 
+interface DailyPerformanceInput {
+    workflowId: string;
+    date: string;
+    totalRuns: number;
+    successfulRuns: number;
+    failedRuns: number;
+    winRate: number;
+    sampleFailures: string[];
+}
+
+export interface DailyPerformanceAnalysis {
+    mistakes: string[];
+    suggestions: string[];
+    confidence: "Low" | "Medium" | "High";
+    confidenceScore: number;
+}
+
 function normalizeConfidence(value: string | undefined): "Low" | "Medium" | "High" {
     const normalized = (value || "").trim().toLowerCase();
     if (normalized === "low") return "Low";
@@ -177,5 +194,65 @@ export async function generateTradeReasoning(eventType: EventType, details: Noti
     } catch (error) {
         console.error("Gemini reasoning generation failed:", error);
         return buildFallbackInsight(eventType, details);
+    }
+}
+
+export async function generateDailyPerformanceAnalysis(
+    input: DailyPerformanceInput,
+): Promise<DailyPerformanceAnalysis> {
+    const fallback: DailyPerformanceAnalysis = {
+        mistakes: input.sampleFailures.length
+            ? input.sampleFailures.slice(0, 3)
+            : ["No major execution errors captured today."],
+        suggestions: [
+            "Review stop-loss and position sizing before market open.",
+            "Validate trigger conditions against higher timeframe trend.",
+            "Track failed executions and remove unstable configurations.",
+        ],
+        confidence: input.winRate >= 70 ? "High" : input.winRate >= 45 ? "Medium" : "Low",
+        confidenceScore: input.winRate >= 70 ? 8 : input.winRate >= 45 ? 6 : 4,
+    };
+
+    if (!ai) {
+        return fallback;
+    }
+
+    try {
+        const prompt = [
+            "You are a trading performance analyst.",
+            "Given daily workflow stats, return STRICT JSON only.",
+            "Schema:",
+            "{\"mistakes\":[\"string\"],\"suggestions\":[\"string\"],\"confidence\":\"Low|Medium|High\",\"confidenceScore\":1-10}",
+            "Rules:",
+            "- Keep each bullet short and practical.",
+            "- mistakes max 3 items; suggestions max 3 items.",
+            "- No markdown, no extra keys.",
+            "",
+            JSON.stringify(input),
+        ].join("\n");
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+        });
+
+        const raw = JSON.parse(extractJsonBlock(response.text || "{}")) as Partial<DailyPerformanceAnalysis>;
+        const mistakes = Array.isArray(raw.mistakes)
+            ? raw.mistakes.map((m) => String(m).trim()).filter(Boolean).slice(0, 3)
+            : [];
+        const suggestions = Array.isArray(raw.suggestions)
+            ? raw.suggestions.map((s) => String(s).trim()).filter(Boolean).slice(0, 3)
+            : [];
+        const score = Number(raw.confidenceScore);
+
+        return {
+            mistakes: mistakes.length ? mistakes : fallback.mistakes,
+            suggestions: suggestions.length ? suggestions : fallback.suggestions,
+            confidence: normalizeConfidence(raw.confidence),
+            confidenceScore: Number.isFinite(score) ? Math.max(1, Math.min(10, Math.round(score))) : fallback.confidenceScore,
+        };
+    } catch (error) {
+        console.error("Gemini daily performance generation failed:", error);
+        return fallback;
     }
 }

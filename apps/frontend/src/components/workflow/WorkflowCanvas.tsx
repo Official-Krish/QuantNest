@@ -45,6 +45,7 @@ export interface WorkflowCanvasProps {
   onEditActionSave: (type: any, metadata: any) => void;
   marketType: "Indian" | "Crypto" | null;
   setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
+  hasZerodhaAction: boolean;
 }
 
 export const WorkflowCanvas = ({
@@ -82,6 +83,7 @@ export const WorkflowCanvas = ({
   onEditActionSave,
   marketType,
   setMarketType,
+  hasZerodhaAction,
 }: WorkflowCanvasProps) => {
   return (
     <div
@@ -190,6 +192,7 @@ export const WorkflowCanvas = ({
             onSelect={onActionSelect}
             marketType={marketType}
             setMarketType={setMarketType}
+            hasZerodhaAction={hasZerodhaAction}
           />
         )}
 
@@ -207,6 +210,7 @@ export const WorkflowCanvas = ({
             onSelect={onEditActionSave}
             marketType={marketType}
             setMarketType={setMarketType}
+            hasZerodhaAction={hasZerodhaAction}
           />
         )}
 

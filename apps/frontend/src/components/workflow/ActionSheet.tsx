@@ -22,6 +22,7 @@ import { GmailForm } from "./sheets/GmailForm";
 import { DiscordForm } from "./sheets/DiscordForm";
 import { ActionSheets } from "./sheets/ActionSheets";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
+import { NotionDailyReportForm } from "./sheets/NotionDailyReportForm";
 
 export const ActionSheet = ({
   onSelect,
@@ -33,6 +34,7 @@ export const ActionSheet = ({
   title,
   marketType,
   setMarketType,
+  hasZerodhaAction,
 }: {
   onSelect: (kind: NodeKind, metadata: NodeMetadata) => void;
   open: boolean;
@@ -43,10 +45,14 @@ export const ActionSheet = ({
   title?: string;
   marketType: "Indian" | "Crypto" | null;
   setMarketType: Dispatch<SetStateAction<"Indian" | "Crypto" | null>>;
+  hasZerodhaAction: boolean;
 }) => {
   const [metadata, setMetadata] = useState<TradingMetadata | LighterMetadata | {}>({});
   const [selectedAction, setSelectedAction] = useState("");
   const [initialAction, setInitialAction] = useState<"Order Notification" | "Order Execution" | "Flow Control" | undefined>(undefined);
+  const canCreateAction =
+    !!selectedAction &&
+    (selectedAction !== "notion-daily-report" || Boolean((metadata as any)?.notionApiKey));
 
   const handleCreate = () => {
     if (!selectedAction) return;
@@ -96,7 +102,9 @@ export const ActionSheet = ({
             <ActionSheets
               value={selectedAction}
               onValueChange={setSelectedAction}
-              actions={SUPPORTED_ACTIONS["Notification"]}
+              actions={SUPPORTED_ACTIONS["Notification"].filter((action) =>
+                action.id === "notion-daily-report" ? hasZerodhaAction : true
+              )}
               initialAction={initialAction}
             />
           )}
@@ -136,6 +144,10 @@ export const ActionSheet = ({
             <DiscordForm metadata={metadata} setMetadata={setMetadata} />
           )}
 
+          {selectedAction === "notion-daily-report" && (
+            <NotionDailyReportForm metadata={metadata} setMetadata={setMetadata} />
+          )}
+
           {selectedAction === "conditional-trigger" && (
             <ConditionalTriggerForm
               marketType={marketType}
@@ -148,7 +160,7 @@ export const ActionSheet = ({
         <SheetFooter className="border-t border-neutral-900 bg-black/90 p-4">
           <Button
             className="w-full cursor-pointer bg-white text-xs font-medium text-neutral-900 hover:bg-gray-200"
-            disabled={!selectedAction}
+            disabled={!canCreateAction}
             onClick={handleCreate}
           >
             {submitLabel ?? "Create action"}
