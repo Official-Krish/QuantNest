@@ -10,6 +10,7 @@ import { zerodhaAction } from "./nodes/actions/zerodha";
 import { growwAction } from "./nodes/actions/growwAction";
 import { gmailAction } from "./nodes/actions/gmailAction";
 import { discordAction } from "./nodes/actions/discordAction";
+import { notionDailyReportAction } from "./nodes/actions/notionDailyReportAction";
 import {
   apiCreateWorkflow,
   apiGetWorkflow,
@@ -26,6 +27,7 @@ const nodeTypes = {
   groww: growwAction,
   gmail: gmailAction,
   discord: discordAction,
+  "notion-daily-report": notionDailyReportAction,
   lighter: lighterAction,
   "conditional-trigger": conditionTrigger,
 };
@@ -85,6 +87,8 @@ export const CreateWorkflow = () => {
                 : "price-trigger";
             } else if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {
               nodeType = "zerodha";
+            } else if (metadata.notionApiKey !== undefined || metadata.parentPageId !== undefined || metadata.aiConsent !== undefined) {
+              nodeType = "notion-daily-report";
             } else {
               const kind = node.data?.kind?.toLowerCase();
               nodeType = kind === "action" ? "zerodha" : "timer";
@@ -205,6 +209,15 @@ export const CreateWorkflow = () => {
   const canSave = useMemo(
     () => nodes.length > 0 && !loading,
     [nodes.length, loading],
+  );
+  const hasZerodhaAction = useMemo(
+    () =>
+      nodes.some(
+        (node) =>
+          String(node.data?.kind || "").toLowerCase() === "action" &&
+          String(node.type || "").toLowerCase() === "zerodha",
+      ),
+    [nodes],
   );
 
   const onSave = useCallback(async () => {
@@ -417,6 +430,7 @@ export const CreateWorkflow = () => {
           }}
           marketType={marketType}
           setMarketType={setMarketType}
+          hasZerodhaAction={hasZerodhaAction}
         />
         <WorkflowNameDialog
           open={showNameDialog}

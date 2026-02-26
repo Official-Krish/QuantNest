@@ -14,6 +14,33 @@ interface GeminiInsightResponse {
     confidenceScore?: number;
 }
 
+interface DailyPerformanceInput {
+    workflowId: string;
+    date: string;
+    totalOrders: number;
+    completedOrders: number;
+    rejectedOrders: number;
+    totalTrades: number;
+    last30DayTradeCount: number;
+    dayPositionCount: number;
+    netPositionCount: number;
+    completionRate: number;
+    rejectionRate: number;
+    realizedPnl: number;
+    unrealizedPnl: number;
+    holdingsPnl: number;
+    topSymbols: Array<{ symbol: string; side: string; quantity: number; avgPrice: number }>;
+    historicalContext: Array<{ symbol: string; changePct30d: number | null; lastClose: number | null }>;
+    sampleFailures: string[];
+}
+
+export interface DailyPerformanceAnalysis {
+    mistakes: string[];
+    suggestions: string[];
+    confidence: "Low" | "Medium" | "High";
+    confidenceScore: number;
+}
+
 function normalizeConfidence(value: string | undefined): "Low" | "Medium" | "High" {
     const normalized = (value || "").trim().toLowerCase();
     if (normalized === "low") return "Low";
@@ -177,5 +204,66 @@ export async function generateTradeReasoning(eventType: EventType, details: Noti
     } catch (error) {
         console.error("Gemini reasoning generation failed:", error);
         return buildFallbackInsight(eventType, details);
+    }
+}
+
+export async function generateDailyPerformanceAnalysis(
+    input: DailyPerformanceInput,
+): Promise<DailyPerformanceAnalysis> {
+    const hasHealthyCompletion = input.completionRate >= 70 && input.rejectionRate <= 10;
+    const fallback: DailyPerformanceAnalysis = {
+        mistakes: input.sampleFailures.length
+            ? input.sampleFailures.slice(0, 3)
+            : ["Review rejected orders and low-conviction entries from the last 30 days."],
+        suggestions: [
+            "Tighten entry filters for symbols with repeated rejections or low follow-through.",
+            "Reduce size on setups where realised PnL has been inconsistent.",
+            "Align trades with higher timeframe direction before opening new positions.",
+        ],
+        confidence: hasHealthyCompletion ? "High" : input.completionRate >= 50 ? "Medium" : "Low",
+        confidenceScore: hasHealthyCompletion ? 8 : input.completionRate >= 50 ? 6 : 4,
+    };
+
+    if (!ai) {
+        return fallback;
+    }
+
+    try {
+        const prompt = [
+            "You are a trading performance analyst.",
+            "Given daily workflow stats, return STRICT JSON only.",
+            "Schema:",
+            "{\"mistakes\":[\"string\"],\"suggestions\":[\"string\"],\"confidence\":\"Low|Medium|High\",\"confidenceScore\":1-10}",
+            "Rules:",
+            "- Keep each bullet short and practical.",
+            "- mistakes max 3 items; suggestions max 3 items.",
+            "- No markdown, no extra keys.",
+            "",
+            JSON.stringify(input),
+        ].join("\n");
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+        });
+
+        const raw = JSON.parse(extractJsonBlock(response.text || "{}")) as Partial<DailyPerformanceAnalysis>;
+        const mistakes = Array.isArray(raw.mistakes)
+            ? raw.mistakes.map((m) => String(m).trim()).filter(Boolean).slice(0, 3)
+            : [];
+        const suggestions = Array.isArray(raw.suggestions)
+            ? raw.suggestions.map((s) => String(s).trim()).filter(Boolean).slice(0, 3)
+            : [];
+        const score = Number(raw.confidenceScore);
+
+        return {
+            mistakes: mistakes.length ? mistakes : fallback.mistakes,
+            suggestions: suggestions.length ? suggestions : fallback.suggestions,
+            confidence: normalizeConfidence(raw.confidence),
+            confidenceScore: Number.isFinite(score) ? Math.max(1, Math.min(10, Math.round(score))) : fallback.confidenceScore,
+        };
+    } catch (error) {
+        console.error("Gemini daily performance generation failed:", error);
+        return fallback;
     }
 }

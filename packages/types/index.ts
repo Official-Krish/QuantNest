@@ -1,6 +1,14 @@
 import type { IndicatorConditionGroup, IndicatorMarket } from "./indicators";
 
-export type NodeKind = "price" | "timer" | "conditional-trigger" | "Zerodha" | "Groww" | "gmail" | "discord";
+export type NodeKind =
+    | "price"
+    | "timer"
+    | "conditional-trigger"
+    | "Zerodha"
+    | "Groww"
+    | "gmail"
+    | "discord"
+    | "notion-daily-report";
 
 export interface NodeType {
     type: NodeKind;
@@ -20,7 +28,15 @@ export interface EdgeType {
     targetHandle?: string;
 }
 
-export type NodeMetadata = TradingMetadata | TimerNodeMetadata | PriceTriggerNodeMetadata | NotificationMetadata | LighterMetadata | ConditionalTriggerMetadata | {};
+export type NodeMetadata =
+    | TradingMetadata
+    | TimerNodeMetadata
+    | PriceTriggerNodeMetadata
+    | NotificationMetadata
+    | LighterMetadata
+    | ConditionalTriggerMetadata
+    | NotionDailyReportMetadata
+    | {};
 
 export interface ConditionalTriggerMetadata {
     condition?: "above" | "below";
@@ -59,6 +75,13 @@ export interface NotificationMetadata {
     recipientName: string;
     recipientEmail?: string;
     webhookUrl?: string;
+    condition?: boolean;
+}
+
+export interface NotionDailyReportMetadata {
+    notionApiKey: string;
+    parentPageId: string;
+    aiConsent: boolean;
     condition?: boolean;
 }
 
