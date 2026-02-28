@@ -102,6 +102,13 @@ export const conditionTrigger = ({
       <Handle
         type="source"
         id="true"
+        position={Position.Left}
+        style={{ top: "35%" }}
+        className="h-2! w-2! bg-emerald-400! border border-neutral-900"
+      />
+      <Handle
+        type="source"
+        id="true"
         position={Position.Right}
         style={{ top: "35%" }}
         className="h-2! w-2! bg-emerald-400! border border-neutral-900"

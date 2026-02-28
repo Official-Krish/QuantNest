@@ -133,3 +133,21 @@ export async function apiGetMarketStatus(): Promise<{ success: boolean; marketSt
   const res = await api.get<{ success: boolean; marketStatus: marketStatus }>("/market-status");
   return res.data;
 }
+
+export type VerifyBrokerCredentialsBody = {
+  brokerType: "zerodha" | "groww" | "lighter";
+  apiKey?: string;
+  accessToken?: string;
+  accountIndex?: number;
+  apiKeyIndex?: number;
+};
+
+export async function apiVerifyBrokerCredentials(
+  body: VerifyBrokerCredentialsBody
+): Promise<{ success: boolean; message: string }> {
+  const res = await api.post<{ success: boolean; message: string }>(
+    "/workflow/verify-broker-credentials",
+    body
+  );
+  return res.data;
+}

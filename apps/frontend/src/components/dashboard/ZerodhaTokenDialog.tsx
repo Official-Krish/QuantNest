@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle2, Clock, Key } from "lucide-react";
 import { apiGetZerodhaTokenStatus, apiCreateZerodhaToken, apiUpdateZerodhaToken } from "@/http";
+import { ACCESS_TOKEN_REGEX } from "@/lib/validation";
 
 interface TokenStatus {
     hasValidToken: boolean;
@@ -51,6 +52,10 @@ export const ZerodhaTokenDialog = ({ open, onOpenChange, workflowId, workflowNam
     const handleSaveToken = async () => {
         if (!accessToken.trim()) {
             setError("Please enter an access token");
+            return;
+        }
+        if (!ACCESS_TOKEN_REGEX.test(accessToken.trim())) {
+            setError("Invalid access token format.");
             return;
         }
 

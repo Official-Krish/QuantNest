@@ -14,6 +14,7 @@ import { notionDailyReportAction } from "../components/nodes/actions/notionDaily
 import {
   apiCreateWorkflow,
   apiGetWorkflow,
+  apiVerifyBrokerCredentials,
   apiUpdateWorkflow,
 } from "@/http";
 import { Button } from "@/components/ui/button";
@@ -224,6 +225,65 @@ export const CreateWorkflow = () => {
     setSaveError(null);
     setSaving(true);
     try {
+      const verificationPayloads = new Map<
+        string,
+        {
+          brokerType: "zerodha" | "groww" | "lighter";
+          apiKey?: string;
+          accessToken?: string;
+          accountIndex?: number;
+          apiKeyIndex?: number;
+        }
+      >();
+
+      for (const node of nodes) {
+        if (String(node.data?.kind || "").toLowerCase() !== "action") continue;
+        const nodeType = String(node.type || "").toLowerCase();
+        const metadata: any = node.data?.metadata || {};
+
+        if (nodeType === "zerodha") {
+          const payload = {
+            brokerType: "zerodha" as const,
+            apiKey: String(metadata.apiKey || "").trim(),
+            accessToken: String(metadata.accessToken || "").trim(),
+          };
+          verificationPayloads.set(
+            `zerodha:${payload.apiKey}:${payload.accessToken}`,
+            payload
+          );
+          continue;
+        }
+
+        if (nodeType === "groww") {
+          const payload = {
+            brokerType: "groww" as const,
+            accessToken: String(metadata.accessToken || "").trim(),
+          };
+          verificationPayloads.set(
+            `groww:${payload.accessToken}`,
+            payload
+          );
+          continue;
+        }
+
+        if (nodeType === "lighter") {
+          const payload = {
+            brokerType: "lighter" as const,
+            apiKey: String(metadata.apiKey || "").trim(),
+            accountIndex: Number(metadata.accountIndex),
+            apiKeyIndex: Number(metadata.apiKeyIndex),
+          };
+          verificationPayloads.set(
+            `lighter:${payload.apiKey}:${payload.accountIndex}:${payload.apiKeyIndex}`,
+            payload
+          );
+        }
+      }
+
+      for (const payload of verificationPayloads.values()) {
+        await apiVerifyBrokerCredentials(payload);
+      }
+
       const payload = { workflowName, nodes, edges };
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
@@ -233,9 +293,20 @@ export const CreateWorkflow = () => {
         await apiUpdateWorkflow(workflowId, payload);
       }
     } catch (e: any) {
-      setSaveError(
-        e?.response?.data?.message ?? e?.message ?? "Save failed",
-      );
+      const message =
+        e?.response?.data?.message ?? e?.message ?? "Save failed";
+      const normalized = String(message).toLowerCase();
+      if (
+        normalized.includes("verification") ||
+        normalized.includes("credential") ||
+        normalized.includes("zerodha") ||
+        normalized.includes("groww") ||
+        normalized.includes("lighter")
+      ) {
+        setSaveError(`Broker verification failed: ${message}`);
+      } else {
+        setSaveError(message);
+      }
     } finally {
       setSaving(false);
     }

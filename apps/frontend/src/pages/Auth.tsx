@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShineBorder } from "@/components/ui/shine-border";
+import { getSignupValidationErrors } from "@/lib/validation";
 import { toast } from "sonner";
 
 export function Auth({ mode }: { mode: "signin" | "signup" }) {
@@ -23,9 +24,23 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const signupValidationErrors =
+    mode === "signup"
+      ? getSignupValidationErrors({ username, email, password })
+      : [];
 
   async function onSubmit() {
     setError(null);
+
+    if (mode === "signup" && signupValidationErrors.length > 0) {
+      const firstError = signupValidationErrors[0];
+      setError(firstError);
+      toast.warning("Invalid signup details", {
+        description: firstError,
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -191,6 +206,11 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                       mode === "signup" ? "new-password" : "current-password"
                     }
                   />
+                  {mode === "signup" && (
+                    <p className="text-[11px] text-neutral-500">
+                      Use at least 8 characters with uppercase, lowercase, number, and special character.
+                    </p>
+                  )}
                 </div>
 
                 {mode === "signup" && (
@@ -216,6 +236,19 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                   </div>
                 )}
 
+                {mode === "signup" && signupValidationErrors.length > 0 && (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
+                    <p className="text-xs font-medium text-amber-300">
+                      Please fix the following before signing up:
+                    </p>
+                    <ul className="mt-2 space-y-1 text-xs text-amber-200/90">
+                      {signupValidationErrors.map((message) => (
+                        <li key={message}>• {message}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {error && <div className="text-sm text-red-600">{error}</div>}
               </div>
             </CardContent>
@@ -228,7 +261,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                   loading ||
                   !username ||
                   !password ||
-                  (mode === "signup" && !email)
+                  (mode === "signup" && (!email || signupValidationErrors.length > 0))
                 }
               >
                 {loading

@@ -6,6 +6,7 @@ import {
 } from "@quantnest-trading/types";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
+import { getTradingValidationErrors } from "@/lib/validation";
 import {
   Sheet,
   SheetContent,
@@ -14,7 +15,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SUPPORTED_ACTIONS } from "./sheets/constants";
 import { ActionTypeSelector } from "./sheets/ActionTypeSelector";
 import { TradingForm } from "./sheets/TradingForm";
@@ -50,8 +51,23 @@ export const ActionSheet = ({
   const [metadata, setMetadata] = useState<TradingMetadata | LighterMetadata | {}>({});
   const [selectedAction, setSelectedAction] = useState("");
   const [initialAction, setInitialAction] = useState<"Order Notification" | "Order Execution" | "Flow Control" | "Reporting" | undefined>(undefined);
+  const tradingValidationErrors = useMemo(() => {
+    if (
+      selectedAction === "zerodha" ||
+      selectedAction === "groww" ||
+      selectedAction === "lighter"
+    ) {
+      return getTradingValidationErrors(
+        selectedAction as "zerodha" | "groww" | "lighter",
+        metadata
+      );
+    }
+    return [];
+  }, [metadata, selectedAction]);
+
   const canCreateAction =
     !!selectedAction &&
+    tradingValidationErrors.length === 0 &&
     (
       selectedAction !== "notion-daily-report" ||
       (Boolean((metadata as any)?.notionApiKey) && Boolean((metadata as any)?.aiConsent))
@@ -156,6 +172,16 @@ export const ActionSheet = ({
               showApiKey={selectedAction === "zerodha"}
               action={selectedAction as "zerodha" | "groww" | "lighter"}
             />
+          )}
+          {tradingValidationErrors.length > 0 && (
+            <div className="rounded-md border border-amber-500/35 bg-amber-500/10 p-3 text-xs text-amber-200">
+              <p className="font-medium text-amber-300">Complete broker validation:</p>
+              <ul className="mt-2 space-y-1">
+                {tradingValidationErrors.map((validationError) => (
+                  <li key={validationError}>• {validationError}</li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {selectedAction === "gmail" && (

@@ -44,7 +44,7 @@ export const TradingForm = ({
                 type: value as "long" | "short",
               }))
             }
-            value={(typedMetadata as any).position}
+            value={(typedMetadata as any).type}
           >
             <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
               <SelectValue placeholder="Select position" />
@@ -267,12 +267,12 @@ export const TradingForm = ({
                 Your Lighter account index for authentication.
             </p>
             <Input
-                type="text"
+                type="number"
                 value={isWeb3  && (typedMetadata as LighterMetadata).accountIndex || ""}
                 onChange={(e) =>
                 setMetadata((current) => ({
                     ...current,
-                    accountIndex: e.target.value,
+                    accountIndex: Number(e.target.value),
                 }))
                 }
                 className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
@@ -286,12 +286,12 @@ export const TradingForm = ({
                     Your Lighter ApiKey index for authentication.
                 </p>
                 <Input
-                    type="text"
+                    type="number"
                     value={isWeb3  && (typedMetadata as LighterMetadata).apiKeyIndex || ""}
                     onChange={(e) =>
                     setMetadata((current) => ({
                         ...current,
-                        apiKeyIndex: e.target.value,
+                        apiKeyIndex: Number(e.target.value),
                     }))
                     }
                     className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
