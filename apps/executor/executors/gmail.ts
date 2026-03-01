@@ -2,7 +2,7 @@ require("dotenv").config();
 import { Resend } from 'resend';
 import { appendAiInsight, getNotificationContent } from './notificationContent';
 import type { EventType, NotificationDetails } from '../types';
-import { generateTradeReasoning } from '../ai-models/gemini';
+import { generateTradeReasoning } from '../ai-models';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -12,7 +12,10 @@ export async function sendEmail(
     eventType: EventType,
     details: NotificationDetails
 ) {
-    const aiInsight = await generateTradeReasoning(eventType, details);
+    const aiInsight = await generateTradeReasoning(eventType, details, {
+        provider: "gemini",
+        model: "gemini-2.5-flash",
+    });
     const enrichedDetails: NotificationDetails = {
         ...details,
         ...(aiInsight ? { aiInsight } : {}),

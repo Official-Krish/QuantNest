@@ -1,5 +1,5 @@
 import { Client } from "@notionhq/client";
-import { generateDailyPerformanceAnalysis } from "../ai-models/gemini";
+import { generateDailyPerformanceAnalysis } from "../ai-models";
 import type { NodeType } from "../types";
 import {
     asNotionText,
@@ -50,6 +50,9 @@ export async function createNotionDailyReport(input: CreateNotionReportInput): P
         workflowId: input.workflowId,
         date: new Date().toISOString().slice(0, 10),
         ...summary,
+    }, {
+        provider: "gemini",
+        model: "gemini-2.5-flash",
     });
 
     const title = `Daily Report - ${toDateLabel(new Date())}`;

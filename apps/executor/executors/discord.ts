@@ -1,7 +1,7 @@
 import axios from "axios";
 import { appendAiInsight, getNotificationContent } from './notificationContent';
 import type { EventType, NotificationDetails } from "../types";
-import { generateTradeReasoning } from "../ai-models/gemini";
+import { generateTradeReasoning } from "../ai-models";
 
 export const sendDiscordNotification = async (
   webhookUrl: string, 
@@ -10,7 +10,10 @@ export const sendDiscordNotification = async (
   details: NotificationDetails
 ) => {
     try {
-        const aiInsight = await generateTradeReasoning(eventType, details);
+        const aiInsight = await generateTradeReasoning(eventType, details, {
+            provider: "gemini",
+            model: "gemini-2.5-flash",
+        });
         const enrichedDetails: NotificationDetails = {
             ...details,
             ...(aiInsight ? { aiInsight } : {}),

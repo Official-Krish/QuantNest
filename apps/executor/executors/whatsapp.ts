@@ -1,6 +1,6 @@
 import axios from "axios";
 import { appendAiInsight, getNotificationContent } from "./notificationContent";
-import { generateTradeReasoning } from "../ai-models/gemini";
+import { generateTradeReasoning } from "../ai-models";
 import type { EventType, NotificationDetails } from "../types";
 
 export async function sendWhatsAppMessage(
@@ -19,7 +19,10 @@ export async function sendWhatsAppMessage(
         throw new Error("Recipient phone number is required");
     }
 
-    const aiInsight = await generateTradeReasoning(eventType, details);
+    const aiInsight = await generateTradeReasoning(eventType, details, {
+        provider: "gemini",
+        model: "gemini-2.5-flash",
+    });
     const enrichedDetails: NotificationDetails = {
         ...details,
         ...(aiInsight ? { aiInsight } : {}),

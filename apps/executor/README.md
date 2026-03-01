@@ -45,7 +45,7 @@ bun run index.ts
 - `jobs/workflow.poller.ts` - poll loop and trigger dispatch
 - `execute.ts` - recursive workflow execution engine
 - `services/indicator.engine.ts` - indicator caching/evaluation/snapshots
-- `ai-models/gemini.ts` - AI reasoning generation for notifications
+- `ai-models/index.ts` - AI provider entrypoint (Gemini today, extensible for future models)
 - `executors/` - broker and notification adapters
 
 For full architecture and operational guidance, see root README: `../../README.md`.
