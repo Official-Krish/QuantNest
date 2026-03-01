@@ -21,6 +21,7 @@ import { ActionTypeSelector } from "./sheets/ActionTypeSelector";
 import { TradingForm } from "./sheets/TradingForm";
 import { GmailForm } from "./sheets/GmailForm";
 import { DiscordForm } from "./sheets/DiscordForm";
+import { WhatsappForm } from "./sheets/WhatsappForm";
 import { ActionSheets } from "./sheets/ActionSheets";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
 import { NotionDailyReportForm } from "./sheets/NotionDailyReportForm";
@@ -68,6 +69,18 @@ export const ActionSheet = ({
   const canCreateAction =
     !!selectedAction &&
     tradingValidationErrors.length === 0 &&
+    (
+      selectedAction !== "gmail" ||
+      Boolean((metadata as any)?.recipientEmail)
+    ) &&
+    (
+      selectedAction !== "discord" ||
+      Boolean((metadata as any)?.webhookUrl)
+    ) &&
+    (
+      selectedAction !== "whatsapp" ||
+      Boolean((metadata as any)?.recipientPhone)
+    ) &&
     (
       selectedAction !== "notion-daily-report" ||
       (Boolean((metadata as any)?.notionApiKey) && Boolean((metadata as any)?.aiConsent))
@@ -190,6 +203,10 @@ export const ActionSheet = ({
 
           {selectedAction === "discord" && (
             <DiscordForm metadata={metadata} setMetadata={setMetadata} />
+          )}
+
+          {selectedAction === "whatsapp" && (
+            <WhatsappForm metadata={metadata} setMetadata={setMetadata} />
           )}
 
           {selectedAction === "notion-daily-report" && (

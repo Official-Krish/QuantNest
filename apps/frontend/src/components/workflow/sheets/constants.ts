@@ -28,6 +28,11 @@ export const SUPPORTED_ACTIONS = {
             id: "discord",
             title: "Discord",
             description: "Send Discord webhook notifications for workflow events",
+        },
+        {
+            id: "whatsapp",
+            title: "WhatsApp",
+            description: "Send WhatsApp notifications for workflow events",
         }
     ],
     "Reporting": [
