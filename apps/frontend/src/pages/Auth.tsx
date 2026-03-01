@@ -81,7 +81,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-black">
-      <div className="w-full max-w-6xl flex gap-8 items-center">
+      <div className="w-full max-w-6xl flex gap-8 items-center pt-18">
         {/* Left Content Section */}
         <div className="flex-1 space-y-6 text-neutral-200">
           <div className="space-y-4">
@@ -239,7 +239,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                 {mode === "signup" && signupValidationErrors.length > 0 && (
                   <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
                     <p className="text-xs font-medium text-amber-300">
-                      Please fix the following before signing up:
+                      Please ensure the following before signing up:
                     </p>
                     <ul className="mt-2 space-y-1 text-xs text-amber-200/90">
                       {signupValidationErrors.map((message) => (

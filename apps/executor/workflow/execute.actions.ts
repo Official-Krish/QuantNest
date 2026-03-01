@@ -5,6 +5,7 @@ import { createNotionDailyReport, isNotionReportWindowOpen, wasNotionReportCreat
 import { sendDiscordNotification } from "../executors/discord";
 import { sendEmail } from "../executors/gmail";
 import { executeGrowwNode } from "../executors/groww";
+import { sendWhatsAppMessage } from "../executors/whatsapp";
 import { executeZerodhaNode } from "../executors/zerodha";
 import type { EdgeType, NodeType } from "../types";
 import { isMarketOpen } from "../utils/market.utils";
@@ -32,6 +33,7 @@ export async function executeActionNode(params: {
     const { node, nodes, context, nextCondition, steps } = params;
 
     switch (node.type) {
+        case "conditional":
         case "conditional-trigger":
             return;
 
@@ -283,6 +285,49 @@ export async function executeActionNode(params: {
                     nodeType: "Discord Action",
                     status: "Failed",
                     message: "Failed to send Discord notification",
+                });
+                return;
+            }
+
+        case "whatsapp":
+            try {
+                if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+                    return;
+                }
+                if (context.eventType && context.details) {
+                    await sendWhatsAppMessage(
+                        node.data?.metadata?.recipientPhone || "",
+                        node.data?.metadata?.recipientName || "User",
+                        context.eventType,
+                        context.details
+                    );
+                } else {
+                    await sendWhatsAppMessage(
+                        node.data?.metadata?.recipientPhone || "",
+                        node.data?.metadata?.recipientName || "User",
+                        "notification",
+                        {
+                            symbol: node.data?.metadata?.symbol || context.details?.symbol,
+                            exchange: node.data?.metadata?.exchange || "NSE",
+                            targetPrice: node.data?.metadata?.targetPrice,
+                            aiContext: context.details?.aiContext,
+                        }
+                    );
+                }
+                pushStep(steps, {
+                    nodeId: node.nodeId,
+                    nodeType: "WhatsApp Action",
+                    status: "Success",
+                    message: "WhatsApp notification sent",
+                });
+                return;
+            } catch (error: any) {
+                console.error("WhatsApp execution error:", error);
+                pushStep(steps, {
+                    nodeId: node.nodeId,
+                    nodeType: "WhatsApp Action",
+                    status: "Failed",
+                    message: error?.message || "Failed to send WhatsApp notification",
                 });
                 return;
             }

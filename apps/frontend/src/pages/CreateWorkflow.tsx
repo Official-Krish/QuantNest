@@ -10,6 +10,7 @@ import { zerodhaAction } from "../components/nodes/actions/zerodha";
 import { growwAction } from "../components/nodes/actions/growwAction";
 import { gmailAction } from "../components/nodes/actions/gmailAction";
 import { discordAction } from "../components/nodes/actions/discordAction";
+import { whatsappAction } from "../components/nodes/actions/whatsappAction";
 import { notionDailyReportAction } from "../components/nodes/actions/notionDailyReportAction";
 import {
   apiCreateWorkflow,
@@ -28,6 +29,7 @@ const nodeTypes = {
   groww: growwAction,
   gmail: gmailAction,
   discord: discordAction,
+  whatsapp: whatsappAction,
   "notion-daily-report": notionDailyReportAction,
   lighter: lighterAction,
   "conditional-trigger": conditionTrigger,
@@ -86,10 +88,16 @@ export const CreateWorkflow = () => {
               nodeType = metadata.timeWindowMinutes !== undefined
                 ? "conditional-trigger"
                 : "price-trigger";
+            } else if (metadata.recipientEmail !== undefined) {
+              nodeType = "gmail";
+            } else if (metadata.webhookUrl !== undefined) {
+              nodeType = "discord";
             } else if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {
               nodeType = "zerodha";
             } else if (metadata.notionApiKey !== undefined || metadata.parentPageId !== undefined || metadata.aiConsent !== undefined) {
               nodeType = "notion-daily-report";
+            } else if (metadata.recipientPhone !== undefined) {
+              nodeType = "whatsapp";
             } else {
               const kind = node.data?.kind?.toLowerCase();
               nodeType = kind === "action" ? "zerodha" : "timer";
@@ -321,7 +329,7 @@ export const CreateWorkflow = () => {
   };
 
   return (
-    <div className="bg-black min-h-screen w-full text-white pt-24 pb-8 px-6 md:px-10">
+    <div className="bg-black min-h-screen w-full text-white pt-28 pb-8 px-6 md:px-10">
       <div className={`mx-auto ${isFullscreen ? "max-w-10xl" : "max-w-6xl"}`}>
         {!isFullscreen && (
           <>

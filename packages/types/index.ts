@@ -7,6 +7,7 @@ export type NodeKind =
     | "Zerodha"
     | "Groww"
     | "gmail"
+    | "whatsapp"
     | "discord"
     | "notion-daily-report";
 
@@ -74,6 +75,7 @@ export interface TradingMetadata {
 export interface NotificationMetadata {
     recipientName: string;
     recipientEmail?: string;
+    recipientPhone?: string;
     webhookUrl?: string;
     condition?: boolean;
 }
