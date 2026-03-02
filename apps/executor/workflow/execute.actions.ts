@@ -1,7 +1,9 @@
 import { checkTokenStatus, getMarketStatus, getZerodhaToken } from "@quantnest-trading/executor-utils";
 import type { ExecutionStep } from "@quantnest-trading/types";
+import { createGoogleDriveDailyTradesCsv } from "../executors/googleDrive";
 import { ExecuteLighter } from "../executors/lighter";
 import { createNotionDailyReport, isNotionReportWindowOpen, wasNotionReportCreatedToday } from "../executors/notion";
+import { wasDailyActionCreatedToday } from "../executors/reporting/helpers";
 import { sendDiscordNotification } from "../executors/discord";
 import { sendEmail } from "../executors/gmail";
 import { executeGrowwNode } from "../executors/groww";
@@ -375,6 +377,51 @@ export async function executeActionNode(params: {
                     nodeType: "Notion Daily Report",
                     status: "Failed",
                     message: error?.message || "Failed to create Notion report",
+                });
+                return;
+            }
+
+        case "google-drive-daily-csv":
+            try {
+                if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+                    return;
+                }
+                if (!context.workflowId) {
+                    throw new Error("Workflow ID is required to export Google Drive CSV");
+                }
+                if (!context.userId) {
+                    throw new Error("User ID is required to export Google Drive CSV");
+                }
+                if (await wasDailyActionCreatedToday(context.workflowId, node.nodeId, "Google Drive Daily CSV")) {
+                    return;
+                }
+
+                const fileId = await createGoogleDriveDailyTradesCsv({
+                    workflowId: context.workflowId,
+                    userId: context.userId,
+                    nodes,
+                    metadata: {
+                        googleClientEmail: node.data?.metadata?.googleClientEmail,
+                        googlePrivateKey: node.data?.metadata?.googlePrivateKey,
+                        googleDriveFolderId: node.data?.metadata?.googleDriveFolderId,
+                        filePrefix: node.data?.metadata?.filePrefix,
+                    },
+                });
+
+                pushStep(steps, {
+                    nodeId: node.nodeId,
+                    nodeType: "Google Drive Daily CSV",
+                    status: "Success",
+                    message: `Drive CSV uploaded (${fileId})`,
+                });
+                return;
+            } catch (error: any) {
+                console.error("Google Drive CSV export error:", error);
+                pushStep(steps, {
+                    nodeId: node.nodeId,
+                    nodeType: "Google Drive Daily CSV",
+                    status: "Failed",
+                    message: error?.message || "Failed to upload daily CSV to Google Drive",
                 });
                 return;
             }

@@ -42,7 +42,11 @@ export function isNotionReportWindowOpen(): boolean {
     return now.hour * 60 + now.minute >= REPORT_CUTOFF_MINUTES;
 }
 
-export async function wasNotionReportCreatedToday(workflowId: string, nodeId: string): Promise<boolean> {
+export async function wasDailyActionCreatedToday(
+    workflowId: string,
+    nodeId: string,
+    nodeType: string
+): Promise<boolean> {
     const now = new Date();
     const todayKey = getDayKey(now, REPORT_TIMEZONE);
     const lookbackStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
@@ -53,7 +57,7 @@ export async function wasNotionReportCreatedToday(workflowId: string, nodeId: st
         steps: {
             $elemMatch: {
                 nodeId,
-                nodeType: "Notion Daily Report",
+                nodeType,
             },
         },
     }).select({ startTime: 1, steps: 1 });
@@ -66,10 +70,14 @@ export async function wasNotionReportCreatedToday(workflowId: string, nodeId: st
         return (execution.steps || []).some(
             (step: any) =>
                 step?.nodeId === nodeId &&
-                step?.nodeType === "Notion Daily Report" &&
+                step?.nodeType === nodeType &&
                 (step?.status === "Success" || step?.status === "Failed"),
         );
     });
+}
+
+export async function wasNotionReportCreatedToday(workflowId: string, nodeId: string): Promise<boolean> {
+    return wasDailyActionCreatedToday(workflowId, nodeId, "Notion Daily Report");
 }
 
 export function toDateLabel(date: Date): string {

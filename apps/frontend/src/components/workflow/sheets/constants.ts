@@ -41,6 +41,11 @@ export const SUPPORTED_ACTIONS = {
             title: "Notion Daily Report",
             description: "Create a daily AI performance report page in Notion (Zerodha only)",
         },
+        {
+            id: "google-drive-daily-csv",
+            title: "Google Drive Daily CSV",
+            description: "Export today's Zerodha trades as CSV and upload to Google Drive",
+        },
     ],
     "Flow": [
         {

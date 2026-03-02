@@ -127,6 +127,27 @@ function validateWorkflowNodes(
                 });
             }
         }
+
+        if (type === "google-drive-daily-csv") {
+            const clientEmail = String((metadata as any).googleClientEmail || "").trim();
+            const privateKey = String((metadata as any).googlePrivateKey || "").trim();
+
+            if (!clientEmail.includes("@")) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "googleClientEmail"],
+                    message: "Invalid Google service account email.",
+                });
+            }
+
+            if (!privateKey.includes("BEGIN PRIVATE KEY")) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "googlePrivateKey"],
+                    message: "Invalid Google private key format.",
+                });
+            }
+        }
     });
 }
 
