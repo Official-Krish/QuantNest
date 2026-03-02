@@ -392,6 +392,9 @@ export async function executeActionNode(params: {
                 if (!context.userId) {
                     throw new Error("User ID is required to export Google Drive CSV");
                 }
+                if (!isNotionReportWindowOpen()) {
+                    return;
+                }
                 if (await wasDailyActionCreatedToday(context.workflowId, node.nodeId, "Google Drive Daily CSV")) {
                     return;
                 }
@@ -405,6 +408,7 @@ export async function executeActionNode(params: {
                         googlePrivateKey: node.data?.metadata?.googlePrivateKey,
                         googleDriveFolderId: node.data?.metadata?.googleDriveFolderId,
                         filePrefix: node.data?.metadata?.filePrefix,
+                        aiConsent: node.data?.metadata?.aiConsent,
                     },
                 });
 

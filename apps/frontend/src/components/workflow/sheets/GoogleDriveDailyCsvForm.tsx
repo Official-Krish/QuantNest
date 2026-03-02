@@ -83,10 +83,27 @@ export const GoogleDriveDailyCsvForm = ({
         />
       </div>
 
+      <label className="flex items-start gap-2 rounded-lg border border-neutral-700/60 bg-neutral-900/40 p-3">
+        <input
+          type="checkbox"
+          checked={Boolean(metadata.aiConsent)}
+          onChange={(e) =>
+            setMetadata((current: any) => ({
+              ...current,
+              aiConsent: e.target.checked,
+            }))
+          }
+          className="mt-0.5 h-4 w-4 cursor-pointer accent-[#8ab4f8]"
+        />
+        <span className="text-xs leading-relaxed text-neutral-300">
+          I consent to QuantNest using Zerodha trade data for AI-generated daily insights included in the CSV export.
+        </span>
+      </label>
+
       <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3">
         <p className="text-xs text-neutral-400">
-          Exports Zerodha trades of the day as CSV and uploads to Google Drive once per day.
-          Share target folder with this service account email before enabling.
+          Runs once per day after 3:30 PM IST, exports Zerodha trades with AI insights, then uploads CSV to Google Drive.
+          Share the target folder with this service account email before enabling.
         </p>
       </div>
     </div>

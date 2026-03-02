@@ -88,7 +88,7 @@ export const ActionSheet = ({
     ) &&
     (
       selectedAction !== "google-drive-daily-csv" ||
-      (Boolean((metadata as any)?.googleClientEmail) && Boolean((metadata as any)?.googlePrivateKey))
+      (Boolean((metadata as any)?.googleClientEmail) && Boolean((metadata as any)?.googlePrivateKey) && Boolean((metadata as any)?.aiConsent))
     );
 
   const handleCreate = () => {

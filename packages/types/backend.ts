@@ -131,6 +131,7 @@ function validateWorkflowNodes(
         if (type === "google-drive-daily-csv") {
             const clientEmail = String((metadata as any).googleClientEmail || "").trim();
             const privateKey = String((metadata as any).googlePrivateKey || "").trim();
+            const aiConsent = (metadata as any).aiConsent === true;
 
             if (!clientEmail.includes("@")) {
                 ctx.addIssue({
@@ -145,6 +146,14 @@ function validateWorkflowNodes(
                     code: "custom",
                     path: [...path, "googlePrivateKey"],
                     message: "Invalid Google private key format.",
+                });
+            }
+
+            if (!aiConsent) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "aiConsent"],
+                    message: "AI consent is required for Google Drive AI insights.",
                 });
             }
         }

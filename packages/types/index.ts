@@ -94,6 +94,7 @@ export interface GoogleDriveDailyCsvMetadata {
     googlePrivateKey: string;
     googleDriveFolderId?: string;
     filePrefix?: string;
+    aiConsent?: boolean;
     condition?: boolean;
 }
 

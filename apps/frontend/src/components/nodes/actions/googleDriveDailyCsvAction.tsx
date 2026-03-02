@@ -8,10 +8,11 @@ export const googleDriveDailyCsvAction = ({
       googleClientEmail?: string;
       googleDriveFolderId?: string;
       filePrefix?: string;
+      aiConsent?: boolean;
     };
   };
 }) => {
-  const { googleClientEmail, googleDriveFolderId, filePrefix } = data.metadata || {};
+  const { googleClientEmail, googleDriveFolderId, filePrefix, aiConsent } = data.metadata || {};
 
   return (
     <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 bg-neutral-950/90 px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
@@ -34,6 +35,12 @@ export const googleDriveDailyCsvAction = ({
       </div>
       <div className="mt-1 text-[11px] text-neutral-500">
         Prefix: {filePrefix || "quantnest-trades"}
+      </div>
+      <div className="mt-1 text-[11px] text-neutral-500">
+        Window: After 3:30 PM IST, once daily
+      </div>
+      <div className="mt-1 text-[11px] text-neutral-500">
+        {aiConsent ? "AI insights enabled" : "AI consent required"}
       </div>
       <Handle
         type="target"

@@ -1,13 +1,15 @@
 import { google } from "googleapis";
 import { GoogleAuth } from "google-auth-library";
+import { generateDailyPerformanceAnalysis } from "../ai-models";
 import type { NodeType } from "../types";
-import { getZerodhaTradesForCsv } from "./reporting/zerodhaReportData";
+import { getZerodhaTradeSummary, getZerodhaTradesForCsv } from "./reporting/zerodhaReportData";
 
 interface GoogleDriveDailyCsvMetadata {
     googleClientEmail?: string;
     googlePrivateKey?: string;
     googleDriveFolderId?: string;
     filePrefix?: string;
+    aiConsent?: boolean;
 }
 
 interface CreateGoogleDriveDailyCsvInput {
@@ -40,6 +42,9 @@ export async function createGoogleDriveDailyTradesCsv(input: CreateGoogleDriveDa
     if (!clientEmail || !privateKeyRaw) {
         throw new Error("Missing Google service account credentials");
     }
+    if (input.metadata?.aiConsent !== true) {
+        throw new Error("AI consent is required for Google Drive AI insights");
+    }
     const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
 
     const allTrades = await getZerodhaTradesForCsv({
@@ -47,6 +52,24 @@ export async function createGoogleDriveDailyTradesCsv(input: CreateGoogleDriveDa
         userId: input.userId,
         nodes: input.nodes,
     });
+    const summary = await getZerodhaTradeSummary({
+        workflowId: input.workflowId,
+        userId: input.userId,
+        nodes: input.nodes,
+    });
+    const ai = await generateDailyPerformanceAnalysis(
+        {
+            workflowId: input.workflowId,
+            date: toIstDayKey(new Date()),
+            ...summary,
+        },
+        {
+            provider: "gemini",
+            model: "gemini-2.5-flash",
+        },
+    );
+    const aiMistakes = ai.mistakes.slice(0, 3).join(" | ");
+    const aiSuggestions = ai.suggestions.slice(0, 3).join(" | ");
 
     const todayKey = toIstDayKey(new Date());
     const todaysTrades = allTrades.filter((trade) => {
@@ -64,6 +87,10 @@ export async function createGoogleDriveDailyTradesCsv(input: CreateGoogleDriveDa
         "averagePrice",
         "value",
         "fillTime",
+        "aiConfidence",
+        "aiConfidenceScore",
+        "aiMistakes",
+        "aiSuggestions",
     ];
 
     const rows = todaysTrades.map((trade) =>
@@ -77,10 +104,32 @@ export async function createGoogleDriveDailyTradesCsv(input: CreateGoogleDriveDa
             trade.averagePrice,
             trade.value,
             trade.fillTime,
+            ai.confidence,
+            ai.confidenceScore,
+            aiMistakes,
+            aiSuggestions,
         ].map(escapeCsv).join(","),
     );
 
-    const csv = [headers.join(","), ...rows].join("\n");
+    const fallbackRows = rows.length
+        ? rows
+        : [[
+            "NO_TRADES",
+            "",
+            "",
+            "",
+            "",
+            0,
+            0,
+            0,
+            todayKey,
+            ai.confidence,
+            ai.confidenceScore,
+            aiMistakes,
+            aiSuggestions,
+        ].map(escapeCsv).join(",")];
+
+    const csv = [headers.join(","), ...fallbackRows].join("\n");
     const filePrefix = String(input.metadata?.filePrefix || "quantnest-trades").trim();
     const fileName = `${filePrefix}-${todayKey}.csv`;
 

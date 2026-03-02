@@ -44,7 +44,7 @@ export const SUPPORTED_ACTIONS = {
         {
             id: "google-drive-daily-csv",
             title: "Google Drive Daily CSV",
-            description: "Export today's Zerodha trades as CSV and upload to Google Drive",
+            description: "After 3:30 PM IST, export Zerodha trades + AI insights to Google Drive once per day",
         },
     ],
     "Flow": [
