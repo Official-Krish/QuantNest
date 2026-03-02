@@ -12,6 +12,7 @@ import { gmailAction } from "../components/nodes/actions/gmailAction";
 import { discordAction } from "../components/nodes/actions/discordAction";
 import { whatsappAction } from "../components/nodes/actions/whatsappAction";
 import { notionDailyReportAction } from "../components/nodes/actions/notionDailyReportAction";
+import { googleDriveDailyCsvAction } from "../components/nodes/actions/googleDriveDailyCsvAction";
 import {
   apiCreateWorkflow,
   apiGetWorkflow,
@@ -31,6 +32,7 @@ const nodeTypes = {
   discord: discordAction,
   whatsapp: whatsappAction,
   "notion-daily-report": notionDailyReportAction,
+  "google-drive-daily-csv": googleDriveDailyCsvAction,
   lighter: lighterAction,
   "conditional-trigger": conditionTrigger,
 };
@@ -96,6 +98,8 @@ export const CreateWorkflow = () => {
               nodeType = "zerodha";
             } else if (metadata.notionApiKey !== undefined || metadata.parentPageId !== undefined || metadata.aiConsent !== undefined) {
               nodeType = "notion-daily-report";
+            } else if (metadata.googleClientEmail !== undefined || metadata.googlePrivateKey !== undefined || metadata.googleDriveFolderId !== undefined) {
+              nodeType = "google-drive-daily-csv";
             } else if (metadata.recipientPhone !== undefined) {
               nodeType = "whatsapp";
             } else {

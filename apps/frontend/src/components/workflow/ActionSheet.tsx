@@ -25,6 +25,7 @@ import { WhatsappForm } from "./sheets/WhatsappForm";
 import { ActionSheets } from "./sheets/ActionSheets";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
 import { NotionDailyReportForm } from "./sheets/NotionDailyReportForm";
+import { GoogleDriveDailyCsvForm } from "./sheets/GoogleDriveDailyCsvForm";
 
 export const ActionSheet = ({
   onSelect,
@@ -84,6 +85,10 @@ export const ActionSheet = ({
     (
       selectedAction !== "notion-daily-report" ||
       (Boolean((metadata as any)?.notionApiKey) && Boolean((metadata as any)?.aiConsent))
+    ) &&
+    (
+      selectedAction !== "google-drive-daily-csv" ||
+      (Boolean((metadata as any)?.googleClientEmail) && Boolean((metadata as any)?.googlePrivateKey) && Boolean((metadata as any)?.aiConsent))
     );
 
   const handleCreate = () => {
@@ -211,6 +216,10 @@ export const ActionSheet = ({
 
           {selectedAction === "notion-daily-report" && (
             <NotionDailyReportForm metadata={metadata} setMetadata={setMetadata} />
+          )}
+
+          {selectedAction === "google-drive-daily-csv" && (
+            <GoogleDriveDailyCsvForm metadata={metadata} setMetadata={setMetadata} />
           )}
 
           {selectedAction === "conditional-trigger" && (

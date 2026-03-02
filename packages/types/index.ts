@@ -9,7 +9,8 @@ export type NodeKind =
     | "gmail"
     | "whatsapp"
     | "discord"
-    | "notion-daily-report";
+    | "notion-daily-report"
+    | "google-drive-daily-csv";
 
 export interface NodeType {
     type: NodeKind;
@@ -37,6 +38,7 @@ export type NodeMetadata =
     | LighterMetadata
     | ConditionalTriggerMetadata
     | NotionDailyReportMetadata
+    | GoogleDriveDailyCsvMetadata
     | {};
 
 export interface ConditionalTriggerMetadata {
@@ -84,6 +86,15 @@ export interface NotionDailyReportMetadata {
     notionApiKey: string;
     parentPageId: string;
     aiConsent: boolean;
+    condition?: boolean;
+}
+
+export interface GoogleDriveDailyCsvMetadata {
+    googleClientEmail: string;
+    googlePrivateKey: string;
+    googleDriveFolderId?: string;
+    filePrefix?: string;
+    aiConsent?: boolean;
     condition?: boolean;
 }
 

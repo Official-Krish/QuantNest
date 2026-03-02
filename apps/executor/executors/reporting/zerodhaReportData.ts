@@ -21,6 +21,18 @@ export interface ZerodhaTradeSummary {
     sampleFailures: string[];
 }
 
+export interface ZerodhaTradeCsvRow {
+    tradeId: string;
+    orderId: string;
+    symbol: string;
+    exchange: string;
+    side: string;
+    quantity: number;
+    averagePrice: number;
+    value: number;
+    fillTime: string;
+}
+
 function parseTime(value: unknown): number {
     if (!value) return 0;
     const date = value instanceof Date ? value : new Date(String(value));
@@ -197,4 +209,51 @@ export async function getZerodhaTradeSummary(input: {
         historicalContext,
         sampleFailures,
     };
+}
+
+export async function getZerodhaTradesForCsv(input: {
+    workflowId: string;
+    userId: string;
+    nodes: NodeType[];
+}): Promise<ZerodhaTradeCsvRow[]> {
+    const zerodhaNode = input.nodes.find(
+        (node) =>
+            String(node.data?.kind || "").toLowerCase() === "action" &&
+            String(node.type || "").toLowerCase() === "zerodha",
+    );
+    if (!zerodhaNode) {
+        throw new Error("Google Drive CSV export is supported only when a Zerodha action node exists");
+    }
+
+    const zerodhaApiKey = String(zerodhaNode.data?.metadata?.apiKey || "").trim();
+    if (!zerodhaApiKey) {
+        throw new Error("Missing Zerodha API key on Zerodha action node");
+    }
+
+    const accessToken = await getZerodhaToken(input.userId, input.workflowId);
+    if (!accessToken) {
+        throw new Error("Missing valid Zerodha access token for workflow");
+    }
+
+    const kc: any = new KiteConnect({ api_key: zerodhaApiKey });
+    kc.setAccessToken(accessToken);
+
+    const trades = (await kc.getTrades()) as Trade[];
+    return [...trades]
+        .sort((a, b) => parseTime(b.fill_timestamp || b.order_timestamp) - parseTime(a.fill_timestamp || a.order_timestamp))
+        .map((trade) => {
+            const quantity = Number(trade.quantity || trade.filled || 0);
+            const averagePrice = Number(trade.average_price || 0);
+            return {
+                tradeId: String((trade as any).trade_id || ""),
+                orderId: String(trade.order_id || ""),
+                symbol: String(trade.tradingsymbol || ""),
+                exchange: String(trade.exchange || ""),
+                side: String(trade.transaction_type || "").toUpperCase(),
+                quantity,
+                averagePrice,
+                value: Number((quantity * averagePrice).toFixed(2)),
+                fillTime: String(trade.fill_timestamp || trade.order_timestamp || ""),
+            };
+        });
 }
