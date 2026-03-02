@@ -1,5 +1,4 @@
 import { hasAuthSession } from "@/http"
-import { useState } from "react"
 import {
   ArrowRight,
   Github,
@@ -8,7 +7,6 @@ import {
   Sparkles,
 } from "lucide-react"
 import { FaXTwitter } from "react-icons/fa6";
-import { ComingSoonModal } from "./LandingPage/ComingSoonModal"
 
 type FooterLink = {
   label: string
@@ -23,23 +21,20 @@ const productLinks: FooterLink[] = [
 ]
 
 const companyLinks: FooterLink[] = [
-  { label: "About", href: "/about" },
-  { label: "Docs", href: "/docs" },
-  { label: "Changelog", href: "/changelog" },
-  { label: "Contact", href: "/contact" },
+  { label: "About", href: "/coming-soon/about" },
+  { label: "Docs", href: "/coming-soon/docs" },
+  { label: "Changelog", href: "/coming-soon/changelog" },
+  { label: "Contact", href: "/coming-soon/contact" },
 ]
 
 const legalLinks: FooterLink[] = [
-  { label: "Privacy", href: "/privacy-policy" },
-  { label: "Terms", href: "/terms-of-service" },
-  { label: "Cookie Policy", href: "/cookie-policy" },
+  { label: "Privacy", href: "/coming-soon/privacy" },
+  { label: "Terms", href: "/coming-soon/terms" },
+  { label: "Cookie Policy", href: "/coming-soon/cookie" },
 ]
 
 const Footer = () => {
-  const [comingSoonPage, setComingSoonPage] = useState<string | null>(null)
-
   return (
-    <>
       <footer className="relative bg-black pt-10 text-white">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-[#f17463]/40 to-transparent" />
         <div className="w-full">
@@ -88,7 +83,7 @@ const Footer = () => {
             </div>
 
             <FooterColumn title="Product" links={productLinks} />
-            <FooterColumn title="Company" links={companyLinks} onComingSoon={setComingSoonPage} />
+            <FooterColumn title="Company" links={companyLinks} />
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
                 Trust & transparency
@@ -149,28 +144,15 @@ const Footer = () => {
           </div>
         </div>
       </footer>
-      <ComingSoonModal
-        open={comingSoonPage !== null}
-        onOpenChange={(open) => {
-          if (!open) setComingSoonPage(null)
-        }}
-        title={`${comingSoonPage ?? "Page"} is coming soon`}
-        description="We are actively building this section. For now, continue with workflow creation and execution features."
-      />
-    </>
   )
 }
-
-const comingSoonPages = new Set(["About", "Docs", "Changelog", "Contact"])
 
 const FooterColumn = ({
   title,
   links,
-  onComingSoon,
 }: {
   title: string
   links: FooterLink[]
-  onComingSoon?: (label: string) => void
 }) => (
   <div>
     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
@@ -179,22 +161,12 @@ const FooterColumn = ({
     <ul className="mt-3 space-y-2">
       {links.map((link) => (
         <li key={link.label}>
-          {comingSoonPages.has(link.label) ? (
-            <button
-              type="button"
-              onClick={() => onComingSoon?.(link.label)}
-              className="text-sm text-neutral-300 transition-colors hover:text-white cursor-pointer"
-            >
-              {link.label}
-            </button>
-          ) : (
-            <a
-              href={link.href}
-              className="text-sm text-neutral-300 transition-colors hover:text-white"
-            >
-              {link.label}
-            </a>
-          )}
+          <a
+            href={link.href}
+            className="text-sm text-neutral-300 transition-colors hover:text-white"
+          >
+            {link.label}
+          </a>
         </li>
       ))}
     </ul>
