@@ -4,6 +4,7 @@ import { ComingSoonModal } from "../components/LandingPage/ComingSoonModal"
 import { Features } from "../components/LandingPage/Features"
 import { Hero } from "../components/LandingPage/Hero"
 import { HowItWorks } from "../components/LandingPage/HowItWorks"
+import { PricingPreview } from "../components/LandingPage/PricingPreview"
 import { Start } from "../components/LandingPage/Start"
 import { UseCase } from "../components/LandingPage/useCase"
 
@@ -17,6 +18,7 @@ export const Landing = () => {
             <Features />
             <HowItWorks />
             <UseCase />
+            <PricingPreview />
             <Start onExampleWorkflowsClick={() => setComingSoonTarget("examples")} />
             <ComingSoonModal
                 open={comingSoonTarget !== null}
