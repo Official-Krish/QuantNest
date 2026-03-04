@@ -21,16 +21,16 @@ const productLinks: FooterLink[] = [
 ]
 
 const companyLinks: FooterLink[] = [
-  { label: "About", href: "/coming-soon/about" },
-  { label: "Docs", href: "/coming-soon/docs" },
-  { label: "Changelog", href: "/coming-soon/changelog" },
-  { label: "Contact", href: "/coming-soon/contact" },
+  { label: "About", href: "/about" },
+  { label: "Docs", href: "/docs" },
+  { label: "Changelog", href: "/changelog" },
+  { label: "Contact", href: "/contact" },
 ]
 
 const legalLinks: FooterLink[] = [
-  { label: "Privacy", href: "/coming-soon/privacy" },
-  { label: "Terms", href: "/coming-soon/terms" },
-  { label: "Cookie Policy", href: "/coming-soon/cookie" },
+  { label: "Privacy", href: "/privacy-policy" },
+  { label: "Terms", href: "/terms-of-service" },
+  { label: "Cookie Policy", href: "/cookie-policy" },
 ]
 
 const Footer = () => {
