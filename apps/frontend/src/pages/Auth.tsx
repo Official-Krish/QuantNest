@@ -34,7 +34,6 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
 
     if (mode === "signup" && signupValidationErrors.length > 0) {
       const firstError = signupValidationErrors[0];
-      setError(firstError);
       toast.warning("Invalid signup details", {
         description: firstError,
       });
@@ -80,10 +79,10 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-black">
-      <div className="w-full max-w-6xl flex gap-8 items-center pt-18">
+    <div className="flex min-h-screen items-center bg-black px-6 pb-6 pt-24">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
         {/* Left Content Section */}
-        <div className="flex-1 space-y-6 text-neutral-200">
+        <div className="flex-1 space-y-6 text-neutral-200 lg:self-center">
           <div className="space-y-4">
             <h1
               className="text-5xl font-bold bg-linear-to-r from-[#f17463] via-[#f4937d] to-[#fde1d6] bg-clip-text text-transparent"
@@ -145,21 +144,21 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
         </div>
 
         {/* Right Auth Form Section */}
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md lg:ml-auto">
           <Card className="relative overflow-hidden bg-[#171717] border border-gray-800">
             <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
 
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-neutral-200">
                 {mode === "signin" ? "Sign in" : "Create account"}
               </CardTitle>
               <CardDescription className="text-neutral-400">
-                This is required because workflows are stored per-user.
+                This is required because workflows are stored per user.
               </CardDescription>
             </CardHeader>
 
             <CardContent>
-              <div className="grid gap-4">
+              <div className="grid gap-2.5">
                 {mode === "signup" && (
                   <div className="grid gap-2">
                     <Label htmlFor="email" className="text-neutral-200">
@@ -172,7 +171,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Email address"
                       autoComplete="email"
-                      className="text-neutral-200"
+                      className="h-10 text-neutral-200"
                     />
                   </div>
                 )}
@@ -187,7 +186,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Username"
                     autoComplete="username"
-                    className="text-neutral-200"
+                    className="h-10 text-neutral-200"
                   />
                 </div>
 
@@ -201,7 +200,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="********"
-                    className="text-neutral-200"
+                    className="h-10 text-neutral-200"
                     autoComplete={
                       mode === "signup" ? "new-password" : "current-password"
                     }
@@ -216,36 +215,31 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                 {mode === "signup" && (
                   <div className="grid gap-2">
                     <Label className="text-neutral-200">Select Avatar</Label>
-                    <div className="flex flex-wrap gap-3">
-                      {AVATAR_OPTIONS.map((avatar, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setSelectedAvatar(avatar)}
-                          className={`relative rounded-full p-0.5 transition-all ${
-                            selectedAvatar === avatar
-                              ? "ring-2 ring-primary ring-offset-2 ring-offset-amber-600"
-                              : "hover:ring-2 hover:ring-gray-500 hover:ring-offset-2 hover:ring-offset-black"
-                          }`}
-                        >
-                          <div className="h-12 w-12 rounded-full overflow-hidden">
-                            <img src={avatar} alt={`Avatar option ${idx + 1}`} />
-                          </div>
-                        </button>
-                      ))}
+                    <div className="rounded-xl border border-neutral-800 bg-neutral-950/70 p-2.5">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-500">
+                          Avatar Library
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          {AVATAR_OPTIONS.length} options
+                        </p>
+                      </div>
+                      <div className="grid max-h-28 grid-cols-7 gap-1.5 overflow-y-auto pr-1">
+                        {AVATAR_OPTIONS.map((avatar, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setSelectedAvatar(avatar)}
+                            className={`relative h-9 w-9 overflow-hidden rounded-full border-2 transition-all ${
+                              selectedAvatar === avatar
+                                ? "border-[#f17463]"
+                                : "border-transparent hover:border-neutral-500"
+                            }`}
+                          >
+                            <img src={avatar} alt={`Avatar option ${idx + 1}`} className="h-full w-full rounded-full" />
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {mode === "signup" && signupValidationErrors.length > 0 && (
-                  <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
-                    <p className="text-xs font-medium text-amber-300">
-                      Please ensure the following before signing up:
-                    </p>
-                    <ul className="mt-2 space-y-1 text-xs text-amber-200/90">
-                      {signupValidationErrors.map((message) => (
-                        <li key={message}>• {message}</li>
-                      ))}
-                    </ul>
                   </div>
                 )}
 
@@ -253,7 +247,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
               </div>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-3">
+            <CardFooter className="flex flex-col gap-2.5">
               <button
                 className="w-full bg-white py-2 rounded-lg cursor-pointer text-neutral-800 font-normal disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform text-center"
                 onClick={onSubmit}
