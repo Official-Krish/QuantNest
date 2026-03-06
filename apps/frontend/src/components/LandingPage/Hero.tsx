@@ -49,10 +49,8 @@ export const Hero = ({ onPricingClick }: HeroProps) => {
                             Start Building
                         </button>
                         <button
-                            className="bg-black text-neutral-200 font-normal px-6 py-2 cursor-pointer rounded-lg border border-neutral-700 hover:bg-neutral-800 transistion duration-200"
-                            onClick={() => {
-                                navigate("/pricing");
-                            }}
+                            className="bg-black text-neutral-200 font-normal px-6 py-2 cursor-pointer rounded-lg border border-neutral-700 hover:bg-neutral-800 transition duration-200"
+                            onClick={onPricingClick}
                         >
                             View Pricing
                         </button>

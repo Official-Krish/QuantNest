@@ -19,7 +19,7 @@ export const Appbar = () => {
           link: "/about",
         },
         {
-          name: "Carrers",
+          name: "Careers",
           link: "/careers",
         },
         {
