@@ -15,6 +15,7 @@ export interface Workflow {
   workflowName: string;
   nodes: any[];
   edges: any[];
+  status?: "active" | "paused";
   marketType?: "Indian" | "Crypto";
 }
 

@@ -4,7 +4,12 @@ import { evaluateConditionalMetadata, handleConditionalTrigger, handlePriceTrigg
 import { indicatorEngine } from "../services/indicator.engine";
 
 export async function pollOnce() {
-    const workflows = await WorkflowModel.find({});
+    const workflows = await WorkflowModel.find({
+        $or: [
+            { status: "active" },
+            { status: { $exists: false } },
+        ],
+    });
     for (const workflow of workflows) {
         const conditionalNodes = workflow.nodes.filter((n: any) => n?.type === "conditional-trigger");
         for (const node of conditionalNodes) {

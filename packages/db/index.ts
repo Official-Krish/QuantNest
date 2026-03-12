@@ -105,6 +105,11 @@ const WorkflowSchema = new Schema({
     },
     nodes: [WorkflowNodeSchema],
     edges: [EdgesSchema],
+    status: {
+        type: String,
+        enum: ["active", "paused"],
+        default: "active",
+    },
 });
 
 const CreedentialTypeSchema = new Schema({

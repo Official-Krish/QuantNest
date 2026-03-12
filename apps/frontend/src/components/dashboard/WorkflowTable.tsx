@@ -1,22 +1,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUpdateWorkflowStatus } from "@/http";
 import { Button } from "@/components/ui/button";
-import { Pencil, ChevronRight, Activity, Key, Trash2 } from "lucide-react";
+import { Pencil, ChevronRight, Activity, Key, Trash2, Pause, Play } from "lucide-react";
 import type { Workflow } from "@/types/api";
 import { ZerodhaTokenDialog } from "./ZerodhaTokenDialog";
 import { DeleteWorkflowDialog } from "./DeleteWorkflowDialog";
+import { toast } from "sonner";
 
 interface WorkflowTableProps {
     workflows: Workflow[];
     loading: boolean;
     onWorkflowDeleted?: () => void;
+    onWorkflowStatusChanged?: () => void;
 }
 
-export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: WorkflowTableProps) => {
+export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflowStatusChanged }: WorkflowTableProps) => {
     const navigate = useNavigate();
     const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
+    const [statusLoadingWorkflowId, setStatusLoadingWorkflowId] = useState<string | null>(null);
 
     const hasZerodhaAction = (workflow: Workflow) => {
         return workflow.nodes?.some((node: any) => 
@@ -38,6 +42,25 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
         };
         
         return brokerColors[node.type.toLowerCase()] || null;
+    };
+
+    const handleStatusToggle = async (workflow: Workflow) => {
+        const nextStatus = workflow.status === "paused" ? "active" : "paused";
+        setStatusLoadingWorkflowId(workflow._id);
+        try {
+            const response = await apiUpdateWorkflowStatus(workflow._id, nextStatus);
+            toast.success(
+                nextStatus === "paused" ? "Workflow paused" : "Workflow resumed",
+                { description: response.message }
+            );
+            onWorkflowStatusChanged?.();
+        } catch (error: any) {
+            toast.error("Status update failed", {
+                description: error?.response?.data?.message ?? "Could not update workflow status.",
+            });
+        } finally {
+            setStatusLoadingWorkflowId(null);
+        }
     };
 
     if (loading) {
@@ -69,7 +92,7 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
     return (
         <div className="overflow-hidden rounded-lg">
             {/* Table Header */}
-            <div className="grid grid-cols-5 gap-4 border-b border-neutral-600 bg-table-header px-5 py-3.5">
+            <div className="grid grid-cols-[minmax(220px,1.8fr)_80px_120px_140px_120px_minmax(260px,1.5fr)] gap-4 border-b border-neutral-600 bg-table-header px-5 py-3.5">
                 <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                     Workflow Name
                 </span>
@@ -82,6 +105,9 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
                 <span className="hidden text-xs font-medium uppercase tracking-widest text-muted-foreground md:block">
                     Type
                 </span>
+                <span className="hidden text-xs font-medium uppercase tracking-widest text-muted-foreground md:block">
+                    Status
+                </span>
                 <span className="text-right text-xs font-medium uppercase tracking-widest text-muted-foreground">
                     Actions
                 </span>
@@ -92,7 +118,7 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
                 {workflows.map((wf) => (
                     <div
                         key={wf._id}
-                        className="grid grid-cols-5 group items-center gap-4 px-5 py-4 transition-colors hover:bg-table-row-hover"
+                        className="grid grid-cols-[minmax(220px,1.8fr)_80px_120px_140px_120px_minmax(260px,1.5fr)] items-center gap-4 px-5 py-4 transition-colors hover:bg-table-row-hover"
                     >
                         <div className="flex flex-col gap-0.5">
                             <span className="font-medium text-neutral-200">
@@ -127,61 +153,98 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted }: Workflo
                                 );
                             })()}
                         </div>
-                        <div className="flex justify-end gap-2">
-                            {hasZerodhaAction(wf) && (
+                        <div className="hidden md:block">
+                            <span
+                                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${
+                                    wf.status === "paused"
+                                        ? "border-amber-500/20 bg-amber-500/10 text-amber-300"
+                                        : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                                }`}
+                            >
+                                {wf.status === "paused" ? "Paused" : "Active"}
+                            </span>
+                        </div>
+                        <div className="grid gap-2 justify-items-end">
+                            <div className="flex flex-wrap justify-end gap-2">
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 cursor-pointer"
+                                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                                    disabled={statusLoadingWorkflowId === wf._id}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleStatusToggle(wf);
+                                    }}
+                                    title={wf.status === "paused" ? "Resume Workflow" : "Pause Workflow"}
+                                >
+                                    {wf.status === "paused" ? (
+                                        <Play className="h-3.5 w-3.5" />
+                                    ) : (
+                                        <Pause className="h-3.5 w-3.5" />
+                                    )}
+                                    {statusLoadingWorkflowId === wf._id
+                                        ? "Updating"
+                                        : wf.status === "paused"
+                                          ? "Resume"
+                                          : "Pause"}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/workflow/${wf._id}/executions`);
+                                    }}
+                                >
+                                    <Activity className="h-3.5 w-3.5" />
+                                    Executions
+                                </Button>
+                            </div>
+                            <div className="flex flex-wrap justify-end gap-2">
+                                {hasZerodhaAction(wf) && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 cursor-pointer"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedWorkflow(wf);
+                                            setTokenDialogOpen(true);
+                                        }}
+                                        title="Manage Zerodha Token"
+                                    >
+                                        <Key className="h-3.5 w-3.5" />
+                                        Token
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/workflow/${wf._id}`);
+                                    }}
+                                >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    Edit
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedWorkflow(wf);
-                                        setTokenDialogOpen(true);
+                                        setDeleteDialogOpen(true);
                                     }}
-                                    title="Manage Zerodha Token"
+                                    title="Delete Workflow"
                                 >
-                                    <Key className="h-3.5 w-3.5" />
-                                    Token
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Delete
                                 </Button>
-                            )}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/workflow/${wf._id}/executions`);
-                                }}
-                            >
-                                <Activity className="h-3.5 w-3.5" />
-                                Executions
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(`/workflow/${wf._id}`);
-                                }}
-                            >
-                                <Pencil className="h-3.5 w-3.5" />
-                                Edit
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-red-400 hover:bg-red-500/10 cursor-pointer"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedWorkflow(wf);
-                                    setDeleteDialogOpen(true);
-                                }}
-                                title="Delete Workflow"
-                            >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                Delete
-                            </Button>
+                            </div>
                         </div>
                     </div>
                 ))}

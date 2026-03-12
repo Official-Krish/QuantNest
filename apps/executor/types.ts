@@ -27,6 +27,7 @@ export interface NodeType {
 export type WorkflowType = {
     userId: mongoose.Types.ObjectId;
     workflowName: string;
+    status?: "active" | "paused";
     nodes: mongoose.Types.DocumentArray<{
         id: string;
         nodeId: string;
