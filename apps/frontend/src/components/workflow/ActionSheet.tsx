@@ -15,7 +15,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SUPPORTED_ACTIONS } from "./sheets/constants";
 import { ActionTypeSelector } from "./sheets/ActionTypeSelector";
 import { TradingForm } from "./sheets/TradingForm";
@@ -31,8 +31,8 @@ export const ActionSheet = ({
   onSelect,
   open,
   onOpenChange,
-  initialKind: _initialKind,
-  initialMetadata: _initialMetadata,
+  initialKind,
+  initialMetadata,
   submitLabel,
   title,
   marketType,
@@ -53,6 +53,40 @@ export const ActionSheet = ({
   const [metadata, setMetadata] = useState<TradingMetadata | LighterMetadata | {}>({});
   const [selectedAction, setSelectedAction] = useState("");
   const [initialAction, setInitialAction] = useState<"Order Notification" | "Order Execution" | "Flow Control" | "Reporting" | undefined>(undefined);
+
+  useEffect(() => {
+    if (!open) return;
+
+    if (!initialKind) {
+      setMetadata({});
+      setSelectedAction("");
+      setInitialAction(undefined);
+      return;
+    }
+
+    setMetadata((initialMetadata || {}) as TradingMetadata | LighterMetadata | {});
+    setSelectedAction(initialKind);
+
+    if (["zerodha", "groww", "lighter"].includes(initialKind)) {
+      setInitialAction("Order Execution");
+      return;
+    }
+    if (["gmail", "discord", "whatsapp"].includes(initialKind)) {
+      setInitialAction("Order Notification");
+      return;
+    }
+    if (["notion-daily-report", "google-drive-daily-csv"].includes(initialKind)) {
+      setInitialAction("Reporting");
+      return;
+    }
+    if (initialKind === "conditional-trigger") {
+      setInitialAction("Flow Control");
+      return;
+    }
+
+    setInitialAction(undefined);
+  }, [initialKind, initialMetadata, open]);
+
   const tradingValidationErrors = useMemo(() => {
     if (
       selectedAction === "zerodha" ||

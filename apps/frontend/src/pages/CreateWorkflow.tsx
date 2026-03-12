@@ -118,8 +118,8 @@ export const CreateWorkflow = () => {
             position: node.position || { x: 0, y: 0 },
           };
         });
-        const nodeById = new Map(
-          normalizedNodes.map((node: any) => [node.nodeId, node]),
+        const nodeById = new Map<string, any>(
+          normalizedNodes.map((node: any) => [node.nodeId, node] as const),
         );
         const normalizedEdges = (workflow.edges || []).map((edge: any) => {
           if (edge.sourceHandle) {
@@ -176,11 +176,11 @@ export const CreateWorkflow = () => {
   // Custom onConnect to capture handleId (true/false) for conditional branching
   const onConnect = useCallback(
     (params: any) => {
-      // params: { source, sourceHandle, target, targetHandle, ... }
+      const edgeId = `e${params.source}-${params.sourceHandle || "default"}-${params.target}`;
       setEdges((edgesSnapshot) => [
         ...edgesSnapshot,
         {
-          id: `e${params.source}-${params.target}`,
+          id: edgeId,
           source: params.source,
           sourceHandle: params.sourceHandle, // 'true' or 'false' for conditional
           target: params.target,
@@ -198,9 +198,13 @@ export const CreateWorkflow = () => {
       setEditingNode(current);
       if (current.data?.kind === "trigger") {
         setShowTriggerSheetEdit(true);
-      } else {
-        setShowActionSheetEdit(true);
+        return;
       }
+      if (current.type === "conditional-trigger") {
+        setShowActionSheetEdit(true);
+        return;
+      }
+      setShowActionSheetEdit(true);
     },
     [nodes],
   );
@@ -467,7 +471,7 @@ export const CreateWorkflow = () => {
             setEdges([
               ...edges,
               {
-                id: `e${selectedAction.startingNodeId}-${nodeId}`,
+                id: `e${selectedAction.startingNodeId}-${branch || "default"}-${nodeId}`,
                 source: selectedAction.startingNodeId,
                 target: nodeId,
                 sourceHandle: branch,

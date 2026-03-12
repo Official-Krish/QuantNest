@@ -100,11 +100,10 @@ export const conditionTrigger = ({
         True branch runs if condition matches; otherwise false.
       </div>
       <Handle
-        type="source"
-        id="true"
+        type="target"
         position={Position.Left}
-        style={{ top: "35%" }}
-        className="h-2! w-2! bg-emerald-400! border border-neutral-900"
+        style={{ top: "50%" }}
+        className="h-2! w-2! bg-neutral-300! border border-neutral-900"
       />
       <Handle
         type="source"
