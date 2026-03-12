@@ -19,6 +19,21 @@ export interface Workflow {
   marketType?: "Indian" | "Crypto";
 }
 
+export interface UserNotification {
+  _id: string;
+  userId: string;
+  workflowId?: string;
+  workflowName?: string;
+  type: string;
+  severity: "info" | "warning" | "error";
+  title: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+  read: boolean;
+  readAt?: string;
+  createdAt: string;
+}
+
 export type marketStatus = {
   isOpen: boolean;
   message: string;

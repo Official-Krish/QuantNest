@@ -12,6 +12,7 @@ import { ComingSoon } from "./pages/ComingSoon";
 import { StaticContentPage } from "./pages/StaticContentPage";
 import { Blog } from "./pages/Blog";
 import { About } from "./pages/About";
+import { Notifications } from "./pages/Notifications";
 
 export function App() {
   return (
@@ -68,6 +69,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <CreateWorkflow />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
           </ProtectedRoute>
         }
       />

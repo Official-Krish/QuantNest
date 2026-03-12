@@ -66,7 +66,12 @@ export function ProfileDropDown() {
                         <CreditCardIcon className="mr-2" />
                         Billing
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="hover:bg-gray-700 cursor-pointer">
+                    <DropdownMenuItem
+                        className="hover:bg-gray-700 cursor-pointer"
+                        onClick={() => {
+                            window.location.href = "/notifications"
+                        }}
+                    >
                         <BellIcon className="mr-2" />
                         Notifications
                     </DropdownMenuItem>

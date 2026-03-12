@@ -1,4 +1,5 @@
 import type { ExecutionResponseType, ExecutionStep } from "@quantnest-trading/types";
+import { createUserNotification } from "@quantnest-trading/executor-utils";
 import { evaluateConditionalMetadata } from "../handlers/trigger.handler";
 import { executeActionNode } from "./execute.actions";
 import {
@@ -85,6 +86,23 @@ export async function executeRecursive(
             outgoingEdges,
             evaluatedCondition,
         });
+
+        if (!targetEdges.length && context.userId && context.workflowId) {
+            await createUserNotification({
+                userId: context.userId,
+                workflowId: context.workflowId,
+                type: "conditional_no_downstream_branch",
+                severity: "warning",
+                title: "Conditional has no downstream branch",
+                message: "A conditional node evaluated, but there was no valid true/false branch connected to continue execution.",
+                metadata: {
+                    nodeId: sourceNode.nodeId || sourceNode.id,
+                    evaluatedCondition,
+                },
+                dedupeKey: `conditional-no-branch:${context.workflowId}:${sourceNode.nodeId || sourceNode.id}:${evaluatedCondition}`,
+                dedupeWindowHours: 12,
+            });
+        }
     }
 
     const nodesToExecute = targetEdges.map(({ target }) => target);

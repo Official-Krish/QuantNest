@@ -1,4 +1,5 @@
-import { ExecutionModel } from "@quantnest-trading/db/client";
+import { ExecutionModel, WorkflowModel } from "@quantnest-trading/db/client";
+import { createUserNotification, pauseWorkflow } from "@quantnest-trading/executor-utils";
 import { executeWorkflow } from "../workflow/execute";
 import type { WorkflowType } from "../types";
 import { EXECUTION_COOLDOWN_MS } from "../config/constants";
@@ -47,5 +48,48 @@ export async function executeWorkflowSafe(workflow: WorkflowType, condition?: bo
     } finally {
         execution.endTime = new Date();
         await execution.save();
+
+        if (execution.status === "Failed") {
+            const recentExecutions = await ExecutionModel.find({ workflowId: workflow._id })
+                .sort({ startTime: -1 })
+                .limit(5);
+
+            const nonFailureIndex = recentExecutions.findIndex((item) => item.status !== "Failed");
+            const failureCount = nonFailureIndex === -1 ? recentExecutions.length : nonFailureIndex;
+
+            if (failureCount >= 3) {
+                await createUserNotification({
+                    userId: workflow.userId.toString(),
+                    workflowId: workflow._id.toString(),
+                    workflowName: workflow.workflowName,
+                    type: "workflow_failed_multiple_times",
+                    severity: "warning",
+                    title: "Workflow has failed multiple times",
+                    message: `${workflow.workflowName} has failed ${failureCount} times in a row.`,
+                    metadata: { failureCount },
+                    dedupeKey: `workflow-fail-streak:${workflow._id}:${Math.min(failureCount, 5)}`,
+                    dedupeWindowHours: 12,
+                });
+            }
+
+            if (failureCount >= 5) {
+                const persistedWorkflow = await WorkflowModel.findById(workflow._id);
+                if (persistedWorkflow?.status !== "paused") {
+                    await pauseWorkflow(workflow._id.toString());
+                    await createUserNotification({
+                        userId: workflow.userId.toString(),
+                        workflowId: workflow._id.toString(),
+                        workflowName: workflow.workflowName,
+                        type: "workflow_auto_paused_after_failures",
+                        severity: "error",
+                        title: "Workflow auto-paused after repeated failures",
+                        message: `${workflow.workflowName} was paused automatically after ${failureCount} consecutive failed executions.`,
+                        metadata: { failureCount },
+                        dedupeKey: `workflow-auto-paused:${workflow._id}`,
+                        dedupeWindowHours: 24,
+                    });
+                }
+            }
+        }
     }
 }
