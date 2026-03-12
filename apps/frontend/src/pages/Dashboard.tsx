@@ -44,7 +44,7 @@ export const Dashboard = () => {
   );
 
   return (
-    <div className="bg-black min-h-screen w-full pt-24 pb-10 px-6 text-white md:px-10">
+    <div className="bg-black min-h-screen w-full pt-36 pb-10 px-6 text-white md:px-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
         <section className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>
@@ -144,6 +144,7 @@ export const Dashboard = () => {
                 workflows={workflows} 
                 loading={loading}
                 onWorkflowDeleted={loadWorkflows}
+                onWorkflowStatusChanged={loadWorkflows}
               />
             </div>
           )}

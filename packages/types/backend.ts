@@ -174,3 +174,7 @@ export const UpdateWorkflowSchema = z.object({
 }).superRefine((data, ctx) => {
     validateWorkflowNodes(data.nodes, ctx);
 });
+
+export const WorkflowStatusSchema = z.object({
+    status: z.enum(["active", "paused"]),
+});

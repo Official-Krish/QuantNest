@@ -109,6 +109,17 @@ export async function apiDeleteWorkflow(workflowId: string): Promise<{ message: 
   return res.data;
 }
 
+export async function apiUpdateWorkflowStatus(
+  workflowId: string,
+  status: "active" | "paused",
+): Promise<{ message: string; workflow: Workflow }> {
+  const res = await api.patch<{ message: string; workflow: Workflow }>(
+    `/workflow/${workflowId}/status`,
+    { status },
+  );
+  return res.data;
+}
+
 export async function apiCreateZerodhaToken(body: { workflowId: string; accessToken: string }): Promise<{ success: boolean; message: string; tokenStatus: any }> {
   const res = await api.post<{ success: boolean; message: string; tokenStatus: any }>("/zerodha-token/create", body);
   return res.data;

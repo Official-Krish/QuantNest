@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import z from 'zod';
 import { authMiddleware } from '../middleware';
-import { CreateWorkflowSchema, UpdateWorkflowSchema } from '@quantnest-trading/types/metadata';
+import { CreateWorkflowSchema, UpdateWorkflowSchema, WorkflowStatusSchema } from '@quantnest-trading/types/metadata';
 import { ExecutionModel, WorkflowModel } from '@quantnest-trading/db/client';
 import { saveZerodhaToken } from '@quantnest-trading/executor-utils';
 import {
@@ -58,7 +59,8 @@ workFlowRouter.post('/', authMiddleware, async (req, res) => {
             workflowName: data.workflowName,
             userId,
             nodes: data.nodes,
-            edges: data.edges
+            edges: data.edges,
+            status: "active",
         });
         const ZerodhaNode = data.nodes.find((node) => node.type === "zerodha");
         if (ZerodhaNode) {
@@ -85,6 +87,37 @@ workFlowRouter.get('/getAll', authMiddleware, async (req, res) => {
         res.status(200).json({ message: "Workflows retrieved", workflows });
     } catch (error) {
         console.error(error);
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+workFlowRouter.patch('/:workflowId/status', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const workflowId = req.params.workflowId;
+    const parsedStatus = WorkflowStatusSchema.safeParse(req.body);
+
+    if (!parsedStatus.success) {
+        res.status(400).json({ message: "Invalid workflow status" });
+        return;
+    }
+
+    try {
+        const workflow = await WorkflowModel.findOneAndUpdate(
+            { _id: workflowId, userId },
+            { $set: { status: parsedStatus.data.status } },
+            { new: true }
+        );
+
+        if (!workflow) {
+            res.status(404).json({ message: "Workflow not found" });
+            return;
+        }
+
+        res.status(200).json({
+            message: `Workflow ${parsedStatus.data.status === "paused" ? "paused" : "resumed"}`,
+            workflow,
+        });
+    } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
     }
 });

@@ -99,27 +99,36 @@ const Profile = () => {
             Select Avatar
           </Label>
 
-          <div className="flex gap-4">
-            {AVATAR_OPTIONS.map((avatar) => (
-              <button
-                key={avatar}
-                onClick={() => setSelectedAvatar(avatar)}
-                className={`relative rounded-full p-1 transition
-                  ${
+          <div className="rounded-2xl border border-neutral-800 bg-black/40 p-4">
+            <div className="mb-3 flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-neutral-500">
+              <span>Avatar Library</span>
+              <span>{AVATAR_OPTIONS.length} options</span>
+            </div>
+            <div className="grid max-h-36 grid-cols-7 gap-3 overflow-y-auto pr-1">
+              {AVATAR_OPTIONS.map((avatar, index) => (
+                <button
+                  key={avatar}
+                  type="button"
+                  onClick={() => setSelectedAvatar(avatar)}
+                  className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 transition ${
                     selectedAvatar === avatar
-                      ? "ring-2 ring-orange-500 ring-offset-2 ring-offset-black"
-                      : "hover:ring-2 hover:ring-neutral-600 hover:ring-offset-2 hover:ring-offset-black"
+                      ? "border-[#f17463] bg-neutral-900"
+                      : "border-transparent hover:border-neutral-600"
                   }`}
-              >
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={avatar} />
-                </Avatar>
+                  aria-label={`Select avatar ${index + 1}`}
+                >
+                  <img
+                    src={avatar}
+                    alt={`Avatar option ${index + 1}`}
+                    className="h-full w-full rounded-full"
+                  />
 
-                {selectedAvatar === avatar && (
-                  <Check className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-orange-500 p-0.5 text-black" />
-                )}
-              </button>
-            ))}
+                  {selectedAvatar === avatar && (
+                    <Check className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-[#f17463] p-0.5 text-black" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
