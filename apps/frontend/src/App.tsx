@@ -13,6 +13,7 @@ import { StaticContentPage } from "./pages/StaticContentPage";
 import { Blog } from "./pages/Blog";
 import { About } from "./pages/About";
 import { Notifications } from "./pages/Notifications";
+import { VerifyEmail } from "./pages/VerifyEmail";
 
 export function App() {
   return (
@@ -20,6 +21,7 @@ export function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/signin" element={<Auth mode="signin" />} />
       <Route path="/signup" element={<Auth mode="signup" />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/coming-soon/:feature" element={<ComingSoon />} />
       <Route path="/pricing" element={<StaticContentPage pageKey="pricing" />} />
       <Route path="/about" element={<About />} />

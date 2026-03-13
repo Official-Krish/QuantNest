@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { getJwtSecret } from "./utils/security";
 require("dotenv").config();
 
 declare global {
@@ -19,6 +20,7 @@ export async function authMiddleware(
   next: NextFunction
 ) {
     try {
+        const jwtSecret = getJwtSecret();
         const cookieToken = req.cookies?.[process.env.AUTH_COOKIE_NAME || "quantnest_auth"];
         const headerToken = req.headers["authorization"]?.split(" ")[1];
         const token = cookieToken || headerToken;
@@ -27,7 +29,7 @@ export async function authMiddleware(
             return;
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!, {
+        const decoded = jwt.verify(token, jwtSecret, {
             algorithms: ["HS256"],
         });
 

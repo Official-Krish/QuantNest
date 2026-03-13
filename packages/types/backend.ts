@@ -4,6 +4,13 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,100}
 const ZERODHA_API_KEY_REGEX = /^[A-Za-z0-9]{8,32}$/;
 const ACCESS_TOKEN_REGEX = /^[A-Za-z0-9._-]{16,512}$/;
 const LIGHTER_PRIVATE_KEY_REGEX = /^(0x)?[a-fA-F0-9]{64}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const AVATAR_URL_REGEX = /^https:\/\/api\.dicebear\.com\/7\.x\/avataaars\/svg\?seed=[A-Za-z0-9_-]+$/;
+const DISCORD_WEBHOOK_REGEX = /^https:\/\/(discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/;
+const WHATSAPP_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
+const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
+const NOTION_PAGE_ID_REGEX = /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
+const GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX = /^[A-Za-z0-9-]+@[A-Za-z0-9-]+\.iam\.gserviceaccount\.com$/;
 
 export const SignupSchema = z.object({
     username: z.string().min(3).max(30),
@@ -16,7 +23,7 @@ export const SignupSchema = z.object({
             "Password must include uppercase, lowercase, number, and special character."
         ),
     email: z.string().email(),
-    avatarUrl: z.url(),
+    avatarUrl: z.string().regex(AVATAR_URL_REGEX, "Avatar URL must use an approved avatar source."),
 });
 
 export const SigninSchema = z.object({
@@ -133,7 +140,7 @@ function validateWorkflowNodes(
             const privateKey = String((metadata as any).googlePrivateKey || "").trim();
             const aiConsent = (metadata as any).aiConsent === true;
 
-            if (!clientEmail.includes("@")) {
+            if (!GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(clientEmail)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "googleClientEmail"],
@@ -154,6 +161,69 @@ function validateWorkflowNodes(
                     code: "custom",
                     path: [...path, "aiConsent"],
                     message: "AI consent is required for Google Drive AI insights.",
+                });
+            }
+        }
+
+        if (type === "gmail") {
+            const recipientEmail = String((metadata as any).recipientEmail || "").trim();
+            if (!EMAIL_REGEX.test(recipientEmail)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "recipientEmail"],
+                    message: "Invalid recipient email address.",
+                });
+            }
+        }
+
+        if (type === "discord") {
+            const webhookUrl = String((metadata as any).webhookUrl || "").trim();
+            if (!DISCORD_WEBHOOK_REGEX.test(webhookUrl)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "webhookUrl"],
+                    message: "Invalid Discord webhook URL.",
+                });
+            }
+        }
+
+        if (type === "whatsapp") {
+            const recipientPhone = String((metadata as any).recipientPhone || "").trim();
+            if (!WHATSAPP_PHONE_REGEX.test(recipientPhone)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "recipientPhone"],
+                    message: "Recipient phone must be in E.164 format.",
+                });
+            }
+        }
+
+        if (type === "notion-daily-report") {
+            const notionApiKey = String((metadata as any).notionApiKey || "").trim();
+            const parentPageId = String((metadata as any).parentPageId || "").trim();
+            const aiConsent = (metadata as any).aiConsent === true;
+
+            if (!NOTION_TOKEN_REGEX.test(notionApiKey)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "notionApiKey"],
+                    message: "Invalid Notion API key format.",
+                });
+            }
+
+            if (!NOTION_PAGE_ID_REGEX.test(parentPageId)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "parentPageId"],
+                    message: "Invalid Notion parent page ID format.",
+                });
+            }
+
+            if (!aiConsent) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "aiConsent"],
+                    message: "AI consent is required for Notion reporting.",
                 });
             }
         }
