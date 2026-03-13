@@ -193,6 +193,60 @@ const ExecutionSchema = new Schema({
     },
 });
 
+const NotificationSchema = new Schema({
+    userId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'Users',
+        required: true,
+    },
+    workflowId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'Workflows',
+        required: false,
+    },
+    workflowName: {
+        type: String,
+        required: false,
+    },
+    type: {
+        type: String,
+        required: true,
+    },
+    severity: {
+        type: String,
+        enum: ["info", "warning", "error"],
+        required: true,
+    },
+    title: {
+        type: String,
+        required: true,
+    },
+    message: {
+        type: String,
+        required: true,
+    },
+    metadata: {
+        type: Schema.Types.Mixed,
+        required: false,
+    },
+    dedupeKey: {
+        type: String,
+        required: false,
+    },
+    read: {
+        type: Boolean,
+        default: false,
+    },
+    readAt: {
+        type: Date,
+        required: false,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+});
+
 const ZerodhaTokenSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Types.ObjectId,
@@ -239,3 +293,4 @@ export const UserModel = mongoose.model('Users', UserSchema);
 export const WorkflowModel = mongoose.model('Workflows', WorkflowSchema);
 export const NodesModel = mongoose.model('Nodes', NodesSchema);
 export const ExecutionModel = mongoose.model('Executions', ExecutionSchema);
+export const NotificationModel = mongoose.model('Notifications', NotificationSchema);

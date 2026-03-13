@@ -1,4 +1,4 @@
-import { ZerodhaTokenModel } from "@quantnest-trading/db/client";
+import { NotificationModel, WorkflowModel, ZerodhaTokenModel } from "@quantnest-trading/db/client";
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
@@ -8,6 +8,19 @@ export interface TokenStatus {
     expiresAt?: Date;
     message: string;
     tokenRequestId?: string;
+}
+
+export interface UserNotificationInput {
+    userId: string;
+    workflowId?: string;
+    workflowName?: string;
+    type: string;
+    severity: "info" | "warning" | "error";
+    title: string;
+    message: string;
+    metadata?: Record<string, unknown>;
+    dedupeKey?: string;
+    dedupeWindowHours?: number;
 }
 
 /**
@@ -182,6 +195,75 @@ export async function deleteZerodhaToken(userId: string, workflowId: string): Pr
         console.error("Error deleting Zerodha token:", error);
         throw error;
     }
+}
+
+export async function createUserNotification(input: UserNotificationInput): Promise<void> {
+    try {
+        const {
+            userId,
+            workflowId,
+            workflowName,
+            type,
+            severity,
+            title,
+            message,
+            metadata,
+            dedupeKey,
+            dedupeWindowHours = 24,
+        } = input;
+
+        if (dedupeKey) {
+            const since = new Date(Date.now() - dedupeWindowHours * 60 * 60 * 1000);
+            const existing = await NotificationModel.findOne({
+                userId: new mongoose.Types.ObjectId(userId),
+                dedupeKey,
+                createdAt: { $gte: since },
+            });
+            if (existing) {
+                return;
+            }
+        }
+
+        let resolvedWorkflowName = workflowName;
+        if (!resolvedWorkflowName && workflowId) {
+            const workflow = await WorkflowModel.findById(workflowId).select("workflowName");
+            resolvedWorkflowName = workflow?.workflowName;
+        }
+
+        await NotificationModel.create({
+            userId: new mongoose.Types.ObjectId(userId),
+            workflowId: workflowId ? new mongoose.Types.ObjectId(workflowId) : undefined,
+            workflowName: resolvedWorkflowName,
+            type,
+            severity,
+            title,
+            message,
+            metadata,
+            dedupeKey,
+        });
+    } catch (error) {
+        console.error("Error creating user notification:", error);
+    }
+}
+
+export async function updateWorkflowStatus(
+    workflowId: string,
+    status: "active" | "paused",
+): Promise<void> {
+    try {
+        await WorkflowModel.updateOne(
+            { _id: new mongoose.Types.ObjectId(workflowId) },
+            { $set: { status } },
+        );
+    } catch (error) {
+        console.error("Error updating workflow status:", error);
+    }
+}
+
+export async function pauseWorkflow(
+    workflowId: string,
+): Promise<void> {
+    await updateWorkflowStatus(workflowId, "paused");
 }
 
 export function getMarketStatus(): {

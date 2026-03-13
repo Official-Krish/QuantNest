@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import z from 'zod';
 import { authMiddleware } from '../middleware';
 import { CreateWorkflowSchema, UpdateWorkflowSchema, WorkflowStatusSchema } from '@quantnest-trading/types/metadata';
 import { ExecutionModel, WorkflowModel } from '@quantnest-trading/db/client';
-import { saveZerodhaToken } from '@quantnest-trading/executor-utils';
+import { createUserNotification, saveZerodhaToken } from '@quantnest-trading/executor-utils';
 import {
     isBrokerVerificationError,
     verifyBrokerCredentials,
@@ -33,6 +32,18 @@ workFlowRouter.post('/verify-broker-credentials', authMiddleware, async (req, re
         });
         res.status(200).json({ success: true, message: "Credentials verified" });
     } catch (error: any) {
+        if (req.userId) {
+            await createUserNotification({
+                userId: req.userId,
+                type: "broker_credentials_invalid",
+                severity: "error",
+                title: "Broker credential verification failed",
+                message: error?.message || "Credential verification failed",
+                metadata: { brokerType },
+                dedupeKey: `broker-verify:${brokerType}:${apiKey || accessToken || accountIndex || "unknown"}`,
+                dedupeWindowHours: 6,
+            });
+        }
         res.status(400).json({
             success: false,
             message: error?.message || "Credential verification failed",
@@ -71,6 +82,17 @@ workFlowRouter.post('/', authMiddleware, async (req, res) => {
     } catch (error) {
         const message = error instanceof Error ? error.message : "Workflow creation failed";
         if (isBrokerVerificationError(error)) {
+            await createUserNotification({
+                userId,
+                type: "broker_verification_failed_on_save",
+                severity: "error",
+                title: "Workflow save blocked by broker verification",
+                message,
+                workflowName: data.workflowName,
+                metadata: { stage: "create" },
+                dedupeKey: `workflow-save-broker-failure:create:${data.workflowName}`,
+                dedupeWindowHours: 6,
+            });
             res.status(400).json({ message });
             return;
         }
@@ -147,6 +169,19 @@ workFlowRouter.put('/:workflowId', authMiddleware, async (req, res) => {
     } catch (error) {
         const message = error instanceof Error ? error.message : "Internal server error";
         if (isBrokerVerificationError(error)) {
+            if (userId) {
+                await createUserNotification({
+                    userId,
+                    workflowId: String(req.params.workflowId),
+                    type: "broker_verification_failed_on_save",
+                    severity: "error",
+                    title: "Workflow update blocked by broker verification",
+                    message,
+                    metadata: { stage: "update" },
+                    dedupeKey: `workflow-save-broker-failure:update:${req.params.workflowId}`,
+                    dedupeWindowHours: 6,
+                });
+            }
             res.status(400).json({ message });
             return;
         }

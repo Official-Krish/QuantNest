@@ -1,4 +1,4 @@
-import { checkTokenStatus, getMarketStatus, getZerodhaToken } from "@quantnest-trading/executor-utils";
+import { checkTokenStatus, createUserNotification, getMarketStatus, getZerodhaToken, pauseWorkflow } from "@quantnest-trading/executor-utils";
 import type { ExecutionStep } from "@quantnest-trading/types";
 import { createGoogleDriveDailyTradesCsv } from "../executors/googleDrive";
 import { ExecuteLighter } from "../executors/lighter";
@@ -57,6 +57,27 @@ export async function executeActionNode(params: {
 
                 const tokenStatus = await checkTokenStatus(context.userId || "", context.workflowId || "");
                 if (!tokenStatus.hasValidToken) {
+                    if (context.userId && context.workflowId) {
+                        await pauseWorkflow(context.workflowId);
+                        await createUserNotification({
+                            userId: context.userId,
+                            workflowId: context.workflowId,
+                            type: tokenStatus.message.toLowerCase().includes("expired")
+                                ? "broker_token_expired"
+                                : "broker_credentials_invalid",
+                            severity: "error",
+                            title: tokenStatus.message.toLowerCase().includes("expired")
+                                ? "Zerodha token expired"
+                                : "Zerodha credentials unavailable",
+                            message: `${tokenStatus.message} Workflow has been paused until the issue is fixed.`,
+                            metadata: {
+                                broker: "zerodha",
+                                tokenRequestId: tokenStatus.tokenRequestId,
+                            },
+                            dedupeKey: `zerodha-token-status:${context.workflowId}:${tokenStatus.message}`,
+                            dedupeWindowHours: 24,
+                        });
+                    }
                     pushStep(steps, {
                         nodeId: node.nodeId,
                         nodeType: "Zerodha Action",
@@ -239,6 +260,19 @@ export async function executeActionNode(params: {
                 return;
             } catch (error) {
                 console.error("Gmail execution error:", error);
+                if (context.userId) {
+                    await createUserNotification({
+                        userId: context.userId,
+                        workflowId: context.workflowId,
+                        type: "gmail_delivery_failed",
+                        severity: "error",
+                        title: "Gmail delivery failed",
+                        message: "A Gmail notification action could not be delivered.",
+                        metadata: { nodeId: node.nodeId },
+                        dedupeKey: `gmail-failed:${context.workflowId}:${node.nodeId}`,
+                        dedupeWindowHours: 2,
+                    });
+                }
                 pushStep(steps, {
                     nodeId: node.nodeId,
                     nodeType: "Gmail Action",
@@ -282,6 +316,19 @@ export async function executeActionNode(params: {
                 return;
             } catch (error) {
                 console.error("Discord execution error:", error);
+                if (context.userId) {
+                    await createUserNotification({
+                        userId: context.userId,
+                        workflowId: context.workflowId,
+                        type: "discord_webhook_failed",
+                        severity: "error",
+                        title: "Discord webhook failed",
+                        message: "A Discord notification action could not be delivered.",
+                        metadata: { nodeId: node.nodeId },
+                        dedupeKey: `discord-failed:${context.workflowId}:${node.nodeId}`,
+                        dedupeWindowHours: 2,
+                    });
+                }
                 pushStep(steps, {
                     nodeId: node.nodeId,
                     nodeType: "Discord Action",
@@ -325,6 +372,19 @@ export async function executeActionNode(params: {
                 return;
             } catch (error: any) {
                 console.error("WhatsApp execution error:", error);
+                if (context.userId) {
+                    await createUserNotification({
+                        userId: context.userId,
+                        workflowId: context.workflowId,
+                        type: "whatsapp_send_failed",
+                        severity: "error",
+                        title: "WhatsApp send failed",
+                        message: error?.message || "A WhatsApp notification action could not be delivered.",
+                        metadata: { nodeId: node.nodeId },
+                        dedupeKey: `whatsapp-failed:${context.workflowId}:${node.nodeId}`,
+                        dedupeWindowHours: 2,
+                    });
+                }
                 pushStep(steps, {
                     nodeId: node.nodeId,
                     nodeType: "WhatsApp Action",
@@ -372,6 +432,19 @@ export async function executeActionNode(params: {
                 return;
             } catch (error: any) {
                 console.error("Notion report execution error:", error);
+                if (context.userId) {
+                    await createUserNotification({
+                        userId: context.userId,
+                        workflowId: context.workflowId,
+                        type: "notion_report_failed",
+                        severity: "error",
+                        title: "Notion report creation failed",
+                        message: error?.message || "The Notion reporting action failed.",
+                        metadata: { nodeId: node.nodeId },
+                        dedupeKey: `notion-report-failed:${context.workflowId}:${node.nodeId}`,
+                        dedupeWindowHours: 6,
+                    });
+                }
                 pushStep(steps, {
                     nodeId: node.nodeId,
                     nodeType: "Notion Daily Report",
@@ -421,6 +494,19 @@ export async function executeActionNode(params: {
                 return;
             } catch (error: any) {
                 console.error("Google Drive CSV export error:", error);
+                if (context.userId) {
+                    await createUserNotification({
+                        userId: context.userId,
+                        workflowId: context.workflowId,
+                        type: "google_drive_upload_failed",
+                        severity: "error",
+                        title: "Google Drive upload failed",
+                        message: error?.message || "The daily CSV export could not be uploaded to Google Drive.",
+                        metadata: { nodeId: node.nodeId },
+                        dedupeKey: `gdrive-upload-failed:${context.workflowId}:${node.nodeId}`,
+                        dedupeWindowHours: 6,
+                    });
+                }
                 pushStep(steps, {
                     nodeId: node.nodeId,
                     nodeType: "Google Drive Daily CSV",

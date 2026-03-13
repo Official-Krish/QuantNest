@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { IdResponse, marketStatus, SigninResponse, Workflow } from "./types/api";
+import type { IdResponse, marketStatus, SigninResponse, UserNotification, Workflow } from "./types/api";
 
 const API_BASE =
   (import.meta as any).env?.VITE_BACKEND_URL?.toString?.() ??
@@ -160,5 +160,20 @@ export async function apiVerifyBrokerCredentials(
     "/workflow/verify-broker-credentials",
     body
   );
+  return res.data;
+}
+
+export async function apiGetNotifications(): Promise<{ notifications: UserNotification[] }> {
+  const res = await api.get<{ message: string; notifications: UserNotification[] }>("/notification");
+  return { notifications: res.data.notifications };
+}
+
+export async function apiMarkNotificationRead(notificationId: string): Promise<{ message: string }> {
+  const res = await api.patch<{ message: string }>(`/notification/${notificationId}/read`);
+  return res.data;
+}
+
+export async function apiMarkAllNotificationsRead(): Promise<{ message: string }> {
+  const res = await api.patch<{ message: string }>("/notification/read-all");
   return res.data;
 }
