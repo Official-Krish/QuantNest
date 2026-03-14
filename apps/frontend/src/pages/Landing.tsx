@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { AnimatedCard } from "../components/LandingPage/3dcard"
 import { ComingSoonModal } from "../components/LandingPage/ComingSoonModal"
 import { Features } from "../components/LandingPage/Features"
@@ -9,7 +10,8 @@ import { Start } from "../components/LandingPage/Start"
 import { UseCase } from "../components/LandingPage/useCase"
 
 export const Landing = () => {
-    const [comingSoonTarget, setComingSoonTarget] = useState<"pricing" | "examples" | null>(null)
+    const [comingSoonTarget, setComingSoonTarget] = useState<"pricing" | null>(null)
+    const navigate = useNavigate()
 
     return (
         <div className="bg-black min-h-screen w-full">
@@ -19,21 +21,17 @@ export const Landing = () => {
             <HowItWorks />
             <UseCase />
             <PricingPreview />
-            <Start onExampleWorkflowsClick={() => setComingSoonTarget("examples")} />
+            <Start onExampleWorkflowsClick={() => navigate("/examples")} />
             <ComingSoonModal
                 open={comingSoonTarget !== null}
                 onOpenChange={(open) => {
                     if (!open) setComingSoonTarget(null)
                 }}
                 title={
-                    comingSoonTarget === "pricing"
-                        ? "Pricing plans are being finalized"
-                        : "Example workflow gallery is in progress"
+                    "Pricing plans are being finalized"
                 }
                 description={
-                    comingSoonTarget === "pricing"
-                        ? "We are finalizing plan tiers for individual traders, teams, and prop desks. You can start building now and we will publish transparent pricing shortly."
-                        : "We are curating production-grade examples for momentum, mean reversion, and options workflows so new users can fork and deploy quickly."
+                    "We are finalizing plan tiers for individual traders, teams, and prop desks. You can start building now and we will publish transparent pricing shortly."
                 }
             />
         </div>

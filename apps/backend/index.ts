@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import notificationRouter from './routes/notification';
 import userRouter from './routes/user';
 import workFlowRouter from './routes/workflow';
+import examplesRouter from './routes/examples';
 import mongoose from 'mongoose';
 import ZerodhaTokenRouter from './routes/token';
 import { getMarketStatus } from '@quantnest-trading/executor-utils';
@@ -35,6 +36,7 @@ app.use("/api/v1/user", userRouter);
 app.use("/api/v1/workflow", workFlowRouter);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/zerodha-token", ZerodhaTokenRouter);
+app.use("/api/v1/examples", examplesRouter);
 
 app.get("/market-status", async (req, res) => {
   try {

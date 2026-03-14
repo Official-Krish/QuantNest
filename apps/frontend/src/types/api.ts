@@ -34,6 +34,21 @@ export interface UserNotification {
   createdAt: string;
 }
 
+export interface WorkflowExample {
+  slug: string;
+  title: string;
+  summary: string;
+  category: "Execution" | "Reporting" | "Alerts" | "AI";
+  market: "Indian" | "Crypto" | "Cross-market";
+  difficulty: "Starter" | "Intermediate" | "Advanced";
+  setupMinutes: number;
+  nodeFlow: string[];
+  trigger: string;
+  logic: string;
+  actions: string[];
+  outcomes: string[];
+}
+
 export type marketStatus = {
   isOpen: boolean;
   message: string;

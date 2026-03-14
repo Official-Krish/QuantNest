@@ -1,5 +1,12 @@
 import axios from "axios";
-import type { IdResponse, marketStatus, SigninResponse, UserNotification, Workflow } from "./types/api";
+import type {
+  IdResponse,
+  marketStatus,
+  SigninResponse,
+  UserNotification,
+  Workflow,
+  WorkflowExample,
+} from "./types/api";
 
 const API_BASE =
   (import.meta as any).env?.VITE_BACKEND_URL?.toString?.() ??
@@ -195,4 +202,9 @@ export async function apiMarkNotificationRead(notificationId: string): Promise<{
 export async function apiMarkAllNotificationsRead(): Promise<{ message: string }> {
   const res = await api.patch<{ message: string }>("/notification/read-all");
   return res.data;
+}
+
+export async function apiGetExamples(): Promise<{ examples: WorkflowExample[] }> {
+  const res = await api.get<{ message: string; examples: WorkflowExample[] }>("/examples");
+  return { examples: res.data.examples };
 }

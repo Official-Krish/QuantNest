@@ -3,8 +3,12 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "seed": "bun run seed.ts"
+  },
   "exports": {
-    "./client": "./index.ts"
+    "./client": "./index.ts",
+    "./seed": "./seed.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

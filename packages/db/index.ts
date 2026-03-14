@@ -263,6 +263,67 @@ const NotificationSchema = new Schema({
     },
 });
 
+const WorkflowExampleSchema = new Schema({
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    title: {
+        type: String,
+        required: true,
+    },
+    summary: {
+        type: String,
+        required: true,
+    },
+    category: {
+        type: String,
+        enum: ["Execution", "Reporting", "Alerts", "AI"],
+        required: true,
+    },
+    market: {
+        type: String,
+        enum: ["Indian", "Crypto", "Cross-market"],
+        required: true,
+    },
+    difficulty: {
+        type: String,
+        enum: ["Starter", "Intermediate", "Advanced"],
+        required: true,
+    },
+    setupMinutes: {
+        type: Number,
+        required: true,
+    },
+    nodeFlow: {
+        type: [String],
+        required: true,
+    },
+    trigger: {
+        type: String,
+        required: true,
+    },
+    logic: {
+        type: String,
+        required: true,
+    },
+    actions: {
+        type: [String],
+        required: true,
+    },
+    outcomes: {
+        type: [String],
+        required: true,
+    },
+    sortOrder: {
+        type: Number,
+        required: true,
+    },
+}, {
+    timestamps: true,
+});
+
 const ZerodhaTokenSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Types.ObjectId,
@@ -310,3 +371,4 @@ export const WorkflowModel = mongoose.model('Workflows', WorkflowSchema);
 export const NodesModel = mongoose.model('Nodes', NodesSchema);
 export const ExecutionModel = mongoose.model('Executions', ExecutionSchema);
 export const NotificationModel = mongoose.model('Notifications', NotificationSchema);
+export const WorkflowExampleModel = mongoose.model('WorkflowExamples', WorkflowExampleSchema);

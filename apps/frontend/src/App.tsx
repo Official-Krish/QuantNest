@@ -14,6 +14,7 @@ import { Blog } from "./pages/Blog";
 import { About } from "./pages/About";
 import { Notifications } from "./pages/Notifications";
 import { VerifyEmail } from "./pages/VerifyEmail";
+import { Examples } from "./pages/Examples";
 
 export function App() {
   return (
@@ -33,7 +34,7 @@ export function App() {
       <Route path="/privacy-policy" element={<StaticContentPage pageKey="privacy" />} />
       <Route path="/terms-of-service" element={<StaticContentPage pageKey="terms" />} />
       <Route path="/cookie-policy" element={<StaticContentPage pageKey="cookie" />} />
-      <Route path="/examples" element={<Navigate to="/coming-soon/example-workflows" replace />} />
+      <Route path="/examples" element={<Examples />} />
       <Route
         path="/dashboard"
         element={
