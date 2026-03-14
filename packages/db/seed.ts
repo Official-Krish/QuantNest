@@ -1,6 +1,24 @@
 import mongoose from "mongoose";
 import { WorkflowExampleModel } from "./index";
 
+type WorkflowExampleNode = {
+  nodeId: string;
+  type: string;
+  data: {
+    kind: "action" | "trigger";
+    metadata: Record<string, unknown>;
+  };
+  position: { x: number; y: number };
+};
+
+type WorkflowExampleEdge = {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+};
+
 export type WorkflowExampleSeed = {
   slug: string;
   title: string;
@@ -14,6 +32,8 @@ export type WorkflowExampleSeed = {
   logic: string;
   actions: string[];
   outcomes: string[];
+  nodes: WorkflowExampleNode[];
+  edges: WorkflowExampleEdge[];
   sortOrder: number;
 };
 
@@ -38,6 +58,105 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       "Cleaner signal context for non-screen time",
       "Reduced false positives with volume confirmation",
     ],
+    nodes: [
+      {
+        nodeId: "timer-1",
+        type: "timer",
+        data: {
+          kind: "trigger",
+          metadata: { time: 300, marketType: "indian", asset: "CDSL" },
+        },
+        position: { x: 0, y: 95 },
+      },
+      {
+        nodeId: "condition-1",
+        type: "conditional-trigger",
+        data: {
+          kind: "trigger",
+          metadata: {
+            marketType: "Indian",
+            expression: {
+              operator: "AND",
+              conditions: [
+                {
+                  type: "group",
+                  operator: "AND",
+                  conditions: [
+                    {
+                      left: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "rsi",
+                          symbol: "CDSL",
+                          timeframe: "5m",
+                          params: { period: 14 },
+                        },
+                      },
+                      operator: "<",
+                      right: { type: "value", value: 30 },
+                    },
+                    {
+                      left: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "volume",
+                          symbol: "CDSL",
+                          timeframe: "5m",
+                          params: {},
+                        },
+                      },
+                      operator: ">",
+                      right: { type: "value", value: 1.8 },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        position: { x: 300, y: 20 },
+      },
+      {
+        nodeId: "gmail-1",
+        type: "gmail",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Trader inbox",
+            recipientEmail: "alerts@quantnest.dev",
+            condition: true,
+          },
+        },
+        position: { x: 650, y: 0 },
+      },
+      {
+        nodeId: "discord-1",
+        type: "discord",
+        data: {
+          kind: "action",
+          metadata: {
+            webhookUrl: "https://discord.com/api/webhooks/example/token",
+            condition: false,
+          },
+        },
+        position: { x: 650, y: 185 },
+      },
+    ],
+    edges: [
+      { id: "e-timer-condition-1", source: "timer-1", target: "condition-1" },
+      {
+        id: "e-condition-gmail-1",
+        source: "condition-1",
+        sourceHandle: "true",
+        target: "gmail-1",
+      },
+      {
+        id: "e-condition-discord-1",
+        source: "condition-1",
+        sourceHandle: "false",
+        target: "discord-1",
+      },
+    ],
   },
   {
     slug: "zerodha-breakout-execution",
@@ -58,6 +177,125 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       "Fewer low-quality breakouts",
       "Structured branch-based risk gating",
       "Automatic post-trade documentation",
+    ],
+    nodes: [
+      {
+        nodeId: "price-1",
+        type: "price",
+        data: {
+          kind: "trigger",
+          metadata: {
+            asset: "HDFC",
+            targetPrice: 1745,
+            marketType: "indian",
+            condition: "above",
+          },
+        },
+        position: { x: 0, y: 95 },
+      },
+      {
+        nodeId: "condition-2",
+        type: "conditional-trigger",
+        data: {
+          kind: "trigger",
+          metadata: {
+            marketType: "Indian",
+            expression: {
+              operator: "AND",
+              conditions: [
+                {
+                  type: "group",
+                  operator: "AND",
+                  conditions: [
+                    {
+                      left: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "ema",
+                          symbol: "HDFC",
+                          timeframe: "15m",
+                          params: { period: 20 },
+                        },
+                      },
+                      operator: ">",
+                      right: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "ema",
+                          symbol: "HDFC",
+                          timeframe: "15m",
+                          params: { period: 50 },
+                        },
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        position: { x: 300, y: 20 },
+      },
+      {
+        nodeId: "zerodha-1",
+        type: "Zerodha",
+        data: {
+          kind: "action",
+          metadata: {
+            type: "buy",
+            qty: 10,
+            symbol: "HDFC",
+            apiKey: "ZERODHA_API_KEY",
+            accessToken: "ZERODHA_ACCESS_TOKEN",
+            exchange: "NSE",
+            condition: true,
+          },
+        },
+        position: { x: 650, y: 0 },
+      },
+      {
+        nodeId: "notion-1",
+        type: "notion-daily-report",
+        data: {
+          kind: "action",
+          metadata: {
+            notionApiKey: "secret_demo_key",
+            parentPageId: "demo-parent-page-id",
+            aiConsent: true,
+            condition: true,
+          },
+        },
+        position: { x: 970, y: 0 },
+      },
+      {
+        nodeId: "gmail-2",
+        type: "gmail",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Trader inbox",
+            recipientEmail: "desk@quantnest.dev",
+            condition: false,
+          },
+        },
+        position: { x: 650, y: 185 },
+      },
+    ],
+    edges: [
+      { id: "e-price-condition-2", source: "price-1", target: "condition-2" },
+      {
+        id: "e-condition-zerodha-1",
+        source: "condition-2",
+        sourceHandle: "true",
+        target: "zerodha-1",
+      },
+      { id: "e-zerodha-notion-1", source: "zerodha-1", target: "notion-1" },
+      {
+        id: "e-condition-gmail-2",
+        source: "condition-2",
+        sourceHandle: "false",
+        target: "gmail-2",
+      },
     ],
   },
   {
@@ -80,6 +318,50 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       "Consistent review discipline",
       "Historical performance visibility",
     ],
+    nodes: [
+      {
+        nodeId: "timer-2",
+        type: "timer",
+        data: {
+          kind: "trigger",
+          metadata: { time: 86400, marketType: "indian", asset: "HDFC" },
+        },
+        position: { x: 0, y: 80 },
+      },
+      {
+        nodeId: "zerodha-2",
+        type: "zerodha",
+        data: {
+          kind: "action",
+          metadata: {
+            type: "sell",
+            qty: 1,
+            symbol: "HDFC",
+            apiKey: "ZERODHA_API_KEY",
+            accessToken: "ZERODHA_ACCESS_TOKEN",
+            exchange: "NSE",
+          },
+        },
+        position: { x: 300, y: 80 },
+      },
+      {
+        nodeId: "notion-2",
+        type: "notion-daily-report",
+        data: {
+          kind: "action",
+          metadata: {
+            notionApiKey: "secret_demo_key",
+            parentPageId: "demo-parent-page-id",
+            aiConsent: true,
+          },
+        },
+        position: { x: 620, y: 80 },
+      },
+    ],
+    edges: [
+      { id: "e-timer-zerodha-2", source: "timer-2", target: "zerodha-2" },
+      { id: "e-zerodha-notion-2", source: "zerodha-2", target: "notion-2" },
+    ],
   },
   {
     slug: "drive-csv-export",
@@ -101,6 +383,53 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       "Ops-friendly archive format",
       "Shared review data for teams",
     ],
+    nodes: [
+      {
+        nodeId: "timer-3",
+        type: "timer",
+        data: {
+          kind: "trigger",
+          metadata: { time: 86400, marketType: "indian", asset: "CDSL" },
+        },
+        position: { x: 0, y: 80 },
+      },
+      {
+        nodeId: "zerodha-3",
+        type: "zerodha",
+        data: {
+          kind: "action",
+          metadata: {
+            type: "sell",
+            qty: 1,
+            symbol: "CDSL",
+            apiKey: "ZERODHA_API_KEY",
+            accessToken: "ZERODHA_ACCESS_TOKEN",
+            exchange: "NSE",
+          },
+        },
+        position: { x: 300, y: 80 },
+      },
+      {
+        nodeId: "drive-1",
+        type: "google-drive-daily-csv",
+        data: {
+          kind: "action",
+          metadata: {
+            googleClientEmail: "quantnest-bot@demo.iam.gserviceaccount.com",
+            googlePrivateKey:
+              "-----BEGIN PRIVATE KEY-----demo-----END PRIVATE KEY-----",
+            googleDriveFolderId: "drive-folder-id",
+            filePrefix: "quantnest-daily",
+            aiConsent: true,
+          },
+        },
+        position: { x: 640, y: 80 },
+      },
+    ],
+    edges: [
+      { id: "e-timer-zerodha-3", source: "timer-3", target: "zerodha-3" },
+      { id: "e-zerodha-drive-1", source: "zerodha-3", target: "drive-1" },
+    ],
   },
 ];
 
@@ -114,7 +443,7 @@ export async function seedWorkflowExamples() {
       WORKFLOW_EXAMPLE_SEEDS.map((example) => ({
         updateOne: {
           filter: { slug: example.slug },
-          update: { $set: example },
+          update: { $set: example } as any,
           upsert: true,
         },
       })),

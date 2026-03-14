@@ -1,3 +1,5 @@
+import type { EdgeType, NodeType } from "@quantnest-trading/types";
+
 export interface IdResponse {
   message: string;
   workflowId?: string;
@@ -47,6 +49,8 @@ export interface WorkflowExample {
   logic: string;
   actions: string[];
   outcomes: string[];
+  nodes: NodeType[];
+  edges: EdgeType[];
 }
 
 export type marketStatus = {
