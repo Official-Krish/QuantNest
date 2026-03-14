@@ -5,6 +5,7 @@ const UserSchema = new Schema({
         type: String,
         required: true,
         unique: true,
+        trim: true,
     },
     password: {
         type: String,
@@ -13,9 +14,24 @@ const UserSchema = new Schema({
     email: {
         type: String,
         required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
     }, 
     avatarUrl: {
         type: String,
+        required: false,
+    },
+    emailVerified: {
+        type: Boolean,
+        default: true,
+    },
+    emailVerificationToken: {
+        type: String,
+        required: false,
+    },
+    emailVerificationExpiresAt: {
+        type: Date,
         required: false,
     },
     createdAt: {

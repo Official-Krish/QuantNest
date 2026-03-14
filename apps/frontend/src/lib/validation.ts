@@ -5,6 +5,11 @@ export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).
 export const ZERODHA_API_KEY_REGEX = /^[A-Za-z0-9]{8,32}$/;
 export const ACCESS_TOKEN_REGEX = /^[A-Za-z0-9._-]{16,512}$/;
 export const LIGHTER_PRIVATE_KEY_REGEX = /^(0x)?[a-fA-F0-9]{64}$/;
+export const DISCORD_WEBHOOK_REGEX = /^https:\/\/(discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/;
+export const WHATSAPP_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
+export const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
+export const NOTION_PAGE_ID_REGEX = /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
+export const GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX = /^[A-Za-z0-9-]+@[A-Za-z0-9-]+\.iam\.gserviceaccount\.com$/;
 
 export function validateEmail(email: string): boolean {
   return EMAIL_REGEX.test(email.trim());
@@ -12,6 +17,48 @@ export function validateEmail(email: string): boolean {
 
 export function validateStrongPassword(password: string): boolean {
   return PASSWORD_REGEX.test(password);
+}
+
+export function getActionValidationErrors(action: string, metadata: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+
+  if (action === "gmail" && !validateEmail(String(metadata.recipientEmail || "").trim())) {
+    errors.push("Enter a valid recipient email.");
+  }
+
+  if (action === "discord" && !DISCORD_WEBHOOK_REGEX.test(String(metadata.webhookUrl || "").trim())) {
+    errors.push("Discord webhook URL format is invalid.");
+  }
+
+  if (action === "whatsapp" && !WHATSAPP_PHONE_REGEX.test(String(metadata.recipientPhone || "").trim())) {
+    errors.push("WhatsApp number must be in E.164 format.");
+  }
+
+  if (action === "notion-daily-report") {
+    if (!NOTION_TOKEN_REGEX.test(String(metadata.notionApiKey || "").trim())) {
+      errors.push("Notion API key format is invalid.");
+    }
+    if (!NOTION_PAGE_ID_REGEX.test(String(metadata.parentPageId || "").trim())) {
+      errors.push("Notion parent page ID format is invalid.");
+    }
+    if (metadata.aiConsent !== true) {
+      errors.push("AI consent is required for Notion reporting.");
+    }
+  }
+
+  if (action === "google-drive-daily-csv") {
+    if (!GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(String(metadata.googleClientEmail || "").trim())) {
+      errors.push("Google service account email format is invalid.");
+    }
+    if (!String(metadata.googlePrivateKey || "").includes("BEGIN PRIVATE KEY")) {
+      errors.push("Google private key format is invalid.");
+    }
+    if (metadata.aiConsent !== true) {
+      errors.push("AI consent is required for Google Drive insights.");
+    }
+  }
+
+  return errors;
 }
 
 export function getSignupValidationErrors(input: {

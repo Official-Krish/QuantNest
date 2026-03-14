@@ -66,7 +66,7 @@ ZerodhaTokenRouter.put("/update", authMiddleware, async (req, res) => {
 
 ZerodhaTokenRouter.get("/status/:workflowId", authMiddleware,  async (req, res) => {
     try {
-        const { workflowId } = req.params;
+        const workflowId = String(req.params.workflowId || "");
         const userId = req.userId;
 
         if (!userId || !workflowId) {
@@ -95,7 +95,7 @@ ZerodhaTokenRouter.get("/status/:workflowId", authMiddleware,  async (req, res) 
 
 ZerodhaTokenRouter.delete("/:workflowId", authMiddleware, async (req, res) => {
     try {
-        const {workflowId } = req.params;
+        const workflowId = String(req.params.workflowId || "");
         const userId = req.userId;
 
         if (!userId || !workflowId) {

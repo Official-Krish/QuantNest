@@ -6,18 +6,29 @@ const API_BASE =
   "http://localhost:3000/api/v1";
 
 const SESSION_KEY = "quantnest_session";
+export const AUTH_STATE_EVENT = "quantnest-auth-state";
 
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
 });
 
+function emitAuthStateChange(isAuthenticated: boolean) {
+  window.dispatchEvent(
+    new CustomEvent(AUTH_STATE_EVENT, {
+      detail: { isAuthenticated },
+    }),
+  );
+}
+
 export function setAuthSession() {
   localStorage.setItem(SESSION_KEY, "1");
+  emitAuthStateChange(true);
 }
 
 export function clearAuthSession() {
   localStorage.removeItem(SESSION_KEY);
+  emitAuthStateChange(false);
 }
 
 export function hasAuthSession() {
@@ -30,11 +41,9 @@ export function setAvatarUrl(avatarUrl: string) {
 
 // AUTH
 
-export async function apiSignup(body: { username: string; password: string; email: string; avatarUrl: string }): Promise<IdResponse | { status: number }> {
+export async function apiSignup(body: { username: string; password: string; email: string; avatarUrl: string }): Promise<(IdResponse & { requiresEmailVerification?: boolean; email?: string }) | { status: number }> {
   try {
-    const res = await api.post<IdResponse>("/user/signup", body);
-    setAuthSession();
-    setAvatarUrl(body.avatarUrl);
+    const res = await api.post<IdResponse & { requiresEmailVerification?: boolean; email?: string }>("/user/signup", body);
     return res.data;
   } catch (error: any) {
     if (error?.response?.status === 409) {
@@ -74,6 +83,16 @@ export async function apiUpdateProfile(body: { email?: string; avatarUrl: string
   if (res.status === 200) {
     setAvatarUrl(body.avatarUrl);
   }
+  return res.data;
+}
+
+export async function apiVerifyEmailToken(token: string): Promise<{ message: string }> {
+  const res = await api.get<{ message: string }>(`/user/verify-email?token=${encodeURIComponent(token)}`);
+  return res.data;
+}
+
+export async function apiResendVerificationEmail(email: string): Promise<{ message: string }> {
+  const res = await api.post<{ message: string }>("/user/resend-verification", { email });
   return res.data;
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "motion/react";
 import { ProfileDropDown } from "./Profile-Dropdown";
-import { apiVerifyToken, clearAuthSession, hasAuthSession, setAuthSession } from "@/http";
+import { AUTH_STATE_EVENT, apiVerifyToken, clearAuthSession, hasAuthSession, setAuthSession } from "@/http";
 
 export const Appbar = () => {
     const [hovered, setHovered] = useState<number | null>(null);
@@ -61,6 +61,17 @@ export const Appbar = () => {
             }
         };
         void syncSession();
+
+        const handleAuthStateChange = (event: Event) => {
+            const customEvent = event as CustomEvent<{ isAuthenticated?: boolean }>;
+            setIsAuthenticated(customEvent.detail?.isAuthenticated === true);
+        };
+
+        window.addEventListener(AUTH_STATE_EVENT, handleAuthStateChange as EventListener);
+
+        return () => {
+            window.removeEventListener(AUTH_STATE_EVENT, handleAuthStateChange as EventListener);
+        };
     }, []);
     return (
         <div className="fixed top-0 left-0 right-0 z-50">

@@ -6,7 +6,7 @@ import {
 } from "@quantnest-trading/types";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
-import { getTradingValidationErrors } from "@/lib/validation";
+import { getActionValidationErrors, getTradingValidationErrors } from "@/lib/validation";
 import {
   Sheet,
   SheetContent,
@@ -100,10 +100,15 @@ export const ActionSheet = ({
     }
     return [];
   }, [metadata, selectedAction]);
+  const actionValidationErrors = useMemo(
+    () => getActionValidationErrors(selectedAction, metadata as Record<string, unknown>),
+    [metadata, selectedAction],
+  );
 
   const canCreateAction =
     !!selectedAction &&
     tradingValidationErrors.length === 0 &&
+    actionValidationErrors.length === 0 &&
     (
       selectedAction !== "gmail" ||
       Boolean((metadata as any)?.recipientEmail)
@@ -225,11 +230,11 @@ export const ActionSheet = ({
               action={selectedAction as "zerodha" | "groww" | "lighter"}
             />
           )}
-          {tradingValidationErrors.length > 0 && (
+          {(tradingValidationErrors.length > 0 || actionValidationErrors.length > 0) && (
             <div className="rounded-md border border-amber-500/35 bg-amber-500/10 p-3 text-xs text-amber-200">
-              <p className="font-medium text-amber-300">Complete broker validation:</p>
+              <p className="font-medium text-amber-300">Complete validation:</p>
               <ul className="mt-2 space-y-1">
-                {tradingValidationErrors.map((validationError) => (
+                {[...tradingValidationErrors, ...actionValidationErrors].map((validationError) => (
                   <li key={validationError}>• {validationError}</li>
                 ))}
               </ul>
