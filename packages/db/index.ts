@@ -316,6 +316,14 @@ const WorkflowExampleSchema = new Schema({
         type: [String],
         required: true,
     },
+    nodes: {
+        type: [WorkflowNodeSchema],
+        required: true,
+    },
+    edges: {
+        type: [EdgesSchema],
+        required: true,
+    },
     sortOrder: {
         type: Number,
         required: true,
