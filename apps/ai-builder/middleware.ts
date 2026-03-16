@@ -1,59 +1,50 @@
 import type { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
-import { getJwtSecret } from "./utils/security";
 
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: string;
-      user?: {
-        email: string;
-      };
-    }
+function getAiServiceToken(): string {
+  const token = process.env.AI_SERVICE_TOKEN;
+  if (!token || token === "AI_SERVICE_TOKEN") {
+    throw new Error("AI_SERVICE_TOKEN must be configured and must not use the default placeholder value.");
   }
+  return token;
 }
 
-export async function authMiddleware(
+export async function serviceAuthMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
 ) {
   try {
-    const jwtSecret = getJwtSecret();
-    const cookieToken = req.cookies?.[process.env.AUTH_COOKIE_NAME || "quantnest_auth"];
-    const headerToken = req.headers.authorization?.split(" ")[1];
-    const token = cookieToken || headerToken;
+    const expectedToken = getAiServiceToken();
+    const headerToken =
+      req.headers["x-ai-service-token"] ||
+      req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
-    if (!token) {
-      res.status(401).json({ message: "No token provided" });
-      return;
-    }
+    const providedToken = Array.isArray(headerToken) ? headerToken[0] : headerToken;
 
-    const decoded = jwt.verify(token, jwtSecret, {
-      algorithms: ["HS256"],
-    });
-
-    const userId = (decoded as { userId?: string }).userId;
-    if (!userId) {
-      res.status(403).json({ message: "Invalid token payload" });
-      return;
-    }
-
-    req.userId = userId;
-    next();
-  } catch (error) {
-    console.error("AI builder auth error:", error);
-    if (error instanceof jwt.JsonWebTokenError) {
-      res.status(403).json({
-        message: "Invalid token",
-        details: process.env.NODE_ENV === "development" ? error.message : undefined,
+    if (!providedToken) {
+      res.status(401).json({
+        success: false,
+        code: "SERVICE_TOKEN_MISSING",
+        message: "Missing AI service token.",
       });
       return;
     }
 
+    if (providedToken !== expectedToken) {
+      res.status(403).json({
+        success: false,
+        code: "SERVICE_TOKEN_INVALID",
+        message: "Invalid AI service token.",
+      });
+      return;
+    }
+
+    next();
+  } catch (error) {
     res.status(500).json({
-      message: "Error processing authentication",
-      details: process.env.NODE_ENV === "development" ? (error as Error).message : undefined,
+      success: false,
+      code: "SERVICE_AUTH_ERROR",
+      message: error instanceof Error ? error.message : "AI service authentication failed.",
     });
   }
 }

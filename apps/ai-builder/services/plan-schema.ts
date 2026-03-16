@@ -4,6 +4,10 @@ import type {
   AiStrategyBuilderResponse,
   AiStrategyWorkflowPlan,
 } from "@quantnest-trading/types/ai";
+import { AiBuilderError } from "../errors";
+
+const MAX_PLAN_NODES = 12;
+const MAX_PLAN_EDGES = 16;
 
 const nodeKindSchema = z.enum([
   "timer",
@@ -79,8 +83,8 @@ const strategyPlanSchema = z.object({
   workflowName: z.string().trim().min(3).max(120),
   summary: z.string().trim().min(12).max(500),
   marketType: z.enum(["Indian", "Crypto"]),
-  nodes: z.array(workflowDraftNodeSchema).min(1),
-  edges: z.array(workflowDraftEdgeSchema),
+  nodes: z.array(workflowDraftNodeSchema).min(1).max(MAX_PLAN_NODES),
+  edges: z.array(workflowDraftEdgeSchema).max(MAX_PLAN_EDGES),
   assumptions: z.array(z.string().trim().min(1)).max(10),
   warnings: z.array(
     z.object({
@@ -121,18 +125,40 @@ export function normalizeStrategyPlanResponse(
   model: string,
   request: AiStrategyBuilderRequest,
 ): AiStrategyBuilderResponse {
-  const parsed = JSON.parse(extractJsonBlock(rawText)) as unknown;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(extractJsonBlock(rawText));
+  } catch (error) {
+    throw new AiBuilderError(
+      "INVALID_PROVIDER_JSON",
+      "AI provider returned invalid JSON for strategy plan.",
+      502,
+      error instanceof Error ? error.message : undefined,
+    );
+  }
+
   const plan = strategyPlanSchema.parse(parsed);
 
   const triggerCount = plan.nodes.filter((node) => node.data.kind === "trigger").length;
   if (triggerCount === 0) {
-    throw new Error("Generated plan does not contain a trigger node.");
+    throw new AiBuilderError("INVALID_GRAPH", "Generated plan does not contain a trigger node.", 422);
+  }
+
+  if (triggerCount > 1) {
+    throw new AiBuilderError("INVALID_GRAPH", "Generated plan must contain only one trigger in V1.", 422);
   }
 
   const nodeIds = new Set(plan.nodes.map((node) => node.nodeId));
+  if (nodeIds.size !== plan.nodes.length) {
+    throw new AiBuilderError("INVALID_GRAPH", "Generated plan contains duplicate node ids.", 422);
+  }
+
   for (const edge of plan.edges) {
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
-      throw new Error(`Generated edge references missing nodes: ${edge.id}`);
+      throw new AiBuilderError("INVALID_GRAPH", `Generated edge references missing nodes: ${edge.id}`, 422);
+    }
+    if (edge.source === edge.target) {
+      throw new AiBuilderError("INVALID_GRAPH", `Generated edge forms a self-loop: ${edge.id}`, 422);
     }
   }
 
@@ -140,7 +166,7 @@ export function normalizeStrategyPlanResponse(
     const allowed = new Set(request.allowedNodeTypes.map((value) => value.toLowerCase()));
     for (const node of plan.nodes) {
       if (!allowed.has(node.type.toLowerCase())) {
-        throw new Error(`Generated unsupported node type: ${node.type}`);
+        throw new AiBuilderError("UNSUPPORTED_NODE_TYPE", `Generated unsupported node type: ${node.type}`, 422);
       }
     }
   }
