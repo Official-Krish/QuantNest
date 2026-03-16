@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { ZodError } from "zod";
+import { authMiddleware } from "../middleware";
 import { AnthropicStrategyPlannerProvider } from "../providers/anthropic";
 import { GeminiStrategyPlannerProvider } from "../providers/gemini";
 import { OpenAIStrategyPlannerProvider } from "../providers/openai";
@@ -23,7 +24,7 @@ router.get("/models", (_req, res) => {
   });
 });
 
-router.post("/strategy/plan", async (req, res) => {
+router.post("/strategy/plan", authMiddleware, async (req, res) => {
   try {
     const input = parseStrategyBuilderRequest(req.body);
     const { provider } = resolvePlannerProvider(providers, input.model);
