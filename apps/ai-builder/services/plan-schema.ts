@@ -71,6 +71,113 @@ const workflowDraftNodeSchema = z.object({
   }),
 });
 
+const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
+
+function validateNodeMetadata(plan: AiStrategyWorkflowPlan) {
+  for (const node of plan.nodes) {
+    const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+    const type = node.type;
+
+    if (type === "price") {
+      const asset = String(metadata.asset || "").trim();
+      const targetPrice = Number(metadata.targetPrice);
+      const condition = String(metadata.condition || "").trim();
+      const marketType = String(metadata.marketType || "").trim().toLowerCase();
+
+      if (!asset) {
+        throw new AiBuilderError("INVALID_GRAPH", `Price trigger ${node.nodeId} is missing asset.`, 422);
+      }
+      if (!PRICE_TRIGGER_ASSETS.includes(asset)) {
+        throw new AiBuilderError("INVALID_GRAPH", `Price trigger ${node.nodeId} has unsupported asset: ${asset}.`, 422);
+      }
+      if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+        throw new AiBuilderError(
+          "INVALID_GRAPH",
+          `Price trigger ${node.nodeId} must include a targetPrice greater than 0.`,
+          422,
+        );
+      }
+      if (!["above", "below"].includes(condition)) {
+        throw new AiBuilderError(
+          "INVALID_GRAPH",
+          `Price trigger ${node.nodeId} must use condition 'above' or 'below'.`,
+          422,
+        );
+      }
+      if (!["indian", "crypto", "web3"].includes(marketType)) {
+        throw new AiBuilderError(
+          "INVALID_GRAPH",
+          `Price trigger ${node.nodeId} must include a valid marketType.`,
+          422,
+        );
+      }
+    }
+
+    if (type === "timer") {
+      const time = Number(metadata.time);
+      if (!Number.isFinite(time) || time <= 0) {
+        throw new AiBuilderError("INVALID_GRAPH", `Timer node ${node.nodeId} must include a time greater than 0.`, 422);
+      }
+    }
+
+    if (type === "Zerodha") {
+      const side = String(metadata.type || "").trim().toLowerCase();
+      const qty = Number(metadata.qty);
+      const symbol = String(metadata.symbol || "").trim();
+      if (!["buy", "sell", "long", "short"].includes(side)) {
+        throw new AiBuilderError("INVALID_GRAPH", `Zerodha node ${node.nodeId} must include a valid order type.`, 422);
+      }
+      if (!Number.isFinite(qty) || qty <= 0) {
+        throw new AiBuilderError("INVALID_GRAPH", `Zerodha node ${node.nodeId} must include qty greater than 0.`, 422);
+      }
+      if (!symbol) {
+        throw new AiBuilderError("INVALID_GRAPH", `Zerodha node ${node.nodeId} must include a symbol.`, 422);
+      }
+    }
+  }
+}
+
+function validatePromptAlignedSemantics(
+  plan: AiStrategyWorkflowPlan,
+  request: AiStrategyBuilderRequest,
+) {
+  const prompt = request.prompt.toLowerCase();
+  const priceNode = plan.nodes.find((node) => node.type === "price");
+
+  const priceMatch = prompt.match(/price(?:\s+\w+){0,8}?\s+(below|above)\s+(\d+(?:\.\d+)?)/i);
+  if (priceMatch) {
+    if (!priceNode) {
+      throw new AiBuilderError(
+        "PROMPT_MISMATCH",
+        "Prompt requested a price trigger, but the generated plan does not contain one.",
+        422,
+      );
+    }
+
+    const expectedCondition = priceMatch[1]?.toLowerCase();
+    const expectedTarget = Number(priceMatch[2]);
+    const metadata = (priceNode.data.metadata || {}) as Record<string, unknown>;
+    const actualCondition = String(metadata.condition || "").toLowerCase();
+    const actualTarget = Number(metadata.targetPrice);
+
+    if (actualCondition !== expectedCondition) {
+      throw new AiBuilderError(
+        "PROMPT_MISMATCH",
+        `Prompt requested a price trigger '${expectedCondition}', but the plan returned '${actualCondition || "missing"}'.`,
+        422,
+      );
+    }
+
+    if (!Number.isFinite(actualTarget) || actualTarget !== expectedTarget) {
+      throw new AiBuilderError(
+        "PROMPT_MISMATCH",
+        `Prompt requested price trigger target ${expectedTarget}, but the plan returned ${Number.isFinite(actualTarget) ? actualTarget : "missing"}.`,
+        422,
+      );
+    }
+  }
+}
+
 const workflowDraftEdgeSchema = z.object({
   id: z.string().trim().min(1),
   source: z.string().trim().min(1),
@@ -170,6 +277,9 @@ export function normalizeStrategyPlanResponse(
       }
     }
   }
+
+  validateNodeMetadata(plan);
+  validatePromptAlignedSemantics(plan, request);
 
   return {
     provider,

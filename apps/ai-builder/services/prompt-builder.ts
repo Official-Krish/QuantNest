@@ -34,6 +34,19 @@ const ACTION_METADATA_REFERENCE: Record<StrategyBuilderActionType, string[]> = {
   ],
 };
 
+const TRIGGER_METADATA_REFERENCE: Record<string, string[]> = {
+  timer: ["time", "marketType", "asset"],
+  price: ["asset", "targetPrice", "marketType", "condition"],
+  "conditional-trigger": [
+    "asset",
+    "marketType",
+    "condition",
+    "targetPrice",
+    "timeWindowMinutes",
+    "expression",
+  ],
+};
+
 export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): string {
   const allowedNodeTypes = (input.allowedNodeTypes?.length
     ? input.allowedNodeTypes
@@ -50,6 +63,9 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
 
   const actionMetadataGuide = Object.entries(ACTION_METADATA_REFERENCE)
     .map(([action, fields]) => `- ${action}: ${fields.join(", ")}`)
+    .join("\n");
+  const triggerMetadataGuide = Object.entries(TRIGGER_METADATA_REFERENCE)
+    .map(([trigger, fields]) => `- ${trigger}: ${fields.join(", ")}`)
     .join("\n");
 
   return [
@@ -112,6 +128,9 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "",
     "Rules:",
     "- Exactly one trigger node is preferred for V1.",
+    "- For a price node, metadata must include asset, targetPrice, marketType, and condition.",
+    "- If the prompt says 'below', the price trigger condition must be 'below'. If the prompt says 'above', use 'above'.",
+    "- Never default a price trigger targetPrice to 0. Use the exact threshold from the prompt.",
     "- Use conditional-trigger when the strategy mentions thresholds, comparisons, RSI, EMA, or branching.",
     "- For direct execution flows, add broker action nodes only when brokerExecution=true or the prompt clearly requests execution.",
     "- For notification/reporting actions that need credentials, keep placeholder-safe metadata and add entries to missingInputs.",
@@ -121,6 +140,9 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "",
     "Supported node types:",
     allowedNodeTypes,
+    "",
+    "Trigger metadata fields:",
+    triggerMetadataGuide,
     "",
     "Action metadata fields:",
     actionMetadataGuide,

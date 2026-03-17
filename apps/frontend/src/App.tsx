@@ -15,6 +15,7 @@ import { About } from "./pages/About";
 import { Notifications } from "./pages/Notifications";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { Examples } from "./pages/Examples";
+import { AiStrategyBuilder } from "./pages/AiStrategyBuilder";
 
 export function App() {
   return (
@@ -64,6 +65,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <CreateWorkflow />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create/ai"
+        element={
+          <ProtectedRoute>
+            <AiStrategyBuilder />
           </ProtectedRoute>
         }
       />

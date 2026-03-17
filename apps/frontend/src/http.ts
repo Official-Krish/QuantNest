@@ -1,5 +1,8 @@
 import axios from "axios";
 import type {
+  AiModelDescriptor,
+  AiStrategyBuilderRequest,
+  AiStrategyBuilderResponse,
   IdResponse,
   marketStatus,
   SigninResponse,
@@ -219,4 +222,19 @@ export async function apiCreateWorkflowFromExample(
     metadataOverrides,
   });
   return res.data;
+}
+
+export async function apiGetAiModels(): Promise<{ models: AiModelDescriptor[] }> {
+  const res = await api.get<{ success: boolean; models: AiModelDescriptor[] }>("/ai/models");
+  return { models: res.data.models };
+}
+
+export async function apiGenerateAiStrategyPlan(
+  body: AiStrategyBuilderRequest,
+): Promise<AiStrategyBuilderResponse> {
+  const res = await api.post<{ success: boolean; data: AiStrategyBuilderResponse }>(
+    "/ai/strategy/plan",
+    body,
+  );
+  return res.data.data;
 }

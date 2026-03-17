@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { type EdgeType, type NodeType } from "@quantnest-trading/types";
 import { WorkflowCanvas } from "../components/workflow/WorkflowCanvas";
 import { WorkflowNameDialog } from "../components/workflow/WorkflowNameDialog";
@@ -41,6 +41,7 @@ const POSITION_OFFSET = 50;
 
 export const CreateWorkflow = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { workflowId: routeWorkflowId } = useParams<{ workflowId: string }>();
 
   const [nodes, setNodes] = useState<NodeType[]>([]);
@@ -62,6 +63,19 @@ export const CreateWorkflow = () => {
   const [showActionSheetEdit, setShowActionSheetEdit] = useState(false);
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
   const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(null);
+
+  useEffect(() => {
+    if (routeWorkflowId) return;
+
+    const generatedPlan = (location.state as any)?.generatedPlan;
+    if (!generatedPlan) return;
+
+    setNodes((generatedPlan.nodes || []) as NodeType[]);
+    setEdges((generatedPlan.edges || []) as EdgeType[]);
+    setWorkflowName(String(generatedPlan.workflowName || ""));
+    setMarketType((generatedPlan.marketType || "Indian") as "Indian" | "Crypto");
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate, routeWorkflowId]);
 
   // Load an existing workflow when opened from /workflow/:workflowId
   useEffect(() => {
