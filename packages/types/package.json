@@ -11,6 +11,7 @@
   },
   "exports": {
     ".": "./index.ts",
+    "./ai": "./ai.ts",
     "./metadata": "./backend.ts",
     "./indicators": "./indicators.ts"
   },

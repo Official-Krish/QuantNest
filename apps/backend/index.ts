@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import notificationRouter from './routes/notification';
+import aiRouter from './routes/ai';
 import userRouter from './routes/user';
 import workFlowRouter from './routes/workflow';
 import examplesRouter from './routes/examples';
@@ -33,6 +34,7 @@ app.use(cors({
 mongoose.connect(process.env.MONGO_URL || 'mongodb://localhost:27017/myapp')
 
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/ai", aiRouter);
 app.use("/api/v1/workflow", workFlowRouter);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/zerodha-token", ZerodhaTokenRouter);
