@@ -1,0 +1,55 @@
+import type { EdgeType, NodeType } from "@quantnest-trading/types";
+import type { AiModelDescriptor, AiStrategyBuilderRequest, AiStrategyBuilderResponse } from "@/types/api";
+
+export type AiMetadataOverrides = Record<string, Record<string, unknown>>;
+
+export type AiStrategyFormProps = {
+  prompt: string;
+  onPromptChange: (value: string) => void;
+  market: AiStrategyBuilderRequest["market"];
+  onMarketChange: (value: AiStrategyBuilderRequest["market"]) => void;
+  goal: AiStrategyBuilderRequest["goal"];
+  onGoalChange: (value: AiStrategyBuilderRequest["goal"]) => void;
+  riskPreference: AiStrategyBuilderRequest["riskPreference"];
+  onRiskPreferenceChange: (value: AiStrategyBuilderRequest["riskPreference"]) => void;
+  brokerExecution: boolean;
+  onBrokerExecutionChange: (value: boolean) => void;
+  allowDirectExecution: boolean;
+  onAllowDirectExecutionChange: (value: boolean) => void;
+  selectedActions: string[];
+  onToggleAction: (action: string) => void;
+  constraints: string;
+  onConstraintsChange: (value: string) => void;
+  models: AiModelDescriptor[];
+  loadingModels: boolean;
+  selectedProvider: string;
+  onProviderChange: (value: string) => void;
+  selectedModel: string;
+  onModelChange: (value: string) => void;
+  providerModels: AiModelDescriptor[];
+  canGenerate: boolean;
+  generating: boolean;
+  error: string | null;
+  onGenerate: () => void;
+  onBack: () => void;
+};
+
+export type AiPlanReviewProps = {
+  result: AiStrategyBuilderResponse | null;
+  generating: boolean;
+  onOpenInBuilder: () => void;
+};
+
+export type AiPlanSetupDialogProps = {
+  open: boolean;
+  result: AiStrategyBuilderResponse | null;
+  workflowName: string;
+  metadataOverrides: AiMetadataOverrides;
+  onOpenChange: (open: boolean) => void;
+  onWorkflowNameChange: (value: string) => void;
+  onMetadataOverridesChange: (value: AiMetadataOverrides) => void;
+  onContinue: () => void;
+};
+
+export type ReviewPreviewLayoutNode = NodeType;
+export type ReviewPreviewLayoutEdge = EdgeType;

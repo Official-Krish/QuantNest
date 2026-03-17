@@ -13,10 +13,10 @@ import {
   DEFAULT_AI_CONSTRAINTS,
 } from "@/components/ai-builder/constants";
 import {
-  type AiMetadataOverrides,
   normalizeGeneratedNodes,
 } from "@/components/ai-builder/utils";
 import { AiPlanSetupDialog } from "@/components/ai-builder/AiPlanSetupDialog";
+import type { AiMetadataOverrides } from "@/components/ai-builder/types";
 
 export const AiStrategyBuilder = () => {
   const navigate = useNavigate();
@@ -168,6 +168,7 @@ export const AiStrategyBuilder = () => {
 
           <AiPlanReview
             result={result}
+            generating={generating}
             onOpenInBuilder={() => {
               if (!result) return;
               setWorkflowName(result.plan.workflowName);

@@ -1,6 +1,5 @@
 import type { AiStrategyBuilderResponse } from "@/types/api";
-
-export type AiMetadataOverrides = Record<string, Record<string, unknown>>;
+import type { AiMetadataOverrides } from "./types";
 
 export function normalizeGeneratedNodes(
   plan: AiStrategyBuilderResponse["plan"],
