@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import type { AiStrategyBuilderResponse } from "@/types/api";
+import { AI_EMPTY_STATE_EXAMPLES, AI_EMPTY_STATE_TIPS } from "./constants";
 
 type Props = {
   result: AiStrategyBuilderResponse | null;
@@ -11,9 +12,50 @@ export function AiPlanReview({ result, onOpenInBuilder }: Props) {
     <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-5">
       <p className="text-sm font-medium text-neutral-200">Plan review</p>
       {!result ? (
-        <p className="mt-3 text-sm text-neutral-500">
-          Generate a plan first. You will see workflow summary, warnings, and missing inputs here before opening the builder.
-        </p>
+        <div className="mt-3 space-y-5">
+          <div className="rounded-2xl border border-neutral-800 bg-black p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-[#f17463]">What happens here</p>
+            <p className="mt-2 text-sm text-neutral-400">
+              After generation, this panel will show the workflow summary, warnings, missing inputs, and the model used for the draft.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-3 text-xs text-neutral-400">
+                Strategy summary
+              </div>
+              <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-3 text-xs text-neutral-400">
+                Risk and warning flags
+              </div>
+              <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-3 text-xs text-neutral-400">
+                Missing credentials
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-neutral-200">Example prompts</p>
+            <div className="mt-2 space-y-2">
+              {AI_EMPTY_STATE_EXAMPLES.map((example) => (
+                <div
+                  key={example}
+                  className="rounded-xl border border-neutral-800 bg-black px-3 py-3 text-sm text-neutral-400"
+                >
+                  {example}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-neutral-200">Prompt tips</p>
+            <ul className="mt-2 space-y-2 text-sm text-neutral-400">
+              {AI_EMPTY_STATE_TIPS.map((tip) => (
+                <li key={tip} className="rounded-xl border border-neutral-800 bg-black px-3 py-3">
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       ) : (
         <div className="space-y-5">
           <div className="mt-3 rounded-2xl border border-neutral-800 bg-black p-4">

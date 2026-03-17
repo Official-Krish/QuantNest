@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  apiGenerateAiStrategyPlan,
-  apiGetAiModels,
-} from "@/http";
+import { apiGenerateAiStrategyPlan, apiGetAiModels } from "@/http";
 import type {
   AiModelDescriptor,
   AiStrategyBuilderRequest,
@@ -34,7 +31,8 @@ export const AiStrategyBuilder = () => {
   const [prompt, setPrompt] = useState("");
   const [market, setMarket] = useState<AiStrategyBuilderRequest["market"]>("Indian");
   const [goal, setGoal] = useState<AiStrategyBuilderRequest["goal"]>("alerts");
-  const [riskPreference, setRiskPreference] = useState<AiStrategyBuilderRequest["riskPreference"]>("balanced");
+  const [riskPreference, setRiskPreference] =
+    useState<AiStrategyBuilderRequest["riskPreference"]>("balanced");
   const [brokerExecution, setBrokerExecution] = useState(false);
   const [allowDirectExecution, setAllowDirectExecution] = useState(false);
   const [selectedActions, setSelectedActions] = useState<string[]>([]);
@@ -136,69 +134,57 @@ export const AiStrategyBuilder = () => {
   return (
     <div className="min-h-screen bg-black px-6 pb-10 pt-24 text-white md:px-10">
       <div className="mx-auto max-w-6xl">
-        <div className="rounded-3xl border border-neutral-800 bg-linear-to-b from-neutral-950 via-black to-neutral-950/80 p-6 md:p-8">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#f17463]">
-            AI strategy builder
+        <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
+          <AiStrategyForm
+            prompt={prompt}
+            onPromptChange={setPrompt}
+            market={market}
+            onMarketChange={setMarket}
+            goal={goal}
+            onGoalChange={setGoal}
+            riskPreference={riskPreference}
+            onRiskPreferenceChange={setRiskPreference}
+            brokerExecution={brokerExecution}
+            onBrokerExecutionChange={setBrokerExecution}
+            allowDirectExecution={allowDirectExecution}
+            onAllowDirectExecutionChange={setAllowDirectExecution}
+            selectedActions={selectedActions}
+            onToggleAction={toggleAction}
+            constraints={constraints}
+            onConstraintsChange={setConstraints}
+            models={models}
+            loadingModels={loadingModels}
+            selectedProvider={selectedProvider}
+            onProviderChange={setSelectedProvider}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            providerModels={providerModels}
+            canGenerate={canGenerate}
+            generating={generating}
+            error={error}
+            onGenerate={handleGenerate}
+            onBack={() => navigate("/create/onboarding")}
+          />
+
+          <AiPlanReview
+            result={result}
+            onOpenInBuilder={() => {
+              if (!result) return;
+              setWorkflowName(result.plan.workflowName);
+              setSetupOpen(true);
+            }}
+          />
+        </div>
+
+        <div className="mx-auto mt-6 max-w-[720px] rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-4 text-sm text-amber-100 lg:mx-0">
+          <p className="font-medium uppercase tracking-[0.16em] text-amber-300">
+            Beta / Testing Phase
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-neutral-50 md:text-4xl">
-            Describe the workflow. Generate the first draft.
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm text-neutral-400">
-            The AI generates a workflow plan, not a saved workflow. You still review it, fill credentials, and save through the normal builder.
-          </p>
-
-          <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            <AiStrategyForm
-              prompt={prompt}
-              onPromptChange={setPrompt}
-              market={market}
-              onMarketChange={setMarket}
-              goal={goal}
-              onGoalChange={setGoal}
-              riskPreference={riskPreference}
-              onRiskPreferenceChange={setRiskPreference}
-              brokerExecution={brokerExecution}
-              onBrokerExecutionChange={setBrokerExecution}
-              allowDirectExecution={allowDirectExecution}
-              onAllowDirectExecutionChange={setAllowDirectExecution}
-              selectedActions={selectedActions}
-              onToggleAction={toggleAction}
-              constraints={constraints}
-              onConstraintsChange={setConstraints}
-              models={models}
-              loadingModels={loadingModels}
-              selectedProvider={selectedProvider}
-              onProviderChange={setSelectedProvider}
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              providerModels={providerModels}
-              canGenerate={canGenerate}
-              generating={generating}
-              error={error}
-              onGenerate={handleGenerate}
-              onBack={() => navigate("/create/onboarding")}
-            />
-
-            <AiPlanReview
-              result={result}
-              onOpenInBuilder={() => {
-                if (!result) return;
-                setWorkflowName(result.plan.workflowName);
-                setSetupOpen(true);
-              }}
-            />
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-4 text-sm text-amber-100">
-            <p className="font-medium uppercase tracking-[0.16em] text-amber-300">
-              Beta / Testing Phase
-            </p>
-            <ul className="mt-3 space-y-2 text-amber-100/90">
-              <li>AI can misunderstand trigger conditions, execution order, or asset details.</li>
-              <li>Always review generated nodes, thresholds, and action metadata before saving.</li>
-              <li>Do not rely on generated workflows for live trading without manual verification.</li>
-            </ul>
-          </div>
+          <ul className="mt-3 space-y-2 text-amber-100/90">
+            <li>AI can misunderstand trigger conditions, execution order, or asset details.</li>
+            <li>Always review generated nodes, thresholds, and action metadata before saving.</li>
+            <li>Do not rely on generated workflows for live trading without manual verification.</li>
+          </ul>
         </div>
       </div>
 
