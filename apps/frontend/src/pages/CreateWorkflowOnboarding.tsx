@@ -58,14 +58,21 @@ export const CreateWorkflowOnboarding = () => {
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Button
-              className="bg-white text-neutral-900 hover:bg-neutral-200"
+              className="bg-white text-neutral-900 hover:bg-neutral-200 cursor-pointer"
               onClick={() => navigate("/create/builder")}
             >
               Continue to builder
             </Button>
             <Button
               variant="outline"
-              className="border-neutral-700 bg-neutral-900/50 text-neutral-200 hover:bg-neutral-900"
+              className="border-[#f17463]/40 bg-[#f17463]/10 text-[#f17463] hover:bg-[#f17463]/15 hover:text-[#f17463] cursor-pointer"
+              onClick={() => navigate("/create/ai")}
+            >
+              Generate with AI
+            </Button>
+            <Button
+              variant="outline"
+              className="border-neutral-700 bg-neutral-900/50 text-neutral-200 hover:bg-neutral-900 hover:text-neutral-200 cursor-pointer"
               onClick={() => navigate("/dashboard")}
             >
               Back to dashboard

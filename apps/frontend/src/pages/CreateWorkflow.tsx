@@ -1,18 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { type EdgeType, type NodeType } from "@quantnest-trading/types";
 import { WorkflowCanvas } from "../components/workflow/WorkflowCanvas";
 import { WorkflowNameDialog } from "../components/workflow/WorkflowNameDialog";
-import { PriceTrigger } from "../components/nodes/triggers/PriceTrigger";
-import { Timer } from "../components/nodes/triggers/timers";
-import { zerodhaAction } from "../components/nodes/actions/zerodha";
-import { growwAction } from "../components/nodes/actions/growwAction";
-import { gmailAction } from "../components/nodes/actions/gmailAction";
-import { discordAction } from "../components/nodes/actions/discordAction";
-import { whatsappAction } from "../components/nodes/actions/whatsappAction";
-import { notionDailyReportAction } from "../components/nodes/actions/notionDailyReportAction";
-import { googleDriveDailyCsvAction } from "../components/nodes/actions/googleDriveDailyCsvAction";
 import {
   apiCreateWorkflow,
   apiGetWorkflow,
@@ -20,27 +11,13 @@ import {
   apiUpdateWorkflow,
 } from "@/http";
 import { Button } from "@/components/ui/button";
-import { lighterAction } from "../components/nodes/actions/lighterAction";
-import { conditionTrigger } from "../components/nodes/triggers/condtional";
-
-const nodeTypes = {
-  "price-trigger": PriceTrigger,
-  timer: Timer,
-  zerodha: zerodhaAction,
-  groww: growwAction,
-  gmail: gmailAction,
-  discord: discordAction,
-  whatsapp: whatsappAction,
-  "notion-daily-report": notionDailyReportAction,
-  "google-drive-daily-csv": googleDriveDailyCsvAction,
-  lighter: lighterAction,
-  "conditional-trigger": conditionTrigger,
-};
+import { workflowNodeTypes } from "@/components/workflow/nodeTypes";
 
 const POSITION_OFFSET = 50;
 
 export const CreateWorkflow = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { workflowId: routeWorkflowId } = useParams<{ workflowId: string }>();
 
   const [nodes, setNodes] = useState<NodeType[]>([]);
@@ -62,6 +39,19 @@ export const CreateWorkflow = () => {
   const [showActionSheetEdit, setShowActionSheetEdit] = useState(false);
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
   const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(null);
+
+  useEffect(() => {
+    if (routeWorkflowId) return;
+
+    const generatedPlan = (location.state as any)?.generatedPlan;
+    if (!generatedPlan) return;
+
+    setNodes((generatedPlan.nodes || []) as NodeType[]);
+    setEdges((generatedPlan.edges || []) as EdgeType[]);
+    setWorkflowName(String(generatedPlan.workflowName || ""));
+    setMarketType((generatedPlan.marketType || "Indian") as "Indian" | "Crypto");
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate, routeWorkflowId]);
 
   // Load an existing workflow when opened from /workflow/:workflowId
   useEffect(() => {
@@ -413,7 +403,7 @@ export const CreateWorkflow = () => {
         )}
 
         <WorkflowCanvas
-          nodeTypes={nodeTypes as any}
+          nodeTypes={workflowNodeTypes as any}
           nodes={nodes}
           edges={edges}
           loading={loading}

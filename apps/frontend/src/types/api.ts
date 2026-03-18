@@ -1,4 +1,9 @@
 import type { EdgeType, NodeType } from "@quantnest-trading/types";
+import type {
+  AiModelDescriptor,
+  AiStrategyBuilderRequest,
+  AiStrategyBuilderResponse,
+} from "@quantnest-trading/types/ai";
 
 export interface IdResponse {
   message: string;
@@ -58,3 +63,5 @@ export type marketStatus = {
   message: string;
   nextOpenTime?: string;
 }
+
+export type { AiModelDescriptor, AiStrategyBuilderRequest, AiStrategyBuilderResponse };
