@@ -1,0 +1,21 @@
+{
+  "name": "@quantnest-trading/market",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./index.ts",
+    "./utils": "./utils.ts",
+    "./indicators": "./indicators.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@quantnest-trading/types": "workspace:^"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "yahoo-finance2": "^3.13.2"
+  }
+}

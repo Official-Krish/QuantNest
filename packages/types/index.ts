@@ -112,11 +112,11 @@ export const SUPPORTED_MARKETS = ["Indian", "Crypto"];
 
 export const SUPPORTED_INDIAN_MARKET_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE"];
 export const assetMapped: Record<string, string> = {
-    "CDSL": "CDSL",
-    "HDFC": "HDFCBANK",
-    "TCS": "TCS",
-    "INFY": "INFY",
-    "RELIANCE": "RELIANCE"
+    "CDSL": "CDSL.NS",
+    "HDFC": "HDFCBANK.NS",
+    "TCS": "TCS.NS",
+    "INFY": "INFY.NS",
+    "RELIANCE": "RELIANCE.NS"
 };
 export const assetCompanyName: Record<string, string> = {
     "CDSL": "Central-Depository-Services-(India)-Limited",

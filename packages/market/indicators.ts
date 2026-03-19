@@ -1,0 +1,119 @@
+export interface MarketCandle {
+  date?: Date;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+function normalizePeriod(period: number | undefined, fallback: number): number {
+  if (!period || !Number.isFinite(period) || period <= 0) {
+    return fallback;
+  }
+  return Math.floor(period);
+}
+
+export function getCloseSeries(candles: MarketCandle[]): number[] {
+  return candles.map((candle) => candle.close).filter((value) => Number.isFinite(value));
+}
+
+export function calculatePrice(candles: MarketCandle[]): number | null {
+  return candles[candles.length - 1]?.close ?? null;
+}
+
+export function calculateVolume(candles: MarketCandle[]): number | null {
+  return candles[candles.length - 1]?.volume ?? null;
+}
+
+export function calculateSma(candles: MarketCandle[], period?: number): number | null {
+  const normalizedPeriod = normalizePeriod(period, 14);
+  const closes = getCloseSeries(candles);
+  if (closes.length < normalizedPeriod) {
+    return null;
+  }
+  const slice = closes.slice(-normalizedPeriod);
+  const sum = slice.reduce((acc, value) => acc + value, 0);
+  return sum / normalizedPeriod;
+}
+
+export function calculateEma(candles: MarketCandle[], period?: number): number | null {
+  const normalizedPeriod = normalizePeriod(period, 14);
+  const closes = getCloseSeries(candles);
+  if (closes.length < normalizedPeriod) {
+    return null;
+  }
+
+  const multiplier = 2 / (normalizedPeriod + 1);
+  let ema = closes.slice(0, normalizedPeriod).reduce((acc, value) => acc + value, 0) / normalizedPeriod;
+
+  for (let i = normalizedPeriod; i < closes.length; i++) {
+    const close = closes[i];
+    if (close == null) {
+      return null;
+    }
+    ema = (close - ema) * multiplier + ema;
+  }
+
+  return ema;
+}
+
+export function calculatePctChange(candles: MarketCandle[], period?: number): number | null {
+  const normalizedPeriod = normalizePeriod(period, 1);
+  const closes = getCloseSeries(candles);
+  if (closes.length <= normalizedPeriod) {
+    return null;
+  }
+
+  const latest = closes[closes.length - 1];
+  const previous = closes[closes.length - 1 - normalizedPeriod];
+  if (latest == null || previous == null || !Number.isFinite(previous) || previous === 0) {
+    return null;
+  }
+
+  return ((latest - previous) / previous) * 100;
+}
+
+export function calculateRsi(candles: MarketCandle[], period?: number): number | null {
+  const normalizedPeriod = normalizePeriod(period, 14);
+  const closes = getCloseSeries(candles);
+  if (closes.length <= normalizedPeriod) {
+    return null;
+  }
+
+  let gains = 0;
+  let losses = 0;
+  for (let i = 1; i <= normalizedPeriod; i++) {
+    const current = closes[i];
+    const prior = closes[i - 1];
+    if (current == null || prior == null) {
+      return null;
+    }
+    const delta = current - prior;
+    if (delta >= 0) gains += delta;
+    else losses += Math.abs(delta);
+  }
+
+  let avgGain = gains / normalizedPeriod;
+  let avgLoss = losses / normalizedPeriod;
+
+  for (let i = normalizedPeriod + 1; i < closes.length; i++) {
+    const current = closes[i];
+    const prior = closes[i - 1];
+    if (current == null || prior == null) {
+      return null;
+    }
+    const delta = current - prior;
+    const gain = Math.max(delta, 0);
+    const loss = Math.max(-delta, 0);
+    avgGain = (avgGain * (normalizedPeriod - 1) + gain) / normalizedPeriod;
+    avgLoss = (avgLoss * (normalizedPeriod - 1) + loss) / normalizedPeriod;
+  }
+
+  if (avgLoss === 0) {
+    return 100;
+  }
+
+  const rs = avgGain / avgLoss;
+  return 100 - 100 / (1 + rs);
+}
