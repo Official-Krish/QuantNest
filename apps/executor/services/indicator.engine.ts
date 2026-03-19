@@ -7,7 +7,17 @@ import type {
     IndicatorReference,
     IndicatorTimeframe,
 } from "@quantnest-trading/types";
-import { getCurrentPrice } from "./price.service";
+import {
+    calculateEma,
+    calculatePctChange,
+    calculatePrice,
+    calculateRsi,
+    calculateSma,
+    calculateVolume,
+    getCurrentPrice,
+    getHistoricalChart,
+    type MarketCandle,
+} from "@quantnest-trading/market";
 import { indicatorCache } from "./indicator.cache";
 
 interface Candle {
@@ -18,12 +28,6 @@ interface Candle {
     low: number;
     close: number;
     volume: number;
-}
-
-interface RsiState {
-    prevClose: number;
-    avgGain: number;
-    avgLoss: number;
 }
 
 interface TickInput {
@@ -74,7 +78,6 @@ export class IndicatorEngine {
     private readonly candles = new Map<string, Candle[]>();
     private readonly activeCandles = new Map<string, Candle>();
     private readonly subscriptions = new Map<string, IndicatorReference>();
-    private readonly rsiStates = new Map<string, RsiState>();
 
     registerExpression(expression?: IndicatorConditionGroup): void {
         if (!expression) {
@@ -95,23 +98,28 @@ export class IndicatorEngine {
     }
 
     async refreshSubscribedSymbols(): Promise<void> {
-        const uniqueSymbols = new Map<string, { symbol: string; marketType: IndicatorMarket }>();
+        const uniqueRefs = new Map<
+            string,
+            { symbol: string; marketType: IndicatorMarket; timeframe: IndicatorTimeframe; maxPeriod: number }
+        >();
         for (const ref of this.subscriptions.values()) {
             const marketType = toMarketType(ref.marketType);
-            uniqueSymbols.set(`${marketType}:${ref.symbol}`, { symbol: ref.symbol, marketType });
+            const key = `${marketType}:${ref.symbol}:${ref.timeframe}`;
+            const period = normalizePeriod(ref.params?.period, 14);
+            const existing = uniqueRefs.get(key);
+            uniqueRefs.set(key, {
+                symbol: ref.symbol,
+                marketType,
+                timeframe: ref.timeframe,
+                maxPeriod: Math.max(existing?.maxPeriod ?? 0, period),
+            });
         }
 
-        for (const entry of uniqueSymbols.values()) {
+        for (const entry of uniqueRefs.values()) {
             try {
-                const price = await getCurrentPrice(entry.symbol, entry.marketType);
-                this.ingestTick({
-                    symbol: entry.symbol,
-                    marketType: entry.marketType,
-                    price,
-                    timestamp: Date.now(),
-                });
+                await this.hydrateSeries(entry.symbol, entry.marketType, entry.timeframe, entry.maxPeriod);
             } catch (error) {
-                console.error(`Failed to refresh symbol ${entry.symbol}`, error);
+                console.error(`Failed to refresh symbol ${entry.symbol} (${entry.timeframe})`, error);
             }
         }
     }
@@ -235,6 +243,23 @@ export class IndicatorEngine {
 
         try {
             const marketType = toMarketType(ref.marketType);
+            const period = normalizePeriod(ref.params?.period, 14);
+            await this.hydrateSeries(ref.symbol, marketType, ref.timeframe, period);
+
+            const hydrated = this.computeFromHistory(ref);
+            if (hydrated != null) {
+                indicatorCache.set(ref, {
+                    value: hydrated,
+                    updatedAt: Date.now(),
+                    candleCloseTime: Date.now(),
+                });
+                return hydrated;
+            }
+
+            if (ref.indicator !== "price") {
+                return null;
+            }
+
             const price = await getCurrentPrice(ref.symbol, marketType);
             this.ingestTick({
                 symbol: ref.symbol,
@@ -242,7 +267,16 @@ export class IndicatorEngine {
                 price,
                 timestamp: Date.now(),
             });
-            return this.computeFromHistory(ref);
+
+            const livePrice = this.computeFromHistory(ref);
+            if (livePrice != null) {
+                indicatorCache.set(ref, {
+                    value: livePrice,
+                    updatedAt: Date.now(),
+                    candleCloseTime: Date.now(),
+                });
+            }
+            return livePrice;
         } catch {
             return null;
         }
@@ -281,98 +315,30 @@ export class IndicatorEngine {
         }
 
         const period = normalizePeriod(ref.params?.period, 14);
-        const closes = series.map((candle) => candle.close);
+        const marketCandles: MarketCandle[] = series.map((candle) => ({
+            open: candle.open,
+            high: candle.high,
+            low: candle.low,
+            close: candle.close,
+            volume: candle.volume,
+        }));
 
         switch (ref.indicator) {
             case "price":
-                return closes[closes.length - 1] ?? null;
+                return calculatePrice(marketCandles);
             case "volume":
-                return series[series.length - 1]?.volume ?? null;
+                return calculateVolume(marketCandles);
             case "sma":
-                if (closes.length < period) {
-                    return null;
-                }
-                return average(closes.slice(-period));
-            case "ema": {
-                if (closes.length < period) {
-                    return null;
-                }
-                const prev = indicatorCache.get(ref)?.value;
-                const alpha = 2 / (period + 1);
-                if (prev == null) {
-                    return average(closes.slice(-period));
-                }
-                const close = closes[closes.length - 1];
-                if (close == null) {
-                    return null;
-                }
-                return prev + alpha * (close - prev);
-            }
+                return calculateSma(marketCandles, period);
+            case "ema":
+                return calculateEma(marketCandles, period);
             case "rsi":
-                return this.computeRsi(ref, closes, period);
-            case "pct_change": {
-                if (closes.length <= period) {
-                    return null;
-                }
-                const prevClose = closes[closes.length - 1 - period];
-                if (prevClose === 0) {
-                    return null;
-                }
-                const close = closes[closes.length - 1];
-                if (close == null || prevClose == null) {
-                    return null;
-                }
-                return ((close - prevClose) / prevClose) * 100;
-            }
+                return calculateRsi(marketCandles, period);
+            case "pct_change":
+                return calculatePctChange(marketCandles, period);
             default:
                 return null;
         }
-    }
-
-    private computeRsi(ref: IndicatorReference, closes: number[], period: number): number | null {
-        if (closes.length <= period) {
-            return null;
-        }
-
-        const key = this.referenceKey(ref);
-        const close = closes[closes.length - 1];
-        if (close == null) {
-            return null;
-        }
-        const existing = this.rsiStates.get(key);
-
-        if (existing) {
-            const change = close - existing.prevClose;
-            const gain = Math.max(change, 0);
-            const loss = Math.max(-change, 0);
-            const avgGain = (existing.avgGain * (period - 1) + gain) / period;
-            const avgLoss = (existing.avgLoss * (period - 1) + loss) / period;
-
-            this.rsiStates.set(key, { prevClose: close, avgGain, avgLoss });
-            return rsiFromAverages(avgGain, avgLoss);
-        }
-
-        let gains = 0;
-        let losses = 0;
-        const start = closes.length - period - 1;
-        for (let i = start + 1; i < closes.length; i++) {
-            const currentClose = closes[i];
-            const previousClose = closes[i - 1];
-            if (currentClose == null || previousClose == null) {
-                continue;
-            }
-            const delta = currentClose - previousClose;
-            if (delta >= 0) {
-                gains += delta;
-            } else {
-                losses += Math.abs(delta);
-            }
-        }
-
-        const avgGain = gains / period;
-        const avgLoss = losses / period;
-        this.rsiStates.set(key, { prevClose: close, avgGain, avgLoss });
-        return rsiFromAverages(avgGain, avgLoss);
     }
 
     private collectIndicators(group: IndicatorConditionGroup): IndicatorReference[] {
@@ -416,19 +382,61 @@ export class IndicatorEngine {
         }
         this.candles.set(key, history);
     }
-}
 
-function average(values: number[]): number {
-    const sum = values.reduce((acc, value) => acc + value, 0);
-    return sum / values.length;
-}
+    private async hydrateSeries(
+        symbol: string,
+        marketType: IndicatorMarket,
+        timeframe: IndicatorTimeframe,
+        maxPeriod: number,
+    ): Promise<void> {
+        const key = this.candleKey(marketType, symbol, timeframe);
+        const barsBack = Math.max(maxPeriod * 4, 120);
+        const period1 = new Date(Date.now() - timeframeMs[timeframe] * barsBack);
+        const interval = timeframeToChartInterval(timeframe);
+        const chart = await getHistoricalChart(symbol, marketType, period1, interval);
 
-function rsiFromAverages(avgGain: number, avgLoss: number): number {
-    if (avgLoss === 0) {
-        return 100;
+        if (!chart.length) {
+            return;
+        }
+
+        const candles = chart
+            .filter((bar: MarketCandle) => Number.isFinite(bar.close))
+            .map((bar: MarketCandle) => {
+                if (!bar.date) {
+                    return null;
+                }
+                const startTime = bar.date.getTime();
+                return {
+                    startTime,
+                    endTime: startTime + timeframeMs[timeframe],
+                    open: bar.open,
+                    high: bar.high,
+                    low: bar.low,
+                    close: bar.close,
+                    volume: bar.volume,
+                } satisfies Candle;
+            })
+            .filter((candle): candle is Candle => candle !== null)
+            .slice(-MAX_CANDLES);
+
+        this.candles.set(key, candles);
+        this.activeCandles.delete(key);
     }
-    const rs = avgGain / avgLoss;
-    return 100 - 100 / (1 + rs);
+}
+
+function timeframeToChartInterval(timeframe: IndicatorTimeframe): "1m" | "5m" | "15m" | "1h" {
+    switch (timeframe) {
+        case "1m":
+            return "1m";
+        case "5m":
+            return "5m";
+        case "15m":
+            return "15m";
+        case "1h":
+            return "1h";
+        default:
+            return "5m";
+    }
 }
 
 function compareValues(left: number, right: number, operator: IndicatorComparator): boolean {

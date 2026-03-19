@@ -1,7 +1,7 @@
 import type { ConditionalTriggerMetadata, IndicatorConditionGroup } from "@quantnest-trading/types";
 import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
+import { getCurrentPrice } from "@quantnest-trading/market";
 import type { NodeType, WorkflowType } from "../types";
-import { getCurrentPrice } from "../services/price.service";
 import { indicatorEngine } from "../services/indicator.engine";
 
 export async function handlePriceTrigger(

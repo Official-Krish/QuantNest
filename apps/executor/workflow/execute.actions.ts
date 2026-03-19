@@ -10,7 +10,7 @@ import { executeGrowwNode } from "../executors/groww";
 import { sendWhatsAppMessage } from "../executors/whatsapp";
 import { executeZerodhaNode } from "../executors/zerodha";
 import type { EdgeType, NodeType } from "../types";
-import { isMarketOpen } from "../utils/market.utils";
+import { isMarketOpen } from "@quantnest-trading/market";
 import type { ExecutionContext } from "./execute.context";
 import { shouldSkipActionByCondition } from "./execute.context";
 

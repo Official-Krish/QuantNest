@@ -6,6 +6,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@quantnest-trading/db": "workspace:^",
+    "@quantnest-trading/market": "workspace:^",
     "@quantnest-trading/types": "workspace:^",
     "@quantnest-trading/executor-utils": "workspace:^",
     "@quantnest-trading/lighter-sdk-ts": "workspace:^"
