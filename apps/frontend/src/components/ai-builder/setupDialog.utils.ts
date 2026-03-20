@@ -1,6 +1,11 @@
 import { getActionValidationErrors, getTradingValidationErrors } from "@/lib/validation";
-import type { AiStrategyBuilderResponse } from "@/types/api";
+import type { AiStrategyBuilderResponse, AiStrategyDraftSession } from "@/types/api";
 import type { AiMetadataOverrides } from "./types";
+
+function getResponse(result: AiStrategyBuilderResponse | AiStrategyDraftSession | null) {
+  if (!result) return null;
+  return "response" in result ? result.response : result;
+}
 
 export function getFieldLabel(field: string) {
   switch (field) {
@@ -65,7 +70,7 @@ export function getFieldType(field: string, secret?: boolean): "text" | "passwor
 }
 
 export function collectSetupErrors(
-  result: AiStrategyBuilderResponse | null,
+  result: AiStrategyBuilderResponse | AiStrategyDraftSession | null,
   workflowName: string,
   metadataOverrides: AiMetadataOverrides,
 ) {
@@ -75,9 +80,10 @@ export function collectSetupErrors(
     errors.push("Workflow name is required.");
   }
 
-  if (!result) return errors;
+  const response = getResponse(result);
+  if (!response) return errors;
 
-  for (const node of result.plan.nodes) {
+  for (const node of response.plan.nodes) {
     if (String(node.data.kind).toLowerCase() !== "action") continue;
 
     const nodeType = String(node.type).toLowerCase();
@@ -96,9 +102,12 @@ export function collectSetupErrors(
   return [...new Set(errors)];
 }
 
-export function groupMissingInputs(result: AiStrategyBuilderResponse | null) {
+export function groupMissingInputs(
+  result: AiStrategyBuilderResponse | AiStrategyDraftSession | null,
+) {
+  const response = getResponse(result);
   return (
-    result?.plan.missingInputs.reduce<Record<string, typeof result.plan.missingInputs>>((acc, input) => {
+    response?.plan.missingInputs.reduce<Record<string, typeof response.plan.missingInputs>>((acc, input) => {
       acc[input.nodeId] = [...(acc[input.nodeId] || []), input];
       return acc;
     }, {}) || {}

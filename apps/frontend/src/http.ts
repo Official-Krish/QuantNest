@@ -1,6 +1,8 @@
 import axios from "axios";
 import type {
   AiModelDescriptor,
+  AiStrategyDraftEditRequest,
+  AiStrategyDraftSession,
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
   IdResponse,
@@ -237,4 +239,34 @@ export async function apiGenerateAiStrategyPlan(
     body,
   );
   return res.data.data;
+}
+
+export async function apiCreateAiStrategyDraft(
+  body: AiStrategyBuilderRequest,
+): Promise<AiStrategyDraftSession> {
+  const res = await api.post<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
+    "/ai/strategy/drafts",
+    body,
+  );
+  return res.data.data.draft;
+}
+
+export async function apiGetAiStrategyDraft(
+  draftId: string,
+): Promise<AiStrategyDraftSession> {
+  const res = await api.get<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
+    `/ai/strategy/drafts/${draftId}`,
+  );
+  return res.data.data.draft;
+}
+
+export async function apiEditAiStrategyDraft(
+  draftId: string,
+  body: AiStrategyDraftEditRequest,
+): Promise<AiStrategyDraftSession> {
+  const res = await api.post<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
+    `/ai/strategy/drafts/${draftId}/edit`,
+    body,
+  );
+  return res.data.data.draft;
 }

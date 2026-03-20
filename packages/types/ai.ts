@@ -141,4 +141,46 @@ export interface AiStrategyBuilderResponse {
   provider: string;
   model: string;
   plan: AiStrategyWorkflowPlan;
+  validation: AiStrategyValidationReport;
+}
+
+export interface AiStrategyValidationIssue {
+  severity: "error" | "warning";
+  code: string;
+  message: string;
+  nodeId?: string;
+  field?: string;
+}
+
+export interface AiStrategyValidationReport {
+  canOpenInBuilder: boolean;
+  triggerCount: number;
+  branchCount: number;
+  missingInputsCount: number;
+  issues: AiStrategyValidationIssue[];
+}
+
+export interface AiStrategyDraftEditEntry {
+  id: string;
+  instruction: string;
+  createdAt: string;
+}
+
+export interface AiStrategyDraftSession {
+  draftId: string;
+  status: "draft" | "needs-inputs" | "ready";
+  createdAt: string;
+  updatedAt: string;
+  request: AiStrategyBuilderRequest;
+  response: AiStrategyBuilderResponse;
+  edits: AiStrategyDraftEditEntry[];
+}
+
+export interface AiStrategyDraftCreateResponse {
+  draft: AiStrategyDraftSession;
+}
+
+export interface AiStrategyDraftEditRequest {
+  instruction: string;
+  model?: AiModelRequestOptions;
 }
