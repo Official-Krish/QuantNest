@@ -266,7 +266,7 @@ export const aiWorkflowDraftNodeSchema = z.object({
   type: z.string().trim().min(1),
   data: z.object({
     kind: z.enum(["trigger", "action"]),
-    metadata: z.record(z.string(), z.unknown()),
+    metadata: z.record(z.string(), z.unknown()).default({}),
   }),
   position: z.object({
     x: z.number(),
@@ -361,8 +361,14 @@ export const aiStrategyDraftSessionSchema = z.object({
   response: aiStrategyBuilderResponseSchema,
   edits: z.array(aiStrategyDraftEditEntrySchema),
   messages: z.array(aiStrategyConversationMessageSchema),
-  setupState: aiStrategySetupStateSchema.optional(),
-  workflowId: z.string().trim().min(1).optional(),
+  setupState: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    aiStrategySetupStateSchema.optional(),
+  ),
+  workflowId: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    z.string().trim().min(1).optional(),
+  ),
 }) satisfies z.ZodType<AiStrategyDraftSession>;
 
 export const aiStrategyDraftSummarySchema = z.object({

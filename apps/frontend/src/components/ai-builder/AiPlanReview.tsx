@@ -95,7 +95,7 @@ export function AiPlanReview({
               onClick={onApplyEdit}
               disabled={editing || editInstruction.trim().length < 4}
               variant="outline"
-              className="mt-3 w-full cursor-pointer border-neutral-700 bg-neutral-950 text-neutral-100 hover:bg-neutral-900 disabled:cursor-not-allowed"
+              className="mt-3 w-full cursor-pointer border-neutral-700 bg-neutral-950 text-neutral-100 hover:bg-neutral-100 disabled:cursor-not-allowed"
             >
               {editing ? "Applying AI edit..." : "Apply AI edit"}
             </Button>
