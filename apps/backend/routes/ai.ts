@@ -130,11 +130,31 @@ aiRouter.get("/strategy/drafts", authMiddleware, async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(50)
       .lean();
+    
 
-    const drafts = docs.map((doc) => {
-      const draft = aiStrategyDraftSessionSchema.parse(doc.sessionData);
+    const drafts = docs.flatMap((doc) => {
+      const parsedDraft = aiStrategyDraftSessionSchema.safeParse(doc.sessionData);
+      if (!parsedDraft.success) {
+        const issueDetails = parsedDraft.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          code: issue.code,
+          message: issue.message,
+          expected: "expected" in issue ? issue.expected : undefined,
+          received: "received" in issue ? issue.received : undefined,
+        }));
+
+        console.error("Failed to parse draft session data for summary", {
+          userId,
+          draftId: doc._id,
+          issues: issueDetails,
+          issuesJson: JSON.stringify(issueDetails),
+        });
+        return [];
+      }
+
+      const draft = parsedDraft.data;
       const lastMessage = [...draft.messages].reverse().find((message) => message.role === "user")?.content;
-      return aiStrategyDraftSummarySchema.parse({
+      return [aiStrategyDraftSummarySchema.parse({
         draftId: draft.draftId,
         title: draft.title,
         status: draft.status,
@@ -142,7 +162,7 @@ aiRouter.get("/strategy/drafts", authMiddleware, async (req, res) => {
         createdAt: draft.createdAt,
         workflowId: draft.workflowId,
         lastMessage,
-      });
+      })];
     });
 
     res.status(200).json({
@@ -184,7 +204,33 @@ aiRouter.get("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
       return;
     }
 
-    const draft = aiStrategyDraftSessionSchema.parse(doc.sessionData);
+    const parsedDraft = aiStrategyDraftSessionSchema.safeParse(doc.sessionData);
+    if (!parsedDraft.success) {
+      const issueDetails = parsedDraft.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        code: issue.code,
+        message: issue.message,
+        expected: "expected" in issue ? issue.expected : undefined,
+        received: "received" in issue ? issue.received : undefined,
+      }));
+
+      console.error("Failed to parse draft session data", {
+        userId,
+        draftId: req.params.draftId,
+        issues: issueDetails,
+        issuesJson: JSON.stringify(issueDetails),
+      });
+
+      res.status(500).json({
+        success: false,
+        code: "INVALID_DRAFT_DATA",
+        message: "Stored draft session data is invalid.",
+        details: issueDetails,
+      });
+      return;
+    }
+
+    const draft = parsedDraft.data;
 
     res.status(200).json({
       success: true,

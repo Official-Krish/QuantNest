@@ -142,7 +142,27 @@ class AiDraftStore {
       throw new AiBuilderError("DRAFT_NOT_FOUND", "AI draft session was not found.", 404);
     }
 
-    return aiStrategyDraftSessionSchema.parse(doc.sessionData);
+    const parsed = aiStrategyDraftSessionSchema.safeParse(doc.sessionData);
+    if (!parsed.success) {
+      const issueDetails = parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        code: issue.code,
+        message: issue.message,
+        expected: "expected" in issue ? issue.expected : undefined,
+        received: "received" in issue ? issue.received : undefined,
+      }));
+
+      console.error("Failed to parse draft session data", {
+        draftId,
+        userId,
+        issues: issueDetails,
+        issuesJson: JSON.stringify(issueDetails),
+      });
+      throw new AiBuilderError("INVALID_DRAFT_DATA", "Stored draft session data is invalid.", 500, {
+        issues: issueDetails,
+      });
+    }
+    return parsed.data;
   }
 
   async update(
