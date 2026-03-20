@@ -20,6 +20,8 @@ export function AiPlanReview({
   onApplyEdit,
   onResumeDraft,
   resumableDraft,
+  draftSummaries,
+  onSelectDraft,
   onOpenInBuilder,
 }: AiPlanReviewProps) {
   return (
@@ -40,6 +42,29 @@ export function AiPlanReview({
             >
               Resume saved draft
             </Button>
+          ) : null}
+          {draftSummaries.length > 0 ? (
+            <div className="rounded-2xl border border-neutral-800 bg-black p-4">
+              <p className="text-sm font-medium text-neutral-200">Recent AI sessions</p>
+              <div className="mt-3 space-y-2">
+                {draftSummaries.slice(0, 6).map((session) => (
+                  <button
+                    key={session.draftId}
+                    type="button"
+                    onClick={() => onSelectDraft(session.draftId)}
+                    className="w-full cursor-pointer rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-3 text-left transition hover:border-neutral-700"
+                  >
+                    <div className="text-sm text-white">{session.title}</div>
+                    <div className="mt-1 text-xs text-neutral-500">
+                      {session.status} · {new Date(session.updatedAt).toLocaleString()}
+                    </div>
+                    {session.lastMessage ? (
+                      <div className="mt-2 line-clamp-2 text-xs text-neutral-400">{session.lastMessage}</div>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       ) : (

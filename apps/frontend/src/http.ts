@@ -3,6 +3,8 @@ import type {
   AiModelDescriptor,
   AiStrategyDraftEditRequest,
   AiStrategyDraftSession,
+  AiStrategyDraftSummary,
+  AiStrategySetupState,
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
   IdResponse,
@@ -251,6 +253,13 @@ export async function apiCreateAiStrategyDraft(
   return res.data.data.draft;
 }
 
+export async function apiListAiStrategyDrafts(): Promise<AiStrategyDraftSummary[]> {
+  const res = await api.get<{ success: boolean; data: { drafts: AiStrategyDraftSummary[] } }>(
+    "/ai/strategy/drafts",
+  );
+  return res.data.data.drafts;
+}
+
 export async function apiGetAiStrategyDraft(
   draftId: string,
 ): Promise<AiStrategyDraftSession> {
@@ -266,6 +275,17 @@ export async function apiEditAiStrategyDraft(
 ): Promise<AiStrategyDraftSession> {
   const res = await api.post<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
     `/ai/strategy/drafts/${draftId}/edit`,
+    body,
+  );
+  return res.data.data.draft;
+}
+
+export async function apiSaveAiStrategyDraftSetup(
+  draftId: string,
+  body: AiStrategySetupState,
+): Promise<AiStrategyDraftSession> {
+  const res = await api.put<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
+    `/ai/strategy/drafts/${draftId}/setup`,
     body,
   );
   return res.data.data.draft;

@@ -5,11 +5,14 @@ import {
   apiEditAiStrategyDraft,
   apiGetAiModels,
   apiGetAiStrategyDraft,
+  apiListAiStrategyDrafts,
+  apiSaveAiStrategyDraftSetup,
 } from "@/http";
 import type {
   AiModelDescriptor,
   AiStrategyBuilderRequest,
   AiStrategyDraftSession,
+  AiStrategyDraftSummary,
 } from "@/types/api";
 import { AiPlanReview } from "@/components/ai-builder/AiPlanReview";
 import { AiStrategyForm } from "@/components/ai-builder/AiStrategyForm";
@@ -64,6 +67,7 @@ export const AiStrategyBuilder = () => {
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<AiStrategyDraftSession | null>(null);
+  const [draftSummaries, setDraftSummaries] = useState<AiStrategyDraftSummary[]>([]);
   const [setupOpen, setSetupOpen] = useState(false);
   const [workflowName, setWorkflowName] = useState("");
   const [metadataOverrides, setMetadataOverrides] = useState<AiMetadataOverrides>({});
@@ -107,6 +111,17 @@ export const AiStrategyBuilder = () => {
     void loadModels();
   }, []);
 
+  useEffect(() => {
+    const loadDrafts = async () => {
+      try {
+        const drafts = await apiListAiStrategyDrafts();
+        setDraftSummaries(drafts);
+      } catch {}
+    };
+
+    void loadDrafts();
+  }, []);
+
   const providerModels = useMemo(
     () => models.filter((entry) => String(entry.provider) === selectedProvider),
     [models, selectedProvider],
@@ -130,7 +145,8 @@ export const AiStrategyBuilder = () => {
 
   const syncDraftToForm = (nextDraft: AiStrategyDraftSession) => {
     setDraft(nextDraft);
-    setWorkflowName(nextDraft.response.plan.workflowName);
+    setWorkflowName(nextDraft.setupState?.workflowName || nextDraft.response.plan.workflowName);
+    setMetadataOverrides(nextDraft.setupState?.metadataOverrides || {});
     setPrompt(nextDraft.request.prompt);
     setMarket(nextDraft.request.market);
     setGoal(nextDraft.request.goal);
@@ -143,6 +159,18 @@ export const AiStrategyBuilder = () => {
     setSelectedModel(String(nextDraft.request.model?.model || selectedModel));
     window.localStorage.setItem(LAST_DRAFT_STORAGE_KEY, nextDraft.draftId);
     setHasSavedDraft(true);
+    setDraftSummaries((current) => {
+      const summary: AiStrategyDraftSummary = {
+        draftId: nextDraft.draftId,
+        title: nextDraft.title,
+        status: nextDraft.status,
+        createdAt: nextDraft.createdAt,
+        updatedAt: nextDraft.updatedAt,
+        workflowId: nextDraft.workflowId,
+        lastMessage: [...nextDraft.messages].reverse().find((message) => message.role === "user")?.content,
+      };
+      return [summary, ...current.filter((entry) => entry.draftId !== nextDraft.draftId)];
+    });
   };
 
   const handleGenerate = async () => {
@@ -164,7 +192,6 @@ export const AiStrategyBuilder = () => {
         }),
       );
       syncDraftToForm(nextDraft);
-      setMetadataOverrides({});
       setEditInstruction("");
     } catch (e: any) {
       setError(e?.response?.data?.message ?? e?.message ?? "Failed to generate workflow draft.");
@@ -212,6 +239,53 @@ export const AiStrategyBuilder = () => {
       setEditing(false);
     }
   };
+
+  const handleSelectDraft = async (draftId: string) => {
+    setLoadingDraft(true);
+    setError(null);
+    try {
+      const savedDraft = await apiGetAiStrategyDraft(draftId);
+      syncDraftToForm(savedDraft);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? e?.message ?? "Failed to load selected draft.");
+    } finally {
+      setLoadingDraft(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!draft) return;
+
+    const nextSetupState = {
+      workflowName,
+      metadataOverrides,
+    };
+    const existingSetupState = {
+      workflowName: draft.setupState?.workflowName || "",
+      metadataOverrides: draft.setupState?.metadataOverrides || {},
+    };
+
+    if (JSON.stringify(nextSetupState) === JSON.stringify(existingSetupState)) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void apiSaveAiStrategyDraftSetup(draft.draftId, nextSetupState)
+        .then((nextDraft) => {
+          setDraft(nextDraft);
+          setDraftSummaries((current) =>
+            current.map((entry) =>
+              entry.draftId === nextDraft.draftId
+                ? { ...entry, title: nextDraft.title, status: nextDraft.status, updatedAt: nextDraft.updatedAt }
+                : entry,
+            ),
+          );
+        })
+        .catch(() => {});
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [draft, workflowName, metadataOverrides]);
 
   const openInBuilder = () => {
     if (!draft) return;
@@ -271,6 +345,8 @@ export const AiStrategyBuilder = () => {
             onApplyEdit={handleApplyEdit}
             onResumeDraft={handleResumeDraft}
             resumableDraft={hasSavedDraft}
+            draftSummaries={draftSummaries}
+            onSelectDraft={handleSelectDraft}
             onOpenInBuilder={() => {
               if (!draft) return;
               setWorkflowName(draft.response.plan.workflowName);

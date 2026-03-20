@@ -4,6 +4,7 @@ import type {
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
   AiStrategyDraftSession,
+  AiStrategyDraftSummary,
 } from "@/types/api";
 
 export type AiMetadataOverrides = Record<string, Record<string, unknown>>;
@@ -48,6 +49,8 @@ export type AiPlanReviewProps = {
   onApplyEdit: () => void;
   onResumeDraft: () => void;
   resumableDraft: boolean;
+  draftSummaries: AiStrategyDraftSummary[];
+  onSelectDraft: (draftId: string) => void;
   onOpenInBuilder: () => void;
 };
 

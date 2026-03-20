@@ -1,111 +1,18 @@
-import { z } from "zod";
 import type {
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
+  AiStrategyDraftEditRequest,
   AiStrategyValidationIssue,
   AiStrategyValidationReport,
   AiStrategyWorkflowPlan,
 } from "@quantnest-trading/types/ai";
+import {
+  aiStrategyBuilderResponseSchema,
+  aiStrategyDraftEditRequestSchema,
+  aiStrategyWorkflowPlanSchema,
+  strategyBuilderRequestSchema,
+} from "@quantnest-trading/types/ai";
 import { AiBuilderError } from "../errors";
-
-const MAX_PLAN_NODES = 16;
-const MAX_PLAN_EDGES = 24;
-
-const nodeKindSchema = z.enum([
-  "timer",
-  "price",
-  "conditional-trigger",
-  "Zerodha",
-  "Groww",
-  "gmail",
-  "discord",
-  "whatsapp",
-  "notion-daily-report",
-  "google-drive-daily-csv",
-]);
-
-const allowedNodeTypeSchema = z.union([
-  nodeKindSchema,
-  z.enum(["zerodha", "groww"]),
-]);
-
-export const strategyBuilderRequestSchema = z.object({
-  prompt: z.string().trim().min(12, "Prompt must be at least 12 characters."),
-  market: z.enum(["Indian", "Crypto"]),
-  goal: z.enum(["alerts", "execution", "reporting", "journaling"]),
-  riskPreference: z.enum(["conservative", "balanced", "aggressive"]).optional(),
-  brokerExecution: z.boolean().optional(),
-  allowDirectExecution: z.boolean().optional(),
-  preferredActions: z
-    .array(
-      z.enum([
-        "zerodha",
-        "groww",
-        "lighter",
-        "gmail",
-        "discord",
-        "whatsapp",
-        "notion-daily-report",
-        "google-drive-daily-csv",
-      ]),
-    )
-    .optional(),
-  constraints: z.array(z.string().trim().min(1)).optional(),
-  model: z
-    .object({
-      provider: z.string().trim().min(1).optional(),
-      model: z.string().trim().min(1).optional(),
-    })
-    .optional(),
-  allowedNodeTypes: z.array(allowedNodeTypeSchema).optional(),
-}) satisfies z.ZodType<AiStrategyBuilderRequest>;
-
-const workflowDraftNodeSchema = z.object({
-  nodeId: z.string().trim().min(1),
-  type: nodeKindSchema,
-  data: z.object({
-    kind: z.enum(["trigger", "action"]),
-    metadata: z.record(z.string(), z.unknown()),
-  }),
-  position: z.object({
-    x: z.number(),
-    y: z.number(),
-  }),
-});
-
-const workflowDraftEdgeSchema = z.object({
-  id: z.string().trim().min(1),
-  source: z.string().trim().min(1),
-  target: z.string().trim().min(1),
-  sourceHandle: z.string().trim().min(1).optional(),
-  targetHandle: z.string().trim().min(1).optional(),
-});
-
-const strategyPlanSchema = z.object({
-  workflowName: z.string().trim().min(3).max(120),
-  summary: z.string().trim().min(12).max(500),
-  marketType: z.enum(["Indian", "Crypto"]),
-  nodes: z.array(workflowDraftNodeSchema).min(1).max(MAX_PLAN_NODES),
-  edges: z.array(workflowDraftEdgeSchema).max(MAX_PLAN_EDGES),
-  assumptions: z.array(z.string().trim().min(1)).max(12),
-  warnings: z.array(
-    z.object({
-      code: z.string().trim().min(1),
-      message: z.string().trim().min(1),
-    }),
-  ),
-  missingInputs: z.array(
-    z.object({
-      nodeId: z.string().trim().min(1),
-      nodeType: z.string().trim().min(1),
-      field: z.string().trim().min(1),
-      label: z.string().trim().min(1),
-      reason: z.string().trim().min(1),
-      required: z.boolean(),
-      secret: z.boolean().optional(),
-    }),
-  ),
-}) satisfies z.ZodType<AiStrategyWorkflowPlan>;
 
 const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
 const TRIGGER_TYPES = new Set(["timer", "price", "conditional-trigger"]);
@@ -444,6 +351,10 @@ export function parseStrategyBuilderRequest(input: unknown): AiStrategyBuilderRe
   return strategyBuilderRequestSchema.parse(input);
 }
 
+export function parseStrategyDraftEditRequest(input: unknown): AiStrategyDraftEditRequest {
+  return aiStrategyDraftEditRequestSchema.parse(input);
+}
+
 export function normalizeStrategyPlanResponse(
   rawText: string,
   provider: string,
@@ -462,17 +373,17 @@ export function normalizeStrategyPlanResponse(
     );
   }
 
-  const plan = strategyPlanSchema.parse(parsed);
+  const plan = aiStrategyWorkflowPlanSchema.parse(parsed);
   const validation = buildValidationReport(plan, request);
 
   assertNoValidationErrors(validation);
 
-  return {
+  return aiStrategyBuilderResponseSchema.parse({
     provider,
     model,
     plan,
     validation,
-  };
+  });
 }
 
 export function validateExistingStrategyPlan(

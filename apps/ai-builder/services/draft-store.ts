@@ -1,13 +1,18 @@
+import { AiStrategySessionModel } from "@quantnest-trading/db/client";
+import {
+  aiStrategyDraftSessionSchema,
+  aiStrategyDraftSummarySchema,
+  aiStrategySetupStateSchema,
+} from "@quantnest-trading/types/ai";
 import type {
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
+  AiStrategyConversationMessage,
   AiStrategyDraftSession,
+  AiStrategyDraftSummary,
+  AiStrategySetupState,
 } from "@quantnest-trading/types/ai";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
 import { AiBuilderError } from "../errors";
-
-const STORE_PATH = resolve(process.cwd(), "apps/ai-builder/.data/strategy-drafts.json");
 
 function createId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -25,91 +30,200 @@ function deriveStatus(response: AiStrategyBuilderResponse): AiStrategyDraftSessi
   return "ready";
 }
 
-class AiDraftStore {
-  private readonly drafts = new Map<string, AiStrategyDraftSession>(this.loadDrafts());
+function deriveTitle(request: AiStrategyBuilderRequest, response: AiStrategyBuilderResponse) {
+  return (
+    response.plan.workflowName?.trim() ||
+    request.prompt.trim().slice(0, 80) ||
+    "Untitled AI draft"
+  );
+}
 
-  private loadDrafts() {
-    try {
-      if (!existsSync(STORE_PATH)) {
-        return [];
-      }
-
-      const raw = readFileSync(STORE_PATH, "utf8").trim();
-      if (!raw) {
-        return [];
-      }
-
-      const parsed = JSON.parse(raw) as AiStrategyDraftSession[];
-      return parsed.map((draft) => [draft.draftId, draft] as const);
-    } catch {
-      return [];
-    }
-  }
-
-  private persist() {
-    mkdirSync(dirname(STORE_PATH), { recursive: true });
-    writeFileSync(
-      STORE_PATH,
-      JSON.stringify([...this.drafts.values()], null, 2),
-      "utf8",
-    );
-  }
-
-  create(request: AiStrategyBuilderRequest, response: AiStrategyBuilderResponse): AiStrategyDraftSession {
-    const now = new Date().toISOString();
-    const draft: AiStrategyDraftSession = {
-      draftId: createId("draft"),
-      status: deriveStatus(response),
+function buildAssistantMessages(response: AiStrategyBuilderResponse, now: string): AiStrategyConversationMessage[] {
+  const messages: AiStrategyConversationMessage[] = [
+    {
+      id: createId("msg"),
+      role: "assistant",
+      kind: "result",
+      content: response.plan.summary,
       createdAt: now,
-      updatedAt: now,
-      request,
-      response,
-      edits: [],
-    };
+      metadata: {
+        workflowName: response.plan.workflowName,
+        provider: response.provider,
+        model: response.model,
+      },
+    },
+  ];
 
-    this.drafts.set(draft.draftId, draft);
-    this.persist();
+  if (response.validation.issues.length > 0) {
+    messages.push({
+      id: createId("msg"),
+      role: "assistant",
+      kind: "validation",
+      content: response.validation.issues.map((issue) => `${issue.code}: ${issue.message}`).join("\n"),
+      createdAt: now,
+      metadata: {
+        issueCount: response.validation.issues.length,
+      },
+    });
+  }
+
+  return messages;
+}
+
+function buildDraftSession(
+  draftId: string,
+  request: AiStrategyBuilderRequest,
+  response: AiStrategyBuilderResponse,
+  input: {
+    createdAt?: string;
+    updatedAt?: string;
+    edits?: AiStrategyDraftSession["edits"];
+    messages?: AiStrategyConversationMessage[];
+    setupState?: AiStrategySetupState;
+    workflowId?: string;
+  } = {},
+): AiStrategyDraftSession {
+  const createdAt = input.createdAt || new Date().toISOString();
+  const updatedAt = input.updatedAt || createdAt;
+
+  return aiStrategyDraftSessionSchema.parse({
+    draftId,
+    title: deriveTitle(request, response),
+    status: deriveStatus(response),
+    createdAt,
+    updatedAt,
+    request,
+    response,
+    edits: input.edits || [],
+    messages:
+      input.messages || [
+        {
+          id: createId("msg"),
+          role: "user",
+          kind: "prompt",
+          content: request.prompt,
+          createdAt,
+          metadata: {
+            market: request.market,
+            goal: request.goal,
+          },
+        },
+        ...buildAssistantMessages(response, createdAt),
+      ],
+    setupState: input.setupState,
+    workflowId: input.workflowId,
+  });
+}
+
+class AiDraftStore {
+  async create(
+    userId: string,
+    request: AiStrategyBuilderRequest,
+    response: AiStrategyBuilderResponse,
+  ): Promise<AiStrategyDraftSession> {
+    const doc = new AiStrategySessionModel({
+      userId,
+      title: deriveTitle(request, response),
+      status: deriveStatus(response),
+      sessionData: {},
+    });
+
+    const draft = buildDraftSession(String(doc._id), request, response);
+    doc.title = draft.title;
+    doc.status = draft.status;
+    doc.sessionData = draft;
+    await doc.save();
     return draft;
   }
 
-  get(draftId: string): AiStrategyDraftSession {
-    const draft = this.drafts.get(draftId);
-    if (!draft) {
+  async get(userId: string, draftId: string): Promise<AiStrategyDraftSession> {
+    const doc = await AiStrategySessionModel.findOne({ _id: draftId, userId }).lean();
+    if (!doc) {
       throw new AiBuilderError("DRAFT_NOT_FOUND", "AI draft session was not found.", 404);
     }
-    return draft;
+
+    return aiStrategyDraftSessionSchema.parse(doc.sessionData);
   }
 
-  update(
+  async update(
+    userId: string,
     draftId: string,
     request: AiStrategyBuilderRequest,
     response: AiStrategyBuilderResponse,
     instruction?: string,
-  ): AiStrategyDraftSession {
-    const existing = this.get(draftId);
+  ): Promise<AiStrategyDraftSession> {
+    const existing = await this.get(userId, draftId);
     const updatedAt = new Date().toISOString();
-    const edits = instruction
-      ? [
-          ...existing.edits,
-          {
-            id: createId("edit"),
-            instruction,
-            createdAt: updatedAt,
-          },
-        ]
-      : existing.edits;
+    const nextMessages = [...existing.messages];
+    const nextEdits = [...existing.edits];
 
-    const next: AiStrategyDraftSession = {
-      ...existing,
-      request,
-      response,
-      status: deriveStatus(response),
+    if (instruction) {
+      nextEdits.push({
+        id: createId("edit"),
+        instruction,
+        createdAt: updatedAt,
+      });
+
+      nextMessages.push({
+        id: createId("msg"),
+        role: "user",
+        kind: "edit",
+        content: instruction,
+        createdAt: updatedAt,
+      });
+    }
+
+    nextMessages.push(...buildAssistantMessages(response, updatedAt));
+
+    const next = buildDraftSession(draftId, request, response, {
+      createdAt: existing.createdAt,
       updatedAt,
-      edits,
-    };
+      edits: nextEdits,
+      messages: nextMessages,
+      setupState: existing.setupState,
+      workflowId: existing.workflowId,
+    });
 
-    this.drafts.set(draftId, next);
-    this.persist();
+    await AiStrategySessionModel.updateOne(
+      { _id: draftId, userId },
+      {
+        $set: {
+          title: next.title,
+          status: next.status,
+          sessionData: next,
+        },
+      },
+    );
+
+    return next;
+  }
+
+  async updateSetupState(
+    userId: string,
+    draftId: string,
+    setupState: AiStrategySetupState,
+  ): Promise<AiStrategyDraftSession> {
+    const existing = await this.get(userId, draftId);
+    const next = aiStrategyDraftSessionSchema.parse({
+      ...existing,
+      updatedAt: new Date().toISOString(),
+      setupState: aiStrategySetupStateSchema.parse({
+        ...(existing.setupState || {}),
+        ...setupState,
+      }),
+    });
+
+    await AiStrategySessionModel.updateOne(
+      { _id: draftId, userId },
+      {
+        $set: {
+          title: next.title,
+          status: next.status,
+          sessionData: next,
+        },
+      },
+    );
+
     return next;
   }
 }

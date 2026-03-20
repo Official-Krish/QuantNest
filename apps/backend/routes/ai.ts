@@ -1,5 +1,11 @@
 import axios from "axios";
 import { Router } from "express";
+import { AiStrategySessionModel } from "@quantnest-trading/db/client";
+import {
+  aiStrategyDraftSessionSchema,
+  aiStrategyDraftSummarySchema,
+} from "@quantnest-trading/types/ai";
+import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware";
 
 const aiRouter = Router();
@@ -8,18 +14,35 @@ function getAiBuilderBaseUrl(): string {
   return process.env.AI_BUILDER_URL || "http://localhost:3001";
 }
 
-function getAiServiceToken(): string {
-  const token = process.env.AI_SERVICE_TOKEN;
-  if (!token || token === "AI_SERVICE_TOKEN") {
-    throw new Error("AI_SERVICE_TOKEN must be configured and must not use the default placeholder value.");
+function getAiServiceJwtSecret(): string {
+  const secret = process.env.AI_SERVICE_JWT_SECRET || process.env.AI_SERVICE_TOKEN;
+  if (!secret || secret === "AI_SERVICE_TOKEN" || secret === "AI_SERVICE_JWT_SECRET") {
+    throw new Error("AI service JWT secret must be configured and must not use the default placeholder value.");
   }
-  return token;
+  return secret;
+}
+
+function getAiServiceToken(userId?: string): string {
+  return jwt.sign(
+    {
+      scope: "ai-builder-service",
+      userId: userId || undefined,
+    },
+    getAiServiceJwtSecret(),
+    {
+      algorithm: "HS256",
+      expiresIn: "60s",
+      audience: "ai-builder",
+      issuer: "quantnest-backend",
+    },
+  );
 }
 
 async function proxyAiBuilder(
   path: string,
   options: {
-    method: "GET" | "POST";
+    method: "GET" | "POST" | "PUT";
+    userId?: string;
     headers?: Record<string, string>;
     data?: unknown;
   },
@@ -28,7 +51,7 @@ async function proxyAiBuilder(
     url: `${getAiBuilderBaseUrl()}${path}`,
     method: options.method,
     headers: {
-      "x-ai-service-token": getAiServiceToken(),
+      "x-ai-service-token": getAiServiceToken(options.userId),
       ...(options.headers || {}),
     },
     data: options.data,
@@ -42,9 +65,7 @@ aiRouter.get("/models", authMiddleware, async (req, res) => {
   try {
     const result = await proxyAiBuilder("/api/v1/models", {
       method: "GET",
-      headers: {
-        "x-user-id": req.userId || "",
-      },
+      userId: req.userId || undefined,
     });
 
     res.status(result.status).json(result.data);
@@ -61,9 +82,7 @@ aiRouter.post("/strategy/plan", authMiddleware, async (req, res) => {
   try {
     const result = await proxyAiBuilder("/api/v1/strategy/plan", {
       method: "POST",
-      headers: {
-        "x-user-id": req.userId || "",
-      },
+      userId: req.userId || undefined,
       data: req.body,
     });
 
@@ -73,6 +92,145 @@ aiRouter.post("/strategy/plan", authMiddleware, async (req, res) => {
       success: false,
       code: "AI_PROXY_ERROR",
       message: error instanceof Error ? error.message : "Failed to generate AI strategy plan.",
+    });
+  }
+});
+
+aiRouter.post("/strategy/drafts", authMiddleware, async (req, res) => {
+  try {
+    const result = await proxyAiBuilder("/api/v1/strategy/drafts", {
+      method: "POST",
+      userId: req.userId || undefined,
+      data: req.body,
+    });
+
+    res.status(result.status).json(result.data);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to create AI draft.",
+    });
+  }
+});
+
+aiRouter.get("/strategy/drafts", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const docs = await AiStrategySessionModel.find({ userId })
+      .sort({ updatedAt: -1 })
+      .limit(50)
+      .lean();
+
+    const drafts = docs.map((doc) => {
+      const draft = aiStrategyDraftSessionSchema.parse(doc.sessionData);
+      const lastMessage = [...draft.messages].reverse().find((message) => message.role === "user")?.content;
+      return aiStrategyDraftSummarySchema.parse({
+        draftId: draft.draftId,
+        title: draft.title,
+        status: draft.status,
+        updatedAt: draft.updatedAt,
+        createdAt: draft.createdAt,
+        workflowId: draft.workflowId,
+        lastMessage,
+      });
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { drafts },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to list AI drafts.",
+    });
+  }
+});
+
+aiRouter.get("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const doc = await AiStrategySessionModel.findOne({
+      _id: req.params.draftId,
+      userId,
+    }).lean();
+
+    if (!doc) {
+      res.status(404).json({
+        success: false,
+        code: "DRAFT_NOT_FOUND",
+        message: "AI draft session was not found.",
+      });
+      return;
+    }
+
+    const draft = aiStrategyDraftSessionSchema.parse(doc.sessionData);
+
+    res.status(200).json({
+      success: true,
+      data: { draft },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to load AI draft.",
+    });
+  }
+});
+
+aiRouter.post("/strategy/drafts/:draftId/edit", authMiddleware, async (req, res) => {
+  try {
+    const result = await proxyAiBuilder(`/api/v1/strategy/drafts/${req.params.draftId}/edit`, {
+      method: "POST",
+      userId: req.userId || undefined,
+      data: req.body,
+    });
+
+    res.status(result.status).json(result.data);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to edit AI draft.",
+    });
+  }
+});
+
+aiRouter.put("/strategy/drafts/:draftId/setup", authMiddleware, async (req, res) => {
+  try {
+    const result = await proxyAiBuilder(`/api/v1/strategy/drafts/${req.params.draftId}/setup`, {
+      method: "PUT",
+      userId: req.userId || undefined,
+      data: req.body,
+    });
+
+    res.status(result.status).json(result.data);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to save AI draft setup.",
     });
   }
 });
