@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiGenerateAiStrategyPlan, apiGetAiModels } from "@/http";
+import {
+  apiCreateAiStrategyDraft,
+  apiEditAiStrategyDraft,
+  apiGetAiModels,
+  apiGetAiStrategyDraft,
+  apiListAiStrategyDrafts,
+  apiSaveAiStrategyDraftSetup,
+} from "@/http";
 import type {
   AiModelDescriptor,
   AiStrategyBuilderRequest,
-  AiStrategyBuilderResponse,
+  AiStrategyDraftSession,
+  AiStrategyDraftSummary,
 } from "@/types/api";
 import { AiPlanReview } from "@/components/ai-builder/AiPlanReview";
 import { AiStrategyForm } from "@/components/ai-builder/AiStrategyForm";
@@ -12,22 +20,59 @@ import {
   AI_ALLOWED_NODE_TYPES,
   DEFAULT_AI_CONSTRAINTS,
 } from "@/components/ai-builder/constants";
-import {
-  normalizeGeneratedNodes,
-} from "@/components/ai-builder/utils";
+import { normalizeGeneratedNodes } from "@/components/ai-builder/utils";
 import { AiPlanSetupDialog } from "@/components/ai-builder/AiPlanSetupDialog";
 import type { AiMetadataOverrides } from "@/components/ai-builder/types";
+
+const LAST_DRAFT_STORAGE_KEY = "ai-builder-v2-last-draft-id";
+
+function toRequestPayload(input: {
+  prompt: string;
+  market: AiStrategyBuilderRequest["market"];
+  goal: AiStrategyBuilderRequest["goal"];
+  riskPreference: AiStrategyBuilderRequest["riskPreference"];
+  brokerExecution: boolean;
+  allowDirectExecution: boolean;
+  selectedActions: string[];
+  constraints: string;
+  selectedProvider: string;
+  selectedModel: string;
+}): AiStrategyBuilderRequest {
+  return {
+    prompt: input.prompt.trim(),
+    market: input.market,
+    goal: input.goal,
+    riskPreference: input.riskPreference,
+    brokerExecution: input.brokerExecution,
+    allowDirectExecution: input.allowDirectExecution,
+    preferredActions: input.selectedActions as AiStrategyBuilderRequest["preferredActions"],
+    constraints: input.constraints
+      .split("\n")
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+    model: {
+      provider: input.selectedProvider,
+      model: input.selectedModel,
+    },
+    allowedNodeTypes: AI_ALLOWED_NODE_TYPES,
+  };
+}
 
 export const AiStrategyBuilder = () => {
   const navigate = useNavigate();
   const [models, setModels] = useState<AiModelDescriptor[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [loadingDraft, setLoadingDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<AiStrategyBuilderResponse | null>(null);
+  const [draft, setDraft] = useState<AiStrategyDraftSession | null>(null);
+  const [draftSummaries, setDraftSummaries] = useState<AiStrategyDraftSummary[]>([]);
   const [setupOpen, setSetupOpen] = useState(false);
   const [workflowName, setWorkflowName] = useState("");
   const [metadataOverrides, setMetadataOverrides] = useState<AiMetadataOverrides>({});
+  const [editInstruction, setEditInstruction] = useState("");
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [market, setMarket] = useState<AiStrategyBuilderRequest["market"]>("Indian");
   const [goal, setGoal] = useState<AiStrategyBuilderRequest["goal"]>("alerts");
@@ -39,6 +84,10 @@ export const AiStrategyBuilder = () => {
   const [constraints, setConstraints] = useState(DEFAULT_AI_CONSTRAINTS);
   const [selectedProvider, setSelectedProvider] = useState("gemini");
   const [selectedModel, setSelectedModel] = useState("");
+
+  useEffect(() => {
+    setHasSavedDraft(Boolean(window.localStorage.getItem(LAST_DRAFT_STORAGE_KEY)));
+  }, []);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -62,6 +111,17 @@ export const AiStrategyBuilder = () => {
     void loadModels();
   }, []);
 
+  useEffect(() => {
+    const loadDrafts = async () => {
+      try {
+        const drafts = await apiListAiStrategyDrafts();
+        setDraftSummaries(drafts);
+      } catch {}
+    };
+
+    void loadDrafts();
+  }, []);
+
   const providerModels = useMemo(
     () => models.filter((entry) => String(entry.provider) === selectedProvider),
     [models, selectedProvider],
@@ -83,49 +143,159 @@ export const AiStrategyBuilder = () => {
     );
   };
 
+  const syncDraftToForm = (nextDraft: AiStrategyDraftSession) => {
+    setDraft(nextDraft);
+    setWorkflowName(nextDraft.setupState?.workflowName || nextDraft.response.plan.workflowName);
+    setMetadataOverrides(nextDraft.setupState?.metadataOverrides || {});
+    setPrompt(nextDraft.request.prompt);
+    setMarket(nextDraft.request.market);
+    setGoal(nextDraft.request.goal);
+    setRiskPreference(nextDraft.request.riskPreference ?? "balanced");
+    setBrokerExecution(Boolean(nextDraft.request.brokerExecution));
+    setAllowDirectExecution(Boolean(nextDraft.request.allowDirectExecution));
+    setSelectedActions([...(nextDraft.request.preferredActions || [])]);
+    setConstraints((nextDraft.request.constraints || []).join("\n") || DEFAULT_AI_CONSTRAINTS);
+    setSelectedProvider(String(nextDraft.request.model?.provider || selectedProvider));
+    setSelectedModel(String(nextDraft.request.model?.model || selectedModel));
+    window.localStorage.setItem(LAST_DRAFT_STORAGE_KEY, nextDraft.draftId);
+    setHasSavedDraft(true);
+    setDraftSummaries((current) => {
+      const summary: AiStrategyDraftSummary = {
+        draftId: nextDraft.draftId,
+        title: nextDraft.title,
+        status: nextDraft.status,
+        createdAt: nextDraft.createdAt,
+        updatedAt: nextDraft.updatedAt,
+        workflowId: nextDraft.workflowId,
+        lastMessage: [...nextDraft.messages].reverse().find((message) => message.role === "user")?.content,
+      };
+      return [summary, ...current.filter((entry) => entry.draftId !== nextDraft.draftId)];
+    });
+  };
+
   const handleGenerate = async () => {
     setGenerating(true);
     setError(null);
     try {
-      const payload: AiStrategyBuilderRequest = {
-        prompt: prompt.trim(),
-        market,
-        goal,
-        riskPreference,
-        brokerExecution,
-        allowDirectExecution,
-        preferredActions: selectedActions as AiStrategyBuilderRequest["preferredActions"],
-        constraints: constraints
-          .split("\n")
-          .map((entry) => entry.trim())
-          .filter(Boolean),
-        model: {
-          provider: selectedProvider,
-          model: selectedModel,
-        },
-        allowedNodeTypes: AI_ALLOWED_NODE_TYPES,
-      };
-
-      const plan = await apiGenerateAiStrategyPlan(payload);
-      setResult(plan);
-      setWorkflowName(plan.plan.workflowName);
-      setMetadataOverrides({});
+      const nextDraft = await apiCreateAiStrategyDraft(
+        toRequestPayload({
+          prompt,
+          market,
+          goal,
+          riskPreference,
+          brokerExecution,
+          allowDirectExecution,
+          selectedActions,
+          constraints,
+          selectedProvider,
+          selectedModel,
+        }),
+      );
+      syncDraftToForm(nextDraft);
+      setEditInstruction("");
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? "Failed to generate workflow plan.");
+      setError(e?.response?.data?.message ?? e?.message ?? "Failed to generate workflow draft.");
     } finally {
       setGenerating(false);
     }
   };
 
+  const handleResumeDraft = async () => {
+    const draftId = window.localStorage.getItem(LAST_DRAFT_STORAGE_KEY);
+    if (!draftId) return;
+
+    setLoadingDraft(true);
+    setError(null);
+    try {
+      const savedDraft = await apiGetAiStrategyDraft(draftId);
+      syncDraftToForm(savedDraft);
+    } catch (e: any) {
+      window.localStorage.removeItem(LAST_DRAFT_STORAGE_KEY);
+      setHasSavedDraft(false);
+      setError(e?.response?.data?.message ?? e?.message ?? "Failed to resume saved draft.");
+    } finally {
+      setLoadingDraft(false);
+    }
+  };
+
+  const handleApplyEdit = async () => {
+    if (!draft || editInstruction.trim().length < 4) return;
+
+    setEditing(true);
+    setError(null);
+    try {
+      const nextDraft = await apiEditAiStrategyDraft(draft.draftId, {
+        instruction: editInstruction.trim(),
+        model: {
+          provider: selectedProvider,
+          model: selectedModel,
+        },
+      });
+      syncDraftToForm(nextDraft);
+      setEditInstruction("");
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? e?.message ?? "Failed to apply AI edit.");
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleSelectDraft = async (draftId: string) => {
+    setLoadingDraft(true);
+    setError(null);
+    try {
+      const savedDraft = await apiGetAiStrategyDraft(draftId);
+      syncDraftToForm(savedDraft);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? e?.message ?? "Failed to load selected draft.");
+    } finally {
+      setLoadingDraft(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!draft) return;
+
+    const nextSetupState = {
+      workflowName,
+      metadataOverrides,
+    };
+    const existingSetupState = {
+      workflowName: draft.setupState?.workflowName || "",
+      metadataOverrides: draft.setupState?.metadataOverrides || {},
+    };
+
+    if (JSON.stringify(nextSetupState) === JSON.stringify(existingSetupState)) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void apiSaveAiStrategyDraftSetup(draft.draftId, nextSetupState)
+        .then((nextDraft) => {
+          setDraft(nextDraft);
+          setDraftSummaries((current) =>
+            current.map((entry) =>
+              entry.draftId === nextDraft.draftId
+                ? { ...entry, title: nextDraft.title, status: nextDraft.status, updatedAt: nextDraft.updatedAt }
+                : entry,
+            ),
+          );
+        })
+        .catch(() => {});
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [draft, workflowName, metadataOverrides]);
+
   const openInBuilder = () => {
-    if (!result) return;
+    if (!draft) return;
     navigate("/create/builder", {
       state: {
         generatedPlan: {
           workflowName,
-          marketType: result.plan.marketType,
-          nodes: normalizeGeneratedNodes(result.plan, metadataOverrides),
-          edges: result.plan.edges,
+          marketType: draft.response.plan.marketType,
+          nodes: normalizeGeneratedNodes(draft.response.plan, metadataOverrides),
+          edges: draft.response.plan.edges,
         },
       },
     });
@@ -160,18 +330,26 @@ export const AiStrategyBuilder = () => {
             onModelChange={setSelectedModel}
             providerModels={providerModels}
             canGenerate={canGenerate}
-            generating={generating}
+            generating={generating || loadingDraft}
             error={error}
             onGenerate={handleGenerate}
             onBack={() => navigate("/create/onboarding")}
           />
 
           <AiPlanReview
-            result={result}
-            generating={generating}
+            draft={draft}
+            generating={generating || loadingDraft}
+            editing={editing}
+            editInstruction={editInstruction}
+            onEditInstructionChange={setEditInstruction}
+            onApplyEdit={handleApplyEdit}
+            onResumeDraft={handleResumeDraft}
+            resumableDraft={hasSavedDraft}
+            draftSummaries={draftSummaries}
+            onSelectDraft={handleSelectDraft}
             onOpenInBuilder={() => {
-              if (!result) return;
-              setWorkflowName(result.plan.workflowName);
+              if (!draft) return;
+              setWorkflowName(draft.response.plan.workflowName);
               setSetupOpen(true);
             }}
           />
@@ -182,7 +360,7 @@ export const AiStrategyBuilder = () => {
             Beta / Testing Phase
           </p>
           <ul className="mt-3 space-y-2 text-amber-100/90">
-            <li>AI can misunderstand trigger conditions, execution order, or asset details.</li>
+            <li>v2 drafts now support iterative edits, branching flows, and saved sessions.</li>
             <li>Always review generated nodes, thresholds, and action metadata before saving.</li>
             <li>Do not rely on generated workflows for live trading without manual verification.</li>
           </ul>
@@ -191,7 +369,7 @@ export const AiStrategyBuilder = () => {
 
       <AiPlanSetupDialog
         open={setupOpen}
-        result={result}
+        result={draft}
         workflowName={workflowName}
         metadataOverrides={metadataOverrides}
         onOpenChange={setSetupOpen}

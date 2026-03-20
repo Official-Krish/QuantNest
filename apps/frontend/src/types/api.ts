@@ -1,6 +1,11 @@
 import type { EdgeType, NodeType } from "@quantnest-trading/types";
 import type {
   AiModelDescriptor,
+  AiStrategyDraftCreateResponse,
+  AiStrategyDraftEditRequest,
+  AiStrategyDraftSession,
+  AiStrategyDraftSummary,
+  AiStrategySetupState,
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
 } from "@quantnest-trading/types/ai";
@@ -64,4 +69,13 @@ export type marketStatus = {
   nextOpenTime?: string;
 }
 
-export type { AiModelDescriptor, AiStrategyBuilderRequest, AiStrategyBuilderResponse };
+export type {
+  AiModelDescriptor,
+  AiStrategyBuilderRequest,
+  AiStrategyBuilderResponse,
+  AiStrategyDraftSession,
+  AiStrategyDraftSummary,
+  AiStrategySetupState,
+  AiStrategyDraftCreateResponse,
+  AiStrategyDraftEditRequest,
+};

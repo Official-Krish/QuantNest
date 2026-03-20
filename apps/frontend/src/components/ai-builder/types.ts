@@ -1,5 +1,11 @@
 import type { EdgeType, NodeType } from "@quantnest-trading/types";
-import type { AiModelDescriptor, AiStrategyBuilderRequest, AiStrategyBuilderResponse } from "@/types/api";
+import type {
+  AiModelDescriptor,
+  AiStrategyBuilderRequest,
+  AiStrategyBuilderResponse,
+  AiStrategyDraftSession,
+  AiStrategyDraftSummary,
+} from "@/types/api";
 
 export type AiMetadataOverrides = Record<string, Record<string, unknown>>;
 
@@ -35,14 +41,22 @@ export type AiStrategyFormProps = {
 };
 
 export type AiPlanReviewProps = {
-  result: AiStrategyBuilderResponse | null;
+  draft: AiStrategyDraftSession | null;
   generating: boolean;
+  editing: boolean;
+  editInstruction: string;
+  onEditInstructionChange: (value: string) => void;
+  onApplyEdit: () => void;
+  onResumeDraft: () => void;
+  resumableDraft: boolean;
+  draftSummaries: AiStrategyDraftSummary[];
+  onSelectDraft: (draftId: string) => void;
   onOpenInBuilder: () => void;
 };
 
 export type AiPlanSetupDialogProps = {
   open: boolean;
-  result: AiStrategyBuilderResponse | null;
+  result: AiStrategyBuilderResponse | AiStrategyDraftSession | null;
   workflowName: string;
   metadataOverrides: AiMetadataOverrides;
   onOpenChange: (open: boolean) => void;

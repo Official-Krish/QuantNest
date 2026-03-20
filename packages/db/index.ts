@@ -370,8 +370,38 @@ const ZerodhaTokenSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
+const AiStrategySessionSchema = new Schema({
+    userId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'Users',
+        required: true,
+        index: true,
+    },
+    title: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    status: {
+        type: String,
+        enum: ["draft", "needs-inputs", "ready", "archived"],
+        default: "draft",
+        index: true,
+    },
+    workflowId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'Workflows',
+        required: false,
+    },
+    sessionData: {
+        type: Schema.Types.Mixed,
+        required: true,
+    },
+}, { timestamps: true });
+
 // Compound unique index for userId + workflowId
 ZerodhaTokenSchema.index({ userId: 1, workflowId: 1 }, { unique: true });
+AiStrategySessionSchema.index({ userId: 1, updatedAt: -1 });
 
 export const ZerodhaTokenModel = mongoose.model('ZerodhaTokens', ZerodhaTokenSchema);
 export const UserModel = mongoose.model('Users', UserSchema);
@@ -380,3 +410,4 @@ export const NodesModel = mongoose.model('Nodes', NodesSchema);
 export const ExecutionModel = mongoose.model('Executions', ExecutionSchema);
 export const NotificationModel = mongoose.model('Notifications', NotificationSchema);
 export const WorkflowExampleModel = mongoose.model('WorkflowExamples', WorkflowExampleSchema);
+export const AiStrategySessionModel = mongoose.model('AiStrategySessions', AiStrategySessionSchema);

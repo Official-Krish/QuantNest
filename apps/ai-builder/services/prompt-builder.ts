@@ -1,5 +1,6 @@
 import type {
   AiStrategyBuilderRequest,
+  AiStrategyWorkflowPlan,
   StrategyBuilderActionType,
 } from "@quantnest-trading/types/ai";
 import type { NodeKind } from "@quantnest-trading/types";
@@ -127,16 +128,17 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     ),
     "",
     "Rules:",
-    "- Exactly one trigger node is preferred for V1.",
+    "- Multiple trigger nodes and branching paths are allowed when they improve the workflow.",
     "- For a price node, metadata must include asset, targetPrice, marketType, and condition.",
     "- If the prompt says 'below', the price trigger condition must be 'below'. If the prompt says 'above', use 'above'.",
     "- Never default a price trigger targetPrice to 0. Use the exact threshold from the prompt.",
     "- Use conditional-trigger when the strategy mentions thresholds, comparisons, RSI, EMA, or branching.",
+    "- Use sourceHandle=true and sourceHandle=false for conditional branches.",
+    "- Keep action nodes reachable from at least one trigger path.",
     "- For direct execution flows, add broker action nodes only when brokerExecution=true or the prompt clearly requests execution.",
     "- For notification/reporting actions that need credentials, keep placeholder-safe metadata and add entries to missingInputs.",
     "- Do not fabricate secrets or user credentials.",
     "- Positions should be laid out left-to-right in a readable graph.",
-    "- Use sourceHandle=true and sourceHandle=false when creating conditional branches.",
     "",
     "Supported node types:",
     allowedNodeTypes,
@@ -157,5 +159,28 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     `Preferred actions: ${preferredActions}`,
     "Constraints:",
     constraints,
+  ].join("\n");
+}
+
+export function buildStrategyEditPrompt(
+  request: AiStrategyBuilderRequest,
+  currentPlan: AiStrategyWorkflowPlan,
+  instruction: string,
+): string {
+  return [
+    buildStrategyPlannerPrompt(request),
+    "",
+    "Editing mode:",
+    "- You are updating an existing workflow draft.",
+    "- Apply the user's latest instruction while preserving valid parts of the current workflow.",
+    "- Return the full updated workflow JSON, not a diff.",
+    "- Keep nodeIds stable when a node still represents the same step.",
+    "- Remove obsolete nodes and edges when the new instruction replaces them.",
+    "",
+    "Current workflow JSON:",
+    JSON.stringify(currentPlan, null, 2),
+    "",
+    "Latest edit instruction:",
+    instruction.trim(),
   ].join("\n");
 }

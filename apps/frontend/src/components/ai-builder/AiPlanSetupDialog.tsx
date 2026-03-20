@@ -28,6 +28,7 @@ export function AiPlanSetupDialog({
 }: AiPlanSetupDialogProps) {
   const errors = collectSetupErrors(result, workflowName, metadataOverrides);
   const groupedInputs = groupMissingInputs(result);
+  const response = result && "response" in result ? result.response : result;
 
   const setFieldValue = (nodeId: string, key: string, rawValue: string, type: string) => {
     const nextValue = type === "number" ? Number(rawValue) : rawValue;
@@ -65,7 +66,7 @@ export function AiPlanSetupDialog({
           </div>
 
           {Object.entries(groupedInputs).map(([nodeId, inputs]) => {
-            const node = result?.plan.nodes.find((entry) => entry.nodeId === nodeId);
+            const node = response?.plan.nodes.find((entry) => entry.nodeId === nodeId);
             if (!node) return null;
 
             const baseMetadata = node.data.metadata || {};
