@@ -16,6 +16,7 @@ import { Notifications } from "./pages/Notifications";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { Examples } from "./pages/Examples";
 import { AiStrategyBuilder } from "./pages/AiStrategyBuilder";
+import { AiStrategyChatBuilder } from "./pages/AiStrategyChatBuilder";
 
 export function App() {
   return (
@@ -73,6 +74,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <AiStrategyBuilder />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create/ai-chat"
+        element={
+          <ProtectedRoute>
+            <AiStrategyChatBuilder />
           </ProtectedRoute>
         }
       />

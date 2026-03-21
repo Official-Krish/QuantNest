@@ -72,6 +72,13 @@ export const CreateWorkflowOnboarding = () => {
             </Button>
             <Button
               variant="outline"
+              className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/15 hover:text-emerald-200 cursor-pointer"
+              onClick={() => navigate("/create/ai-chat")}
+            >
+              Preview AI Chat
+            </Button>
+            <Button
+              variant="outline"
               className="border-neutral-700 bg-neutral-900/50 text-neutral-200 hover:bg-neutral-900 hover:text-neutral-200 cursor-pointer"
               onClick={() => navigate("/dashboard")}
             >
