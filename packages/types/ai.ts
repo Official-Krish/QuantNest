@@ -161,6 +161,15 @@ export interface AiStrategyBuilderResponse {
   validation: AiStrategyValidationReport;
 }
 
+export interface AiStrategyWorkflowVersion {
+  id: string;
+  label: string;
+  createdAt: string;
+  prompt: string;
+  instruction?: string;
+  response: AiStrategyBuilderResponse;
+}
+
 export interface AiStrategyDraftEditEntry {
   id: string;
   instruction: string;
@@ -191,6 +200,7 @@ export interface AiStrategyDraftSession {
   response: AiStrategyBuilderResponse;
   edits: AiStrategyDraftEditEntry[];
   messages: AiStrategyConversationMessage[];
+  workflowVersions: AiStrategyWorkflowVersion[];
   setupState?: AiStrategySetupState;
   workflowId?: string;
 }
@@ -337,6 +347,15 @@ export const aiStrategyDraftEditEntrySchema = z.object({
   createdAt: z.string().trim().min(1),
 }) satisfies z.ZodType<AiStrategyDraftEditEntry>;
 
+export const aiStrategyWorkflowVersionSchema = z.object({
+  id: z.string().trim().min(1),
+  label: z.string().trim().min(1),
+  createdAt: z.string().trim().min(1),
+  prompt: z.string().trim().min(1),
+  instruction: z.string().trim().min(1).optional(),
+  response: aiStrategyBuilderResponseSchema,
+}) satisfies z.ZodType<AiStrategyWorkflowVersion>;
+
 export const aiStrategyConversationMessageSchema = z.object({
   id: z.string().trim().min(1),
   role: z.enum(["user", "assistant", "system"]),
@@ -361,6 +380,7 @@ export const aiStrategyDraftSessionSchema = z.object({
   response: aiStrategyBuilderResponseSchema,
   edits: z.array(aiStrategyDraftEditEntrySchema),
   messages: z.array(aiStrategyConversationMessageSchema),
+  workflowVersions: z.array(aiStrategyWorkflowVersionSchema).default([]),
   setupState: z.preprocess(
     (value) => (value === null ? undefined : value),
     aiStrategySetupStateSchema.optional(),

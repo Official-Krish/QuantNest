@@ -6,6 +6,7 @@ import type {
   AiStrategyDraftSession,
   AiStrategyDraftSummary,
   AiStrategySetupState,
+  AiStrategyWorkflowVersion,
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
 } from "@quantnest-trading/types/ai";
@@ -76,6 +77,7 @@ export type {
   AiStrategyDraftSession,
   AiStrategyDraftSummary,
   AiStrategySetupState,
+  AiStrategyWorkflowVersion,
   AiStrategyDraftCreateResponse,
   AiStrategyDraftEditRequest,
 };

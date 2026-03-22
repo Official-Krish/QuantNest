@@ -11,6 +11,7 @@ import type {
   AiStrategyDraftSession,
   AiStrategyDraftSummary,
   AiStrategySetupState,
+  AiStrategyWorkflowVersion,
 } from "@quantnest-trading/types/ai";
 import { AiBuilderError } from "../errors";
 
@@ -70,6 +71,23 @@ function buildAssistantMessages(response: AiStrategyBuilderResponse, now: string
   return messages;
 }
 
+function buildWorkflowVersion(
+  response: AiStrategyBuilderResponse,
+  request: AiStrategyBuilderRequest,
+  createdAt: string,
+  instruction?: string,
+  index = 0,
+): AiStrategyWorkflowVersion {
+  return {
+    id: createId("version"),
+    label: instruction ? `Edit ${index}` : "Initial draft",
+    createdAt,
+    prompt: request.prompt,
+    instruction,
+    response,
+  };
+}
+
 function buildDraftSession(
   draftId: string,
   request: AiStrategyBuilderRequest,
@@ -79,6 +97,7 @@ function buildDraftSession(
     updatedAt?: string;
     edits?: AiStrategyDraftSession["edits"];
     messages?: AiStrategyConversationMessage[];
+    workflowVersions?: AiStrategyWorkflowVersion[];
     setupState?: AiStrategySetupState;
     workflowId?: string;
   } = {},
@@ -110,6 +129,8 @@ function buildDraftSession(
         },
         ...buildAssistantMessages(response, createdAt),
       ],
+    workflowVersions:
+      input.workflowVersions || [buildWorkflowVersion(response, request, createdAt)],
     setupState: input.setupState,
     workflowId: input.workflowId,
   });
@@ -176,6 +197,7 @@ class AiDraftStore {
     const updatedAt = new Date().toISOString();
     const nextMessages = [...existing.messages];
     const nextEdits = [...existing.edits];
+    const nextWorkflowVersions = [...existing.workflowVersions];
 
     if (instruction) {
       nextEdits.push({
@@ -194,12 +216,22 @@ class AiDraftStore {
     }
 
     nextMessages.push(...buildAssistantMessages(response, updatedAt));
+    nextWorkflowVersions.push(
+      buildWorkflowVersion(
+        response,
+        request,
+        updatedAt,
+        instruction,
+        nextWorkflowVersions.length,
+      ),
+    );
 
     const next = buildDraftSession(draftId, request, response, {
       createdAt: existing.createdAt,
       updatedAt,
       edits: nextEdits,
       messages: nextMessages,
+      workflowVersions: nextWorkflowVersions,
       setupState: existing.setupState,
       workflowId: existing.workflowId,
     });
