@@ -35,7 +35,7 @@ export function RightSidebar({
 
         {selectedVersion ? (
           <div className={cx("border-b px-4 py-4", border)}>
-            <WorkflowCanvasCard version={selectedVersion} theme={theme} />
+            <WorkflowCanvasCard version={selectedVersion} theme={theme} compact />
           </div>
         ) : null}
 

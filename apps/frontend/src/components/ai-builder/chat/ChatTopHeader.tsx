@@ -24,8 +24,8 @@ export function ChatTopHeader({
   onOpenSetup,
 }: ChatTopHeaderProps) {
   return (
-    <div className={cx("border-b px-4 py-2.5", border)}>
-      <div className="flex items-center justify-between gap-4">
+    <div className={cx("border-b px-5 py-3", border)}>
+      <div className="mx-auto flex w-full max-w-[1180px] items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <button
             type="button"
@@ -38,18 +38,17 @@ export function ChatTopHeader({
             <Home className="h-3.5 w-3.5" />
           </button>
           <div>
-            <div className={cx("flex items-center gap-2 text-[13px] font-medium", heading)}>
-              <Sparkles className="h-4 w-4 text-[#f17463]" />
+            <div className={cx("flex items-center gap-2 text-[14px] font-semibold", heading)}>
               {title}
             </div>
-            <div className={cx("mt-0.5 text-[11px]", muted)}>AI Strategy Builder</div>
+            <div className={cx("mt-0.5 text-[12px]", muted)}>AI Strategy Builder</div>
           </div>
         </div>
 
         <Button
           onClick={onOpenSetup}
           disabled={!canOpenBuilder}
-          className="h-9 rounded-2xl bg-black px-4 text-[13px] text-white hover:bg-[#111111] cursor-pointer"
+          className="h-10 rounded-2xl bg-black px-4 text-[13px] text-white hover:bg-[#111111] cursor-pointer"
         >
           Open in Builder
           <ArrowUpRight className="ml-2 h-4 w-4" />

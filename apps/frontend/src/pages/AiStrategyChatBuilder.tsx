@@ -11,6 +11,7 @@ import {
 import type {
   AiModelDescriptor,
   AiStrategyBuilderRequest,
+  AiStrategyConversationMessage,
   AiStrategyDraftSession,
   AiStrategyDraftSummary,
 } from "@/types/api";
@@ -29,7 +30,6 @@ import { ChatTopHeader } from "@/components/ai-builder/chat/ChatTopHeader";
 import { ChatMetaBar } from "@/components/ai-builder/chat/ChatMetaBar";
 import { ChatMessagesPane } from "@/components/ai-builder/chat/ChatMessagesPane";
 import { ChatComposerSection } from "@/components/ai-builder/chat/ChatComposerSection";
-import { RightSidebar } from "@/components/ai-builder/chat/RightSidebar";
 
 export function AiStrategyChatBuilder() {
   const navigate = useNavigate();
@@ -39,11 +39,14 @@ export function AiStrategyChatBuilder() {
   const [models, setModels] = useState<AiModelDescriptor[]>([]);
   const [draftSummaries, setDraftSummaries] = useState<AiStrategyDraftSummary[]>([]);
   const [activeDraft, setActiveDraft] = useState<AiStrategyDraftSession | null>(null);
-  const [activeVersionId, setActiveVersionId] = useState("");
   const [composer, setComposer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [pendingMessages, setPendingMessages] = useState<
+    Array<AiStrategyConversationMessage & { pending?: boolean; typing?: boolean }>
+  >([]);
+  const [animatedMessageId, setAnimatedMessageId] = useState<string | null>(null);
   const [setupOpen, setSetupOpen] = useState(false);
   const [workflowName, setWorkflowName] = useState("");
   const [metadataOverrides, setMetadataOverrides] = useState<AiMetadataOverrides>({});
@@ -109,7 +112,6 @@ export function AiStrategyChatBuilder() {
 
   const syncActiveDraft = (draft: AiStrategyDraftSession) => {
     setActiveDraft(draft);
-    setActiveVersionId(draft.workflowVersions[draft.workflowVersions.length - 1]?.id || "");
     setWorkflowName(draft.setupState?.workflowName || draft.response.plan.workflowName);
     setMetadataOverrides(draft.setupState?.metadataOverrides || {});
     setMarket(draft.request.market);
@@ -161,17 +163,21 @@ export function AiStrategyChatBuilder() {
   useEffect(() => {
     if (!chatScrollRef.current) return;
     chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-  }, [activeDraft?.messages.length, loading]);
+  }, [activeDraft?.messages.length, pendingMessages.length, loading]);
+
+  const visibleMessages = useMemo(
+    () => [...(activeDraft?.messages || []), ...pendingMessages],
+    [activeDraft?.messages, pendingMessages],
+  );
 
   const selectedVersion =
-    activeDraft?.workflowVersions.find((version) => version.id === activeVersionId) ||
-    activeDraft?.workflowVersions[activeDraft.workflowVersions.length - 1] ||
-    null;
+    activeDraft?.workflowVersions[activeDraft.workflowVersions.length - 1] || null;
 
   const handleNewChat = () => {
     setActiveDraft(null);
-    setActiveVersionId("");
     setComposer("");
+    setPendingMessages([]);
+    setAnimatedMessageId(null);
     setWorkflowName("");
     setMetadataOverrides({});
     setError(null);
@@ -182,6 +188,8 @@ export function AiStrategyChatBuilder() {
     setLoading(true);
     try {
       const draft = await apiGetAiStrategyDraft(draftId);
+      setPendingMessages([]);
+      setAnimatedMessageId(null);
       syncActiveDraft(draft);
     } catch (e: any) {
       setError(e?.response?.data?.message ?? e?.message ?? "Failed to load AI conversation.");
@@ -193,13 +201,38 @@ export function AiStrategyChatBuilder() {
   const handleSend = async () => {
     if (composer.trim().length < 4 || !selectedModel) return;
 
+    const messageText = composer.trim();
+    const now = new Date().toISOString();
+    const optimisticUserMessage: AiStrategyConversationMessage & { pending?: boolean } = {
+      id: `pending_user_${Date.now()}`,
+      role: "user",
+      kind: activeDraft ? "edit" : "prompt",
+      content: messageText,
+      createdAt: now,
+      pending: true,
+    };
+    const optimisticAssistantMessage: AiStrategyConversationMessage & {
+      pending?: boolean;
+      typing?: boolean;
+    } = {
+      id: `pending_assistant_${Date.now()}`,
+      role: "assistant",
+      kind: "result",
+      content: "",
+      createdAt: now,
+      pending: true,
+      typing: true,
+    };
+
+    setComposer("");
+    setPendingMessages([optimisticUserMessage, optimisticAssistantMessage]);
     setSending(true);
     setError(null);
     try {
       if (!activeDraft) {
         const draft = await apiCreateAiStrategyDraft(
           toRequestPayload({
-            prompt: composer,
+            prompt: messageText,
             market,
             goal,
             riskPreference,
@@ -212,18 +245,28 @@ export function AiStrategyChatBuilder() {
           }),
         );
         syncActiveDraft(draft);
+        setAnimatedMessageId(
+          [...draft.messages].reverse().find((message) => message.role === "assistant" && message.kind === "result")
+            ?.id || null,
+        );
       } else {
         const draft = await apiEditAiStrategyDraft(activeDraft.draftId, {
-          instruction: composer,
+          instruction: messageText,
           model: {
             provider: selectedProvider,
             model: selectedModel,
           },
         });
         syncActiveDraft(draft);
+        setAnimatedMessageId(
+          [...draft.messages].reverse().find((message) => message.role === "assistant" && message.kind === "result")
+            ?.id || null,
+        );
       }
-      setComposer("");
+      setPendingMessages([]);
     } catch (e: any) {
+      setComposer(messageText);
+      setPendingMessages([]);
       setError(e?.response?.data?.message ?? e?.message ?? "Failed to send AI message.");
     } finally {
       setSending(false);
@@ -256,7 +299,7 @@ export function AiStrategyChatBuilder() {
 
   return (
     <div className={cx("h-screen overflow-hidden transition-colors", shell)}>
-      <div className="grid h-full grid-cols-1 xl:grid-cols-[270px_minmax(0,1fr)_310px]">
+      <div className="grid h-full grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)]">
         <LeftSidebar
           theme={theme}
           panel={panel}
@@ -272,7 +315,7 @@ export function AiStrategyChatBuilder() {
           onNewChat={handleNewChat}
         />
 
-        <main className={cx("flex h-full min-h-0 flex-col border-r", border)}>
+        <main className={cx("grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto]", border)}>
           <ChatTopHeader
             border={border}
             muted={muted}
@@ -295,12 +338,17 @@ export function AiStrategyChatBuilder() {
           />
 
           <ChatMessagesPane
-            chatScrollRef={chatScrollRef}
-            loading={loading}
-            activeDraft={activeDraft}
-            panel={panel}
-            muted={muted}
-            theme={theme}
+          chatScrollRef={chatScrollRef}
+          loading={loading}
+          activeDraft={activeDraft}
+          messages={visibleMessages}
+          animatedMessageId={animatedMessageId}
+          workflowVersions={activeDraft?.workflowVersions || []}
+          metadataOverrides={metadataOverrides}
+          onMetadataOverridesChange={setMetadataOverrides}
+          panel={panel}
+          muted={muted}
+          theme={theme}
           />
 
           <ChatComposerSection
@@ -341,18 +389,6 @@ export function AiStrategyChatBuilder() {
             error={error}
           />
         </main>
-
-        <RightSidebar
-          panel={panel}
-          border={border}
-          muted={muted}
-          heading={heading}
-          theme={theme}
-          selectedVersion={selectedVersion}
-          activeDraft={activeDraft}
-          activeVersionId={activeVersionId}
-          onSelectVersion={setActiveVersionId}
-        />
       </div>
 
       <AiPlanSetupDialog

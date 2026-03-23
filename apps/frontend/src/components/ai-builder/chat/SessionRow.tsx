@@ -2,6 +2,18 @@ import type { SessionRowProps } from "./shared";
 import { cx } from "./shared";
 
 export function SessionRow({ item, active, theme, onClick }: SessionRowProps) {
+  const statusTone =
+    item.status === "ready"
+      ? "text-emerald-500"
+      : item.status === "needs-inputs"
+        ? "text-amber-500"
+        : "text-[#f17463]";
+
+  const updatedLabel = new Date(item.updatedAt).toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
+
   return (
     <button
       type="button"
@@ -17,13 +29,19 @@ export function SessionRow({ item, active, theme, onClick }: SessionRowProps) {
             : "border-neutral-200 bg-white hover:border-neutral-300",
       )}
     >
-      <div className={cx("line-clamp-1 text-[13px] font-medium", theme === "dark" ? "text-neutral-100" : "text-neutral-800")}>
-        {item.title}
-      </div>
-      <div className={cx("mt-1 line-clamp-1 text-[11px]", theme === "dark" ? "text-neutral-500" : "text-neutral-500")}>
-        {item.lastMessage || "Open to continue refining"}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className={cx("line-clamp-1 text-[13px] font-medium", theme === "dark" ? "text-neutral-100" : "text-neutral-800")}>
+            {item.title}
+          </div>
+          <div className={cx("mt-1 line-clamp-1 text-[11px]", theme === "dark" ? "text-neutral-500" : "text-neutral-500")}>
+            {item.lastMessage || "Open to continue refining"}
+          </div>
+        </div>
+        <div className={cx("text-[10px]", theme === "dark" ? "text-neutral-500" : "text-neutral-400")}>{updatedLabel}</div>
       </div>
       <div className="mt-2 flex items-center gap-2">
+        <span className={cx("h-1.5 w-1.5 rounded-full", statusTone, "bg-current")} />
         <span
           className={cx(
             "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em]",

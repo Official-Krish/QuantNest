@@ -2,6 +2,7 @@ import type { EdgeType, NodeType } from "@quantnest-trading/types";
 import type {
   AiModelDescriptor,
   AiStrategyDraftCreateResponse,
+  AiStrategyConversationMessage,
   AiStrategyDraftEditRequest,
   AiStrategyDraftSession,
   AiStrategyDraftSummary,
@@ -74,6 +75,7 @@ export type {
   AiModelDescriptor,
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
+  AiStrategyConversationMessage,
   AiStrategyDraftSession,
   AiStrategyDraftSummary,
   AiStrategySetupState,
