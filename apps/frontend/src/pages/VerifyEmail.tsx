@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiVerifyEmailToken } from "@/http";
+import { AppBackground } from "@/components/background";
 
 const EMAIL_VERIFIED_FLAG = "quantnest-email-verified";
 
@@ -70,7 +71,8 @@ export const VerifyEmail = () => {
   }, [navigate, status]);
 
   return (
-    <div className="min-h-screen bg-black px-6 pb-10 pt-36 text-white md:px-10">
+    <div className="relative isolate min-h-screen overflow-hidden bg-black px-6 pb-10 pt-36 text-white md:px-10">
+      <AppBackground />
       <div className="mx-auto flex max-w-xl flex-col gap-6 rounded-3xl border border-neutral-800 bg-neutral-950/70 p-8 text-center">
         <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#f17463]">
           Email verification

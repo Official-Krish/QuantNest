@@ -12,6 +12,7 @@ import {
 } from "@/http";
 import { Button } from "@/components/ui/button";
 import { workflowNodeTypes } from "@/components/workflow/nodeTypes";
+import { AppBackground } from "@/components/background";
 
 const POSITION_OFFSET = 50;
 
@@ -327,7 +328,8 @@ export const CreateWorkflow = () => {
   };
 
   return (
-    <div className="bg-black min-h-screen w-full text-white pt-28 pb-8 px-6 md:px-10">
+    <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-8 pt-28 text-white md:px-10">
+      <AppBackground />
       <div className={`mx-auto ${isFullscreen ? "max-w-10xl" : "max-w-6xl"}`}>
         {!isFullscreen && (
           <>

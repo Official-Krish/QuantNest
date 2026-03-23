@@ -26,6 +26,12 @@ export const Hero = ({ onPricingClick }: HeroProps) => {
                     <div className="absolute inset-0 opacity-[0.04] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)]" />
                 </div>
                 <div className="relative z-10 pt-40 flex flex-col items-center gap-6">
+                    <div className="inline-flex items-center gap-3 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-6 py-2.5 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_14px_34px_-18px_rgba(241,116,99,0.9)] backdrop-blur-sm">
+                        <span className="h-3 w-3 rounded-full bg-[#f17463]" />
+                        <span className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-[13px]">
+                            Now in Early Access
+                        </span>
+                    </div>
                     <ShimmeringText duration={0.3} text="For serious traders and quant teams" className="text-[#f17463] text-sm font-normal tracking-widest" />
                     <div className="max-w-2xl flex justify-center text-center">
                         <h1 className="text-white font-medium text-6xl">

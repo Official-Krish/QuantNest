@@ -8,6 +8,7 @@ import { ArrowLeft, Check, User, Workflow, Calendar, Mail } from "lucide-react";
 import { apiGetProfile, apiUpdateProfile, clearAuthSession } from "@/http";
 import { AVATAR_OPTIONS } from "@/lib/utils";
 import { toast } from "sonner";
+import { AppBackground } from "@/components/background";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -55,7 +56,8 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-black via-neutral-950 to-black text-white px-6 py-10 pt-28">
+    <div className="relative isolate min-h-screen overflow-hidden bg-linear-to-b from-black via-neutral-950 to-black px-6 py-10 pt-28 text-white">
+      <AppBackground />
       {/* Header */}
       <div className="mb-10 flex items-center gap-4">
         <Button

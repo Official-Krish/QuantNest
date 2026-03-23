@@ -13,6 +13,7 @@ import {
   formatDate,
   sortExecutionsByStartTime,
 } from "../components/executions/utils";
+import { AppBackground } from "@/components/background";
 
 export const Executions = () => {
   const { workflowId } = useParams<{ workflowId: string }>();
@@ -88,7 +89,8 @@ export const Executions = () => {
   const openWorkflow = () => navigate(`/workflow/${workflowId}`);
 
   return (
-    <div className="min-h-screen w-full bg-black px-6 pb-10 pt-24 text-white md:px-10">
+    <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-10 pt-24 text-white md:px-10">
+      <AppBackground />
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <ExecutionsHeader
           workflowName={workflowName}

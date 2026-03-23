@@ -1,3 +1,4 @@
+import { AppBackground } from "@/components/background";
 import { hasAuthSession } from "@/http";
 import {
   ArrowRight,
@@ -614,6 +615,7 @@ export const StaticContentPage = ({ pageKey }: { pageKey: keyof typeof PAGE_CONF
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black px-6 pb-16 pt-28 text-white md:px-10">
+      <AppBackground />
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(1100px_480px_at_82%_-8%,rgba(241,116,99,0.15),transparent_62%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(900px_420px_at_100%_78%,rgba(56,189,248,0.09),transparent_66%)]" />

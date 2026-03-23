@@ -2,6 +2,7 @@ import { hasAuthSession } from "@/http";
 import { ArrowLeft, ArrowRight, Clock3, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { AppBackground } from "@/components/background";
 
 type ComingSoonContent = {
   title: string;
@@ -93,7 +94,8 @@ export const ComingSoon = () => {
   }, [feature]);
 
   return (
-    <div className="min-h-screen w-full bg-black px-6 pb-16 pt-28 text-white md:px-10">
+    <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-16 pt-28 text-white md:px-10">
+      <AppBackground />
       <div className="mx-auto max-w-4xl">
         <div className="relative overflow-hidden rounded-3xl border border-neutral-800 bg-linear-to-br from-neutral-950 via-black to-neutral-950/80 p-8 md:p-12">
           <div className="pointer-events-none absolute -left-12 top-8 h-56 w-56 rounded-full bg-[#f17463]/15 blur-3xl" />

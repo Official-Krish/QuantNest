@@ -13,6 +13,7 @@ import {
   ExampleCreateDialog,
   type ExampleMetadataOverrides,
 } from "../components/examples/ExampleCreateDialog";
+import { AppBackground } from "@/components/background";
 
 export const Examples = () => {
   const navigate = useNavigate();
@@ -78,9 +79,10 @@ export const Examples = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black px-6 pb-16 pt-32 text-white md:px-10">
+    <div className="relative isolate min-h-screen overflow-hidden bg-black px-6 pb-16 pt-32 text-white md:px-10">
+      <AppBackground />
       <div className="mx-auto max-w-7xl">
-        <div className="relative overflow-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950/80 p-8 md:p-10">
+        <div className="relative overflow-hidden rounded-4xl border border-neutral-800 bg-neutral-950/80 p-8 md:p-10">
           <div className="pointer-events-none absolute -right-20 top-0 h-72 w-72 rounded-full bg-[#f17463]/10 blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-sky-500/10 blur-3xl" />
 

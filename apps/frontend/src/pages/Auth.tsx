@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShineBorder } from "@/components/ui/shine-border";
+import { AppBackground } from "@/components/background";
 import { getSignupValidationErrors } from "@/lib/validation";
 import { toast } from "sonner";
 
@@ -161,10 +162,17 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
 
   if (mode === "signup" && signupVerificationEmail) {
     return (
-      <div className="flex min-h-screen items-center bg-black px-6 pb-6 pt-24">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
+      <div className="relative isolate flex min-h-screen items-center overflow-hidden bg-black px-6 pb-6 pt-24">
+        <AppBackground variant="warm" glow="medium" gridSize={42} />
+        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6 text-neutral-200 lg:self-center">
             <div className="space-y-4">
+              <div className="inline-flex items-center gap-3 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-5 py-2 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_14px_30px_-20px_rgba(241,116,99,0.9)] backdrop-blur-sm">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#f17463]" />
+                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-xs">
+                  Now in Early Access
+                </span>
+              </div>
               <h1 className="bg-linear-to-r from-[#f17463] via-[#f4937d] to-[#fde1d6] bg-clip-text text-5xl font-bold text-transparent">
                 Verify your email
               </h1>
@@ -190,7 +198,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
               <CardFooter className="flex flex-col gap-2.5">
                 <button
                   type="button"
-                  className="w-full rounded-lg bg-white py-2 text-center font-normal text-neutral-800 transition-transform hover:scale-105 cursor-pointer"
+                  className="w-full rounded-3xl bg-[#ff5f2e] py-3 text-center font-semibold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#ff7146] active:translate-y-0 active:scale-[0.995] cursor-pointer"
                   onClick={() =>
                     nav("/signin", {
                       state: { verificationEmail: signupVerificationEmail },
@@ -215,11 +223,18 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center bg-black px-6 pb-6 pt-24">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
+    <div className="relative isolate flex min-h-screen items-center overflow-hidden bg-black px-6 pb-6 pt-24">
+      <AppBackground variant="warm" glow="medium" gridSize={42} />
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
         {/* Left Content Section */}
         <div className="flex-1 space-y-6 text-neutral-200 lg:self-center">
           <div className="space-y-4">
+            <div className="inline-flex items-center gap-3 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-5 py-2 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_14px_30px_-20px_rgba(241,116,99,0.9)] backdrop-blur-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#f17463]" />
+              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-xs">
+                Now in Early Access
+              </span>
+            </div>
             <h1
               className="text-5xl font-bold bg-linear-to-r from-[#f17463] via-[#f4937d] to-[#fde1d6] bg-clip-text text-transparent"
             >
@@ -412,7 +427,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
 
             <CardFooter className="flex flex-col gap-2.5">
               <button
-                className="w-full bg-white py-2 rounded-lg cursor-pointer text-neutral-800 font-normal disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform text-center"
+                className="w-full rounded-2xl bg-[#ff5f2e] py-3 text-center font-semibold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#ff7146] active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                 onClick={onSubmit}
                 disabled={
                   loading ||

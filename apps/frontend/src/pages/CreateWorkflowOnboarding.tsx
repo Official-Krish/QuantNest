@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
+import { AppBackground } from "@/components/background"
 
 const onboardingSteps = [
   {
@@ -26,7 +27,8 @@ export const CreateWorkflowOnboarding = () => {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen w-full bg-black px-6 pb-10 pt-24 text-white md:px-10">
+    <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-10 pt-24 text-white md:px-10">
+      <AppBackground />
       <div className="mx-auto max-w-5xl">
         <div className="rounded-3xl border border-neutral-800 bg-linear-to-b from-neutral-950 via-black to-neutral-950/80 p-6 md:p-8">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#f17463]">

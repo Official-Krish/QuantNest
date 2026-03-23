@@ -4,6 +4,7 @@ import { apiGetNotifications, apiMarkAllNotificationsRead, apiMarkNotificationRe
 import type { UserNotification } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { AppBackground } from "@/components/background";
 
 const severityMap = {
   info: {
@@ -80,7 +81,8 @@ export const Notifications = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black px-6 pb-10 pt-36 text-white md:px-10">
+    <div className="relative isolate min-h-screen overflow-hidden bg-black px-6 pb-10 pt-36 text-white md:px-10">
+      <AppBackground />
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
         <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
