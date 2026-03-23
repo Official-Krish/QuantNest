@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { TypewriterEffect } from "@/components/ui/typewriter-effect";
 import { cx, type LocalTheme } from "./shared";
 
 type ChatBubbleProps = {
@@ -7,13 +8,39 @@ type ChatBubbleProps = {
   kind: string;
   timestamp: string;
   theme: LocalTheme;
+  pending?: boolean;
+  typing?: boolean;
+  animate?: boolean;
 };
 
-export function ChatBubble({ role, content, kind, timestamp, theme }: ChatBubbleProps) {
+export function ChatBubble({
+  role,
+  content,
+  kind,
+  timestamp,
+  theme,
+  pending = false,
+  typing = false,
+  animate = false,
+}: ChatBubbleProps) {
   const isUser = role === "user";
+  const assistantTone =
+    kind === "validation"
+      ? theme === "dark"
+        ? "border border-amber-500/30 bg-amber-500/8 text-amber-100"
+        : "border border-amber-300 bg-amber-50 text-amber-900"
+      : theme === "dark"
+        ? "bg-[#ececec] text-neutral-800"
+        : "bg-[#eef1f5] text-neutral-800";
 
   return (
-    <div className={cx("flex gap-2.5 transition-opacity duration-200", isUser ? "justify-end" : "justify-start")}>
+    <div
+      className={cx(
+        "flex gap-2.5 transition-opacity duration-200",
+        pending ? "opacity-85" : "opacity-100",
+        isUser ? "justify-end" : "justify-start",
+      )}
+    >
       {!isUser ? (
         <div
           className={cx(
@@ -33,20 +60,47 @@ export function ChatBubble({ role, content, kind, timestamp, theme }: ChatBubble
               ? theme === "dark"
                 ? "bg-[#121212] text-white"
                 : "bg-[#151515] text-white"
-              : kind === "validation"
-                ? theme === "dark"
-                  ? "border border-amber-500/30 bg-amber-500/8 text-amber-100"
-                  : "border border-amber-300 bg-amber-50 text-amber-900"
-                : theme === "dark"
-                  ? "bg-[#ececec] text-neutral-800"
-                  : "bg-[#eef1f5] text-neutral-800",
+              : assistantTone,
           )}
         >
-          <div className="whitespace-pre-wrap">{content}</div>
+          {typing ? (
+            <TypewriterEffect
+              words={[
+                { text: "QuantNest" },
+                { text: "AI" },
+                { text: "is" },
+                { text: "thinking..." },
+              ]}
+              className={cx(
+                "!my-0 !flex !items-center !text-left !text-[13px] !font-medium !leading-6",
+                theme === "dark" ? "!text-neutral-800" : "!text-neutral-700",
+              )}
+              cursorClassName="!h-4 !w-[3px] !bg-[#f17463]"
+            />
+          ) : animate && !isUser ? (
+            <TypewriterEffect
+              words={content.split(/\s+/).filter(Boolean).map((word) => ({ text: word }))}
+              className={cx(
+                "!my-0 !block !text-left !text-[13px] !font-normal !leading-6",
+                theme === "dark" ? "!text-neutral-800" : "!text-neutral-700",
+              )}
+              cursorClassName="!h-4 !w-[3px] !bg-[#f17463]"
+            />
+          ) : (
+            <div className="whitespace-pre-wrap">{content}</div>
+          )}
         </div>
         <div className={cx("mt-1 px-1 text-[10px]", theme === "dark" ? "text-neutral-500" : "text-neutral-500")}>
-          {kind === "validation" ? "Validation" : role === "user" ? "You" : "QuantNest AI"} .{" "}
+          {typing
+            ? "QuantNest AI"
+            : kind === "validation"
+              ? "Validation"
+              : role === "user"
+                ? "You"
+                : "QuantNest AI"}{" "}
+          .{" "}
           {new Date(timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+          {pending && !typing ? " . Sending..." : ""}
         </div>
       </div>
 

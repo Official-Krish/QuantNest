@@ -5,7 +5,12 @@ import { normalizeGeneratedNodes } from "@/components/ai-builder/utils";
 import { aiPreviewNodeTypes } from "@/components/ai-builder/previewNodeTypes";
 import { buildPreviewLayout, cx, type WorkflowCanvasCardProps } from "./shared";
 
-export function WorkflowCanvasCard({ version, theme }: WorkflowCanvasCardProps) {
+export function WorkflowCanvasCard({
+  version,
+  theme,
+  compact = false,
+  title = "Workflow Preview",
+}: WorkflowCanvasCardProps) {
   const nodes = useMemo(
     () => (version ? (normalizeGeneratedNodes(version.response.plan) as NodeType[]) : []),
     [version],
@@ -22,12 +27,17 @@ export function WorkflowCanvasCard({ version, theme }: WorkflowCanvasCardProps) 
         theme === "dark" ? "border-neutral-800 bg-black" : "border-neutral-200 bg-white",
       )}
     >
-      <div className={cx("mb-2 text-[11px] font-medium uppercase tracking-[0.18em]", theme === "dark" ? "text-neutral-400" : "text-neutral-500")}>
-        Workflow Preview
+      <div
+        className={cx(
+          "mb-2 text-[11px] font-medium uppercase tracking-[0.18em]",
+          theme === "dark" ? "text-neutral-400" : "text-neutral-500",
+        )}
+      >
+        {title}
       </div>
       <div
         className={cx(
-          "h-37 overflow-hidden rounded-2xl border",
+          compact ? "h-37 overflow-hidden rounded-2xl border" : "h-56 overflow-hidden rounded-2xl border",
           theme === "dark" ? "border-neutral-800 bg-[#121212]" : "border-neutral-200 bg-[#f5f7fa]",
         )}
       >
@@ -36,7 +46,7 @@ export function WorkflowCanvasCard({ version, theme }: WorkflowCanvasCardProps) 
           nodes={previewNodes.map((node) => ({ ...node, id: node.nodeId }))}
           edges={edges}
           fitView
-          minZoom={0.38}
+          minZoom={compact ? 0.38 : 0.28}
           maxZoom={1.4}
           nodesDraggable={false}
           nodesConnectable={false}
