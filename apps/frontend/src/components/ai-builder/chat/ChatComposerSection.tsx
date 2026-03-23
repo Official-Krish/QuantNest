@@ -415,7 +415,8 @@ export function ChatComposerSection({
                 style={{
                   position: "absolute",
                   right: 2,
-                  bottom: 2,
+                  top: "50%",
+                  transform: "translateY(-50%)",
                   width: 40,
                   height: 40,
                   borderRadius: 12,
@@ -446,8 +447,8 @@ export function ChatComposerSection({
 
           {/* hint + error */}
           <motion.div
-            style={{ marginTop: 8, fontFamily: MONO, fontSize: 12, letterSpacing: "0.03em", fontWeight: 500 }}
-            animate={{ color: focused ? "rgba(230,224,220,0.92)" : "rgba(230,224,220,0.72)" }}
+            style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, letterSpacing: "0.03em", fontWeight: 300 }}
+            animate={{ color: focused ? "rgba(230,224,220,0.72)" : "rgba(230,224,220,0.56)" }}
             transition={{ duration: 0.28 }}
             className={cx(theme === "light" ? muted : "")}
           >
