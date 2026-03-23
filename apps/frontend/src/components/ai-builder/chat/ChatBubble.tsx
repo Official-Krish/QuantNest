@@ -68,7 +68,6 @@ export function ChatBubble({
           {typing ? (
             <TypewriterEffect
               words={[
-                { text: "QuantNest" },
                 { text: "AI" },
                 { text: "is" },
                 { text: "thinking..." },
