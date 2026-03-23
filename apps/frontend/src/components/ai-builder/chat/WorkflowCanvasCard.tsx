@@ -54,7 +54,7 @@ export function WorkflowCanvasCard({
   return (
     <div
       className={cx(
-        attached ? "rounded-b-2xl border border-t-0 p-3.5" : "rounded-2xl border p-3.5",
+        attached ? "rounded-2xl border p-3.5" : "rounded-2xl border p-3.5",
         theme === "dark" ? "border-neutral-800 bg-black" : "border-neutral-200 bg-white",
       )}
     >

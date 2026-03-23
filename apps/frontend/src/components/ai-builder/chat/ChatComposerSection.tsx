@@ -348,17 +348,17 @@ export function ChatComposerSection({
             )}
           </AnimatePresence>
 
-          {/* ── Input box (pure black) ── */}
+          {/* ── Input box ── */}
           <motion.div
             style={{
               borderRadius: 24,
               border: `1px solid`,
-              background: "#000",
+              background: theme === "dark" ? "#000" : "#FFF8F5",
               padding: "14px 18px",
               position: "relative",
             }}
             animate={{
-              borderColor: focused ? "rgba(249,115,22,0.30)" : theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.12)",
+              borderColor: focused ? "rgba(249,115,22,0.38)" : theme === "dark" ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.18)",
               boxShadow: focused ? "0 0 40px rgba(249,115,22,0.06) inset" : "none",
             }}
             transition={{ duration: 0.28 }}
@@ -401,10 +401,10 @@ export function ChatComposerSection({
                   paddingRight: 56,
                   fontFamily: BODY,
                   fontWeight: 300,
-                  color: theme === "dark" ? T.txt : "#e8d5c4",
+                  color: theme === "dark" ? "#ffffff" : "#111111",
                   caretColor: T.or,
                 }}
-                className={cx(theme === "dark" ? "placeholder:text-neutral-600" : "placeholder:text-neutral-500")}
+                className={cx(theme === "dark" ? "placeholder:text-neutral-600" : "placeholder:text-neutral-400")}
               />
 
               {/* Send button */}

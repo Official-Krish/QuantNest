@@ -39,7 +39,6 @@ export function ChatTopHeader({
           </button>
           <div>
             <div className={cx("flex items-center gap-2 text-[14px] font-semibold", heading)}>
-              <Sparkles className="h-4 w-4 text-[#f17463]" />
               {title}
             </div>
             <div className={cx("mt-0.5 text-[12px]", muted)}>AI Strategy Builder</div>
