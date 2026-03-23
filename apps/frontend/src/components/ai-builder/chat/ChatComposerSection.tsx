@@ -1,6 +1,6 @@
-import { Send } from "lucide-react";
+import { ChevronDown, Send } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AiModelDescriptor, AiStrategyBuilderRequest } from "@/types/api";
 import { AI_ACTION_OPTIONS } from "@/components/ai-builder/constants";
 import { cx, type LocalTheme } from "./shared";
@@ -14,7 +14,7 @@ const T = {
   orGlow:  "rgba(249,115,22,0.22)",
   txt:     "#EDD9C4",
   txtDim:  "#8A6F58",
-  txtMute: "#3A2516",
+  txtMute: "#e6e0dc",
   onBg:    "#0a0a0a",
   onBdr:   "rgba(255,255,255,0.13)",
   onTxt:   "#E8D5C4",
@@ -22,23 +22,6 @@ const T = {
 
 const MONO = "'DM Mono', monospace";
 const BODY = "'Outfit', sans-serif";
-
-function Pip() {
-  return (
-    <motion.span
-      style={{ width: 7, height: 7, borderRadius: "50%", background: T.or, display: "inline-block", flexShrink: 0 }}
-      animate={{
-        opacity: [1, 0.4, 1],
-        boxShadow: [
-          `0 0 8px ${T.or}, 0 0 18px rgba(249,115,22,0.35)`,
-          `0 0 3px ${T.or}`,
-          `0 0 8px ${T.or}, 0 0 18px rgba(249,115,22,0.35)`,
-        ],
-      }}
-      transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
-    />
-  );
-}
 
 function StyledSelect({ value, onChange, children, theme }: { value: string; onChange: (v: string) => void; children: React.ReactNode; theme: LocalTheme }) {
   const [hovered, setHovered] = useState(false);
@@ -188,13 +171,31 @@ export function ChatComposerSection({
   error,
 }: ChatComposerSectionProps) {
   const [focused, setFocused] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const resizeComposer = () => {
+    const node = composerRef.current;
+    if (!node) return;
+
+    node.style.height = "0px";
+    const computed = window.getComputedStyle(node);
+    const lineHeight = Number.parseFloat(computed.lineHeight) || 24;
+    const maxHeight = Math.ceil(lineHeight * 3);
+    const nextHeight = Math.min(node.scrollHeight, maxHeight);
+    node.style.height = `${Math.max(nextHeight, 24)}px`;
+    node.style.overflowY = node.scrollHeight > maxHeight ? "auto" : "hidden";
+  };
+
+  useEffect(() => {
+    resizeComposer();
+  }, [composer]);
 
   return (
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap');`}</style>
 
-      <div className={cx("border-t px-4 py-2.5", border)} style={{ fontFamily: BODY }}>
-        <div className="mx-auto max-w-215">
+      <div className={cx("border-t px-5 py-4", border)} style={{ fontFamily: BODY }}>
+        <div className="mx-auto w-full max-w-[1180px]">
 
           {/* ── Toggle header ── */}
           <motion.button
@@ -209,16 +210,16 @@ export function ChatComposerSection({
             whileTap={{ scale: 0.97 }}
             transition={{ duration: 0.15 }}
           >
-            <Pip />
             <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.16em", color: T.txtDim, textTransform: "uppercase" }}>
               {showSetup ? "Hide options" : "Show options"}
             </span>
-            {/* animated chevron */}
             <motion.span
               animate={{ rotate: showSetup ? 180 : 0, color: showSetup ? T.or : T.txtMute }}
               transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
-              style={{ fontSize: 11, display: "inline-block", originY: 0.55, marginLeft: 2 }}
-            >▾</motion.span>
+              style={{ display: "inline-flex", marginLeft: 2 }}
+            >
+              <ChevronDown size={14} />
+            </motion.span>
           </motion.button>
 
           {/* ── Collapsible options panel ── */}
@@ -353,7 +354,7 @@ export function ChatComposerSection({
               borderRadius: 24,
               border: `1px solid`,
               background: "#000",
-              padding: "10px 16px",
+              padding: "14px 18px",
               position: "relative",
             }}
             animate={{
@@ -373,10 +374,12 @@ export function ChatComposerSection({
               transition={{ duration: 0.3 }}
             />
 
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
+            <div style={{ position: "relative" }}>
               <textarea
+                ref={composerRef}
                 value={composer}
                 onChange={(e) => onComposerChange(e.target.value)}
+                onInput={resizeComposer}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
                 onKeyDown={(e) => {
@@ -385,12 +388,19 @@ export function ChatComposerSection({
                     onSend();
                   }
                 }}
-                placeholder="Refine this workflow..."
+                placeholder="Ask to modify, add steps, or change conditions..."
                 style={{
-                  flex: 1, minHeight: 56, resize: "none",
-                  background: "transparent", border: "none", outline: "none",
-                  fontSize: 13, lineHeight: 1.65,
-                  fontFamily: BODY, fontWeight: 300,
+                  minHeight: 24,
+                  resize: "none",
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  fontSize: 13,
+                  lineHeight: 1.65,
+                  width: "100%",
+                  paddingRight: 56,
+                  fontFamily: BODY,
+                  fontWeight: 300,
                   color: theme === "dark" ? T.txt : "#e8d5c4",
                   caretColor: T.or,
                 }}
@@ -403,36 +413,43 @@ export function ChatComposerSection({
                 onClick={onSend}
                 disabled={sending || !canSend}
                 style={{
-                  width: 38, height: 38, borderRadius: 10,
+                  position: "absolute",
+                  right: 2,
+                  bottom: 2,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
                   border: "1px solid",
-                  display: "flex", alignItems: "center", justifyContent: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: canSend && !sending ? "pointer" : "not-allowed",
-                  flexShrink: 0, outline: "none",
+                  outline: "none",
                 }}
                 animate={{
-                  borderColor: canSend && !sending ? T.or          : T.bdr,
-                  background:  canSend && !sending ? T.or          : T.surf2,
-                  color:       canSend && !sending ? "#000"         : T.txtMute,
-                  opacity:     sending             ? 0.5            : 1,
-                  boxShadow:   canSend && !sending
+                  borderColor: canSend && !sending ? T.or : T.bdr,
+                  background: canSend && !sending ? T.or : T.surf2,
+                  color: canSend && !sending ? "#111" : T.txtMute,
+                  opacity: sending ? 0.5 : 1,
+                  boxShadow: canSend && !sending
                     ? `0 0 20px ${T.orGlow}, 0 4px 14px rgba(0,0,0,0.4)`
                     : "none",
                 }}
-                whileHover={canSend && !sending ? { scale: 1.07, boxShadow: `0 0 28px rgba(249,115,22,0.5)` } : {}}
-                whileTap={canSend && !sending ? { scale: 0.93 } : {}}
+                whileHover={canSend && !sending ? { scale: 1.05, boxShadow: `0 0 24px rgba(249,115,22,0.42)` } : {}}
+                whileTap={canSend && !sending ? { scale: 0.95 } : {}}
                 transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
               >
-                <Send style={{ width: 14, height: 14 }} />
+                <Send style={{ width: 16, height: 16 }} className="text-white" />
               </motion.button>
             </div>
           </motion.div>
 
           {/* hint + error */}
           <motion.div
-            style={{ marginTop: 8, fontFamily: MONO, fontSize: 11, letterSpacing: "0.05em" }}
-            animate={{ color: focused ? T.txtMute : T.txtMute + "88" }}
+            style={{ marginTop: 8, fontFamily: MONO, fontSize: 12, letterSpacing: "0.03em", fontWeight: 500 }}
+            animate={{ color: focused ? "rgba(230,224,220,0.92)" : "rgba(230,224,220,0.72)" }}
             transition={{ duration: 0.28 }}
-            className={cx(muted)}
+            className={cx(theme === "light" ? muted : "")}
           >
             Enter to send · Shift+Enter for newline
           </motion.div>

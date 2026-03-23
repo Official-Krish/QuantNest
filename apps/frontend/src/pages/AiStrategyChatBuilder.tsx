@@ -30,7 +30,6 @@ import { ChatTopHeader } from "@/components/ai-builder/chat/ChatTopHeader";
 import { ChatMetaBar } from "@/components/ai-builder/chat/ChatMetaBar";
 import { ChatMessagesPane } from "@/components/ai-builder/chat/ChatMessagesPane";
 import { ChatComposerSection } from "@/components/ai-builder/chat/ChatComposerSection";
-import { RightSidebar } from "@/components/ai-builder/chat/RightSidebar";
 
 export function AiStrategyChatBuilder() {
   const navigate = useNavigate();
@@ -40,7 +39,6 @@ export function AiStrategyChatBuilder() {
   const [models, setModels] = useState<AiModelDescriptor[]>([]);
   const [draftSummaries, setDraftSummaries] = useState<AiStrategyDraftSummary[]>([]);
   const [activeDraft, setActiveDraft] = useState<AiStrategyDraftSession | null>(null);
-  const [activeVersionId, setActiveVersionId] = useState("");
   const [composer, setComposer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,7 +112,6 @@ export function AiStrategyChatBuilder() {
 
   const syncActiveDraft = (draft: AiStrategyDraftSession) => {
     setActiveDraft(draft);
-    setActiveVersionId(draft.workflowVersions[draft.workflowVersions.length - 1]?.id || "");
     setWorkflowName(draft.setupState?.workflowName || draft.response.plan.workflowName);
     setMetadataOverrides(draft.setupState?.metadataOverrides || {});
     setMarket(draft.request.market);
@@ -174,13 +171,10 @@ export function AiStrategyChatBuilder() {
   );
 
   const selectedVersion =
-    activeDraft?.workflowVersions.find((version) => version.id === activeVersionId) ||
-    activeDraft?.workflowVersions[activeDraft.workflowVersions.length - 1] ||
-    null;
+    activeDraft?.workflowVersions[activeDraft.workflowVersions.length - 1] || null;
 
   const handleNewChat = () => {
     setActiveDraft(null);
-    setActiveVersionId("");
     setComposer("");
     setPendingMessages([]);
     setAnimatedMessageId(null);
@@ -305,7 +299,7 @@ export function AiStrategyChatBuilder() {
 
   return (
     <div className={cx("h-screen overflow-hidden transition-colors", shell)}>
-      <div className="grid h-full grid-cols-1 xl:grid-cols-[270px_minmax(0,1fr)_310px]">
+      <div className="grid h-full grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)]">
         <LeftSidebar
           theme={theme}
           panel={panel}
@@ -321,7 +315,7 @@ export function AiStrategyChatBuilder() {
           onNewChat={handleNewChat}
         />
 
-        <main className={cx("flex h-full min-h-0 flex-col border-r", border)}>
+        <main className={cx("grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto]", border)}>
           <ChatTopHeader
             border={border}
             muted={muted}
@@ -343,13 +337,15 @@ export function AiStrategyChatBuilder() {
             selectedActions={selectedActions}
           />
 
-        <ChatMessagesPane
+          <ChatMessagesPane
           chatScrollRef={chatScrollRef}
           loading={loading}
           activeDraft={activeDraft}
           messages={visibleMessages}
           animatedMessageId={animatedMessageId}
           workflowVersions={activeDraft?.workflowVersions || []}
+          metadataOverrides={metadataOverrides}
+          onMetadataOverridesChange={setMetadataOverrides}
           panel={panel}
           muted={muted}
           theme={theme}
@@ -393,18 +389,6 @@ export function AiStrategyChatBuilder() {
             error={error}
           />
         </main>
-
-        <RightSidebar
-          panel={panel}
-          border={border}
-          muted={muted}
-          heading={heading}
-          theme={theme}
-          selectedVersion={selectedVersion}
-          activeDraft={activeDraft}
-          activeVersionId={activeVersionId}
-          onSelectVersion={setActiveVersionId}
-        />
       </div>
 
       <AiPlanSetupDialog

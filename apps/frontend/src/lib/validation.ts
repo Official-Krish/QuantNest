@@ -31,7 +31,7 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   }
 
   if (action === "whatsapp" && !WHATSAPP_PHONE_REGEX.test(String(metadata.recipientPhone || "").trim())) {
-    errors.push("WhatsApp number must be in E.164 format.");
+    errors.push("WhatsApp number must be in +91XXXXXXXXX format.");
   }
 
   if (action === "notion-daily-report") {

@@ -32,6 +32,15 @@ export function LeftSidebar({
   onToggleTheme,
   onNewChat,
 }: LeftSidebarProps) {
+  const now = new Date();
+  const groupedDrafts = filteredDrafts.reduce<Record<string, AiStrategyDraftSummary[]>>((acc, draft) => {
+    const updatedAt = new Date(draft.updatedAt);
+    const sameDay = updatedAt.toDateString() === now.toDateString();
+    const bucket = sameDay ? "Today" : "Earlier";
+    acc[bucket] = [...(acc[bucket] || []), draft];
+    return acc;
+  }, {});
+
   return (
     <aside className={cx("flex h-full min-h-0 flex-col border-r", panel)}>
       <div className={cx("flex items-center justify-between border-b px-3.5 py-3", border)}>
@@ -74,15 +83,26 @@ export function LeftSidebar({
       </div>
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3.5 pb-3.5">
-        {filteredDrafts.map((item) => (
-          <SessionRow
-            key={item.draftId}
-            item={item}
-            active={activeDraftId === item.draftId}
-            theme={theme}
-            onClick={() => onLoadDraft(item.draftId)}
-          />
-        ))}
+        {filteredDrafts.length === 0 ? (
+          <div className={cx("rounded-xl border px-3 py-4 text-sm", theme === "dark" ? "border-neutral-800 bg-black text-neutral-500" : "border-neutral-200 bg-white text-neutral-500")}>
+            No conversations yet. Start a new workflow chat to see saved drafts here.
+          </div>
+        ) : (
+          Object.entries(groupedDrafts).map(([label, drafts]) => (
+            <div key={label} className="space-y-2">
+              <div className={cx("px-1 text-[10px] font-medium uppercase tracking-[0.18em]", muted)}>{label}</div>
+              {drafts.map((item) => (
+                <SessionRow
+                  key={item.draftId}
+                  item={item}
+                  active={activeDraftId === item.draftId}
+                  theme={theme}
+                  onClick={() => onLoadDraft(item.draftId)}
+                />
+              ))}
+            </div>
+          ))
+        )}
       </div>
     </aside>
   );

@@ -111,4 +111,5 @@ export type WorkflowCanvasCardProps = {
   theme: LocalTheme;
   compact?: boolean;
   title?: string;
+  attached?: boolean;
 };

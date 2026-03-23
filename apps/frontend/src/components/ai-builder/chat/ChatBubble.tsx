@@ -30,36 +30,38 @@ export function ChatBubble({
         ? "border border-amber-500/30 bg-amber-500/8 text-amber-100"
         : "border border-amber-300 bg-amber-50 text-amber-900"
       : theme === "dark"
-        ? "bg-[#ececec] text-neutral-800"
-        : "bg-[#eef1f5] text-neutral-800";
+        ? "border border-neutral-800 bg-[#111111] text-neutral-100 shadow-[0_8px_24px_rgba(0,0,0,0.2)]"
+        : "border border-neutral-200 bg-[#f8fafc] text-neutral-800";
 
   return (
     <div
       className={cx(
-        "flex gap-2.5 transition-opacity duration-200",
+        "flex w-fit max-w-full gap-2.5 transition-opacity duration-200",
         pending ? "opacity-85" : "opacity-100",
-        isUser ? "justify-end" : "justify-start",
+        isUser ? "ml-auto justify-end" : "justify-start",
       )}
     >
       {!isUser ? (
         <div
           className={cx(
-            "mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-            theme === "dark" ? "bg-[#f8ede8] text-[#f17463]" : "bg-[#fff1ea] text-[#f17463]",
+            "mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+            theme === "dark"
+              ? "border-[#f17463]/20 bg-[#1b120e] text-[#f17463]"
+              : "border-[#f17463]/15 bg-[#fff1ea] text-[#f17463]",
           )}
         >
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="h-3.5 w-3.5" />
         </div>
       ) : null}
 
-      <div className="max-w-[74%]">
+      <div className={cx("w-fit", isUser ? "ml-auto max-w-[85%]" : "max-w-[78%]")}>
         <div
           className={cx(
-            "rounded-3xl px-3.5 py-2.5 text-[13px] leading-6",
+            "rounded-3xl px-4 py-3 text-[14px] leading-7",
             isUser
               ? theme === "dark"
-                ? "bg-[#121212] text-white"
-                : "bg-[#151515] text-white"
+                ? "border border-neutral-800 bg-[#171717] text-white shadow-[0_6px_20px_rgba(0,0,0,0.18)]"
+                : "border border-neutral-900 bg-[#151515] text-white"
               : assistantTone,
           )}
         >
@@ -73,7 +75,7 @@ export function ChatBubble({
               ]}
               className={cx(
                 "!my-0 !flex !items-center !text-left !text-[13px] !font-medium !leading-6",
-                theme === "dark" ? "!text-neutral-800" : "!text-neutral-700",
+                theme === "dark" ? "!text-neutral-100" : "!text-neutral-700",
               )}
               cursorClassName="!h-4 !w-[3px] !bg-[#f17463]"
             />
@@ -82,7 +84,7 @@ export function ChatBubble({
               words={content.split(/\s+/).filter(Boolean).map((word) => ({ text: word }))}
               className={cx(
                 "!my-0 !block !text-left !text-[13px] !font-normal !leading-6",
-                theme === "dark" ? "!text-neutral-800" : "!text-neutral-700",
+                theme === "dark" ? "!text-neutral-100" : "!text-neutral-700",
               )}
               cursorClassName="!h-4 !w-[3px] !bg-[#f17463]"
             />
@@ -90,22 +92,35 @@ export function ChatBubble({
             <div className="whitespace-pre-wrap">{content}</div>
           )}
         </div>
-        <div className={cx("mt-1 px-1 text-[10px]", theme === "dark" ? "text-neutral-500" : "text-neutral-500")}>
-          {typing
-            ? "QuantNest AI"
-            : kind === "validation"
-              ? "Validation"
-              : role === "user"
-                ? "You"
-                : "QuantNest AI"}{" "}
-          .{" "}
-          {new Date(timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-          {pending && !typing ? " . Sending..." : ""}
+        <div
+          className={cx(
+            "mt-1 flex items-center gap-1.5 px-1 text-[11px]",
+            isUser ? "justify-end" : "justify-start",
+            theme === "dark" ? "text-neutral-500" : "text-neutral-500",
+          )}
+        >
+          <span>
+            {typing
+              ? "QuantNest AI"
+              : kind === "validation"
+                ? "Validation"
+                : role === "user"
+                  ? "You"
+                  : "QuantNest AI"}
+          </span>
+          <span>•</span>
+          <span>{new Date(timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+          {pending && !typing ? (
+            <>
+              <span>•</span>
+              <span>Sending...</span>
+            </>
+          ) : null}
         </div>
       </div>
 
       {isUser ? (
-        <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[#151515] text-[10px] font-semibold text-white">
+        <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-neutral-800 bg-[#151515] text-[10px] font-semibold text-white">
           Y
         </div>
       ) : null}
