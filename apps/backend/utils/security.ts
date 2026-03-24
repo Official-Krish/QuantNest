@@ -1,5 +1,3 @@
-const AVATAR_URL_REGEX = /^https:\/\/api\.dicebear\.com\/7\.x\/avataaars\/svg\?seed=[A-Za-z0-9_-]+$/;
-
 export function getJwtSecret(): string {
     const secret = process.env.JWT_SECRET;
     if (!secret || secret === "JWT_SECRET") {
@@ -14,8 +12,4 @@ export function getFrontendBaseUrl(): string {
         process.env.CORS_ORIGIN?.split(",")[0]?.trim();
 
     return configured || "http://localhost:5173";
-}
-
-export function isAllowedAvatarUrl(value: string): boolean {
-    return AVATAR_URL_REGEX.test(value.trim());
 }

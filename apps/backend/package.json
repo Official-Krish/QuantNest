@@ -13,10 +13,12 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@types/cookie-parser": "^1.4.10",
+    "@google-cloud/storage": "^7.19.0",
     "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.97",
+    "@types/multer": "^2.1.0",
     "axios": "^1.13.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -26,6 +28,7 @@
     "jsonwebtoken": "^9.0.2",
     "kiteconnect": "^5.1.0",
     "mongoose": "^9.1.5",
+    "multer": "^2.1.1",
     "resend": "^6.9.1"
   }
 }
