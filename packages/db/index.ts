@@ -1,5 +1,34 @@
 import mongoose , { Schema } from 'mongoose';
 
+const UserPreferencesSchema = new Schema({
+    defaultMarket: {
+        type: String,
+        enum: ["Indian", "US", "Crypto"],
+        default: "Indian",
+    },
+    defaultBroker: {
+        type: String,
+        enum: ["Zerodha", "Groww", "Lighter", "Paper Trading"],
+        default: "Zerodha",
+    },
+    theme: {
+        type: String,
+        enum: ["Dark", "Light"],
+        default: "Dark",
+    },
+}, {
+    _id: false,
+});
+
+const UserNotificationPreferencesSchema = new Schema({
+    workflowAlerts: {
+        type: Boolean,
+        default: true,
+    },
+}, {
+    _id: false,
+});
+
 const UserSchema = new Schema({
     username: {
         type: String,
@@ -21,6 +50,25 @@ const UserSchema = new Schema({
     avatarUrl: {
         type: String,
         required: false,
+    },
+    displayName: {
+        type: String,
+        required: false,
+        trim: true,
+    },
+    preferences: {
+        type: UserPreferencesSchema,
+        default: () => ({
+            defaultMarket: "Indian",
+            defaultBroker: "Zerodha",
+            theme: "Dark",
+        }),
+    },
+    notifications: {
+        type: UserNotificationPreferencesSchema,
+        default: () => ({
+            workflowAlerts: true,
+        }),
     },
     emailVerified: {
         type: Boolean,

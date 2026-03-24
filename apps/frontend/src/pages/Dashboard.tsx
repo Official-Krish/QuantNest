@@ -4,6 +4,7 @@ import { apiGetAllWorkflows } from "@/http";
 import type { Workflow } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { WorkflowTable } from "../components/dashboard/WorkflowTable";
+import { AppBackground } from "@/components/background";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -44,7 +45,8 @@ export const Dashboard = () => {
   );
 
   return (
-    <div className="bg-black min-h-screen w-full pt-36 pb-10 px-6 text-white md:px-10">
+    <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-10 pt-36 text-white md:px-10">
+      <AppBackground />
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
         <section className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div>

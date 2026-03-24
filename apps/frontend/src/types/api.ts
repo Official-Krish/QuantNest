@@ -21,7 +21,51 @@ export interface IdResponse {
 export interface SigninResponse {
   message: string;
   userId: string;
-  avatarUrl: string;
+  avatarUrl?: string;
+}
+
+export type ProfileMarketPreference = "Indian" | "US" | "Crypto";
+export type ProfileBrokerPreference = "Zerodha" | "Groww" | "Lighter" | "Paper Trading";
+export type ProfileThemePreference = "Dark" | "Light";
+
+export interface UserProfilePreferences {
+  defaultMarket: ProfileMarketPreference;
+  defaultBroker: ProfileBrokerPreference;
+  theme: ProfileThemePreference;
+}
+
+export interface UserProfileNotifications {
+  workflowAlerts: boolean;
+}
+
+export interface UserProfileIntegration {
+  key: string;
+  name: string;
+  description: string;
+  status: "connected" | "available";
+  linkedWorkflows: number;
+  connectedAccounts?: number;
+  managementMode: "workflow-scoped";
+}
+
+export interface UserProfileStats {
+  totalWorkflows: number;
+  totalExecutions: number;
+  executionsThisMonth: number;
+  connectedIntegrations: number;
+}
+
+export interface UserProfileResponse {
+  username: string;
+  displayName: string;
+  email: string;
+  avatarUrl?: string;
+  memberSince: string;
+  accountStatus: string;
+  preferences: UserProfilePreferences;
+  notifications: UserProfileNotifications;
+  stats: UserProfileStats;
+  integrations: UserProfileIntegration[];
 }
 
 export interface Workflow {

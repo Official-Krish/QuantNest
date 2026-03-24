@@ -5,7 +5,6 @@ const ZERODHA_API_KEY_REGEX = /^[A-Za-z0-9]{8,32}$/;
 const ACCESS_TOKEN_REGEX = /^[A-Za-z0-9._-]{16,512}$/;
 const LIGHTER_PRIVATE_KEY_REGEX = /^(0x)?[a-fA-F0-9]{64}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const AVATAR_URL_REGEX = /^https:\/\/api\.dicebear\.com\/7\.x\/avataaars\/svg\?seed=[A-Za-z0-9_-]+$/;
 const DISCORD_WEBHOOK_REGEX = /^https:\/\/(discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/;
 const WHATSAPP_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
 const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
@@ -21,14 +20,33 @@ export const SignupSchema = z.object({
         .regex(
             PASSWORD_REGEX,
             "Password must include uppercase, lowercase, number, and special character."
-        ),
-    email: z.string().email(),
-    avatarUrl: z.string().regex(AVATAR_URL_REGEX, "Avatar URL must use an approved avatar source."),
+    ),
+    email: z.email(),
 });
 
 export const SigninSchema = z.object({
     username: z.string().min(3).max(30),
     password: z.string().min(8).max(100),
+});
+
+export const MarketPreferenceSchema = z.enum(["Indian", "US", "Crypto"]);
+export const BrokerPreferenceSchema = z.enum(["Zerodha", "Groww", "Lighter", "Paper Trading"]);
+export const ThemePreferenceSchema = z.enum(["Dark", "Light"]);
+
+export const UserProfilePreferencesSchema = z.object({
+    defaultMarket: MarketPreferenceSchema,
+    defaultBroker: BrokerPreferenceSchema,
+    theme: ThemePreferenceSchema,
+});
+
+export const UserProfileNotificationsSchema = z.object({
+    workflowAlerts: z.boolean(),
+});
+
+export const UpdateUserProfileSchema = z.object({
+    displayName: z.string().trim().min(1).max(80),
+    preferences: UserProfilePreferencesSchema,
+    notifications: UserProfileNotificationsSchema,
 });
 
 const WorkflowNodeSchema = z.object({

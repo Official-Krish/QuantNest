@@ -1,12 +1,11 @@
+import { AppBackground } from "@/components/background";
 import { hasAuthSession } from "@/http";
 import {
   ArrowRight,
-  CalendarClock,
   CheckCircle2,
   ChevronRight,
   CircleHelp,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PricingPlans, type PricingPlan } from "@/components/pricing/PricingPlans";
@@ -26,11 +25,11 @@ type StaticPageConfig = {
   label: string;
   title: string;
   subtitle: string;
-  lastUpdated: string;
   highlights: Array<{ label: string; value: string }>;
   sections: PageSection[];
   faqs: PageFaq[];
   pricingPlans?: PricingPlan[];
+  skipHero?: boolean;
 };
 
 const PAGE_CONFIG: Record<string, StaticPageConfig> = {
@@ -39,7 +38,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "Transparent pricing built for strategy operators",
     subtitle:
       "Plans are designed around active workflows, execution volume, and team-level controls so growth does not require migration pain.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Plan model", value: "Usage + capability tiers" },
       { label: "Target users", value: "Solo, Pro, Team desks" },
@@ -83,6 +81,14 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
         question: "Can plan limits be increased without changing tier?",
         answer: "For select workloads, add-on packs will be available so you can extend usage before full-tier migration.",
       },
+      {
+        question: "What payment methods do you accept?",
+        answer: "We support credit cards, wire transfers, and for annual plans, ACH and bank transfers for eligible accounts.",
+      },
+      {
+        question: "Is there a free trial before committing to a plan?",
+        answer: "Yes. All new users get a 14-day free trial of the Pro plan to test workflows and validate use cases before selecting a tier.",
+      },
     ],
     pricingPlans: [
       {
@@ -117,13 +123,13 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
         reporting: "Team analytics + exports",
       },
     ],
+    skipHero: true,
   },
   about: {
     label: "About",
     title: "QuantNest is an execution-first automation platform",
     subtitle:
       "We help traders and quant teams convert strategy logic into reliable, observable workflows that can run with confidence.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Core focus", value: "Reliability + traceability" },
       { label: "Product style", value: "Visual, composable workflows" },
@@ -174,7 +180,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "Operational docs for building and running workflows",
     subtitle:
       "This documentation track is structured for implementation speed: setup, references, and deployment best practices.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Audience", value: "Builders and operators" },
       { label: "Format", value: "Task-first reference" },
@@ -225,7 +230,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "Track feature releases and behavioral updates",
     subtitle:
       "This feed summarizes platform changes with clear impact notes so teams can update workflows without surprises.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Scope", value: "Engine, UI, integrations" },
       { label: "Cadence", value: "Continuous release flow" },
@@ -276,7 +280,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "Support and partnership channels",
     subtitle:
       "Route requests by intent so support, product, and enterprise conversations move faster with the right owners.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Support focus", value: "Execution and workflow issues" },
       { label: "Partnerships", value: "Integrations and ecosystem" },
@@ -327,7 +330,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "Join the team building trading automation infrastructure",
     subtitle:
       "We are hiring engineers and product builders who can ship rigorously, think in systems, and care about real user outcomes.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Environment", value: "High ownership" },
       { label: "Product stage", value: "Rapid iteration" },
@@ -378,7 +380,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "Engineering and strategy-ops insights",
     subtitle:
       "Long-form writing on workflow design, integration practices, and lessons from operating automation systems in production.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Content mix", value: "Technical + operational" },
       { label: "Depth", value: "Implementation-level detail" },
@@ -429,7 +430,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "How QuantNest handles data and consent",
     subtitle:
       "Our privacy model is built around minimal necessary data use, explicit consent for AI/reporting actions, and clear user controls.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Data principle", value: "Need-to-operate scope" },
       { label: "AI boundary", value: "Consent-gated processing" },
@@ -480,7 +480,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "Platform terms for workflow execution usage",
     subtitle:
       "These terms define responsibilities, permitted use, and operational boundaries for using QuantNest automations and integrations.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Responsibility", value: "User-owned strategy risk" },
       { label: "Usage scope", value: "Authorized integrations only" },
@@ -531,7 +530,6 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     title: "Session and cookie behavior in QuantNest",
     subtitle:
       "Cookies are used for secure authentication and core product continuity. Policy details focus on essential vs functional usage.",
-    lastUpdated: "March 2026",
     highlights: [
       { label: "Primary use", value: "Secure session handling" },
       { label: "Scope", value: "Essential + functional cookies" },
@@ -614,35 +612,28 @@ export const StaticContentPage = ({ pageKey }: { pageKey: keyof typeof PAGE_CONF
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black px-6 pb-16 pt-28 text-white md:px-10">
+      <AppBackground />
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(1100px_480px_at_82%_-8%,rgba(241,116,99,0.15),transparent_62%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(900px_420px_at_100%_78%,rgba(56,189,248,0.09),transparent_66%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_24%,transparent_78%,rgba(255,255,255,0.015))]" />
       </div>
       <div className="mx-auto max-w-6xl">
-        <section className="relative overflow-hidden rounded-3xl border border-neutral-800 bg-linear-to-br from-neutral-950 via-black to-neutral-950/80 p-8 md:p-12">
-          <div className="pointer-events-none absolute -left-12 top-6 h-64 w-64 rounded-full bg-[#f17463]/12 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 right-4 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl" />
+        {!page.skipHero && (
+          <section className="relative overflow-hidden rounded-3xl border border-neutral-800 bg-linear-to-br from-neutral-950 via-black to-neutral-950/80 p-8 md:p-12">
+            <div className="pointer-events-none absolute -left-12 top-6 h-64 w-64 rounded-full bg-[#f17463]/12 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-10 right-4 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl" />
 
-          <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-neutral-700/80 bg-neutral-900/70 px-3 py-1 text-xs text-neutral-300">
-              <Sparkles className="h-3.5 w-3.5 text-[#f17463]" />
-              <span>{page.label}</span>
+            <div className="relative z-10">
+              <h1 className="text-3xl font-semibold tracking-tight text-neutral-50 md:text-5xl">
+                {page.title}
+              </h1>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-neutral-400 md:text-base">
+                {page.subtitle}
+              </p>
             </div>
-
-            <h1 className="mt-4 max-w-4xl text-3xl font-semibold tracking-tight text-neutral-50 md:text-5xl">
-              {page.title}
-            </h1>
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-neutral-400 md:text-base">
-              {page.subtitle}
-            </p>
-
-            <div className="mt-5 inline-flex items-center gap-2 rounded-lg border border-neutral-700/80 bg-neutral-900/50 px-3 py-2 text-xs text-neutral-300">
-              <CalendarClock className="h-3.5 w-3.5 text-sky-300" />
-              <span>Last updated: {page.lastUpdated}</span>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {!isPricingPage && (
           <section className="mt-6 grid gap-4 md:grid-cols-3">
@@ -672,7 +663,7 @@ export const StaticContentPage = ({ pageKey }: { pageKey: keyof typeof PAGE_CONF
               Frequently Asked Questions
             </h2>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="mt-4 grid gap-3">
             {page.faqs.map((faq) => (
               <FaqCard key={faq.question} faq={faq} />
             ))}
@@ -684,10 +675,10 @@ export const StaticContentPage = ({ pageKey }: { pageKey: keyof typeof PAGE_CONF
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-900/60 px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-neutral-400">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-                <span>Operator Ready</span>
+                <span>Ready to start</span>
               </div>
               <p className="mt-3 max-w-xl text-sm text-neutral-300">
-                Continue building workflows while these pages keep evolving with live product updates.
+                Ready to automate your first trade? Start building workflows free today.
               </p>
             </div>
             <button

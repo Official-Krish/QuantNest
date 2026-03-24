@@ -15,10 +15,11 @@ import {
     LogOutIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react";
-import { apiSignout, clearAuthSession } from "@/http";
+import { apiGetProfile, apiSignout, clearAuthSession } from "@/http";
 
 export function ProfileDropDown() {
     const [avatarUrl, setAvatarUrl] = useState("");
+    const [username, setUsername] = useState("");
     const handleSignOut = async () => {
         try {
             await apiSignout();
@@ -32,14 +33,17 @@ export function ProfileDropDown() {
     }
     useEffect(() => {
         const fetchAvatar = async () => {
-            const storedAvatar = localStorage.getItem("avatarUrl");
+            const storedAvatar = localStorage.getItem("avatarUrl") || "";
             if (storedAvatar) {
                 setAvatarUrl(storedAvatar);
-            } else {
-                setAvatarUrl("https://api.dicebear.com/7.x/avataaars/svg?seed=Felix");
             }
+            try {
+                const profile = await apiGetProfile();
+                setUsername(profile.displayName || profile.username);
+                setAvatarUrl(profile.avatarUrl || storedAvatar);
+            } catch {}
         };
-        fetchAvatar();
+        void fetchAvatar();
     }, []);
     return (
         <DropdownMenu>
@@ -47,7 +51,7 @@ export function ProfileDropDown() {
                 <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar>
                         <AvatarImage src={avatarUrl} alt="User Avatar" />
-                        <AvatarFallback>LR</AvatarFallback>
+                        <AvatarFallback>{(username || "U").slice(0, 1).toUpperCase()}</AvatarFallback>
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>

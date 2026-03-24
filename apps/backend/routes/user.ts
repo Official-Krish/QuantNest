@@ -1,18 +1,66 @@
 import { Router } from 'express';
-import { SigninSchema, SignupSchema } from "@quantnest-trading/types/metadata";
-import { UserModel, WorkflowModel } from '@quantnest-trading/db/client';
+import { SigninSchema, SignupSchema, UpdateUserProfileSchema } from "@quantnest-trading/types/metadata";
+import { ExecutionModel, UserModel, WorkflowModel, ZerodhaTokenModel } from '@quantnest-trading/db/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../middleware';
 import type { CookieOptions } from 'express';
 import { createEmailVerificationToken, getEmailVerificationExpiry, sendEmailVerificationEmail } from '../services/emailVerification';
-import { getJwtSecret, isAllowedAvatarUrl } from '../utils/security';
+import { uploadAvatarToGcp } from '../services/avatarUpload';
+import { getJwtSecret } from '../utils/security';
+import multer from 'multer';
 
 const userRouter = Router();
 const JWT_SECRET = getJwtSecret();
+const upload = multer({ storage: multer.memoryStorage() });
 
 const cookieName = process.env.AUTH_COOKIE_NAME || "quantnest_auth";
 const isProduction = process.env.NODE_ENV === "production";
+
+const INTEGRATION_CATALOG = [
+    { key: "zerodha", name: "Zerodha", description: "Broker execution accounts linked through workflow credentials.", nodeType: "zerodha" },
+    { key: "groww", name: "Groww", description: "Retail brokerage connections used across active workflows.", nodeType: "groww" },
+    { key: "gmail", name: "Gmail", description: "Email delivery accounts referenced by workflow actions.", nodeType: "gmail" },
+    { key: "whatsapp", name: "WhatsApp", description: "Messaging destinations configured for urgent notifications.", nodeType: "whatsapp" },
+    { key: "notion", name: "Notion", description: "Workspace destinations used for reports and journaling.", nodeType: "notion-daily-report" },
+    { key: "discord", name: "Discord", description: "Webhook destinations used for community and bot alerts.", nodeType: "discord" },
+] as const;
+
+function buildDefaultDisplayName(username: string) {
+    return username
+        .split(/[_\s-]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+}
+
+async function buildIntegrationSummaries(userId: string) {
+    const zerodhaActiveTokens = await ZerodhaTokenModel.countDocuments({ userId, status: "active" });
+
+    const summaries = await Promise.all(
+        INTEGRATION_CATALOG.map(async (integration) => {
+            const linkedWorkflows = await WorkflowModel.countDocuments({
+                userId,
+                "nodes.type": integration.nodeType,
+            });
+
+            const connectedAccounts = integration.key === "zerodha" ? zerodhaActiveTokens : undefined;
+            const isConnected = linkedWorkflows > 0 || (connectedAccounts ?? 0) > 0;
+
+            return {
+                key: integration.key,
+                name: integration.name,
+                description: integration.description,
+                status: isConnected ? "connected" : "available",
+                linkedWorkflows,
+                connectedAccounts,
+                managementMode: "workflow-scoped" as const,
+            };
+        }),
+    );
+
+    return summaries;
+}
 
 function getAuthCookieOptions(): CookieOptions {
     return {
@@ -56,7 +104,6 @@ userRouter.post('/signup', async (req, res) => {
             username,
             password: hashedPassword,
             email,
-            avatarUrl: parsedData.data.avatarUrl,
             emailVerified: false,
             emailVerificationToken,
             emailVerificationExpiresAt,
@@ -186,14 +233,99 @@ userRouter.post('/resend-verification', async (req, res) => {
 userRouter.get('/profile', authMiddleware, async (req, res) => {
     const userId = req.userId;
 
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
     try {
         const user = await UserModel.findById(userId);
         if (!user) {
             res.status(404).json({ message: "User not found" });
             return;
         }
-        const totalWorkflows = await WorkflowModel.countDocuments({ userId: userId });
-        res.status(200).json({ message: "User profile retrieved", username: user.username, email: user.email, avatarUrl: user.avatarUrl, totalWorkflows, memberSince: user.createdAt.toDateString() });
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const [totalWorkflows, totalExecutions, executionsThisMonth, integrations] = await Promise.all([
+            WorkflowModel.countDocuments({ userId }),
+            ExecutionModel.countDocuments({ userId }),
+            ExecutionModel.countDocuments({ userId, startTime: { $gte: startOfMonth } }),
+            buildIntegrationSummaries(userId),
+        ]);
+
+        res.status(200).json({
+            message: "User profile retrieved",
+            username: user.username,
+            displayName: user.displayName?.trim() || buildDefaultDisplayName(user.username),
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+            memberSince: user.createdAt.toDateString(),
+            accountStatus: user.emailVerified === false ? "Pending verification" : "Active",
+            preferences: {
+                defaultMarket: user.preferences?.defaultMarket || "Indian",
+                defaultBroker: user.preferences?.defaultBroker || "Zerodha",
+                theme: user.preferences?.theme || "Dark",
+            },
+            notifications: {
+                workflowAlerts: user.notifications?.workflowAlerts ?? true,
+            },
+            stats: {
+                totalWorkflows,
+                totalExecutions,
+                executionsThisMonth,
+                connectedIntegrations: integrations.filter((item) => item.status === "connected").length,
+            },
+            integrations,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.patch('/profile', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    const parsedData = UpdateUserProfileSchema.safeParse(req.body);
+
+    if (!parsedData.success) {
+        res.status(400).json({ message: "Invalid request body", issues: parsedData.error.issues });
+        return;
+    }
+
+    try {
+        const user = await UserModel.findByIdAndUpdate(
+            userId,
+            {
+                displayName: parsedData.data.displayName,
+                preferences: parsedData.data.preferences,
+                notifications: parsedData.data.notifications,
+            },
+            { new: true },
+        );
+
+        if (!user) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+
+        res.status(200).json({
+            message: "Profile updated",
+            displayName: user.displayName?.trim() || buildDefaultDisplayName(user.username),
+            preferences: {
+                defaultMarket: user.preferences?.defaultMarket || "Indian",
+                defaultBroker: user.preferences?.defaultBroker || "Zerodha",
+                theme: user.preferences?.theme || "Dark",
+            },
+            notifications: {
+                workflowAlerts: user.notifications?.workflowAlerts ?? true,
+            },
+        });
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
     }
@@ -203,7 +335,7 @@ userRouter.post("/update-avatar", authMiddleware, async (req, res) => {
     const userId = req.userId;
     const { avatarUrl } = req.body;
 
-    if (typeof avatarUrl !== 'string' || !isAllowedAvatarUrl(avatarUrl)) {
+    if (typeof avatarUrl !== 'string' || avatarUrl.trim().length === 0) {
         res.status(400).json({ message: "Invalid avatar URL" });
         return;
     }
@@ -217,6 +349,58 @@ userRouter.post("/update-avatar", authMiddleware, async (req, res) => {
         res.status(200).json({ message: "Avatar updated", avatarUrl: user.avatarUrl });
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.post("/avatar-upload", authMiddleware, upload.single("image"), async (req, res) => {
+    const userId = req.userId;
+
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    if (!req.file) {
+        res.status(400).send('Missing file');
+        return;
+    }
+
+    try {
+        const uploadResult = await uploadAvatarToGcp({
+            userId,
+            mimeType: req.file.mimetype,
+            fileBuffer: req.file.buffer,
+        });
+
+        if (uploadResult.error) {
+            res.status(503).json({ message: uploadResult.message });
+            return;
+        }
+
+        const { avatarUrl } = uploadResult;
+        if (!avatarUrl) {
+            res.status(500).json({ message: "Avatar URL not returned from upload service" });
+            return;
+        }
+
+        const user = await UserModel.findByIdAndUpdate(
+            userId,
+            { avatarUrl: avatarUrl },
+            { new: true },
+        );
+
+        if (!user) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+
+        res.status(200).json({
+            message: "Avatar uploaded",
+            avatarUrl: user.avatarUrl
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Avatar upload failed";
+        res.status(500).json({ message });
     }
 });
 

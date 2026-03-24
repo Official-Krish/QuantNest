@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiResendVerificationEmail, apiSignin, apiSignup } from "@/http";
-import { AVATAR_OPTIONS } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import {
   Card,
@@ -14,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShineBorder } from "@/components/ui/shine-border";
+import { AppBackground } from "@/components/background";
 import { getSignupValidationErrors } from "@/lib/validation";
 import { toast } from "sonner";
 
@@ -31,7 +31,6 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -92,7 +91,6 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
           username,
           email,
           password,
-          avatarUrl: selectedAvatar,
         });
         if ('status' in res && res.status === 409) {
           setError("Username or email already exists");
@@ -161,10 +159,17 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
 
   if (mode === "signup" && signupVerificationEmail) {
     return (
-      <div className="flex min-h-screen items-center bg-black px-6 pb-6 pt-24">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
+      <div className="relative isolate flex min-h-screen items-center overflow-hidden bg-black px-6 pb-6 pt-24">
+        <AppBackground variant="warm" glow="medium" gridSize={42} />
+        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6 text-neutral-200 lg:self-center">
             <div className="space-y-4">
+              <div className="inline-flex items-center gap-3 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-5 py-2 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_14px_30px_-20px_rgba(241,116,99,0.9)] backdrop-blur-sm">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#f17463]" />
+                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-xs">
+                  Now in Early Access
+                </span>
+              </div>
               <h1 className="bg-linear-to-r from-[#f17463] via-[#f4937d] to-[#fde1d6] bg-clip-text text-5xl font-bold text-transparent">
                 Verify your email
               </h1>
@@ -190,7 +195,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
               <CardFooter className="flex flex-col gap-2.5">
                 <button
                   type="button"
-                  className="w-full rounded-lg bg-white py-2 text-center font-normal text-neutral-800 transition-transform hover:scale-105 cursor-pointer"
+                  className="w-full rounded-2xl bg-[#ff5f2e] py-3 text-center font-semibold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#ff7146] active:translate-y-0 active:scale-[0.995] cursor-pointer"
                   onClick={() =>
                     nav("/signin", {
                       state: { verificationEmail: signupVerificationEmail },
@@ -215,11 +220,18 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center bg-black px-6 pb-6 pt-24">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
+    <div className="relative isolate flex min-h-screen items-center overflow-hidden bg-black px-6 pb-6 pt-24">
+      <AppBackground variant="warm" glow="medium" gridSize={42} />
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
         {/* Left Content Section */}
         <div className="flex-1 space-y-6 text-neutral-200 lg:self-center">
           <div className="space-y-4">
+            <div className="inline-flex items-center gap-3 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-5 py-2 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_14px_30px_-20px_rgba(241,116,99,0.9)] backdrop-blur-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#f17463]" />
+              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-xs">
+                Now in Early Access
+              </span>
+            </div>
             <h1
               className="text-5xl font-bold bg-linear-to-r from-[#f17463] via-[#f4937d] to-[#fde1d6] bg-clip-text text-transparent"
             >
@@ -360,37 +372,6 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                   )}
                 </div>
 
-                {mode === "signup" && (
-                  <div className="grid gap-2">
-                    <Label className="text-neutral-200">Select Avatar</Label>
-                    <div className="rounded-xl border border-neutral-800 bg-neutral-950/70 p-2.5">
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-500">
-                          Avatar Library
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          {AVATAR_OPTIONS.length} options
-                        </p>
-                      </div>
-                      <div className="grid max-h-28 grid-cols-7 gap-1.5 overflow-y-auto pr-1">
-                        {AVATAR_OPTIONS.map((avatar, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setSelectedAvatar(avatar)}
-                            className={`relative h-9 w-9 overflow-hidden rounded-full border-2 transition-all ${
-                              selectedAvatar === avatar
-                                ? "border-[#f17463]"
-                                : "border-transparent hover:border-neutral-500"
-                            }`}
-                          >
-                            <img src={avatar} alt={`Avatar option ${idx + 1}`} className="h-full w-full rounded-full" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {error && <div className="text-sm text-red-600">{error}</div>}
                 {mode === "signin" && pendingVerificationEmail && (
                   <div className="rounded-lg border border-amber-500/35 bg-amber-500/10 p-3 text-xs text-amber-200">
@@ -412,7 +393,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
 
             <CardFooter className="flex flex-col gap-2.5">
               <button
-                className="w-full bg-white py-2 rounded-lg cursor-pointer text-neutral-800 font-normal disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform text-center"
+                className="w-full rounded-2xl bg-[#ff5f2e] py-3 text-center font-semibold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#ff7146] active:translate-y-0 active:scale-[0.995] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                 onClick={onSubmit}
                 disabled={
                   loading ||

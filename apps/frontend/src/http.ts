@@ -8,6 +8,9 @@ import type {
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
   IdResponse,
+  UserProfileNotifications,
+  UserProfilePreferences,
+  UserProfileResponse,
   marketStatus,
   SigninResponse,
   UserNotification,
@@ -49,13 +52,18 @@ export function hasAuthSession() {
   return localStorage.getItem(SESSION_KEY) === "1";
 }
 
-export function setAvatarUrl(avatarUrl: string) {
-  localStorage.setItem("avatarUrl", avatarUrl);
+export function setAvatarUrl(avatarUrl?: string) {
+  if (avatarUrl) {
+    localStorage.setItem("avatarUrl", avatarUrl);
+    return;
+  }
+
+  localStorage.removeItem("avatarUrl");
 }
 
 // AUTH
 
-export async function apiSignup(body: { username: string; password: string; email: string; avatarUrl: string }): Promise<(IdResponse & { requiresEmailVerification?: boolean; email?: string }) | { status: number }> {
+export async function apiSignup(body: { username: string; password: string; email: string }): Promise<(IdResponse & { requiresEmailVerification?: boolean; email?: string }) | { status: number }> {
   try {
     const res = await api.post<IdResponse & { requiresEmailVerification?: boolean; email?: string }>("/user/signup", body);
     return res.data;
@@ -70,9 +78,7 @@ export async function apiSignup(body: { username: string; password: string; emai
 export async function apiSignin(body: { username: string; password: string }): Promise<SigninResponse> {
   const res = await api.post<SigninResponse>("/user/signin", body);
   setAuthSession();
-  if (res.data.avatarUrl) {
-    setAvatarUrl(res.data.avatarUrl);
-  }
+  setAvatarUrl(res.data.avatarUrl);
   return res.data;
 }
 
@@ -87,17 +93,47 @@ export async function apiVerifyToken(): Promise<{ message: string }> {
   return res.data;
 }
 
-export async function apiGetProfile(): Promise<{ username: string; email: string; avatarUrl: string; totalWorkflows: number; memberSince: string }> {
-  const res = await api.get<{ username: string; email: string; avatarUrl: string; totalWorkflows: number; memberSince: string }>("/user/profile");
+export async function apiGetProfile(): Promise<UserProfileResponse> {
+  const res = await api.get<UserProfileResponse>("/user/profile");
   return res.data;
 }
 
-export async function apiUpdateProfile(body: { email?: string; avatarUrl: string }): Promise<{ message: string }> {
-  const res = await api.post<{ message: string }>("/user/update-avatar", body);
-  if (res.status === 200) {
-    setAvatarUrl(body.avatarUrl);
-  }
+export async function apiSaveProfile(body: {
+  displayName: string;
+  preferences: UserProfilePreferences;
+  notifications: UserProfileNotifications;
+}): Promise<{
+  message: string;
+  displayName: string;
+  preferences: UserProfilePreferences;
+  notifications: UserProfileNotifications;
+}> {
+  const res = await api.patch<{
+    message: string;
+    displayName: string;
+    preferences: UserProfilePreferences;
+    notifications: UserProfileNotifications;
+  }>("/user/profile", body);
   return res.data;
+}
+
+export async function apiUploadAvatar(file: File): Promise<{ avatarUrl: string }> {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await api.post<{ message: string; avatarUrl: string }>(
+    "/user/avatar-upload",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return {
+    avatarUrl: res.data.avatarUrl,
+  };
 }
 
 export async function apiVerifyEmailToken(token: string): Promise<{ message: string }> {
