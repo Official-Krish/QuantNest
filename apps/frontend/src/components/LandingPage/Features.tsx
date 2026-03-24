@@ -174,11 +174,11 @@ const features = (
   },
   {
     Icon: GlobeIcon,
-    name: "AI Decision Agents",
+    name: "AI Chat Builder",
     description:
-      "Use AI agents for market analysis, signal generation, risk checks, and trade validation.",
-    href: "/",
-    cta: "Learn more",
+      "Generate trading workflows by conversing with our AI assistant. Describe your strategy and let AI build and optimize it for you.",
+    href: "/create/ai-chat",
+    cta: "Start building",
     status: "Beta",
     statusTone: "beta" as const,
     background: <img className="absolute -top-20 -right-20 opacity-60" />,

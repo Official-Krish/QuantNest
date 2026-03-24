@@ -9,6 +9,12 @@ type HeroProps = {
 
 export const Hero = ({ onPricingClick }: HeroProps) => {
     const navigate = useNavigate();
+    const STAT_CARDS = [
+        { value: "4+", label: "Brokers Supported", sub: "Zerodha · Groww · Lighter · More" },
+        { value: "<2s", label: "Execution Latency", sub: "Trigger to order placement" },
+        { value: "∞", label: "Workflow Branches", sub: "True/false conditional logic" },
+        { value: "14d", label: "Free Trial", sub: "No credit card required" },
+    ]
     return (
         <div className="border-y border-neutral-800">
             <div className="relative h-180 mx-20 border-x border-neutral-800 overflow-hidden">
@@ -26,9 +32,9 @@ export const Hero = ({ onPricingClick }: HeroProps) => {
                     <div className="absolute inset-0 opacity-[0.04] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)]" />
                 </div>
                 <div className="relative z-10 pt-40 flex flex-col items-center gap-6">
-                    <div className="inline-flex items-center gap-3 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-6 py-2.5 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_14px_34px_-18px_rgba(241,116,99,0.9)] backdrop-blur-sm">
-                        <span className="h-3 w-3 rounded-full bg-[#f17463]" />
-                        <span className="text-[12px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-[13px]">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-4 py-1.5 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_10px_26px_-18px_rgba(241,116,99,0.9)] backdrop-blur-sm">
+                        <span className="h-2 w-2 rounded-full bg-[#f17463]" />
+                        <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-[11px]">
                             Now in Early Access
                         </span>
                     </div>
@@ -61,25 +67,34 @@ export const Hero = ({ onPricingClick }: HeroProps) => {
                             View Pricing
                         </button>
                     </div>
-                    <div className="mt-8 flex flex-col items-center">
-                        <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-linear-to-r from-[#18181b] via-[#26262c] to-[#18181b] border border-neutral-700 shadow-inner shadow-[#f1746333]/5">
-                            <span className="text-xs font-semibold text-[#f17463] tracking-[.18em] uppercase">
-                                Trusted by Quants
-                            </span>
-                            <span className="mx-1 text-xs text-neutral-400">·</span>
-                            <span className="text-xs text-neutral-300 font-medium">
-                                Lightning fast strategy builder
-                            </span>
-                            <span className="mx-1 text-xs text-neutral-400">·</span>
-                            <span className="text-xs font-semibold text-neutral-100">
-                                QuantNest Trading
-                            </span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 w-4 h-4 text-[#f17463]" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="10" stroke="#f17463" strokeWidth="2" fill="currentColor" fillOpacity="0.15"/>
-                                <path d="M8 12l2 2l4 -4" stroke="#f17463" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                            </svg>
-                        </div>
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.85 }}
+                        className="grid grid-cols-4 gap-px w-full max-w-3xl rounded-xl overflow-hidden border border-neutral-800/80"
+                    >
+                        {STAT_CARDS.map((card, i) => (
+                            <div
+                                key={card.label}
+                                className="flex flex-col items-center justify-center py-5 px-4 bg-neutral-950/80 backdrop-blur-sm"
+                                style={{
+                                    borderRight: i < STAT_CARDS.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none"
+                                }}
+                            >
+                                <span
+                                    className="text-[28px] font-bold leading-none mb-1.5"
+                                    style={{
+                                        color: "#f17463",
+                                        textShadow: "0 0 20px rgba(241,116,99,0.25)",
+                                    }}
+                                >
+                                    {card.value}
+                                </span>
+                                <span className="text-[12px] font-semibold text-neutral-300 mb-1">{card.label}</span>
+                                <span className="text-[11px] text-neutral-600 text-center leading-tight">{card.sub}</span>
+                            </div>
+                        ))}
+                    </motion.div>
                 </div>
             </div>
         </div>

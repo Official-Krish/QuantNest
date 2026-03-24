@@ -8,6 +8,7 @@ import { HowItWorks } from "../components/LandingPage/HowItWorks"
 import { PricingPreview } from "../components/LandingPage/PricingPreview"
 import { Start } from "../components/LandingPage/Start"
 import { UseCase } from "../components/LandingPage/useCase"
+import { HowItWorksAI } from "@/components/LandingPage/HowItWorksAI"
 
 export const Landing = () => {
     const [comingSoonTarget, setComingSoonTarget] = useState<"pricing" | null>(null)
@@ -18,6 +19,7 @@ export const Landing = () => {
             <Hero onPricingClick={() => setComingSoonTarget("pricing")} />
             <AnimatedCard />
             <Features />
+            <HowItWorksAI />
             <HowItWorks />
             <UseCase />
             <PricingPreview />

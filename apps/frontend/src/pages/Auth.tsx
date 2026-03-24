@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiResendVerificationEmail, apiSignin, apiSignup } from "@/http";
-import { AVATAR_OPTIONS } from "@/lib/utils";
 import { Eye, EyeOff } from "lucide-react";
 import {
   Card,
@@ -32,7 +31,6 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState(AVATAR_OPTIONS[0]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -93,7 +91,6 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
           username,
           email,
           password,
-          avatarUrl: selectedAvatar,
         });
         if ('status' in res && res.status === 409) {
           setError("Username or email already exists");
@@ -198,7 +195,7 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
               <CardFooter className="flex flex-col gap-2.5">
                 <button
                   type="button"
-                  className="w-full rounded-3xl bg-[#ff5f2e] py-3 text-center font-semibold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#ff7146] active:translate-y-0 active:scale-[0.995] cursor-pointer"
+                  className="w-full rounded-2xl bg-[#ff5f2e] py-3 text-center font-semibold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-[#ff7146] active:translate-y-0 active:scale-[0.995] cursor-pointer"
                   onClick={() =>
                     nav("/signin", {
                       state: { verificationEmail: signupVerificationEmail },
@@ -374,37 +371,6 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
                     </p>
                   )}
                 </div>
-
-                {mode === "signup" && (
-                  <div className="grid gap-2">
-                    <Label className="text-neutral-200">Select Avatar</Label>
-                    <div className="rounded-xl border border-neutral-800 bg-neutral-950/70 p-2.5">
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-500">
-                          Avatar Library
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          {AVATAR_OPTIONS.length} options
-                        </p>
-                      </div>
-                      <div className="grid max-h-28 grid-cols-7 gap-1.5 overflow-y-auto pr-1">
-                        {AVATAR_OPTIONS.map((avatar, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setSelectedAvatar(avatar)}
-                            className={`relative h-9 w-9 overflow-hidden rounded-full border-2 transition-all ${
-                              selectedAvatar === avatar
-                                ? "border-[#f17463]"
-                                : "border-transparent hover:border-neutral-500"
-                            }`}
-                          >
-                            <img src={avatar} alt={`Avatar option ${idx + 1}`} className="h-full w-full rounded-full" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {error && <div className="text-sm text-red-600">{error}</div>}
                 {mode === "signin" && pendingVerificationEmail && (
