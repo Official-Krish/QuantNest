@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import {
   apiCreateAiStrategyDraft,
@@ -27,14 +28,13 @@ import {
 } from "@/components/ai-builder/chat/shared";
 import { LeftSidebar } from "@/components/ai-builder/chat/LeftSidebar";
 import { ChatTopHeader } from "@/components/ai-builder/chat/ChatTopHeader";
-import { ChatMetaBar } from "@/components/ai-builder/chat/ChatMetaBar";
 import { ChatMessagesPane } from "@/components/ai-builder/chat/ChatMessagesPane";
 import { ChatComposerSection } from "@/components/ai-builder/chat/ChatComposerSection";
+import { RightSidebar } from "@/components/ai-builder/chat/RightSidebar";
 
 export function AiStrategyChatBuilder() {
   const navigate = useNavigate();
   const [theme, setTheme] = useState<LocalTheme>("dark");
-  const [showSetup, setShowSetup] = useState(false);
   const [search, setSearch] = useState("");
   const [models, setModels] = useState<AiModelDescriptor[]>([]);
   const [draftSummaries, setDraftSummaries] = useState<AiStrategyDraftSummary[]>([]);
@@ -60,6 +60,8 @@ export function AiStrategyChatBuilder() {
   const [constraints, setConstraints] = useState(DEFAULT_AI_CONSTRAINTS);
   const [selectedProvider, setSelectedProvider] = useState("gemini");
   const [selectedModel, setSelectedModel] = useState("");
+  const [activeVersionId, setActiveVersionId] = useState("");
+  const [showRightSidebar, setShowRightSidebar] = useState(true);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -123,6 +125,7 @@ export function AiStrategyChatBuilder() {
     setConstraints((draft.request.constraints || []).join("\n") || DEFAULT_AI_CONSTRAINTS);
     setSelectedProvider(String(draft.request.model?.provider || selectedProvider));
     setSelectedModel(String(draft.request.model?.model || selectedModel));
+    setActiveVersionId(draft.workflowVersions[draft.workflowVersions.length - 1]?.id || "");
     window.localStorage.setItem(LAST_CHAT_DRAFT_STORAGE_KEY, draft.draftId);
     setDraftSummaries((current) => {
       const summary: AiStrategyDraftSummary = {
@@ -170,8 +173,15 @@ export function AiStrategyChatBuilder() {
     [activeDraft?.messages, pendingMessages],
   );
 
-  const selectedVersion =
-    activeDraft?.workflowVersions[activeDraft.workflowVersions.length - 1] || null;
+  const hasGeneratedWorkflow = (activeDraft?.workflowVersions.length || 0) > 0;
+
+  const selectedVersion = useMemo(() => {
+    if (!activeDraft?.workflowVersions.length) return null;
+    return (
+      activeDraft.workflowVersions.find((version) => version.id === activeVersionId) ||
+      activeDraft.workflowVersions[activeDraft.workflowVersions.length - 1]
+    );
+  }, [activeDraft?.workflowVersions, activeVersionId]);
 
   const handleNewChat = () => {
     setActiveDraft(null);
@@ -180,6 +190,7 @@ export function AiStrategyChatBuilder() {
     setAnimatedMessageId(null);
     setWorkflowName("");
     setMetadataOverrides({});
+    setActiveVersionId("");
     setError(null);
     window.localStorage.removeItem(LAST_CHAT_DRAFT_STORAGE_KEY);
   };
@@ -315,80 +326,105 @@ export function AiStrategyChatBuilder() {
           onNewChat={handleNewChat}
         />
 
-        <main className={cx("grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto]", border)}>
-          <ChatTopHeader
-            border={border}
-            muted={muted}
-            heading={heading}
-            theme={theme}
-            title={activeDraft?.title || "New workflow conversation"}
-            canOpenBuilder={Boolean(selectedVersion)}
-            onGoHome={() => navigate("/create/onboarding")}
-            onOpenSetup={() => setSetupOpen(true)}
-          />
+        <div
+          className={cx(
+            "grid h-full min-h-0",
+            hasGeneratedWorkflow && showRightSidebar
+              ? "xl:grid-cols-[minmax(0,1fr)_380px]"
+              : "grid-cols-1",
+          )}
+        >
+          <main className={cx("grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]", border)}>
+            <ChatTopHeader
+              border={border}
+              muted={muted}
+              heading={heading}
+              theme={theme}
+              title={activeDraft?.title || "New workflow conversation"}
+              canOpenBuilder={Boolean(selectedVersion)}
+              canTogglePreview={hasGeneratedWorkflow}
+              showPreview={showRightSidebar}
+              onTogglePreview={() => setShowRightSidebar((current) => !current)}
+              onGoHome={() => navigate("/create/onboarding")}
+              onOpenSetup={() => setSetupOpen(true)}
+            />
 
-          <ChatMetaBar
-            border={border}
-            theme={theme}
-            market={market}
-            goal={goal}
-            riskPreference={riskPreference || "balanced"}
-            modelLabel={providerModels.find((model) => model.id === selectedModel)?.label || selectedModel || "Model"}
-            selectedActions={selectedActions}
-          />
+            <ChatMessagesPane
+              chatScrollRef={chatScrollRef}
+              loading={loading}
+              activeDraft={activeDraft}
+              messages={visibleMessages}
+              animatedMessageId={animatedMessageId}
+              workflowVersions={activeDraft?.workflowVersions || []}
+              metadataOverrides={metadataOverrides}
+              onMetadataOverridesChange={setMetadataOverrides}
+              panel={panel}
+              muted={muted}
+              theme={theme}
+              onExampleClick={(example) => setComposer(example)}
+            />
 
-          <ChatMessagesPane
-          chatScrollRef={chatScrollRef}
-          loading={loading}
-          activeDraft={activeDraft}
-          messages={visibleMessages}
-          animatedMessageId={animatedMessageId}
-          workflowVersions={activeDraft?.workflowVersions || []}
-          metadataOverrides={metadataOverrides}
-          onMetadataOverridesChange={setMetadataOverrides}
-          panel={panel}
-          muted={muted}
-          theme={theme}
-          />
+            <ChatComposerSection
+              border={border}
+              muted={muted}
+              theme={theme}
+              market={market}
+              onMarketChange={setMarket}
+              goal={goal}
+              onGoalChange={setGoal}
+              riskPreference={riskPreference}
+              onRiskPreferenceChange={setRiskPreference}
+              brokerExecution={brokerExecution}
+              onBrokerExecutionChange={setBrokerExecution}
+              allowDirectExecution={allowDirectExecution}
+              onAllowDirectExecutionChange={setAllowDirectExecution}
+              selectedActions={selectedActions}
+              onToggleAction={(action) =>
+                setSelectedActions((current) =>
+                  current.includes(action)
+                    ? current.filter((entry) => entry !== action)
+                    : [...current, action],
+                )
+              }
+              models={models}
+              selectedProvider={selectedProvider}
+              onSelectedProviderChange={setSelectedProvider}
+              selectedModel={selectedModel}
+              onSelectedModelChange={setSelectedModel}
+              composer={composer}
+              onComposerChange={setComposer}
+              onSend={handleSend}
+              sending={sending}
+              canSend={composer.trim().length >= 4 && Boolean(selectedModel)}
+              error={error}
+            />
+          </main>
 
-          <ChatComposerSection
-            border={border}
-            muted={muted}
-            theme={theme}
-            showSetup={showSetup}
-            onToggleSetup={() => setShowSetup((current) => !current)}
-            market={market}
-            onMarketChange={setMarket}
-            goal={goal}
-            onGoalChange={setGoal}
-            riskPreference={riskPreference}
-            onRiskPreferenceChange={setRiskPreference}
-            selectedProvider={selectedProvider}
-            onProviderChange={setSelectedProvider}
-            models={models}
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-            providerModels={providerModels}
-            brokerExecution={brokerExecution}
-            onBrokerExecutionChange={setBrokerExecution}
-            allowDirectExecution={allowDirectExecution}
-            onAllowDirectExecutionChange={setAllowDirectExecution}
-            selectedActions={selectedActions}
-            onToggleAction={(action) =>
-              setSelectedActions((current) =>
-                current.includes(action)
-                  ? current.filter((entry) => entry !== action)
-                  : [...current, action],
-              )
-            }
-            composer={composer}
-            onComposerChange={setComposer}
-            onSend={handleSend}
-            sending={sending}
-            canSend={composer.trim().length >= 4 && Boolean(selectedModel)}
-            error={error}
-          />
-        </main>
+          <AnimatePresence initial={false}>
+            {hasGeneratedWorkflow && showRightSidebar ? (
+              <motion.div
+                key="workflow-preview-sidebar"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.22 }}
+                className={cx("hidden h-full border-l xl:block", border)}
+              >
+                <RightSidebar
+                  panel={panel}
+                  border={border}
+                  muted={muted}
+                  heading={heading}
+                  theme={theme}
+                  selectedVersion={selectedVersion}
+                  activeDraft={activeDraft}
+                  activeVersionId={selectedVersion?.id || activeVersionId}
+                  onSelectVersion={setActiveVersionId}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
       </div>
 
       <AiPlanSetupDialog

@@ -23,6 +23,7 @@ type ChatMessagesPaneProps = {
   panel: string;
   muted: string;
   theme: LocalTheme;
+  onExampleClick?: (example: string) => void;
 };
 
 function AssistantResponseCard({
@@ -201,6 +202,13 @@ function PendingWorkflowCard({ theme }: { theme: LocalTheme }) {
   );
 }
 
+const EXAMPLE_PROMPTS = [
+  "Buy HDFC when price drops below 1000",
+  "Send me a Gmail alert when RSI drops below 30",
+  "Create a daily summary of top gainers and email it to me",
+  "Sell all positions when market volatility exceeds 20%",
+];
+
 export function ChatMessagesPane({
   chatScrollRef,
   loading,
@@ -213,6 +221,7 @@ export function ChatMessagesPane({
   panel,
   muted,
   theme,
+  onExampleClick,
 }: ChatMessagesPaneProps) {
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
   const loadingSteps = useMemo(
@@ -238,10 +247,34 @@ export function ChatMessagesPane({
         {loading ? (
           <div className={cx("rounded-2xl border px-4 py-4 text-sm", panel)}>Loading conversation...</div>
         ) : !activeDraft && messages.length === 0 ? (
-          <div className={cx("rounded-2xl border px-5 py-5", panel)}>
-            <div className="text-sm font-medium text-[#f17463]">Start a new workflow</div>
-            <div className={cx("mt-2 text-sm leading-7", muted)}>
-              Describe the workflow, then keep refining it in chat. Every edit creates a version in the right-side history.
+          <div className="space-y-4">
+            <div className={cx("rounded-2xl border px-5 py-5", panel)}>
+              <div className="text-sm font-medium text-[#f17463]">Start a new workflow</div>
+              <div className={cx("mt-2 text-sm leading-7", muted)}>
+                Describe the workflow, then keep refining it in chat. Every edit creates a version in the right-side history.
+              </div>
+            </div>
+            
+            <div>
+              <div className={cx("mb-3 text-xs font-medium uppercase tracking-[0.12em]", muted)}>
+                Get started with examples
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {EXAMPLE_PROMPTS.map((example) => (
+                  <button
+                    key={example}
+                    onClick={() => onExampleClick?.(example)}
+                    className={cx(
+                      "rounded-xl border px-4 py-3 text-left text-sm transition-colors hover:border-[#f17463]/50 hover:bg-[#f17463]/5 cursor-pointer",
+                      theme === "dark"
+                        ? "border-neutral-800 text-neutral-300"
+                        : "border-neutral-200 text-neutral-700",
+                    )}
+                  >
+                    <div className="font-medium">{example}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
