@@ -1,6 +1,8 @@
 import type { LighterMetadata, TradingMetadata } from "@quantnest-trading/types";
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const SLACK_BOT_TOKEN_REGEX = /^xoxb-[A-Za-z0-9-]+$/;
+export const SLACK_USER_ID_REGEX = /^[UW][A-Z0-9]+$/;
 export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,100}$/;
 export const ZERODHA_API_KEY_REGEX = /^[A-Za-z0-9]{8,32}$/;
 export const ACCESS_TOKEN_REGEX = /^[A-Za-z0-9._-]{16,512}$/;
@@ -28,6 +30,15 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
 
   if (action === "discord" && !DISCORD_WEBHOOK_REGEX.test(String(metadata.webhookUrl || "").trim())) {
     errors.push("Discord webhook URL format is invalid.");
+  }
+
+  if (action === "slack") {
+    if (!SLACK_BOT_TOKEN_REGEX.test(String(metadata.slackBotToken || "").trim())) {
+      errors.push("Slack bot token must start with xoxb-.");
+    }
+    if (!SLACK_USER_ID_REGEX.test(String(metadata.slackUserId || "").trim())) {
+      errors.push("Slack user ID format is invalid.");
+    }
   }
 
   if (action === "whatsapp" && !WHATSAPP_PHONE_REGEX.test(String(metadata.recipientPhone || "").trim())) {

@@ -44,6 +44,8 @@ function getActionLabel(type: string) {
       return "Lighter";
     case "gmail":
       return "Gmail";
+    case "slack":
+      return "Slack";
     case "discord":
       return "Discord";
     case "whatsapp":
@@ -77,6 +79,11 @@ function getFieldsForAction(type: string): FieldConfig[] {
     case "gmail":
       return [
         { key: "recipientEmail", label: "Recipient email", placeholder: "alerts@example.com" },
+      ];
+    case "slack":
+      return [
+        { key: "slackBotToken", label: "Bot token", placeholder: "xoxb-..." },
+        { key: "slackUserId", label: "Slack user ID", placeholder: "U012ABCDEF" },
       ];
     case "discord":
       return [

@@ -21,6 +21,7 @@ const INTEGRATION_CATALOG = [
     { key: "zerodha", name: "Zerodha", description: "Broker execution accounts linked through workflow credentials.", nodeType: "zerodha" },
     { key: "groww", name: "Groww", description: "Retail brokerage connections used across active workflows.", nodeType: "groww" },
     { key: "gmail", name: "Gmail", description: "Email delivery accounts referenced by workflow actions.", nodeType: "gmail" },
+    { key: "slack", name: "Slack", description: "Direct-message destinations configured for workflow notifications.", nodeType: "slack" },
     { key: "whatsapp", name: "WhatsApp", description: "Messaging destinations configured for urgent notifications.", nodeType: "whatsapp" },
     { key: "notion", name: "Notion", description: "Workspace destinations used for reports and journaling.", nodeType: "notion-daily-report" },
     { key: "discord", name: "Discord", description: "Webhook destinations used for community and bot alerts.", nodeType: "discord" },
