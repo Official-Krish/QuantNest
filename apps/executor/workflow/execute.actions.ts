@@ -6,6 +6,7 @@ import { createNotionDailyReport, isNotionReportWindowOpen, wasNotionReportCreat
 import { wasDailyActionCreatedToday } from "../executors/reporting/helpers";
 import { sendDiscordNotification } from "../executors/discord";
 import { sendEmail } from "../executors/gmail";
+import { sendSlackDirectMessage } from "../executors/slack";
 import { executeGrowwNode } from "../executors/groww";
 import { sendWhatsAppMessage } from "../executors/whatsapp";
 import { executeZerodhaNode } from "../executors/zerodha";
@@ -334,6 +335,64 @@ export async function executeActionNode(params: {
                     nodeType: "Discord Action",
                     status: "Failed",
                     message: "Failed to send Discord notification",
+                });
+                return;
+            }
+
+        case "slack":
+            try {
+                if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+                    return;
+                }
+                if (context.eventType && context.details) {
+                    await sendSlackDirectMessage(
+                        node.data?.metadata?.slackBotToken || "",
+                        node.data?.metadata?.slackUserId || "",
+                        node.data?.metadata?.recipientName || "User",
+                        context.eventType,
+                        context.details
+                    );
+                } else {
+                    await sendSlackDirectMessage(
+                        node.data?.metadata?.slackBotToken || "",
+                        node.data?.metadata?.slackUserId || "",
+                        node.data?.metadata?.recipientName || "User",
+                        "notification",
+                        {
+                            symbol: node.data?.metadata?.symbol || context.details?.symbol,
+                            exchange: node.data?.metadata?.exchange || "NSE",
+                            targetPrice: node.data?.metadata?.targetPrice,
+                            aiContext: context.details?.aiContext,
+                        }
+                    );
+                }
+                pushStep(steps, {
+                    nodeId: node.nodeId,
+                    nodeType: "Slack Action",
+                    status: "Success",
+                    message: "Slack direct message sent",
+                });
+                return;
+            } catch (error) {
+                console.error("Slack execution error:", error);
+                if (context.userId) {
+                    await createUserNotification({
+                        userId: context.userId,
+                        workflowId: context.workflowId,
+                        type: "slack_delivery_failed",
+                        severity: "error",
+                        title: "Slack delivery failed",
+                        message: "A Slack notification action could not be delivered.",
+                        metadata: { nodeId: node.nodeId },
+                        dedupeKey: `slack-failed:${context.workflowId}:${node.nodeId}`,
+                        dedupeWindowHours: 2,
+                    });
+                }
+                pushStep(steps, {
+                    nodeId: node.nodeId,
+                    nodeType: "Slack Action",
+                    status: "Failed",
+                    message: "Failed to send Slack direct message",
                 });
                 return;
             }

@@ -83,6 +83,8 @@ export const CreateWorkflow = () => {
                 : "price-trigger";
             } else if (metadata.recipientEmail !== undefined) {
               nodeType = "gmail";
+            } else if (metadata.slackUserId !== undefined || metadata.slackBotToken !== undefined) {
+              nodeType = "slack";
             } else if (metadata.webhookUrl !== undefined) {
               nodeType = "discord";
             } else if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {

@@ -73,6 +73,7 @@ export type StrategyBuilderActionType =
   | "groww"
   | "lighter"
   | "gmail"
+  | "slack"
   | "discord"
   | "whatsapp"
   | "notion-daily-report"
@@ -231,6 +232,7 @@ export const AI_NODE_KIND_VALUES = [
   "Zerodha",
   "Groww",
   "gmail",
+  "slack",
   "discord",
   "whatsapp",
   "notion-daily-report",
@@ -244,6 +246,7 @@ export const AI_PREFERRED_ACTION_VALUES = [
   "groww",
   "lighter",
   "gmail",
+  "slack",
   "discord",
   "whatsapp",
   "notion-daily-report",

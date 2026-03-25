@@ -5,6 +5,8 @@ const ZERODHA_API_KEY_REGEX = /^[A-Za-z0-9]{8,32}$/;
 const ACCESS_TOKEN_REGEX = /^[A-Za-z0-9._-]{16,512}$/;
 const LIGHTER_PRIVATE_KEY_REGEX = /^(0x)?[a-fA-F0-9]{64}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SLACK_BOT_TOKEN_REGEX = /^xoxb-[A-Za-z0-9-]+$/;
+const SLACK_USER_ID_REGEX = /^[UW][A-Z0-9]+$/;
 const DISCORD_WEBHOOK_REGEX = /^https:\/\/(discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/;
 const WHATSAPP_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
 const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
@@ -201,6 +203,25 @@ function validateWorkflowNodes(
                     code: "custom",
                     path: [...path, "webhookUrl"],
                     message: "Invalid Discord webhook URL.",
+                });
+            }
+        }
+
+        if (type === "slack") {
+            const slackBotToken = String((metadata as any).slackBotToken || "").trim();
+            const slackUserId = String((metadata as any).slackUserId || "").trim();
+            if (!SLACK_BOT_TOKEN_REGEX.test(slackBotToken)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "slackBotToken"],
+                    message: "Invalid Slack bot token format.",
+                });
+            }
+            if (!SLACK_USER_ID_REGEX.test(slackUserId)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "slackUserId"],
+                    message: "Invalid Slack user ID format.",
                 });
             }
         }

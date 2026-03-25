@@ -17,6 +17,10 @@ export function getFieldLabel(field: string) {
       return "Recipient email";
     case "recipientPhone":
       return "Recipient phone";
+    case "slackBotToken":
+      return "Slack bot token";
+    case "slackUserId":
+      return "Slack user ID";
     case "webhookUrl":
       return "Webhook URL";
     case "notionApiKey":
@@ -52,6 +56,8 @@ export function getNodeLabel(type: string) {
       return "Gmail";
     case "discord":
       return "Discord";
+    case "slack":
+      return "Slack";
     case "whatsapp":
       return "WhatsApp";
     case "notion-daily-report":
@@ -65,6 +71,7 @@ export function getNodeLabel(type: string) {
 
 export function getFieldType(field: string, secret?: boolean): "text" | "password" | "number" {
   if (field === "accountIndex" || field === "apiKeyIndex") return "number";
+  if (field === "slackBotToken") return "password";
   if (secret) return "password";
   return "text";
 }
