@@ -14,7 +14,7 @@ export const UseCase = () => {
             <div className="h-auto mt-20">
                 <div className="text-center pb-8">
                     <h1 className="text-[#f17463] font-normal text-md">Use Cases</h1>
-                    <h2 className="text-3xl font-medium tracking-tight text-gray-300 mt-6 max-w-lg mx-auto">Across Modern Trading Workflows</h2>
+                    <h2 className="text-3xl font-medium tracking-tight text-gray-300 mt-6 max-w-lg mx-auto">From research to live execution</h2>
                     <h3 className="text-lg font-medium tracking-tight text-gray-300 mt-6 max-w-lg mx-auto">Build visual trading workflows for research simulation and live execution</h3>
                 </div>
                 <BentoGrid className="max-w-4xl mx-auto md:auto-rows-[20rem]">
@@ -40,21 +40,21 @@ const items = [
     description: "Build and experiment with trading logic using indicators, conditions, and AI agents.",
     header: <UseCaseSkeleton variant="research" />,
     className: "md:col-span-2",
-    icon: <IconClipboardCopy className="h-4 w-4 text-neutral-500" />,
+    icon: <IconClipboardCopy className="h-5 w-5 text-neutral-500" />,
   },
   {
     title: "Backtesting & Validation",
     description: "Test strategies on historical market data before deploying them live.",
     header: <UseCaseSkeleton variant="backtest" />,
     className: "md:col-span-1",
-    icon: <IconFileBroken className="h-4 w-4 text-neutral-500" />,
+    icon: <IconFileBroken className="h-5 w-5 text-neutral-500" />,
   },
   {
     title: "Automated Execution",
     description: "Execute trades automatically through broker integrations with defined risk controls.",
     header: <UseCaseSkeleton variant="execution" />,
     className: "md:col-span-1",
-    icon: <IconSignature className="h-4 w-4 text-neutral-500" />,
+    icon: <IconSignature className="h-5 w-5 text-neutral-500" />,
   },
   {
     title: "Options & F&O Strategies",
@@ -62,6 +62,6 @@ const items = [
       "Model complex options, spreads, and derivatives workflows visually.",
     header: <UseCaseSkeleton variant="options" />,
     className: "md:col-span-2",
-    icon: <IconTableColumn className="h-4 w-4 text-neutral-500" />,
+    icon: <IconTableColumn className="h-5 w-5 text-neutral-500" />,
   },
 ];

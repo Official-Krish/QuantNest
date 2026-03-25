@@ -17,7 +17,7 @@ export const Hero = ({ onPricingClick }: HeroProps) => {
     ]
     return (
         <div className="border-y border-neutral-800">
-            <div className="relative h-180 mx-20 border-x border-neutral-800 overflow-hidden">
+            <div className="relative h-190 mx-20 border-x border-neutral-800 overflow-hidden">
                 <div className="pointer-events-none absolute inset-0">
                     <motion.div
                         className="absolute left-[28%] top-18 h-120 w-176 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(241,116,99,0.14)_0%,rgba(241,116,99,0.06)_34%,rgba(0,0,0,0)_72%)]"
@@ -31,7 +31,7 @@ export const Hero = ({ onPricingClick }: HeroProps) => {
                     />
                     <div className="absolute inset-0 opacity-[0.04] bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)]" />
                 </div>
-                <div className="relative z-10 pt-40 flex flex-col items-center gap-6">
+                <div className="relative z-10 pt-34 flex flex-col items-center gap-6">
                     <div className="inline-flex items-center gap-2 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-4 py-1.5 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_10px_26px_-18px_rgba(241,116,99,0.9)] backdrop-blur-sm">
                         <span className="h-2 w-2 rounded-full bg-[#f17463]" />
                         <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-[11px]">

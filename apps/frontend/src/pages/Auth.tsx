@@ -164,9 +164,9 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
         <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6 text-neutral-200 lg:self-center">
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-3 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-5 py-2 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_14px_30px_-20px_rgba(241,116,99,0.9)] backdrop-blur-sm">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#f17463]" />
-                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-xs">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-4 py-1.5 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_10px_26px_-18px_rgba(241,116,99,0.9)] backdrop-blur-sm">
+                <span className="h-2 w-2 rounded-full bg-[#f17463]" />
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-[11px]">
                   Now in Early Access
                 </span>
               </div>
@@ -226,9 +226,9 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
         {/* Left Content Section */}
         <div className="flex-1 space-y-6 text-neutral-200 lg:self-center">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-3 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-5 py-2 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_14px_30px_-20px_rgba(241,116,99,0.9)] backdrop-blur-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#f17463]" />
-              <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-xs">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#8f3c1f] bg-[#2a120f]/70 px-4 py-1.5 shadow-[0_0_0_1px_rgba(255,107,53,0.08),0_10px_26px_-18px_rgba(241,116,99,0.9)] backdrop-blur-sm">
+              <span className="h-2 w-2 rounded-full bg-[#f17463]" />
+              <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#ff7b45] sm:text-[11px]">
                 Now in Early Access
               </span>
             </div>
@@ -283,10 +283,14 @@ export function Auth({ mode }: { mode: "signin" | "signup" }) {
           </div>
 
           {mode === "signup" && (
-            <div className="pt-6 border-t border-gray-800">
+            <div className="pt-6 border-t border-gray-800 flex space-x-1">
               <p className="text-sm text-neutral-500">
-                By signing up, you agree to our Terms of Service and Privacy Policy
+                By signing up, you agree to our 
               </p>
+              <a href="/privacy-policy" className="text-sm text-[#f17463] hover:underline">
+                Terms of Service and Privacy Policy
+              </a>
+              <span className="text-sm text-neutral-500">.</span>
             </div>
           )}
         </div>
