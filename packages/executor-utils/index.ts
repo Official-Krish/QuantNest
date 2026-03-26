@@ -10,6 +10,14 @@ export interface TokenStatus {
     tokenRequestId?: string;
 }
 
+export interface DerivedWorkflowTriggerState {
+    triggerType?: "timer" | "price-trigger" | "conditional-trigger";
+    triggerNodeId?: string;
+    triggerConfig?: Record<string, unknown>;
+    nextRunAt?: Date;
+    lastEvaluatedAt?: Date;
+}
+
 export interface UserNotificationInput {
     userId: string;
     workflowId?: string;
@@ -258,6 +266,80 @@ export async function updateWorkflowStatus(
     } catch (error) {
         console.error("Error updating workflow status:", error);
     }
+}
+
+export function deriveWorkflowTriggerState(
+    nodes: Array<{
+        id?: string;
+        nodeId?: string;
+        type?: string | null | undefined;
+        data?: {
+            kind?: "action" | "trigger" | "ACTION" | "TRIGGER" | null | undefined;
+            metadata?: Record<string, unknown> | null | undefined;
+        } | null | undefined;
+    }>,
+    now = new Date(),
+): DerivedWorkflowTriggerState {
+    const trigger = nodes.find((node) => {
+        const kind = String(node?.data?.kind || "").toLowerCase();
+        return kind === "trigger";
+    });
+
+    if (!trigger) {
+        return {};
+    }
+
+    const rawTriggerType = String(trigger.type || "").toLowerCase();
+    const triggerType = (
+        rawTriggerType === "price" ? "price-trigger" :
+        rawTriggerType === "conditional" ? "conditional-trigger" :
+        rawTriggerType
+    ) as DerivedWorkflowTriggerState["triggerType"];
+    const triggerNodeId = String(trigger.nodeId || trigger.id || "").trim() || undefined;
+    const rawMetadata = (trigger.data?.metadata || {}) as Record<string, unknown>;
+    const nextState: DerivedWorkflowTriggerState = {
+        triggerType,
+        triggerNodeId,
+        lastEvaluatedAt: now,
+    };
+
+    if (triggerType === "timer") {
+        const intervalSeconds = Number(rawMetadata.time);
+        nextState.triggerConfig = {
+            intervalSeconds,
+            marketType: rawMetadata.marketType,
+            asset: rawMetadata.asset,
+        };
+        if (Number.isFinite(intervalSeconds) && intervalSeconds > 0) {
+            nextState.nextRunAt = new Date(now.getTime() + intervalSeconds * 1000);
+        }
+        return nextState;
+    }
+
+    if (triggerType === "price-trigger") {
+        nextState.triggerConfig = {
+            asset: rawMetadata.asset,
+            targetPrice: rawMetadata.targetPrice,
+            marketType: rawMetadata.marketType,
+            condition: rawMetadata.condition,
+        };
+        return nextState;
+    }
+
+    if (triggerType === "conditional-trigger") {
+        nextState.triggerConfig = {
+            asset: rawMetadata.asset,
+            marketType: rawMetadata.marketType,
+            condition: rawMetadata.condition,
+            targetPrice: rawMetadata.targetPrice,
+            timeWindowMinutes: rawMetadata.timeWindowMinutes,
+            startTime: rawMetadata.startTime,
+            expression: rawMetadata.expression,
+        };
+        return nextState;
+    }
+
+    return {};
 }
 
 export async function pauseWorkflow(
