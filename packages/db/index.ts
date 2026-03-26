@@ -174,6 +174,33 @@ const WorkflowSchema = new Schema({
         enum: ["active", "paused"],
         default: "active",
     },
+    triggerType: {
+        type: String,
+        enum: ["timer", "price-trigger", "conditional-trigger"],
+        required: false,
+        index: true,
+    },
+    triggerNodeId: {
+        type: String,
+        required: false,
+    },
+    triggerConfig: {
+        type: Schema.Types.Mixed,
+        required: false,
+    },
+    nextRunAt: {
+        type: Date,
+        required: false,
+        index: true,
+    },
+    lastTriggeredAt: {
+        type: Date,
+        required: false,
+    },
+    lastEvaluatedAt: {
+        type: Date,
+        required: false,
+    },
 });
 
 const CreedentialTypeSchema = new Schema({
@@ -450,6 +477,7 @@ const AiStrategySessionSchema = new Schema({
 // Compound unique index for userId + workflowId
 ZerodhaTokenSchema.index({ userId: 1, workflowId: 1 }, { unique: true });
 AiStrategySessionSchema.index({ userId: 1, updatedAt: -1 });
+WorkflowSchema.index({ status: 1, triggerType: 1, nextRunAt: 1 });
 
 export const ZerodhaTokenModel = mongoose.model('ZerodhaTokens', ZerodhaTokenSchema);
 export const UserModel = mongoose.model('Users', UserSchema);

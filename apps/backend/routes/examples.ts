@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { WorkflowExampleModel, WorkflowModel } from "@quantnest-trading/db/client";
+import { deriveWorkflowTriggerState } from "@quantnest-trading/executor-utils";
 import { authMiddleware } from "../middleware";
 
 const examplesRouter = Router();
@@ -95,6 +96,7 @@ examplesRouter.post("/:slug/create", authMiddleware, async (req, res) => {
       nodes: normalizedNodes,
       edges: example.edges,
       status: "paused",
+      ...deriveWorkflowTriggerState(normalizedNodes as any),
     });
 
     res.status(200).json({

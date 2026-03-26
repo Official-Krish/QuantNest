@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware';
 import { CreateWorkflowSchema, UpdateWorkflowSchema, WorkflowStatusSchema } from '@quantnest-trading/types/metadata';
 import { ExecutionModel, WorkflowModel } from '@quantnest-trading/db/client';
-import { createUserNotification, saveZerodhaToken } from '@quantnest-trading/executor-utils';
+import { createUserNotification, deriveWorkflowTriggerState, saveZerodhaToken } from '@quantnest-trading/executor-utils';
 import {
     isBrokerVerificationError,
     verifyBrokerCredentials,
@@ -72,6 +72,7 @@ workFlowRouter.post('/', authMiddleware, async (req, res) => {
             nodes: data.nodes,
             edges: data.edges,
             status: "active",
+            ...deriveWorkflowTriggerState(data.nodes),
         });
         const ZerodhaNode = data.nodes.find((node) => node.type === "zerodha");
         if (ZerodhaNode) {
@@ -124,16 +125,24 @@ workFlowRouter.patch('/:workflowId/status', authMiddleware, async (req, res) => 
     }
 
     try {
-        const workflow = await WorkflowModel.findOneAndUpdate(
-            { _id: workflowId, userId },
-            { $set: { status: parsedStatus.data.status } },
-            { new: true }
-        );
-
-        if (!workflow) {
+        const existingWorkflow = await WorkflowModel.findOne({ _id: workflowId, userId });
+        if (!existingWorkflow) {
             res.status(404).json({ message: "Workflow not found" });
             return;
         }
+
+        const workflow = await WorkflowModel.findOneAndUpdate(
+            { _id: workflowId, userId },
+            {
+                $set: {
+                    status: parsedStatus.data.status,
+                    ...(parsedStatus.data.status === "active"
+                        ? deriveWorkflowTriggerState(existingWorkflow.nodes as any)
+                        : {}),
+                },
+            },
+            { new: true }
+        );
 
         res.status(200).json({
             message: `Workflow ${parsedStatus.data.status === "paused" ? "paused" : "resumed"}`,
@@ -158,7 +167,13 @@ workFlowRouter.put('/:workflowId', authMiddleware, async (req, res) => {
 
         const workflow = await WorkflowModel.findOneAndUpdate(
             { _id: workflowId, userId },
-            { $set: { nodes: data.nodes, edges: data.edges } },
+            {
+                $set: {
+                    nodes: data.nodes,
+                    edges: data.edges,
+                    ...deriveWorkflowTriggerState(data.nodes),
+                },
+            },
             { new: true }
         );
         if (!workflow) {
