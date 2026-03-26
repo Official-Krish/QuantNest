@@ -81,7 +81,7 @@ export const ActionSheet = ({
       setInitialAction("Reporting");
       return;
     }
-    if (initialKind === "conditional-trigger" || initialKind === "if" || initialKind === "delay") {
+    if (initialKind === "conditional-trigger" || initialKind === "if" || initialKind === "delay" || initialKind === "merge") {
       setInitialAction("Flow Control");
       return;
     }

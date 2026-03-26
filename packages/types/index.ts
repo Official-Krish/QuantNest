@@ -6,6 +6,7 @@ export type NodeKind =
     | "conditional-trigger"
     | "if"
     | "delay"
+    | "merge"
     | "Zerodha"
     | "Groww"
     | "gmail"
@@ -39,6 +40,7 @@ export type NodeMetadata =
     | PriceTriggerNodeMetadata
     | NotificationMetadata
     | DelayNodeMetadata
+    | MergeNodeMetadata
     | LighterMetadata
     | IfNodeMetadata
     | ConditionalTriggerMetadata
@@ -48,6 +50,10 @@ export type NodeMetadata =
 
 export interface DelayNodeMetadata {
     durationSeconds: number;
+    condition?: boolean;
+}
+
+export interface MergeNodeMetadata {
     condition?: boolean;
 }
 

@@ -11,6 +11,7 @@ const DEFAULT_ALLOWED_NODE_TYPES: NodeKind[] = [
   "conditional-trigger",
   "if",
   "delay",
+  "merge",
   "Zerodha",
   "Groww",
   "gmail",
@@ -34,6 +35,7 @@ const ACTION_METADATA_REFERENCE: Record<StrategyBuilderActionType, string[]> = {
     "timeWindowMinutes",
     "expression",
   ],
+  merge: [],
   gmail: ["recipientEmail", "recipientName"],
   slack: ["slackBotToken", "slackUserId", "recipientName"],
   discord: ["webhookUrl", "recipientName"],
@@ -68,6 +70,7 @@ const TRIGGER_METADATA_REFERENCE: Record<string, string[]> = {
     "expression",
   ],
   delay: ["durationSeconds"],
+  merge: [],
 };
 
 export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): string {
@@ -106,7 +109,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | conditional-trigger | if | delay | Zerodha | Groww | gmail | slack | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
+            type: "timer | price | conditional-trigger | if | delay | merge | Zerodha | Groww | gmail | slack | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -154,6 +157,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "- For a price node, metadata must include asset, targetPrice, marketType, and condition.",
     "- Use 'if' for downstream branching logic after a trigger or action step.",
     "- Use 'delay' when the user asks to wait before continuing to the next action.",
+    "- Use 'merge' to join parallel or branched paths back into a single downstream step.",
     "- If the prompt says 'below', the price trigger condition must be 'below'. If the prompt says 'above', use 'above'.",
     "- Never default a price trigger targetPrice to 0. Use the exact threshold from the prompt.",
     "- Use conditional-trigger when the strategy mentions thresholds, comparisons, RSI, EMA, or branching.",

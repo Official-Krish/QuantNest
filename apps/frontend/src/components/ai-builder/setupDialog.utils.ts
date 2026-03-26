@@ -58,6 +58,8 @@ export function getNodeLabel(type: string) {
       return "If";
     case "delay":
       return "Delay";
+    case "merge":
+      return "Merge";
     case "gmail":
       return "Gmail";
     case "discord":

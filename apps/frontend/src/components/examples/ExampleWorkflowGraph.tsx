@@ -14,6 +14,7 @@ function getNodeAccent(type: string) {
       return "text-[#f17463]";
     case "if":
     case "delay":
+    case "merge":
       return "text-sky-300";
     case "gmail":
       return "text-[#4285f4]";
@@ -48,6 +49,8 @@ function getNodeBadge(type: string, metadata: Record<string, any>) {
         : "Branch";
     case "delay":
       return `${metadata.durationSeconds || 0}s`;
+    case "merge":
+      return "JOIN";
     case "zerodha":
     case "Zerodha":
       return String(metadata.type || "TRADE").toUpperCase();
@@ -77,6 +80,8 @@ function getNodeTitle(type: string, metadata: Record<string, any>) {
       return "If branch";
     case "delay":
       return `Wait ${metadata.durationSeconds || 0} seconds`;
+    case "merge":
+      return "Join branches";
     case "zerodha":
     case "Zerodha":
       return `${metadata.qty || "-"} units on ${metadata.symbol || "-"}`;
@@ -106,6 +111,8 @@ function getNodeDescription(type: string, metadata: Record<string, any>) {
       return "Routes execution into true and false branches.";
     case "delay":
       return "Pauses before continuing downstream.";
+    case "merge":
+      return "Waits for multiple paths, then continues once.";
     case "zerodha":
     case "Zerodha":
       return "Broker execution node";

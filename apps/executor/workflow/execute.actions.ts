@@ -39,6 +39,7 @@ export async function executeActionNode(params: {
         case "conditional":
         case "conditional-trigger":
         case "if":
+        case "merge":
             return;
 
         case "delay":

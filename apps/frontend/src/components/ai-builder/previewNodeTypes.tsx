@@ -148,6 +148,20 @@ export function PreviewDelay({ data }: any) {
   return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Delay" badge="WAIT" title={`${seconds || 0}s pause`} subtitle="Wait before next step" />;
 }
 
+export function PreviewMerge() {
+  return (
+    <PreviewShell
+      accent="#c084fc"
+      tone="action"
+      kindBadge="Action"
+      label="Merge"
+      badge="JOIN"
+      title="Join branches"
+      subtitle="Continue after parallel paths meet"
+    />
+  );
+}
+
 export function PreviewZerodha({ data }: any) {
   const { symbol = "Trade", qty = 0, type = "buy" } = data.metadata || {};
   return (
@@ -203,6 +217,7 @@ export const aiPreviewNodeTypes = {
   "conditional-trigger": PreviewConditional,
   if: PreviewIf,
   delay: PreviewDelay,
+  merge: PreviewMerge,
   zerodha: PreviewZerodha,
   groww: PreviewGroww,
   lighter: PreviewLighter,

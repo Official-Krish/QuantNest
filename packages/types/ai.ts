@@ -74,6 +74,7 @@ export type StrategyBuilderActionType =
   | "lighter"
   | "delay"
   | "if"
+  | "merge"
   | "gmail"
   | "slack"
   | "discord"
@@ -233,6 +234,7 @@ export const AI_NODE_KIND_VALUES = [
   "conditional-trigger",
   "if",
   "delay",
+  "merge",
   "Zerodha",
   "Groww",
   "gmail",
@@ -251,6 +253,7 @@ export const AI_PREFERRED_ACTION_VALUES = [
   "lighter",
   "delay",
   "if",
+  "merge",
   "gmail",
   "slack",
   "discord",

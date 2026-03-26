@@ -452,7 +452,8 @@ export const CreateWorkflow = () => {
             if (branch === 'true') condition = true;
             if (branch === 'false') condition = false;
             const nodeId = Math.random().toString();
-            const isFlowConditional = type === "conditional-trigger" || type === "if";
+            const preservesOwnBranching = type === "conditional-trigger" || type === "if";
+            const ignoresBranchCondition = type === "merge";
             setNodes([
               ...nodes,
               {
@@ -460,7 +461,7 @@ export const CreateWorkflow = () => {
                 type,
                 data: {
                   kind: "action",
-                  metadata: isFlowConditional
+                  metadata: preservesOwnBranching || ignoresBranchCondition
                     ? { ...metadata }
                     : { ...metadata, branch, ...(condition !== undefined ? { condition } : {}) },
                 },

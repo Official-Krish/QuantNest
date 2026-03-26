@@ -134,6 +134,10 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       }
     }
 
+    if (normalizedType === "merge") {
+      // Merge is a flow-control node with no required metadata.
+    }
+
     if (normalizedType === "if") {
       const hasExpression = Boolean((metadata as Record<string, unknown>).expression);
       const asset = String(metadata.asset || "").trim();
