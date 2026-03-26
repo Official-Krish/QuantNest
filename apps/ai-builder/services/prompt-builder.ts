@@ -9,6 +9,8 @@ const DEFAULT_ALLOWED_NODE_TYPES: NodeKind[] = [
   "timer",
   "price",
   "conditional-trigger",
+  "if",
+  "delay",
   "Zerodha",
   "Groww",
   "gmail",
@@ -23,6 +25,15 @@ const ACTION_METADATA_REFERENCE: Record<StrategyBuilderActionType, string[]> = {
   zerodha: ["type", "qty", "symbol", "apiKey", "accessToken", "exchange"],
   groww: ["type", "qty", "symbol", "accessToken", "exchange"],
   lighter: ["type", "qty", "symbol", "apiKey", "accountIndex", "apiKeyIndex"],
+  delay: ["durationSeconds"],
+  if: [
+    "asset",
+    "marketType",
+    "condition",
+    "targetPrice",
+    "timeWindowMinutes",
+    "expression",
+  ],
   gmail: ["recipientEmail", "recipientName"],
   slack: ["slackBotToken", "slackUserId", "recipientName"],
   discord: ["webhookUrl", "recipientName"],
@@ -48,6 +59,15 @@ const TRIGGER_METADATA_REFERENCE: Record<string, string[]> = {
     "timeWindowMinutes",
     "expression",
   ],
+  if: [
+    "asset",
+    "marketType",
+    "condition",
+    "targetPrice",
+    "timeWindowMinutes",
+    "expression",
+  ],
+  delay: ["durationSeconds"],
 };
 
 export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): string {
@@ -86,7 +106,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | conditional-trigger | Zerodha | Groww | gmail | slack | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
+            type: "timer | price | conditional-trigger | if | delay | Zerodha | Groww | gmail | slack | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -132,6 +152,8 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "Rules:",
     "- Multiple trigger nodes and branching paths are allowed when they improve the workflow.",
     "- For a price node, metadata must include asset, targetPrice, marketType, and condition.",
+    "- Use 'if' for downstream branching logic after a trigger or action step.",
+    "- Use 'delay' when the user asks to wait before continuing to the next action.",
     "- If the prompt says 'below', the price trigger condition must be 'below'. If the prompt says 'above', use 'above'.",
     "- Never default a price trigger targetPrice to 0. Use the exact threshold from the prompt.",
     "- Use conditional-trigger when the strategy mentions thresholds, comparisons, RSI, EMA, or branching.",

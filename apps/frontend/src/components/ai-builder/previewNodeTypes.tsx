@@ -121,6 +121,33 @@ export function PreviewConditional({ data }: any) {
   );
 }
 
+export function PreviewIf({ data }: any) {
+  const groups = data.metadata?.expression?.conditions?.length || 1;
+  return (
+    <div className="min-w-[170px] rounded-2xl border border-[#f17463]/35 bg-[#f17463]/10 px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+      <div className="mb-2">
+        <span className="rounded-full bg-[#f17463]/16 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-[#f59a8d]">
+          Action
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#f59a8d]">If</span>
+        <span className="rounded-full bg-black/50 px-1.5 py-0.5 text-[8px] font-mono text-neutral-200">{groups}G</span>
+      </div>
+      <div className="mt-1.5 text-[12px] font-semibold leading-4 text-neutral-100">Branch downstream</div>
+      <div className="mt-1 text-[10px] leading-4 text-neutral-300/80">True / false outputs</div>
+      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-neutral-900 !bg-neutral-300" />
+      <Handle type="source" id="true" position={Position.Right} className="!h-2 !w-2 !border !border-neutral-900 !bg-emerald-400" style={{ top: "40%" }} />
+      <Handle type="source" id="false" position={Position.Right} className="!h-2 !w-2 !border !border-neutral-900 !bg-rose-400" style={{ top: "68%" }} />
+    </div>
+  );
+}
+
+export function PreviewDelay({ data }: any) {
+  const seconds = Number(data.metadata?.durationSeconds || 0);
+  return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Delay" badge="WAIT" title={`${seconds || 0}s pause`} subtitle="Wait before next step" />;
+}
+
 export function PreviewZerodha({ data }: any) {
   const { symbol = "Trade", qty = 0, type = "buy" } = data.metadata || {};
   return (
@@ -174,6 +201,8 @@ export const aiPreviewNodeTypes = {
   "price-trigger": PreviewPriceTrigger,
   timer: PreviewTimer,
   "conditional-trigger": PreviewConditional,
+  if: PreviewIf,
+  delay: PreviewDelay,
   zerodha: PreviewZerodha,
   groww: PreviewGroww,
   lighter: PreviewLighter,

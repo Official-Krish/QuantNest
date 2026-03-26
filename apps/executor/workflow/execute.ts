@@ -57,8 +57,10 @@ export async function executeRecursive(
     let nextCondition = condition;
     let targetEdges = outgoingEdges;
 
-    if (sourceNode?.type === "conditional-trigger") {
-        const isRootTriggerNode = String(sourceNode.data?.kind || "").toLowerCase() === "trigger";
+    if (sourceNode?.type === "conditional-trigger" || sourceNode?.type === "if") {
+        const isRootTriggerNode =
+            String(sourceNode.data?.kind || "").toLowerCase() === "trigger" &&
+            sourceNode?.type === "conditional-trigger";
         const evaluatedCondition =
             typeof condition === "boolean" && isRootTriggerNode
                 ? condition

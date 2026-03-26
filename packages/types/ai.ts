@@ -72,6 +72,8 @@ export type StrategyBuilderActionType =
   | "zerodha"
   | "groww"
   | "lighter"
+  | "delay"
+  | "if"
   | "gmail"
   | "slack"
   | "discord"
@@ -229,6 +231,8 @@ export const AI_NODE_KIND_VALUES = [
   "timer",
   "price",
   "conditional-trigger",
+  "if",
+  "delay",
   "Zerodha",
   "Groww",
   "gmail",
@@ -245,6 +249,8 @@ export const AI_PREFERRED_ACTION_VALUES = [
   "zerodha",
   "groww",
   "lighter",
+  "delay",
+  "if",
   "gmail",
   "slack",
   "discord",

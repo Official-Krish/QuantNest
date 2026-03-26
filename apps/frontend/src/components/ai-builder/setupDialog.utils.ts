@@ -37,6 +37,8 @@ export function getFieldLabel(field: string) {
       return "Account index";
     case "apiKeyIndex":
       return "API key index";
+    case "durationSeconds":
+      return "Delay duration (seconds)";
     case "aiConsent":
       return "AI consent";
     default:
@@ -52,6 +54,10 @@ export function getNodeLabel(type: string) {
       return "Groww";
     case "lighter":
       return "Lighter";
+    case "if":
+      return "If";
+    case "delay":
+      return "Delay";
     case "gmail":
       return "Gmail";
     case "discord":

@@ -73,16 +73,22 @@ export const CreateWorkflow = () => {
           }
           if (!nodeType) {
             const metadata = node.data?.metadata || {};
+            const kind = node.data?.kind?.toLowerCase();
             if (metadata.time !== undefined) {
               nodeType = "timer";
-            } else if (metadata.expression !== undefined) {
-              nodeType = "conditional-trigger";
             } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined && metadata.condition !== undefined) {
-              nodeType = metadata.timeWindowMinutes !== undefined
+              nodeType = kind === "trigger"
                 ? "conditional-trigger"
                 : "price-trigger";
             } else if (metadata.recipientEmail !== undefined) {
               nodeType = "gmail";
+            } else if (metadata.durationSeconds !== undefined) {
+              nodeType = "delay";
+            } else if (
+              metadata.expression !== undefined ||
+              (metadata.targetPrice !== undefined && metadata.condition !== undefined && metadata.asset !== undefined)
+            ) {
+              nodeType = kind === "trigger" ? "conditional-trigger" : "if";
             } else if (metadata.slackUserId !== undefined || metadata.slackBotToken !== undefined) {
               nodeType = "slack";
             } else if (metadata.webhookUrl !== undefined) {
@@ -96,7 +102,6 @@ export const CreateWorkflow = () => {
             } else if (metadata.recipientPhone !== undefined) {
               nodeType = "whatsapp";
             } else {
-              const kind = node.data?.kind?.toLowerCase();
               nodeType = kind === "action" ? "zerodha" : "timer";
             }
           }
@@ -120,7 +125,7 @@ export const CreateWorkflow = () => {
           }
           const sourceNode = nodeById.get(edge.source);
           const targetNode = nodeById.get(edge.target);
-          if (sourceNode?.type !== "conditional-trigger") {
+          if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if") {
             return edge;
           }
           const targetCondition = targetNode?.data?.metadata?.condition;
@@ -447,7 +452,7 @@ export const CreateWorkflow = () => {
             if (branch === 'true') condition = true;
             if (branch === 'false') condition = false;
             const nodeId = Math.random().toString();
-            const isFlowConditional = type === "conditional-trigger";
+            const isFlowConditional = type === "conditional-trigger" || type === "if";
             setNodes([
               ...nodes,
               {
