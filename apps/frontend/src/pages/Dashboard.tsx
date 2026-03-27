@@ -45,7 +45,7 @@ export const Dashboard = () => {
   );
 
   return (
-    <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-10 pt-36 text-white md:px-10">
+    <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-6 pt-36 text-white md:px-10">
       <AppBackground />
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
         <section className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
@@ -57,8 +57,7 @@ export const Dashboard = () => {
               Your trading workflows
             </h1>
             <p className="mt-2 max-w-xl text-sm text-neutral-400">
-              Review and iterate on the strategies you have wired into QuantNest
-              Trading. Open any workflow to edit it in the visual builder.
+              Manage and iterate on your active trading strategies.
             </p>
           </div>
           <div className="flex flex-col items-end gap-3">
@@ -82,9 +81,6 @@ export const Dashboard = () => {
             <p className="mt-3 text-3xl font-semibold text-white">
               {loading ? "—" : workflows.length}
             </p>
-            <p className="mt-1 text-xs text-neutral-400">
-              Each workflow represents a complete trading strategy graph.
-            </p>
           </div>
           <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
@@ -93,9 +89,6 @@ export const Dashboard = () => {
             <p className="mt-3 text-3xl font-semibold text-white">
               {loading ? "—" : totalNodes}
             </p>
-            <p className="mt-1 text-xs text-neutral-400">
-              Triggers, conditions, and broker actions you have configured.
-            </p>
           </div>
           <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
@@ -103,9 +96,6 @@ export const Dashboard = () => {
             </p>
             <p className="mt-3 text-3xl font-semibold text-white">
               {loading ? "—" : totalEdges}
-            </p>
-            <p className="mt-1 text-xs text-neutral-400">
-              Edges that define the flow of data and execution.
             </p>
           </div>
         </section>
