@@ -11,6 +11,7 @@ import {
   apiUpdateWorkflow,
 } from "@/http";
 import { Button } from "@/components/ui/button";
+import { OrangeButton } from "@/components/ui/button-orange";
 import { workflowNodeTypes } from "@/components/workflow/nodeTypes";
 import { AppBackground } from "@/components/background";
 import { toast } from "sonner";
@@ -455,8 +456,7 @@ export const CreateWorkflow = () => {
                 </h1>
                 <p className="mt-1 max-w-xl text-sm text-neutral-400">
                   Chain together triggers and broker actions to automate your
-                  trading strategies, with the same aesthetic as your landing
-                  experience.
+                  trading strategies.
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2 text-xs md:text-sm">
@@ -482,18 +482,17 @@ export const CreateWorkflow = () => {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <Button
-                    variant="default"
+                  <OrangeButton
                     onClick={onSave}
                     disabled={!canSave || saving}
-                    className="mt-1 bg-white px-5 py-2 text-xs font-medium text-neutral-900 hover:bg-gray-200 md:text-sm cursor-pointer"
+                    className="mt-1 px-5 py-2 text-xs md:text-sm"
                   >
                     {saving
                       ? "Saving..."
                       : workflowId
                         ? "Update workflow"
                         : "Save workflow"}
-                  </Button>
+                  </OrangeButton>
                   {routeWorkflowId && 
                     <Button
                       variant="outline"

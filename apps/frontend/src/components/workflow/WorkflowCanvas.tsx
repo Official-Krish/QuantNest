@@ -1,6 +1,8 @@
+import { useMemo, useState } from "react";
 import { Background, BackgroundVariant, ReactFlow } from "@xyflow/react";
 import type { EdgeType, NodeType } from "@quantnest-trading/types";
 import { Button } from "@/components/ui/button";
+import { OrangeButton } from "@/components/ui/button-orange";
 import { ServiceLogo } from "@/components/workflow/service-branding";
 import {
   DropdownMenu,
@@ -109,9 +111,36 @@ export const WorkflowCanvas = ({
   setMarketType,
   hasZerodhaAction,
 }: WorkflowCanvasProps) => {
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const menuNodeKind = nodeMenu ? String(nodeMenu.node.data?.kind || "action").toLowerCase() : "action";
   const menuNodeType = nodeMenu ? String(nodeMenu.node.type || "node") : "node";
   const menuNodeLabel = menuNodeType.replaceAll("-", " ");
+
+  const sourceNodeColor = (nodeType: string) => {
+    const normalized = nodeType.toLowerCase();
+    if (normalized === "price-trigger" || normalized === "timer") return "#f17463";
+    if (normalized === "gmail" || normalized === "slack") return "#38bdf8";
+    if (normalized === "zerodha" || normalized === "groww" || normalized === "lighter") return "#34d399";
+    if (normalized === "conditional-trigger" || normalized === "if") return "#a78bfa";
+    return "#a3a3a3";
+  };
+
+  const styledEdges = useMemo(() => {
+    const typeById = new Map<string, string>(
+      nodes.map((node) => [node.nodeId, String(node.type || "")]),
+    );
+
+    return edges.map((edge) => {
+      const color = sourceNodeColor(typeById.get(edge.source) || "");
+      return {
+        ...edge,
+        style: {
+          stroke: color,
+          strokeWidth: 2,
+        },
+      };
+    });
+  }, [edges, nodes]);
 
   return (
     <div
@@ -148,13 +177,22 @@ export const WorkflowCanvas = ({
         </div>
       )}
 
-      <button
-        type="button"
-        className="absolute right-4 top-4 z-20 rounded-full border border-neutral-800 bg-neutral-950/80 px-3 py-1 text-[11px] font-medium text-neutral-200 hover:bg-neutral-900/90 cursor-pointer"
-        onClick={onToggleFullscreen}
-      >
-        {isFullscreen ? "Close full screen" : "Full screen"}
-      </button>
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-950/85 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+        <button
+          type="button"
+          className="rounded-full px-3 py-1 text-[11px] font-medium text-neutral-200 hover:bg-neutral-900/90 cursor-pointer"
+          onClick={() => reactFlowInstance?.fitView({ padding: 0.2, duration: 350 })}
+        >
+          Center nodes
+        </button>
+        <button
+          type="button"
+          className="rounded-full px-3 py-1 text-[11px] font-medium text-neutral-200 hover:bg-neutral-900/90 cursor-pointer"
+          onClick={onToggleFullscreen}
+        >
+          {isFullscreen ? "Close full screen" : "Full screen"}
+        </button>
+      </div>
 
       {isFullscreen && (
         <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
@@ -171,13 +209,13 @@ export const WorkflowCanvas = ({
               {saveError}
             </div>
           )}
-          <Button
+          <OrangeButton
             onClick={onSave}
             disabled={!canSave || saving}
-            className="bg-white px-4 py-2 text-xs font-medium text-neutral-900 hover:bg-gray-200 cursor-pointer"
+            className="px-4 py-2 text-xs"
           >
             {saving ? "Saving..." : workflowId ? "Update workflow" : "Save workflow"}
-          </Button>
+          </OrangeButton>
         </div>
       )}
 
@@ -291,11 +329,12 @@ export const WorkflowCanvas = ({
 
         <ReactFlow
           nodeTypes={nodeTypes}
+          onInit={setReactFlowInstance}
           nodes={nodes.map((node) => ({
             ...node,
             id: node.nodeId,
           }))}
-          edges={edges}
+          edges={styledEdges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
