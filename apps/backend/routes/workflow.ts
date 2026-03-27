@@ -2,14 +2,97 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware';
 import { CreateWorkflowSchema, UpdateWorkflowSchema, WorkflowStatusSchema } from '@quantnest-trading/types/metadata';
 import { ExecutionModel, WorkflowModel } from '@quantnest-trading/db/client';
+import type {
+    IndicatorConditionGroup,
+} from '@quantnest-trading/types';
 import { createUserNotification, deriveWorkflowTriggerState, saveZerodhaToken } from '@quantnest-trading/executor-utils';
+import {
+    getCurrentPrice,
+    type MarketCandle,
+} from '@quantnest-trading/market';
 import {
     isBrokerVerificationError,
     verifyBrokerCredentials,
     verifyBrokerCredentialsForNodes,
 } from "../services/brokerVerification";
+import { collectIndicatorReferences, evaluateExpression, normalizeMarket, resolveOperandValue } from '../services/market';
 
 const workFlowRouter = Router();
+
+
+workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
+    try {
+        const marketType = normalizeMarket(req.body?.marketType);
+        const asset = typeof req.body?.asset === "string" ? req.body.asset : undefined;
+        const targetPrice = typeof req.body?.targetPrice === "number" ? req.body.targetPrice : Number(req.body?.targetPrice);
+        const condition = req.body?.condition;
+        const expression = req.body?.expression as IndicatorConditionGroup | undefined;
+        const historicalCache = new Map<string, MarketCandle[]>();
+        const valueCache = new Map<string, number | null>();
+
+        let currentPrice: number | undefined;
+        let conditionMet: boolean | undefined;
+        let distanceToTarget: number | null | undefined;
+
+        if (asset) {
+            currentPrice = await getCurrentPrice(asset, marketType);
+        }
+
+        if (
+            typeof currentPrice === "number" &&
+            Number.isFinite(targetPrice) &&
+            (condition === "above" || condition === "below")
+        ) {
+            distanceToTarget = currentPrice - targetPrice;
+            conditionMet = condition === "above"
+                ? currentPrice > targetPrice
+                : currentPrice < targetPrice;
+        }
+
+        const indicatorSnapshot = [];
+        if (expression) {
+            const refs = collectIndicatorReferences(expression);
+            for (const ref of refs) {
+                const value = await resolveOperandValue(
+                    {
+                        type: "indicator",
+                        indicator: ref,
+                    },
+                    valueCache,
+                    historicalCache,
+                );
+
+                indicatorSnapshot.push({
+                    symbol: ref.symbol,
+                    marketType: normalizeMarket(ref.marketType),
+                    timeframe: ref.timeframe,
+                    indicator: ref.indicator,
+                    period: ref.params?.period,
+                    value,
+                });
+            }
+
+            conditionMet = await evaluateExpression(expression, valueCache, historicalCache);
+        }
+
+        const preview = {
+            currentPrice,
+            conditionMet,
+            distanceToTarget,
+            indicatorSnapshot,
+            evaluatedAt: new Date().toISOString(),
+        };
+
+        res.status(200).json({
+            message: "Workflow preview generated",
+            preview,
+        });
+    } catch (error: any) {
+        res.status(400).json({
+            message: error?.message || "Failed to generate workflow preview",
+        });
+    }
+});
 
 workFlowRouter.post('/verify-broker-credentials', authMiddleware, async (req, res) => {
     const brokerType = String(req.body?.brokerType || "").toLowerCase();

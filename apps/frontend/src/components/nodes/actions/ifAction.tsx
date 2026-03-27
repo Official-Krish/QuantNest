@@ -1,5 +1,6 @@
 import { Handle, Position } from "@xyflow/react";
 import type { IndicatorConditionGroup } from "@quantnest-trading/types";
+import { useWorkflowLivePreview } from "@/components/workflow/useWorkflowLivePreview";
 
 function formatOperand(operand: any): string {
   if (!operand) return "-";
@@ -29,6 +30,17 @@ export const ifAction = ({
   };
 }) => {
   const { marketType, asset, targetPrice, timeWindowMinutes, startTime, expression } = data.metadata || {};
+  const { preview, loading } = useWorkflowLivePreview(
+    expression || asset
+      ? {
+          marketType: marketType as any,
+          asset,
+          targetPrice,
+          condition: data.metadata?.condition as any,
+          expression,
+        }
+      : null,
+  );
   const details: Array<{ label: string; value: string | number }> = [];
   if (marketType) details.push({ label: "Market", value: marketType });
   if (asset) details.push({ label: "Asset", value: asset });
@@ -93,6 +105,35 @@ export const ifAction = ({
               </div>
             );
           })}
+        </div>
+      ) : null}
+      {(loading || preview) ? (
+        <div className="mt-2 rounded-lg border border-neutral-800 bg-black/40 px-2.5 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[9px] uppercase tracking-[0.16em] text-neutral-500">Live Snapshot</span>
+            <span className={`text-[9px] font-semibold uppercase tracking-[0.14em] ${preview?.conditionMet ? "text-emerald-300" : "text-neutral-400"}`}>
+              {loading ? "Fetching" : preview?.conditionMet ? "True" : "False"}
+            </span>
+          </div>
+          {preview?.indicatorSnapshot?.length ? (
+            <div className="mt-1.5 space-y-1">
+              {preview.indicatorSnapshot.slice(0, 3).map((entry) => (
+                <div key={`${entry.symbol}-${entry.timeframe}-${entry.indicator}-${entry.period || 0}`} className="flex items-center justify-between gap-2 text-[10px]">
+                  <span className="truncate text-neutral-400">
+                    {String(entry.indicator).toUpperCase()}{entry.period ? `(${entry.period})` : ""} {entry.symbol}
+                  </span>
+                  <span className="font-semibold text-neutral-100">
+                    {typeof entry.value === "number" ? entry.value.toFixed(2) : "N/A"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : typeof preview?.currentPrice === "number" ? (
+            <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px]">
+              <span className="text-neutral-400">Current price</span>
+              <span className="font-semibold text-neutral-100">{preview.currentPrice.toFixed(2)}</span>
+            </div>
+          ) : null}
         </div>
       ) : null}
       <div className="mt-1 text-[11px] text-neutral-400">
