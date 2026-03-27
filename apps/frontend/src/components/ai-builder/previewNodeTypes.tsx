@@ -1,4 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
+import { ServiceLogo } from "@/components/workflow/service-branding";
 
 function PreviewShell({
   accent,
@@ -8,6 +9,7 @@ function PreviewShell({
   badge,
   title,
   subtitle,
+  iconService,
   sourceHandle,
   showTarget = true,
 }: {
@@ -18,6 +20,7 @@ function PreviewShell({
   badge?: string;
   title: string;
   subtitle?: string;
+  iconService?: string;
   sourceHandle?: string;
   showTarget?: boolean;
 }) {
@@ -39,7 +42,8 @@ function PreviewShell({
         </span>
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[8px] font-semibold uppercase tracking-[0.18em]" style={{ color: accent }}>
+        <span className="inline-flex items-center gap-1.5 text-[8px] font-semibold uppercase tracking-[0.18em]" style={{ color: accent }}>
+          {iconService ? <ServiceLogo service={iconService} size={11} /> : null}
           {label}
         </span>
         {badge ? (
@@ -173,42 +177,43 @@ export function PreviewZerodha({ data }: any) {
       badge={String(type).toUpperCase()}
       title={`${qty} ${symbol}`}
       subtitle="Broker order"
+      iconService="zerodha"
     />
   );
 }
 
 export function PreviewGroww({ data }: any) {
   const { symbol = "Trade", qty = 0 } = data.metadata || {};
-  return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Groww" title={`${qty} ${symbol}`} subtitle="Broker order" />;
+  return <PreviewShell accent="#34d399" tone="action" kindBadge="Action" label="Groww" title={`${qty} ${symbol}`} subtitle="Broker order" iconService="groww" />;
 }
 
 export function PreviewLighter({ data }: any) {
   const { symbol = "Trade", qty = 0 } = data.metadata || {};
-  return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Lighter" title={`${qty} ${symbol}`} subtitle="Broker order" />;
+  return <PreviewShell accent="#fbbf24" tone="action" kindBadge="Action" label="Lighter" title={`${qty} ${symbol}`} subtitle="Broker order" iconService="lighter" />;
 }
 
 export function PreviewGmail({ data }: any) {
   const { recipientName = "User", recipientEmail = "No email" } = data.metadata || {};
-  return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Gmail" badge="EMAIL" title={recipientName} subtitle={recipientEmail} />;
+  return <PreviewShell accent="#ea4335" tone="action" kindBadge="Action" label="Gmail" badge="EMAIL" title={recipientName} subtitle={recipientEmail} iconService="gmail" />;
 }
 
 export function PreviewDiscord({ data }: any) {
   const { channelName = "Discord" } = data.metadata || {};
-  return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Discord" badge="WEBHOOK" title={channelName} subtitle="Notification" />;
+  return <PreviewShell accent="#8190ff" tone="action" kindBadge="Action" label="Discord" badge="WEBHOOK" title={channelName} subtitle="Notification" iconService="discord" />;
 }
 
 export function PreviewWhatsApp({ data }: any) {
   const { recipientPhone = "No phone" } = data.metadata || {};
-  return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="WhatsApp" badge="MSG" title="WhatsApp alert" subtitle={recipientPhone} />;
+  return <PreviewShell accent="#25D366" tone="action" kindBadge="Action" label="WhatsApp" badge="MSG" title="WhatsApp alert" subtitle={recipientPhone} iconService="whatsapp" />;
 }
 
 export function PreviewNotion({ data }: any) {
   const parentPageId = data.metadata?.parentPageId ? "Parent page set" : "Missing parent";
-  return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Notion" badge="REPORT" title="Daily report" subtitle={parentPageId} />;
+  return <PreviewShell accent="#e5e7eb" tone="action" kindBadge="Action" label="Notion" badge="REPORT" title="Daily report" subtitle={parentPageId} iconService="notion-daily-report" />;
 }
 
 export function PreviewGoogleDrive() {
-  return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Drive" badge="CSV" title="Daily CSV export" subtitle="Reporting" />;
+  return <PreviewShell accent="#8ab4f8" tone="action" kindBadge="Action" label="Drive" badge="CSV" title="Daily CSV export" subtitle="Reporting" iconService="google-drive-daily-csv" />;
 }
 
 export const aiPreviewNodeTypes = {

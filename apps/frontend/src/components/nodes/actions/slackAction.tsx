@@ -1,4 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
+import { ServiceLogo } from "@/components/workflow/service-branding";
 
 export const slackAction = ({
   data,
@@ -15,7 +16,8 @@ export const slackAction = ({
   return (
     <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 bg-neutral-950/90 px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#4A154B]">
+        <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#e87bc1]">
+          <ServiceLogo service="slack" size={14} />
           Slack
         </span>
         <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
