@@ -431,6 +431,297 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       { id: "e-zerodha-drive-1", source: "zerodha-3", target: "drive-1" },
     ],
   },
+  {
+    slug: "slack-escalation-with-merge",
+    title: "Slack Escalation With Delay And Merge",
+    summary:
+      "Evaluate a mid-workflow condition, alert Slack immediately on the true path, wait on the false path, then merge both paths into one final Gmail follow-up.",
+    category: "Alerts",
+    market: "Indian",
+    difficulty: "Intermediate",
+    setupMinutes: 10,
+    sortOrder: 5,
+    nodeFlow: ["Timer", "If", "Slack", "Delay", "Merge", "Gmail"],
+    trigger: "Runs every 10 minutes during the session.",
+    logic:
+      "An IF node checks short-term RSI weakness. If true, Slack gets an immediate escalation. If false, the workflow pauses before converging. Both paths merge into one shared confirmation email.",
+    actions: ["Send Slack DM", "Pause the fallback path", "Merge branches", "Send final Gmail summary"],
+    outcomes: [
+      "Immediate escalation on priority conditions",
+      "Cleaner branch orchestration with merge",
+      "Single downstream follow-up after both paths resolve",
+    ],
+    nodes: [
+      {
+        nodeId: "timer-4",
+        type: "timer",
+        data: {
+          kind: "trigger",
+          metadata: { time: 600, marketType: "indian", asset: "CDSL" },
+        },
+        position: { x: 0, y: 120 },
+      },
+      {
+        nodeId: "if-1",
+        type: "if",
+        data: {
+          kind: "action",
+          metadata: {
+            marketType: "Indian",
+            expression: {
+              operator: "AND",
+              conditions: [
+                {
+                  type: "group",
+                  operator: "AND",
+                  conditions: [
+                    {
+                      left: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "rsi",
+                          symbol: "CDSL",
+                          timeframe: "5m",
+                          params: { period: 14 },
+                        },
+                      },
+                      operator: "<",
+                      right: { type: "value", value: 30 },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        position: { x: 280, y: 55 },
+      },
+      {
+        nodeId: "slack-1",
+        type: "slack",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Ops desk",
+            slackBotToken: "xoxb-demo-slack-token",
+            slackUserId: "U09ALERTOPS",
+          },
+        },
+        position: { x: 630, y: 0 },
+      },
+      {
+        nodeId: "delay-4",
+        type: "delay",
+        data: {
+          kind: "action",
+          metadata: {
+            durationSeconds: 120,
+          },
+        },
+        position: { x: 630, y: 185 },
+      },
+      {
+        nodeId: "merge-1",
+        type: "merge",
+        data: {
+          kind: "action",
+          metadata: {},
+        },
+        position: { x: 960, y: 95 },
+      },
+      {
+        nodeId: "gmail-3",
+        type: "gmail",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Trader inbox",
+            recipientEmail: "ops@quantnest.dev",
+          },
+        },
+        position: { x: 1240, y: 95 },
+      },
+    ],
+    edges: [
+      { id: "e-timer-4-if-1", source: "timer-4", target: "if-1" },
+      {
+        id: "e-if-1-slack-1",
+        source: "if-1",
+        sourceHandle: "true",
+        target: "slack-1",
+      },
+      {
+        id: "e-if-1-delay-4",
+        source: "if-1",
+        sourceHandle: "false",
+        target: "delay-4",
+      },
+      { id: "e-slack-1-merge-1", source: "slack-1", target: "merge-1", targetHandle: "in-a" },
+      { id: "e-delay-4-merge-1", source: "delay-4", target: "merge-1", targetHandle: "in-b" },
+      { id: "e-merge-1-gmail-3", source: "merge-1", target: "gmail-3" },
+    ],
+  },
+  {
+    slug: "breakout-execution-with-slack-ops",
+    title: "Breakout Execution With Slack Ops Alert",
+    summary:
+      "Execute a breakout trade, branch post-fill logic with IF, notify the desk on Slack, and merge the execution and notification paths into one reporting tail.",
+    category: "Execution",
+    market: "Indian",
+    difficulty: "Advanced",
+    setupMinutes: 16,
+    sortOrder: 6,
+    nodeFlow: ["Price Trigger", "Zerodha", "If", "Slack", "Merge", "Notion"],
+    trigger: "Fires when HDFC breaks above a defined entry level.",
+    logic:
+      "A price trigger starts the trade. Zerodha places the order. A downstream IF node decides whether to escalate to Slack based on follow-through confirmation, then both execution paths merge into the same report sink.",
+    actions: ["Place Zerodha order", "Send Slack DM to ops", "Merge post-trade paths", "Create Notion note"],
+    outcomes: [
+      "Execution plus team visibility",
+      "Cleaner downstream reporting after branching",
+      "Reusable example for trade + ops workflows",
+    ],
+    nodes: [
+      {
+        nodeId: "price-4",
+        type: "price",
+        data: {
+          kind: "trigger",
+          metadata: {
+            asset: "HDFC",
+            targetPrice: 1750,
+            marketType: "indian",
+            condition: "above",
+          },
+        },
+        position: { x: 0, y: 110 },
+      },
+      {
+        nodeId: "zerodha-4",
+        type: "zerodha",
+        data: {
+          kind: "action",
+          metadata: {
+            type: "buy",
+            qty: 5,
+            symbol: "HDFC",
+            apiKey: "ZERODHA_API_KEY",
+            accessToken: "ZERODHA_ACCESS_TOKEN",
+            exchange: "NSE",
+          },
+        },
+        position: { x: 280, y: 110 },
+      },
+      {
+        nodeId: "if-2",
+        type: "if",
+        data: {
+          kind: "action",
+          metadata: {
+            marketType: "Indian",
+            expression: {
+              operator: "AND",
+              conditions: [
+                {
+                  type: "group",
+                  operator: "AND",
+                  conditions: [
+                    {
+                      left: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "ema",
+                          symbol: "HDFC",
+                          timeframe: "15m",
+                          params: { period: 20 },
+                        },
+                      },
+                      operator: ">",
+                      right: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "ema",
+                          symbol: "HDFC",
+                          timeframe: "15m",
+                          params: { period: 50 },
+                        },
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        position: { x: 590, y: 45 },
+      },
+      {
+        nodeId: "slack-2",
+        type: "slack",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Execution desk",
+            slackBotToken: "xoxb-demo-slack-token",
+            slackUserId: "U09EXECOPS",
+          },
+        },
+        position: { x: 930, y: 0 },
+      },
+      {
+        nodeId: "delay-5",
+        type: "delay",
+        data: {
+          kind: "action",
+          metadata: {
+            durationSeconds: 60,
+          },
+        },
+        position: { x: 930, y: 185 },
+      },
+      {
+        nodeId: "merge-2",
+        type: "merge",
+        data: {
+          kind: "action",
+          metadata: {},
+        },
+        position: { x: 1240, y: 95 },
+      },
+      {
+        nodeId: "notion-3",
+        type: "notion-daily-report",
+        data: {
+          kind: "action",
+          metadata: {
+            notionApiKey: "secret_demo_key",
+            parentPageId: "demo-parent-page-id",
+            aiConsent: true,
+          },
+        },
+        position: { x: 1530, y: 95 },
+      },
+    ],
+    edges: [
+      { id: "e-price-4-zerodha-4", source: "price-4", target: "zerodha-4" },
+      { id: "e-zerodha-4-if-2", source: "zerodha-4", target: "if-2" },
+      {
+        id: "e-if-2-slack-2",
+        source: "if-2",
+        sourceHandle: "true",
+        target: "slack-2",
+      },
+      {
+        id: "e-if-2-delay-5",
+        source: "if-2",
+        sourceHandle: "false",
+        target: "delay-5",
+      },
+      { id: "e-slack-2-merge-2", source: "slack-2", target: "merge-2", targetHandle: "in-a" },
+      { id: "e-delay-5-merge-2", source: "delay-5", target: "merge-2", targetHandle: "in-b" },
+      { id: "e-merge-2-notion-3", source: "merge-2", target: "notion-3" },
+    ],
+  },
 ];
 
 export async function seedWorkflowExamples() {
