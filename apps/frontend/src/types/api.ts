@@ -73,6 +73,7 @@ export interface Workflow {
   workflowName: string;
   nodes: any[];
   edges: any[];
+  updatedAt?: Date;
   status?: "active" | "paused";
   marketType?: "Indian" | "Crypto";
 }

@@ -153,6 +153,10 @@ const WorkflowNodeSchema = new Schema({
     data: NodeDataSchema,
     position: PositionSchema,
     Credentials: Schema.Types.Mixed,
+    updatedAt: {
+        type: Date,
+        default: Date.now,
+    }
 }, {
     _id: false,
 })

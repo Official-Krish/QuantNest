@@ -20,6 +20,7 @@ import { SUPPORTED_ACTIONS } from "./sheets/constants";
 import { ActionTypeSelector } from "./sheets/ActionTypeSelector";
 import { TradingForm } from "./sheets/TradingForm";
 import { GmailForm } from "./sheets/GmailForm";
+import { DelayForm } from "./sheets/DelayForm";
 import { SlackForm } from "./sheets/SlackForm";
 import { DiscordForm } from "./sheets/DiscordForm";
 import { WhatsappForm } from "./sheets/WhatsappForm";
@@ -65,8 +66,15 @@ export const ActionSheet = ({
       return;
     }
 
-    setMetadata((initialMetadata || {}) as TradingMetadata | LighterMetadata | {});
+    setMetadata({ ...((initialMetadata || {}) as TradingMetadata | LighterMetadata | {}) });
     setSelectedAction(initialKind);
+
+    const nextMarketType = String((initialMetadata as any)?.marketType || "").toLowerCase();
+    if (nextMarketType === "indian") {
+      setMarketType("Indian");
+    } else if (nextMarketType === "crypto" || nextMarketType === "web3") {
+      setMarketType("Crypto");
+    }
 
     if (["zerodha", "groww", "lighter"].includes(initialKind)) {
       setInitialAction("Order Execution");
@@ -80,13 +88,13 @@ export const ActionSheet = ({
       setInitialAction("Reporting");
       return;
     }
-    if (initialKind === "conditional-trigger") {
+    if (initialKind === "conditional-trigger" || initialKind === "if" || initialKind === "delay" || initialKind === "merge") {
       setInitialAction("Flow Control");
       return;
     }
 
     setInitialAction(undefined);
-  }, [initialKind, initialMetadata, open]);
+  }, [initialKind, initialMetadata, open, setMarketType]);
 
   const tradingValidationErrors = useMemo(() => {
     if (
@@ -110,6 +118,10 @@ export const ActionSheet = ({
     !!selectedAction &&
     tradingValidationErrors.length === 0 &&
     actionValidationErrors.length === 0 &&
+    (
+      selectedAction !== "delay" ||
+      Number((metadata as any)?.durationSeconds) > 0
+    ) &&
     (
       selectedAction !== "gmail" ||
       Boolean((metadata as any)?.recipientEmail)
@@ -270,13 +282,17 @@ export const ActionSheet = ({
             <GoogleDriveDailyCsvForm metadata={metadata} setMetadata={setMetadata} />
           )}
 
-          {selectedAction === "conditional-trigger" && (
+          {(selectedAction === "conditional-trigger" || selectedAction === "if") && (
             <ConditionalTriggerForm
               marketType={marketType}
               setMarketType={setMarketType}
               metadata={metadata as any}
               setMetadata={setMetadata}
             />
+          )}
+
+          {selectedAction === "delay" && (
+            <DelayForm metadata={metadata} setMetadata={setMetadata} />
           )}
         </SheetHeader>
         <SheetFooter className="border-t border-neutral-900 bg-black/90 p-4">

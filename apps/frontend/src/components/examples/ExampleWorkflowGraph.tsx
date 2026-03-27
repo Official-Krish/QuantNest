@@ -12,6 +12,10 @@ function getNodeAccent(type: string) {
     case "conditional-trigger":
     case "price":
       return "text-[#f17463]";
+    case "if":
+    case "delay":
+    case "merge":
+      return "text-sky-300";
     case "gmail":
       return "text-[#4285f4]";
     case "discord":
@@ -39,6 +43,14 @@ function getNodeBadge(type: string, metadata: Record<string, any>) {
       return metadata.expression?.conditions?.length
         ? `${metadata.expression.conditions.length} Groups`
         : "Logic";
+    case "if":
+      return metadata.expression?.conditions?.length
+        ? `${metadata.expression.conditions.length} Groups`
+        : "Branch";
+    case "delay":
+      return `${metadata.durationSeconds || 0}s`;
+    case "merge":
+      return "JOIN";
     case "zerodha":
     case "Zerodha":
       return String(metadata.type || "TRADE").toUpperCase();
@@ -64,6 +76,12 @@ function getNodeTitle(type: string, metadata: Record<string, any>) {
       return `${metadata.asset || "-"} ${metadata.condition || "above"} ${metadata.targetPrice || 0}`;
     case "conditional-trigger":
       return "Conditional branch";
+    case "if":
+      return "If branch";
+    case "delay":
+      return `Wait ${metadata.durationSeconds || 0} seconds`;
+    case "merge":
+      return "Join branches";
     case "zerodha":
     case "Zerodha":
       return `${metadata.qty || "-"} units on ${metadata.symbol || "-"}`;
@@ -89,6 +107,12 @@ function getNodeDescription(type: string, metadata: Record<string, any>) {
       return "Executes when price crosses this level.";
     case "conditional-trigger":
       return "True and false paths branch from this node.";
+    case "if":
+      return "Routes execution into true and false branches.";
+    case "delay":
+      return "Pauses before continuing downstream.";
+    case "merge":
+      return "Waits for multiple paths, then continues once.";
     case "zerodha":
     case "Zerodha":
       return "Broker execution node";

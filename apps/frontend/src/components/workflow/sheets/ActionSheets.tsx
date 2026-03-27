@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getServiceBrand, ServiceLogo } from "../service-branding";
 
 interface ActionSheets {
   value: string;
@@ -21,6 +22,8 @@ export const ActionSheets = ({
   actions,
   initialAction,
 }: ActionSheets) => {
+  const selectedAction = actions.find((action) => action.id === value);
+
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
       <div className="space-y-1">
@@ -46,7 +49,18 @@ export const ActionSheets = ({
       </div>
       <Select onValueChange={onValueChange} value={value || undefined}>
         <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100 hover:bg-neutral-850 transition-colors">
-          <SelectValue placeholder="Choose an action" />
+          {selectedAction ? (
+            <div className="flex items-center gap-2">
+              <div
+                className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${getServiceBrand(selectedAction.id).tintClassName} ${getServiceBrand(selectedAction.id).borderClassName}`}
+              >
+                <ServiceLogo service={selectedAction.id} size={14} />
+              </div>
+              <span>{selectedAction.title}</span>
+            </div>
+          ) : (
+            <SelectValue placeholder="Choose an action" />
+          )}
         </SelectTrigger>
         <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
           <SelectGroup>
@@ -59,12 +73,19 @@ export const ActionSheets = ({
                 value={action.id}
                 className="cursor-pointer text-sm text-neutral-100 focus:text-neutral-100 focus:bg-neutral-800 data-[highlighted]:bg-neutral-800 py-3"
               >
-                <div className="w-64 space-y-1.5">
-                  <div className="font-semibold text-neutral-50">
-                    {action.title}
+                <div className="flex w-64 items-start gap-3">
+                  <div
+                    className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${getServiceBrand(action.id).tintClassName} ${getServiceBrand(action.id).borderClassName}`}
+                  >
+                    <ServiceLogo service={action.id} size={18} />
                   </div>
-                  <div className="text-[11px] leading-relaxed text-neutral-400">
-                    {action.description}
+                  <div className="space-y-1.5">
+                    <div className="font-semibold text-neutral-50">
+                      {action.title}
+                    </div>
+                    <div className="text-[11px] leading-relaxed text-neutral-400">
+                      {action.description}
+                    </div>
                   </div>
                 </div>
               </SelectItem>

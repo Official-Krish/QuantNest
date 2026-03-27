@@ -13,8 +13,42 @@ import {
 import { Button } from "@/components/ui/button";
 import { workflowNodeTypes } from "@/components/workflow/nodeTypes";
 import { AppBackground } from "@/components/background";
+import { toast } from "sonner";
 
 const POSITION_OFFSET = 50;
+
+function normalizeNodeForCompare(node: NodeType) {
+  return {
+    nodeId: node.nodeId,
+    type: String(node.type || ""),
+    data: {
+      kind: String(node.data?.kind || ""),
+      metadata: node.data?.metadata || {},
+    },
+  };
+}
+
+function normalizeEdgeForCompare(edge: EdgeType) {
+  return {
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle ?? undefined,
+    targetHandle: edge.targetHandle ?? undefined,
+  };
+}
+
+function buildWorkflowSnapshot(params: {
+  workflowName: string;
+  nodes: NodeType[];
+  edges: EdgeType[];
+}) {
+  return JSON.stringify({
+    workflowName: params.workflowName.trim(),
+    nodes: params.nodes.map(normalizeNodeForCompare),
+    edges: params.edges.map(normalizeEdgeForCompare),
+  });
+}
 
 export const CreateWorkflow = () => {
   const navigate = useNavigate();
@@ -40,6 +74,12 @@ export const CreateWorkflow = () => {
   const [showActionSheetEdit, setShowActionSheetEdit] = useState(false);
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
   const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(null);
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
+  const [nodeMenu, setNodeMenu] = useState<{
+    node: NodeType;
+    x: number;
+    y: number;
+  } | null>(null);
 
   useEffect(() => {
     if (routeWorkflowId) return;
@@ -51,6 +91,7 @@ export const CreateWorkflow = () => {
     setEdges((generatedPlan.edges || []) as EdgeType[]);
     setWorkflowName(String(generatedPlan.workflowName || ""));
     setMarketType((generatedPlan.marketType || "Indian") as "Indian" | "Crypto");
+    setLastSavedSnapshot(null);
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, routeWorkflowId]);
 
@@ -73,16 +114,22 @@ export const CreateWorkflow = () => {
           }
           if (!nodeType) {
             const metadata = node.data?.metadata || {};
+            const kind = node.data?.kind?.toLowerCase();
             if (metadata.time !== undefined) {
               nodeType = "timer";
-            } else if (metadata.expression !== undefined) {
-              nodeType = "conditional-trigger";
             } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined && metadata.condition !== undefined) {
-              nodeType = metadata.timeWindowMinutes !== undefined
+              nodeType = kind === "trigger"
                 ? "conditional-trigger"
                 : "price-trigger";
             } else if (metadata.recipientEmail !== undefined) {
               nodeType = "gmail";
+            } else if (metadata.durationSeconds !== undefined) {
+              nodeType = "delay";
+            } else if (
+              metadata.expression !== undefined ||
+              (metadata.targetPrice !== undefined && metadata.condition !== undefined && metadata.asset !== undefined)
+            ) {
+              nodeType = kind === "trigger" ? "conditional-trigger" : "if";
             } else if (metadata.slackUserId !== undefined || metadata.slackBotToken !== undefined) {
               nodeType = "slack";
             } else if (metadata.webhookUrl !== undefined) {
@@ -96,7 +143,6 @@ export const CreateWorkflow = () => {
             } else if (metadata.recipientPhone !== undefined) {
               nodeType = "whatsapp";
             } else {
-              const kind = node.data?.kind?.toLowerCase();
               nodeType = kind === "action" ? "zerodha" : "timer";
             }
           }
@@ -120,7 +166,7 @@ export const CreateWorkflow = () => {
           }
           const sourceNode = nodeById.get(edge.source);
           const targetNode = nodeById.get(edge.target);
-          if (sourceNode?.type !== "conditional-trigger") {
+          if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if") {
             return edge;
           }
           const targetCondition = targetNode?.data?.metadata?.condition;
@@ -137,6 +183,13 @@ export const CreateWorkflow = () => {
         setWorkflowId(workflow._id);
         setWorkflowName(workflow.workflowName || "");
         setMarketType(workflow.marketType || "Indian");
+        setLastSavedSnapshot(
+          buildWorkflowSnapshot({
+            workflowName: workflow.workflowName || "",
+            nodes: normalizedNodes as NodeType[],
+            edges: normalizedEdges as EdgeType[],
+          }),
+        );
       } catch (e: any) {
         setSaveError(
           e?.response?.data?.message ??
@@ -185,19 +238,14 @@ export const CreateWorkflow = () => {
   );
 
   const onNodeClick = useCallback(
-    (_event: any, node: any) => {
+    (event: any, node: any) => {
       const current = nodes.find((n) => n.nodeId === node.id);
       if (!current) return;
-      setEditingNode(current);
-      if (current.data?.kind === "trigger") {
-        setShowTriggerSheetEdit(true);
-        return;
-      }
-      if (current.type === "conditional-trigger") {
-        setShowActionSheetEdit(true);
-        return;
-      }
-      setShowActionSheetEdit(true);
+      setNodeMenu({
+        node: current,
+        x: event.clientX,
+        y: event.clientY,
+      });
     },
     [nodes],
   );
@@ -217,8 +265,19 @@ export const CreateWorkflow = () => {
   }, []);
 
   const canSave = useMemo(
-    () => nodes.length > 0 && !loading,
-    [nodes.length, loading],
+    () => {
+      if (nodes.length === 0 || loading) return false;
+      if (!workflowId) return true;
+
+      return (
+        buildWorkflowSnapshot({
+          workflowName,
+          nodes,
+          edges,
+        }) !== lastSavedSnapshot
+      );
+    },
+    [nodes, edges, workflowName, workflowId, loading, lastSavedSnapshot],
   );
   const hasZerodhaAction = useMemo(
     () =>
@@ -297,9 +356,18 @@ export const CreateWorkflow = () => {
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
         if (!res.workflowId) throw new Error("Missing workflowId from server");
+        toast.success("Workflow created successfully");
         navigate(`/workflow/${res.workflowId}`);
       } else {
         await apiUpdateWorkflow(workflowId, payload);
+        setLastSavedSnapshot(
+          buildWorkflowSnapshot({
+            workflowName,
+            nodes,
+            edges,
+          }),
+        );
+        toast.success("Workflow updated successfully");
       }
     } catch (e: any) {
       const message =
@@ -319,7 +387,7 @@ export const CreateWorkflow = () => {
     } finally {
       setSaving(false);
     }
-  }, [nodes, edges, workflowId]);
+  }, [nodes, edges, workflowId, workflowName, navigate]);
 
   const handleNameDialogSubmit = () => {
     if (workflowName.trim()) {
@@ -328,6 +396,48 @@ export const CreateWorkflow = () => {
       setShowTriggerSheet(true);
     }
   };
+
+  const openEditMenuNode = useCallback(() => {
+    if (!nodeMenu) return;
+    setEditingNode(nodeMenu.node);
+    setNodeMenu(null);
+
+    if (String(nodeMenu.node.data?.kind || "").toLowerCase() === "trigger") {
+      setShowTriggerSheetEdit(true);
+      return;
+    }
+
+    setShowActionSheetEdit(true);
+  }, [nodeMenu]);
+
+  const duplicateMenuNode = useCallback(() => {
+    if (!nodeMenu) return;
+    const sourceNode = nodeMenu.node;
+    const duplicatedNode: NodeType = {
+      ...sourceNode,
+      nodeId: Math.random().toString(),
+      position: {
+        x: (sourceNode.position?.x || 0) + 56,
+        y: (sourceNode.position?.y || 0) + 56,
+      },
+      data: {
+        kind: sourceNode.data?.kind || "action",
+        metadata: { ...(sourceNode.data?.metadata || {}) },
+      },
+    };
+
+    setNodes((prev) => [...prev, duplicatedNode]);
+    setNodeMenu(null);
+  }, [nodeMenu]);
+
+  const deleteMenuNode = useCallback(() => {
+    if (!nodeMenu) return;
+    const nodeId = nodeMenu.node.nodeId;
+    setNodes((prev) => prev.filter((node) => node.nodeId !== nodeId));
+    setEdges((prev) => prev.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    setNodeMenu(null);
+    setEditingNode((current) => (current?.nodeId === nodeId ? null : current));
+  }, [nodeMenu]);
 
   return (
     <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-8 pt-28 text-white md:px-10">
@@ -447,7 +557,8 @@ export const CreateWorkflow = () => {
             if (branch === 'true') condition = true;
             if (branch === 'false') condition = false;
             const nodeId = Math.random().toString();
-            const isFlowConditional = type === "conditional-trigger";
+            const preservesOwnBranching = type === "conditional-trigger" || type === "if";
+            const ignoresBranchCondition = type === "merge";
             setNodes([
               ...nodes,
               {
@@ -455,7 +566,7 @@ export const CreateWorkflow = () => {
                 type,
                 data: {
                   kind: "action",
-                  metadata: isFlowConditional
+                  metadata: preservesOwnBranching || ignoresBranchCondition
                     ? { ...metadata }
                     : { ...metadata, branch, ...(condition !== undefined ? { condition } : {}) },
                 },
@@ -484,6 +595,13 @@ export const CreateWorkflow = () => {
           onConnect={onConnect}
           onConnectEnd={onConnectEnd}
           onNodeClick={onNodeClick}
+          nodeMenu={nodeMenu}
+          onNodeMenuOpenChange={(open) => {
+            if (!open) setNodeMenu(null);
+          }}
+          onEditNodeFromMenu={openEditMenuNode}
+          onDuplicateNodeFromMenu={duplicateMenuNode}
+          onDeleteNodeFromMenu={deleteMenuNode}
           onOpenNameDialog={() => setShowNameDialog(true)}
           onEditTriggerSave={(type, metadata) => {
             if (!editingNode) return;

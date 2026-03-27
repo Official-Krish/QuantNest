@@ -28,22 +28,6 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
         ) ?? false;
     };
 
-    const getBrokerType = (workflow: Workflow): { type: string; color: string } | null => {
-        const node = workflow.nodes?.find((node: any) => 
-            ["zerodha", "groww", "lighter"].includes(node.type?.toLowerCase())
-        );
-        
-        if (!node) return null;
-        
-        const brokerColors: Record<string, { type: string; color: string }> = {
-            zerodha: { type: "Zerodha", color: "blue" },
-            groww: { type: "Groww", color: "green" },
-            lighter: { type: "Lighter", color: "purple" },
-        };
-        
-        return brokerColors[node.type.toLowerCase()] || null;
-    };
-
     const handleStatusToggle = async (workflow: Workflow) => {
         const nextStatus = workflow.status === "paused" ? "active" : "paused";
         setStatusLoadingWorkflowId(workflow._id);
@@ -124,8 +108,8 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
                             <span className="font-medium text-neutral-200">
                                 {wf.workflowName || "Untitled Workflow"}
                             </span>
-                            <span className="font-mono text-[11px] text-muted-foreground/70">
-                                {wf._id}
+                            <span className="text-[11px] text-muted-foreground/70">
+                                {wf.updatedAt ? `Last updated ${new Date(wf.updatedAt).toLocaleDateString(undefined, { dateStyle: "medium", timeStyle: "short" })}` : "No updates yet"}
                             </span>
                         </div>
                         <span className="hidden text-sm tabular-nums text-muted-foreground md:block">
@@ -135,23 +119,13 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
                             {wf.edges?.length ?? 0}
                         </span>
                         <div className="hidden md:block">
-                            {(() => {
-                                const broker = getBrokerType(wf);
-                                if (!broker) return <span className="text-xs text-muted-foreground/50">—</span>;
-                                
-                                const colorClasses: Record<string, string> = {
-                                    blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                                    green: "bg-green-500/10 text-green-400 border-green-500/20",
-                                    purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-                                };
-                                
-                                return (
-                                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border ${colorClasses[broker.color]}`}>
-                                        <Key className="h-3 w-3" />
-                                        {broker.type}
-                                    </span>
-                                );
-                            })()}
+                            {wf.marketType ? (
+                                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-neutral-600/50 bg-neutral-800/30 text-neutral-300">
+                                    {wf.marketType}
+                                </span>
+                            ) : (
+                                <span className="text-xs text-muted-foreground/50">—</span>
+                            )}
                         </div>
                         <div className="hidden md:block">
                             <span

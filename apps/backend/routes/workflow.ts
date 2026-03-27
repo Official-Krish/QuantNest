@@ -171,6 +171,7 @@ workFlowRouter.put('/:workflowId', authMiddleware, async (req, res) => {
                 $set: {
                     nodes: data.nodes,
                     edges: data.edges,
+                    updatedAt: new Date(),
                     ...deriveWorkflowTriggerState(data.nodes),
                 },
             },

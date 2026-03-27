@@ -3,8 +3,11 @@ import { Timer } from "@/components/nodes/triggers/timers";
 import { zerodhaAction } from "@/components/nodes/actions/zerodha";
 import { growwAction } from "@/components/nodes/actions/growwAction";
 import { gmailAction } from "@/components/nodes/actions/gmailAction";
+import { delayAction } from "@/components/nodes/actions/delayAction";
+import { mergeAction } from "@/components/nodes/actions/mergeAction";
 import { slackAction } from "@/components/nodes/actions/slackAction";
 import { discordAction } from "@/components/nodes/actions/discordAction";
+import { ifAction } from "@/components/nodes/actions/ifAction";
 import { whatsappAction } from "@/components/nodes/actions/whatsappAction";
 import { notionDailyReportAction } from "@/components/nodes/actions/notionDailyReportAction";
 import { googleDriveDailyCsvAction } from "@/components/nodes/actions/googleDriveDailyCsvAction";
@@ -16,6 +19,9 @@ export const workflowNodeTypes = {
   timer: Timer,
   zerodha: zerodhaAction,
   groww: growwAction,
+  delay: delayAction,
+  merge: mergeAction,
+  if: ifAction,
   gmail: gmailAction,
   slack: slackAction,
   discord: discordAction,

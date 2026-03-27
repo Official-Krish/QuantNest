@@ -24,6 +24,10 @@ export interface ExecutionContext {
             expression?: any;
         };
     };
+    runtime?: {
+        mergeArrivals?: Record<string, string[]>;
+        releasedMerges?: string[];
+    };
 }
 
 export function shouldSkipActionByCondition(
@@ -115,6 +119,37 @@ export function initializeExecutionContext(params: {
     return context;
 }
 
+export function registerMergeArrival(params: {
+    context: ExecutionContext;
+    mergeNodeId: string;
+    incomingEdgeCount: number;
+    arrivalEdgeId?: string;
+}): { shouldContinue: boolean; releasedNow: boolean } {
+    const { context, mergeNodeId, incomingEdgeCount, arrivalEdgeId } = params;
+    context.runtime = context.runtime || {};
+    context.runtime.mergeArrivals = context.runtime.mergeArrivals || {};
+    context.runtime.releasedMerges = context.runtime.releasedMerges || [];
+
+    const arrivals = new Set(context.runtime.mergeArrivals[mergeNodeId] || []);
+    if (arrivalEdgeId) {
+        arrivals.add(arrivalEdgeId);
+    }
+
+    context.runtime.mergeArrivals[mergeNodeId] = Array.from(arrivals);
+
+    const alreadyReleased = context.runtime.releasedMerges.includes(mergeNodeId);
+    if (alreadyReleased) {
+        return { shouldContinue: false, releasedNow: false };
+    }
+
+    if (incomingEdgeCount <= 1 || arrivals.size >= incomingEdgeCount) {
+        context.runtime.releasedMerges.push(mergeNodeId);
+        return { shouldContinue: true, releasedNow: true };
+    }
+
+    return { shouldContinue: false, releasedNow: false };
+}
+
 export function resolveConditionalEdges(params: {
     sourceNode: NodeType;
     nodes: NodeType[];
@@ -122,7 +157,7 @@ export function resolveConditionalEdges(params: {
     evaluatedCondition: boolean;
 }): EdgeType[] {
     const { sourceNode, nodes, outgoingEdges, evaluatedCondition } = params;
-    if (sourceNode?.type !== "conditional-trigger") {
+    if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if") {
         return outgoingEdges;
     }
 

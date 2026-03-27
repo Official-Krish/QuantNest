@@ -58,6 +58,21 @@ export const SUPPORTED_ACTIONS = {
             title: "Conditional Trigger",
             description: "Branch this workflow using AND/OR condition groups",
         },
+        {
+            id: "if",
+            title: "If",
+            description: "Evaluate a condition mid-workflow and branch into true or false paths",
+        },
+        {
+            id: "delay",
+            title: "Delay",
+            description: "Wait for a fixed duration before continuing to the next node",
+        },
+        {
+            id: "merge",
+            title: "Merge",
+            description: "Join multiple branches back into one shared downstream path",
+        },
     ],
 };
 

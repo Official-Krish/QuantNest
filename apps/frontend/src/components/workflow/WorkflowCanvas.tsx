@@ -1,6 +1,16 @@
 import { Background, BackgroundVariant, ReactFlow } from "@xyflow/react";
 import type { EdgeType, NodeType } from "@quantnest-trading/types";
 import { Button } from "@/components/ui/button";
+import { ServiceLogo } from "@/components/workflow/service-branding";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Copy, Pencil, Trash2 } from "lucide-react";
 import { TriggerSheet } from "./TriggerSheet";
 import { ActionSheet } from "./ActionSheet";
 
@@ -40,6 +50,15 @@ export interface WorkflowCanvasProps {
   onConnect: (p: any) => void;
   onConnectEnd: (p: any, info: any) => void;
   onNodeClick: (e: any, node: any) => void;
+  nodeMenu: {
+    node: NodeType;
+    x: number;
+    y: number;
+  } | null;
+  onNodeMenuOpenChange: (open: boolean) => void;
+  onEditNodeFromMenu: () => void;
+  onDuplicateNodeFromMenu: () => void;
+  onDeleteNodeFromMenu: () => void;
   onOpenNameDialog: () => void;
   onEditTriggerSave: (type: any, metadata: any) => void;
   onEditActionSave: (type: any, metadata: any) => void;
@@ -78,6 +97,11 @@ export const WorkflowCanvas = ({
   onConnect,
   onConnectEnd,
   onNodeClick,
+  nodeMenu,
+  onNodeMenuOpenChange,
+  onEditNodeFromMenu,
+  onDuplicateNodeFromMenu,
+  onDeleteNodeFromMenu,
   onOpenNameDialog,
   onEditTriggerSave,
   onEditActionSave,
@@ -85,6 +109,10 @@ export const WorkflowCanvas = ({
   setMarketType,
   hasZerodhaAction,
 }: WorkflowCanvasProps) => {
+  const menuNodeKind = nodeMenu ? String(nodeMenu.node.data?.kind || "action").toLowerCase() : "action";
+  const menuNodeType = nodeMenu ? String(nodeMenu.node.type || "node") : "node";
+  const menuNodeLabel = menuNodeType.replaceAll("-", " ");
+
   return (
     <div
       className={`relative mt-4 rounded-3xl border border-neutral-800 bg-linear-to-br from-neutral-950 via-black to-neutral-900/90 p-3 ${
@@ -154,6 +182,53 @@ export const WorkflowCanvas = ({
       )}
 
       <div className="h-full overflow-hidden rounded-2xl border border-neutral-800/60 bg-neutral-950">
+        {nodeMenu ? (
+          <DropdownMenu open={!!nodeMenu} onOpenChange={onNodeMenuOpenChange}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="pointer-events-none fixed h-1 w-1 opacity-0"
+                style={{ left: nodeMenu.x, top: nodeMenu.y }}
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="border-neutral-800 bg-neutral-950 text-neutral-100"
+              align="start"
+              sideOffset={10}
+            >
+              <DropdownMenuLabel className="flex items-center gap-2 px-2 py-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900">
+                  <ServiceLogo service={menuNodeType} size={16} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[11px] uppercase tracking-[0.16em] text-neutral-400">
+                    {menuNodeKind}
+                  </span>
+                  <span className="block truncate text-sm font-medium text-neutral-100">
+                    {menuNodeLabel}
+                  </span>
+                </span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-neutral-800" />
+              <DropdownMenuItem className="cursor-pointer hover:text-neutral-100" onClick={onEditNodeFromMenu}>
+                <Pencil className="size-4" />
+                Edit {menuNodeKind}
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={onDuplicateNodeFromMenu}>
+                <Copy className="size-4" />
+                Duplicate {menuNodeKind}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-red-500 focus:bg-red-500/10 focus:text-red-400"
+                onClick={onDeleteNodeFromMenu}
+              >
+                <Trash2 className="size-4" />
+                Delete {menuNodeKind}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+
         {showTriggerSheet && (
           <TriggerSheet
             open={showTriggerSheet}

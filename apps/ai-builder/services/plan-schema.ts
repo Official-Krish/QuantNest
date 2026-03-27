@@ -120,6 +120,66 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       }
     }
 
+    if (normalizedType === "delay") {
+      const durationSeconds = Number(metadata.durationSeconds);
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Delay node must include durationSeconds greater than 0.",
+          node.nodeId,
+          "durationSeconds",
+        );
+      }
+    }
+
+    if (normalizedType === "merge") {
+      // Merge is a flow-control node with no required metadata.
+    }
+
+    if (normalizedType === "if") {
+      const hasExpression = Boolean((metadata as Record<string, unknown>).expression);
+      const asset = String(metadata.asset || "").trim();
+      const condition = String(metadata.condition || "").trim().toLowerCase();
+      const targetPrice = Number(metadata.targetPrice);
+
+      if (!hasExpression) {
+        if (!asset) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "If node must include an asset or expression.",
+            node.nodeId,
+            "asset",
+          );
+        }
+
+        if (!["above", "below"].includes(condition)) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "If node must use condition 'above' or 'below' when no expression is provided.",
+            node.nodeId,
+            "condition",
+          );
+        }
+
+        if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "If node must include targetPrice greater than 0 when no expression is provided.",
+            node.nodeId,
+            "targetPrice",
+          );
+        }
+      }
+    }
+
     if (normalizedType === "zerodha") {
       const side = String(metadata.type || "").trim().toLowerCase();
       const qty = Number(metadata.qty);
@@ -274,7 +334,7 @@ function buildValidationReport(
       );
     }
 
-    if (String(node.type).toLowerCase() === "conditional-trigger") {
+    if (String(node.type).toLowerCase() === "conditional-trigger" || String(node.type).toLowerCase() === "if") {
       const handles = new Set(edges.map((edge) => edge.sourceHandle).filter(Boolean));
       if (!handles.has("true") || !handles.has("false")) {
         pushIssue(

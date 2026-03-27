@@ -4,6 +4,7 @@ import { evaluateConditionalMetadata } from "../handlers/trigger.handler";
 import { executeActionNode } from "./execute.actions";
 import {
     initializeExecutionContext,
+    registerMergeArrival,
     resolveConditionalEdges,
     type ExecutionContext,
 } from "./execute.context";
@@ -46,19 +47,50 @@ export async function executeRecursive(
     nodes: NodeType[],
     edges: EdgeType[],
     context: ExecutionContext = {},
-    condition?: boolean
+    condition?: boolean,
+    arrivedViaEdgeId?: string,
 ): Promise<ExecutionResponseType> {
     const sourceNode = nodes.find((node) => node.id === sourceId);
+    const localSteps: ExecutionStep[] = [];
+
+    if (sourceNode?.type === "merge") {
+        const incomingEdgeCount = edges.filter((edge) => edge.target === sourceId).length;
+        const mergeState = registerMergeArrival({
+            context,
+            mergeNodeId: sourceId,
+            incomingEdgeCount,
+            arrivalEdgeId: arrivedViaEdgeId,
+        });
+
+        if (!mergeState.shouldContinue) {
+            return { status: "Success", steps: [] };
+        }
+
+        if (mergeState.releasedNow) {
+            localSteps.push({
+                step: 1,
+                nodeId: sourceNode.nodeId || sourceNode.id,
+                nodeType: "Merge Action",
+                status: "Success",
+                message: incomingEdgeCount > 1
+                    ? `Merged ${incomingEdgeCount} incoming branches`
+                    : "Merge path continued",
+            });
+        }
+    }
+
     const outgoingEdges = edges.filter(({ source }) => source === sourceId);
     if (!outgoingEdges.length) {
-        return { status: "Success", steps: [] };
+        return { status: "Success", steps: localSteps };
     }
 
     let nextCondition = condition;
     let targetEdges = outgoingEdges;
 
-    if (sourceNode?.type === "conditional-trigger") {
-        const isRootTriggerNode = String(sourceNode.data?.kind || "").toLowerCase() === "trigger";
+    if (sourceNode?.type === "conditional-trigger" || sourceNode?.type === "if") {
+        const isRootTriggerNode =
+            String(sourceNode.data?.kind || "").toLowerCase() === "trigger" &&
+            sourceNode?.type === "conditional-trigger";
         const evaluatedCondition =
             typeof condition === "boolean" && isRootTriggerNode
                 ? condition
@@ -127,11 +159,11 @@ export async function executeRecursive(
     );
 
     const childResults = await Promise.all(
-        nodesToExecute.map((id) => executeRecursive(id, nodes, edges, context, nextCondition))
+        targetEdges.map((edge) => executeRecursive(edge.target, nodes, edges, context, nextCondition, edge.id))
     );
 
     const childSteps = childResults.flatMap((result) => result.steps);
-    const allSteps = [...steps, ...childSteps];
+    const allSteps = [...localSteps, ...steps, ...childSteps];
 
     if (allSteps.some((step) => step.status === "Failed")) {
         return { status: "Failed", steps: allSteps };
