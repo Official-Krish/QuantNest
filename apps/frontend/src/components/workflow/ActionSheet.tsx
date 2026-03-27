@@ -66,8 +66,15 @@ export const ActionSheet = ({
       return;
     }
 
-    setMetadata((initialMetadata || {}) as TradingMetadata | LighterMetadata | {});
+    setMetadata({ ...((initialMetadata || {}) as TradingMetadata | LighterMetadata | {}) });
     setSelectedAction(initialKind);
+
+    const nextMarketType = String((initialMetadata as any)?.marketType || "").toLowerCase();
+    if (nextMarketType === "indian") {
+      setMarketType("Indian");
+    } else if (nextMarketType === "crypto" || nextMarketType === "web3") {
+      setMarketType("Crypto");
+    }
 
     if (["zerodha", "groww", "lighter"].includes(initialKind)) {
       setInitialAction("Order Execution");
@@ -87,7 +94,7 @@ export const ActionSheet = ({
     }
 
     setInitialAction(undefined);
-  }, [initialKind, initialMetadata, open]);
+  }, [initialKind, initialMetadata, open, setMarketType]);
 
   const tradingValidationErrors = useMemo(() => {
     if (

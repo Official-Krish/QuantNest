@@ -73,8 +73,8 @@ const WorkflowEdgeSchema = z.object({
     id: z.string(),
     source: z.string(),
     target: z.string(),
-    sourceHandle: z.string().optional(),
-    targetHandle: z.string().optional(),
+    sourceHandle: z.preprocess((value) => value ?? undefined, z.string().optional()),
+    targetHandle: z.preprocess((value) => value ?? undefined, z.string().optional()),
 });
 
 function validateWorkflowNodes(

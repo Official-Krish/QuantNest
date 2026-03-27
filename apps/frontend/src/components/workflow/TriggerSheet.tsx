@@ -49,18 +49,27 @@ export const TriggerSheet = ({
   
 
   useEffect(() => {
-    if (open) {
-      if (initialKind && (["timer", "price-trigger", "conditional-trigger"] as unknown as NodeKind[]).includes(initialKind)) {
-        setSelectedTrigger(initialKind);
-      }
-      if (initialMetadata) {
-        setMetadata((current) => ({
-          ...(current || {}),
-          ...(initialMetadata as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata),
-        }));
-      }
+    if (!open) return;
+
+    const nextSelectedTrigger =
+      initialKind && (["timer", "price-trigger", "conditional-trigger"] as unknown as NodeKind[]).includes(initialKind)
+        ? initialKind
+        : "";
+
+    setSelectedTrigger(nextSelectedTrigger);
+    setMetadata(
+      (initialMetadata
+        ? { ...(initialMetadata as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata) }
+        : {}) as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata,
+    );
+
+    const nextMarketType = String((initialMetadata as any)?.marketType || "").toLowerCase();
+    if (nextMarketType === "indian") {
+      setMarketType("Indian");
+    } else if (nextMarketType === "crypto" || nextMarketType === "web3") {
+      setMarketType("Crypto");
     }
-  }, [open, initialKind, initialMetadata]);
+  }, [open, initialKind, initialMetadata, setMarketType]);
 
   const handleCreate = () => {
     if (!selectedTrigger) return;

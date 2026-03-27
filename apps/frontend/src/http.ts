@@ -30,6 +30,19 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+function normalizeWorkflowPayload(body: any) {
+  return {
+    ...body,
+    edges: Array.isArray(body?.edges)
+      ? body.edges.map((edge: any) => ({
+          ...edge,
+          sourceHandle: edge?.sourceHandle ?? undefined,
+          targetHandle: edge?.targetHandle ?? undefined,
+        }))
+      : body?.edges,
+  };
+}
+
 function emitAuthStateChange(isAuthenticated: boolean) {
   window.dispatchEvent(
     new CustomEvent(AUTH_STATE_EVENT, {
@@ -149,12 +162,12 @@ export async function apiResendVerificationEmail(email: string): Promise<{ messa
 // WORKFLOW
 
 export async function apiCreateWorkflow(body: any): Promise<IdResponse> {
-  const res = await api.post<IdResponse>("/workflow", body);
+  const res = await api.post<IdResponse>("/workflow", normalizeWorkflowPayload(body));
   return res.data;
 }
 
 export async function apiUpdateWorkflow(workflowId: string, body: any): Promise<IdResponse> {
-  const res = await api.put<IdResponse>(`/workflow/${workflowId}`, body);
+  const res = await api.put<IdResponse>(`/workflow/${workflowId}`, normalizeWorkflowPayload(body));
   return res.data;
 }
 
