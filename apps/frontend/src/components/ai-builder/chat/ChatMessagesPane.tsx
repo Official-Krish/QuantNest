@@ -23,6 +23,7 @@ type ChatMessagesPaneProps = {
   panel: string;
   muted: string;
   theme: LocalTheme;
+  compact?: boolean;
   onExampleClick?: (example: string) => void;
 };
 
@@ -221,6 +222,7 @@ export function ChatMessagesPane({
   panel,
   muted,
   theme,
+  compact = false,
   onExampleClick,
 }: ChatMessagesPaneProps) {
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
@@ -243,7 +245,7 @@ export function ChatMessagesPane({
 
   return (
     <div ref={chatScrollRef} className="min-h-0 overflow-y-auto px-5 py-8">
-      <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-4">
+      <div className={cx("mx-auto flex w-full min-w-0 flex-col gap-4", compact ? "max-w-245" : "max-w-295")}>
         {loading ? (
           <div className={cx("rounded-2xl border px-4 py-4 text-sm", panel)}>Loading conversation...</div>
         ) : !activeDraft && messages.length === 0 ? (

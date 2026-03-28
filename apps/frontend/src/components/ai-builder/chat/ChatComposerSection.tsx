@@ -34,6 +34,7 @@ type ChatComposerSectionProps = {
   border: string;
   muted: string;
   theme: LocalTheme;
+  compact?: boolean;
   market: AiStrategyBuilderRequest["market"];
   onMarketChange: (value: AiStrategyBuilderRequest["market"]) => void;
   goal: AiStrategyBuilderRequest["goal"];
@@ -62,6 +63,7 @@ type ChatComposerSectionProps = {
 export function ChatComposerSection({
   border,
   theme,
+  compact = false,
   market,
   onMarketChange,
   goal,
@@ -153,7 +155,7 @@ export function ChatComposerSection({
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap');`}</style>
 
       <div className={cx("border-t px-5 py-4", border)} style={{ fontFamily: BODY }}>
-        <div className="mx-auto w-full max-w-[1180px]">
+        <div className={cx("mx-auto w-full min-w-0", compact ? "max-w-245" : "max-w-295")}>
 
           {/* ── Unified Input Card ── */}
           <motion.div
@@ -264,10 +266,10 @@ export function ChatComposerSection({
             />
 
             {/* Options row section */}
-            <div style={{ padding: "8px 18px", display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
+            <div style={{ padding: "8px 18px", display: "flex", alignItems: "center", gap: 8, position: "relative", flexWrap: "wrap" }}>
               {/* Provider select */}
               <Select value={selectedProvider} onValueChange={onSelectedProviderChange}>
-                <SelectTrigger className={cx(selectTriggerClass, "w-[148px]")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "w-37")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Provider" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
@@ -281,7 +283,7 @@ export function ChatComposerSection({
 
               {/* Model select */}
               <Select value={selectedModel} onValueChange={onSelectedModelChange}>
-                <SelectTrigger className={cx(selectTriggerClass, "min-w-[190px]")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "min-w-47.5")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Model" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
@@ -304,7 +306,7 @@ export function ChatComposerSection({
                 value={market}
                 onValueChange={(value) => onMarketChange(value as AiStrategyBuilderRequest["market"])}
               >
-                <SelectTrigger className={cx(selectTriggerClass, "w-[104px]")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "w-26")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Market" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
@@ -318,7 +320,7 @@ export function ChatComposerSection({
                 value={goal}
                 onValueChange={(value) => onGoalChange(value as AiStrategyBuilderRequest["goal"])}
               >
-                <SelectTrigger className={cx(selectTriggerClass, "w-[104px]")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "w-26")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Goal" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
@@ -336,7 +338,7 @@ export function ChatComposerSection({
                   onRiskPreferenceChange(value as AiStrategyBuilderRequest["riskPreference"])
                 }
               >
-                <SelectTrigger className={cx(selectTriggerClass, "w-[126px]")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "w-31.5")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Risk" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>

@@ -174,6 +174,7 @@ export function AiStrategyChatBuilder() {
   );
 
   const hasGeneratedWorkflow = (activeDraft?.workflowVersions.length || 0) > 0;
+  const isRightPreviewVisible = hasGeneratedWorkflow && showRightSidebar;
 
   const selectedVersion = useMemo(() => {
     if (!activeDraft?.workflowVersions.length) return null;
@@ -326,20 +327,14 @@ export function AiStrategyChatBuilder() {
           onNewChat={handleNewChat}
         />
 
-        <div
-          className={cx(
-            "grid h-full min-h-0",
-            hasGeneratedWorkflow && showRightSidebar
-              ? "xl:grid-cols-[minmax(0,1fr)_380px]"
-              : "grid-cols-1",
-          )}
-        >
-          <main className={cx("grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]", border)}>
+        <div className="flex h-full min-h-0 min-w-0">
+          <main className={cx("flex-1 grid h-full min-h-0 min-w-0 overflow-hidden grid-rows-[auto_minmax(0,1fr)_auto]", border)}>
             <ChatTopHeader
               border={border}
               muted={muted}
               heading={heading}
               theme={theme}
+              compact={isRightPreviewVisible}
               title={activeDraft?.title || "New workflow conversation"}
               canOpenBuilder={Boolean(selectedVersion)}
               canTogglePreview={hasGeneratedWorkflow}
@@ -361,6 +356,7 @@ export function AiStrategyChatBuilder() {
               panel={panel}
               muted={muted}
               theme={theme}
+              compact={isRightPreviewVisible}
               onExampleClick={(example) => setComposer(example)}
             />
 
@@ -368,6 +364,7 @@ export function AiStrategyChatBuilder() {
               border={border}
               muted={muted}
               theme={theme}
+              compact={isRightPreviewVisible}
               market={market}
               onMarketChange={setMarket}
               goal={goal}
@@ -401,14 +398,14 @@ export function AiStrategyChatBuilder() {
           </main>
 
           <AnimatePresence initial={false}>
-            {hasGeneratedWorkflow && showRightSidebar ? (
+            {isRightPreviewVisible ? (
               <motion.div
                 key="workflow-preview-sidebar"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.22 }}
-                className={cx("hidden h-full border-l xl:block", border)}
+                className={cx("hidden h-full min-h-0 w-95 shrink-0 overflow-hidden border-l xl:block", border)}
               >
                 <RightSidebar
                   panel={panel}

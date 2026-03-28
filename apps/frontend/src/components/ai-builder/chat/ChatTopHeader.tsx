@@ -8,6 +8,7 @@ type ChatTopHeaderProps = {
   muted: string;
   heading: string;
   theme: LocalTheme;
+  compact?: boolean;
   title: string;
   canOpenBuilder: boolean;
   canTogglePreview: boolean;
@@ -22,6 +23,7 @@ export function ChatTopHeader({
   muted,
   heading,
   theme,
+  compact = false,
   title,
   canOpenBuilder,
   canTogglePreview,
@@ -32,8 +34,8 @@ export function ChatTopHeader({
 }: ChatTopHeaderProps) {
   return (
     <div className={cx("border-b px-5 py-3", border)}>
-      <div className="mx-auto flex w-full max-w-[1180px] items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
+      <div className={cx("mx-auto flex w-full min-w-0 items-center justify-between gap-4", compact ? "max-w-245" : "max-w-295")}>
+        <div className="flex min-w-0 items-center gap-2.5">
           <button
             type="button"
             onClick={onGoHome}
@@ -44,15 +46,15 @@ export function ChatTopHeader({
           >
             <Home className="h-3.5 w-3.5" />
           </button>
-          <div>
+          <div className="min-w-0">
             <div className={cx("flex items-center gap-2 text-[14px] font-semibold", heading)}>
-              {title}
+              <span className="truncate">{title}</span>
             </div>
             <div className={cx("mt-0.5 text-[12px]", muted)}>AI Strategy Builder</div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {canTogglePreview ? (
             <motion.button
               type="button"

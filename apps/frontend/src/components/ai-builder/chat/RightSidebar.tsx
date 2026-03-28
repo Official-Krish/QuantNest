@@ -27,7 +27,7 @@ export function RightSidebar({
   onSelectVersion,
 }: RightSidebarProps) {
   return (
-    <aside className={cx("h-full overflow-y-auto", panel)}>
+    <aside className={cx("h-full min-h-0 overflow-y-auto", panel)}>
       <div className="space-y-0">
         <div className={cx("border-b px-4 py-3", border)}>
           <div className={cx("text-[10px] font-medium uppercase tracking-[0.2em]", muted)}>Workflow Preview</div>
