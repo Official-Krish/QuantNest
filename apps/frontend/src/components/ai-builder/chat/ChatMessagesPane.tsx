@@ -1,7 +1,28 @@
 import { useEffect, useMemo, useState, type RefObject } from "react";
-import type { AiStrategyConversationMessage, AiStrategyDraftSession } from "@/types/api";
+import { apiGetReusableSecrets } from "@/http";
+import type {
+  AiStrategyConversationMessage,
+  AiStrategyDraftSession,
+  ReusableSecretService,
+  ReusableSecretSummary,
+} from "@/types/api";
 import type { AiMetadataOverrides } from "@/components/ai-builder/types";
-import { getFieldLabel, getFieldType, getNodeLabel, groupMissingInputs } from "@/components/ai-builder/setupDialog.utils";
+import {
+  getFieldLabel,
+  getFieldType,
+  getNodeLabel,
+  getReusableSecretServiceForNodeType,
+  groupMissingInputs,
+  shouldHideInputWhenSecretSelected,
+  suggestReusableSecretId,
+} from "@/components/ai-builder/setupDialog.utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ChatBubble } from "./ChatBubble";
 import { WorkflowCanvasCard } from "./WorkflowCanvasCard";
 import { cx, type LocalTheme } from "./shared";
@@ -114,8 +135,44 @@ function InlineMissingInputsCard({
 }) {
   const groupedInputs = groupMissingInputs(activeDraft);
   const entries = Object.entries(groupedInputs);
+  const [secretsByService, setSecretsByService] = useState<Partial<Record<ReusableSecretService, ReusableSecretSummary[]>>>({});
 
-  if (entries.length === 0) return null;
+  const servicesToLoad = Array.from(
+    new Set(
+      entries
+        .map(([nodeId]) => {
+          const node = activeDraft.response.plan.nodes.find((entry) => entry.nodeId === nodeId);
+          return node ? getReusableSecretServiceForNodeType(String(node.type)) : null;
+        })
+        .filter((service): service is ReusableSecretService => Boolean(service)),
+    ),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      const missing = servicesToLoad.filter((service) => !secretsByService[service]);
+      if (!missing.length) return;
+
+      const results = await Promise.all(
+        missing.map(async (service) => [service, await apiGetReusableSecrets(service)] as const),
+      );
+
+      if (cancelled) return;
+
+      setSecretsByService((current) => ({
+        ...current,
+        ...Object.fromEntries(results),
+      }));
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [servicesToLoad.join("|"), secretsByService]);
 
   const setFieldValue = (nodeId: string, key: string, rawValue: string, type: string) => {
     const nextValue = type === "number" ? Number(rawValue) : rawValue;
@@ -127,6 +184,22 @@ function InlineMissingInputsCard({
       },
     });
   };
+
+  const setSecretId = (nodeId: string, secretId?: string) => {
+    const nextNodeOverrides = { ...(metadataOverrides[nodeId] || {}) };
+    if (secretId) {
+      nextNodeOverrides.secretId = secretId;
+    } else {
+      delete nextNodeOverrides.secretId;
+    }
+
+    onMetadataOverridesChange({
+      ...metadataOverrides,
+      [nodeId]: nextNodeOverrides,
+    });
+  };
+
+  if (entries.length === 0) return null;
 
   return (
     <div className={cx("rounded-2xl border p-4", theme === "dark" ? "border-neutral-800 bg-[#0d0d0d]" : "border-neutral-200 bg-white")}>
@@ -148,14 +221,69 @@ function InlineMissingInputsCard({
           if (!node) return null;
           const baseMetadata = node.data.metadata || {};
           const overrideMetadata = metadataOverrides[nodeId] || {};
+          const service = getReusableSecretServiceForNodeType(String(node.type));
+          const availableSecrets = service ? (secretsByService[service] || []) : [];
+          const nodeType = String(node.type);
+          const currentSecretId = String(overrideMetadata.secretId || baseMetadata.secretId || "").trim();
+          const hasSecretId = currentSecretId.length > 0;
+          const suggestedSecretId = currentSecretId ? null : suggestReusableSecretId(availableSecrets, inputs);
+          const suggestedSecret = suggestedSecretId
+            ? availableSecrets.find((secret) => secret.id === suggestedSecretId)
+            : null;
 
           return (
             <div key={nodeId} className={cx("rounded-xl border p-3", theme === "dark" ? "border-neutral-800 bg-black" : "border-neutral-200 bg-[#fafafa]")}>
               <div className={cx("mb-3 text-xs font-medium", theme === "dark" ? "text-neutral-200" : "text-neutral-800")}>
-                {getNodeLabel(String(node.type))}
+                {getNodeLabel(nodeType)}
               </div>
+
+              {service ? (
+                <div className="mb-3 space-y-2">
+                  <div className={cx("text-[11px]", theme === "dark" ? "text-neutral-400" : "text-neutral-500")}>
+                    Reusable secret
+                  </div>
+                  <Select
+                    value={currentSecretId || "manual"}
+                    onValueChange={(value) => setSecretId(nodeId, value === "manual" ? undefined : value)}
+                  >
+                    <SelectTrigger className="h-9 border-neutral-800 bg-[#111111] text-xs text-neutral-100">
+                      <SelectValue placeholder="Use one-time values" />
+                    </SelectTrigger>
+                    <SelectContent className="border-neutral-800 bg-[#0f0f0f] text-neutral-100">
+                      <SelectItem value="manual" className="text-xs">Use one-time values</SelectItem>
+                      {availableSecrets.map((secret) => (
+                        <SelectItem key={secret.id} value={secret.id} className="text-xs">
+                          {secret.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {currentSecretId ? (
+                    <div className="text-[11px] text-[#f7b2a7]">
+                      Credentials will resolve from this saved secret at runtime.
+                    </div>
+                  ) : suggestedSecret ? (
+                    <button
+                      type="button"
+                      onClick={() => setSecretId(nodeId, suggestedSecret.id)}
+                      className={cx(
+                        "rounded-lg border px-2.5 py-1 text-[11px] transition",
+                        theme === "dark"
+                          ? "border-[#f17463]/35 bg-[#f17463]/8 text-[#f7b2a7] hover:border-[#f17463]/55"
+                          : "border-[#f17463]/30 bg-[#fff3ee] text-[#d95f4f] hover:border-[#f17463]/45",
+                      )}
+                    >
+                      Use suggested: {suggestedSecret.name}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
               <div className="grid gap-3 md:grid-cols-2">
-                {inputs.map((input) => {
+                {inputs
+                  .filter((input) => !shouldHideInputWhenSecretSelected(nodeType, input.field, hasSecretId))
+                  .map((input) => {
                   const type = getFieldType(input.field, input.secret);
                   const value = overrideMetadata[input.field] ?? baseMetadata[input.field] ?? "";
                   return (
@@ -177,7 +305,7 @@ function InlineMissingInputsCard({
                       />
                     </label>
                   );
-                })}
+                  })}
               </div>
             </div>
           );

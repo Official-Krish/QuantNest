@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { apiGetReusableSecrets } from "@/http";
+import type { ReusableSecretService, ReusableSecretSummary } from "@/types/api";
 import {
   Dialog,
   DialogContent,
@@ -7,13 +10,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { AiPlanSetupDialogProps } from "./types";
 import {
   collectSetupErrors,
   getFieldLabel,
   getFieldType,
   getNodeLabel,
+  getReusableSecretServiceForNodeType,
   groupMissingInputs,
+  shouldHideInputWhenSecretSelected,
+  suggestReusableSecretId,
 } from "./setupDialog.utils";
 
 export function AiPlanSetupDialog({
@@ -29,6 +42,48 @@ export function AiPlanSetupDialog({
   const errors = collectSetupErrors(result, workflowName, metadataOverrides);
   const groupedInputs = groupMissingInputs(result);
   const response = result && "response" in result ? result.response : result;
+  const [secretsByService, setSecretsByService] = useState<Partial<Record<ReusableSecretService, ReusableSecretSummary[]>>>({});
+
+  useEffect(() => {
+    if (!response) return;
+
+    const services = Array.from(
+      new Set(
+        Object.keys(groupedInputs)
+          .map((nodeId) => {
+            const node = response.plan.nodes.find((entry) => entry.nodeId === nodeId);
+            return node ? getReusableSecretServiceForNodeType(String(node.type)) : null;
+          })
+          .filter((service): service is ReusableSecretService => Boolean(service)),
+      ),
+    );
+
+    if (!services.length) return;
+
+    let cancelled = false;
+
+    const load = async () => {
+      const missing = services.filter((service) => !secretsByService[service]);
+      if (!missing.length) return;
+
+      const results = await Promise.all(
+        missing.map(async (service) => [service, await apiGetReusableSecrets(service)] as const),
+      );
+
+      if (cancelled) return;
+
+      setSecretsByService((current) => ({
+        ...current,
+        ...Object.fromEntries(results),
+      }));
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [response, groupedInputs, secretsByService]);
 
   const setFieldValue = (nodeId: string, key: string, rawValue: string, type: string) => {
     const nextValue = type === "number" ? Number(rawValue) : rawValue;
@@ -38,6 +93,20 @@ export function AiPlanSetupDialog({
         ...(metadataOverrides[nodeId] || {}),
         [key]: nextValue,
       },
+    });
+  };
+
+  const setSecretId = (nodeId: string, secretId?: string) => {
+    const nextNodeOverrides = { ...(metadataOverrides[nodeId] || {}) };
+    if (secretId) {
+      nextNodeOverrides.secretId = secretId;
+    } else {
+      delete nextNodeOverrides.secretId;
+    }
+
+    onMetadataOverridesChange({
+      ...metadataOverrides,
+      [nodeId]: nextNodeOverrides,
     });
   };
 
@@ -72,14 +141,61 @@ export function AiPlanSetupDialog({
             const baseMetadata = node.data.metadata || {};
             const overrideMetadata = metadataOverrides[nodeId] || {};
             const nodeType = String(node.type);
+            const service = getReusableSecretServiceForNodeType(nodeType);
+            const availableSecrets = service ? (secretsByService[service] || []) : [];
+            const currentSecretId = String(overrideMetadata.secretId || baseMetadata.secretId || "").trim();
+            const hasSecretId = currentSecretId.length > 0;
+            const suggestedSecretId = currentSecretId ? null : suggestReusableSecretId(availableSecrets, inputs);
+            const suggestedSecret = suggestedSecretId
+              ? availableSecrets.find((secret) => secret.id === suggestedSecretId)
+              : null;
 
             return (
               <div key={nodeId} className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f17463]">
                   {getNodeLabel(nodeType)}
                 </p>
+
+                {service ? (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-neutral-300">Reusable secret</p>
+                    <Select
+                      value={currentSecretId || "manual"}
+                      onValueChange={(value) => setSecretId(nodeId, value === "manual" ? undefined : value)}
+                    >
+                      <SelectTrigger className="h-10 border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+                        <SelectValue placeholder="Use one-time values" />
+                      </SelectTrigger>
+                      <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                        <SelectItem value="manual">Use one-time values</SelectItem>
+                        {availableSecrets.map((secret) => (
+                          <SelectItem key={secret.id} value={secret.id}>
+                            {secret.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {currentSecretId ? (
+                      <div className="text-[11px] text-[#f7b2a7]">
+                        Credentials will resolve from this saved secret at runtime.
+                      </div>
+                    ) : suggestedSecret ? (
+                      <button
+                        type="button"
+                        className="rounded-lg border border-[#f17463]/35 bg-[#f17463]/8 px-2.5 py-1 text-[11px] text-[#f7b2a7] transition hover:border-[#f17463]/55"
+                        onClick={() => setSecretId(nodeId, suggestedSecret.id)}
+                      >
+                        Use suggested: {suggestedSecret.name}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  {inputs.map((input) => {
+                  {inputs
+                    .filter((input) => !shouldHideInputWhenSecretSelected(nodeType, input.field, hasSecretId))
+                    .map((input) => {
                     if (input.field === "aiConsent") {
                       const checked = Boolean(overrideMetadata.aiConsent ?? baseMetadata.aiConsent);
                       return (
@@ -122,7 +238,7 @@ export function AiPlanSetupDialog({
                         />
                       </div>
                     );
-                  })}
+                    })}
                 </div>
               </div>
             );
