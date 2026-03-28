@@ -15,6 +15,8 @@ import type {
   SigninResponse,
   UserNotification,
   Workflow,
+  WorkflowLivePreview,
+  WorkflowPreviewRequest,
   WorkflowExample,
 } from "./types/api";
 
@@ -174,6 +176,11 @@ export async function apiUpdateWorkflow(workflowId: string, body: any): Promise<
 export async function apiGetWorkflow(workflowId: string): Promise<Workflow> {
   const res = await api.get<{ message: string; workflow: Workflow }>(`/workflow/${workflowId}`);
   return res.data.workflow;
+}
+
+export async function apiPreviewWorkflowMetrics(body: WorkflowPreviewRequest): Promise<WorkflowLivePreview> {
+  const res = await api.post<{ message: string; preview: WorkflowLivePreview }>("/workflow/preview-metrics", body);
+  return res.data.preview;
 }
 
 export async function apiGetAllWorkflows(): Promise<{ workflows: Workflow[] }> {

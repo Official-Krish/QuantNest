@@ -1,4 +1,5 @@
 import type { EdgeType, NodeType } from "@quantnest-trading/types";
+import type { IndicatorConditionGroup, IndicatorKind, IndicatorMarket, IndicatorTimeframe } from "@quantnest-trading/types";
 import type {
   AiModelDescriptor,
   AiStrategyDraftCreateResponse,
@@ -76,6 +77,31 @@ export interface Workflow {
   updatedAt?: Date;
   status?: "active" | "paused";
   marketType?: "Indian" | "Crypto";
+}
+
+export interface WorkflowPreviewSnapshotEntry {
+  symbol: string;
+  marketType: IndicatorMarket;
+  timeframe: IndicatorTimeframe;
+  indicator: IndicatorKind;
+  period?: number;
+  value: number | null;
+}
+
+export interface WorkflowLivePreview {
+  currentPrice?: number;
+  conditionMet?: boolean;
+  distanceToTarget?: number | null;
+  indicatorSnapshot: WorkflowPreviewSnapshotEntry[];
+  evaluatedAt: string;
+}
+
+export interface WorkflowPreviewRequest {
+  marketType?: "Indian" | "Crypto" | "indian" | "web3";
+  asset?: string;
+  targetPrice?: number;
+  condition?: "above" | "below";
+  expression?: IndicatorConditionGroup;
 }
 
 export interface UserNotification {

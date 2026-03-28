@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import type { PriceTriggerNodeMetadata } from "@quantnest-trading/types";
 import { Input } from "@/components/ui/input";
+import { apiPreviewWorkflowMetrics } from "@/http";
 import {
   Select,
   SelectContent,
@@ -10,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_MARKETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
+import type { WorkflowLivePreview } from "@/types/api";
+import { WorkflowLivePreviewPanel } from "./WorkflowLivePreviewPanel";
 
 interface PriceTriggerFormProps {
     marketType: "Indian" | "Crypto" | null;
@@ -24,6 +28,56 @@ export const PriceTriggerForm = ({
     metadata,
     setMetadata,
 }: PriceTriggerFormProps) => {
+  const [preview, setPreview] = useState<WorkflowLivePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const asset = metadata.asset;
+    const activeMarket = marketType || (metadata.marketType as "Indian" | "Crypto" | null);
+    if (!asset || !activeMarket) {
+      setPreview(null);
+      setPreviewError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchPreview = async () => {
+      try {
+        setPreviewLoading(true);
+        setPreviewError(null);
+        const next = await apiPreviewWorkflowMetrics({
+          marketType: activeMarket,
+          asset,
+          targetPrice: Number(metadata.targetPrice),
+          condition: metadata.condition,
+        });
+        if (!isCancelled) {
+          setPreview(next);
+        }
+      } catch (error: any) {
+        if (!isCancelled) {
+          setPreviewError(error?.response?.data?.message || error?.message || "Failed to fetch live preview");
+        }
+      } finally {
+        if (!isCancelled) {
+          setPreviewLoading(false);
+        }
+      }
+    };
+
+    void fetchPreview();
+    const interval = window.setInterval(() => {
+      void fetchPreview();
+    }, 15_000);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [marketType, metadata.asset, metadata.condition, metadata.marketType, metadata.targetPrice]);
+
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
       {/* Condition */}
@@ -161,6 +215,13 @@ export const PriceTriggerForm = ({
           </Select>
       </div>
     }
+
+    <WorkflowLivePreviewPanel
+      preview={preview}
+      loading={previewLoading}
+      error={previewError}
+      title="Live price preview"
+    />
     </div>
   );
 };

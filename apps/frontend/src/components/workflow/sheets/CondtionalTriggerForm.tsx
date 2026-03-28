@@ -8,6 +8,7 @@ import type {
   IndicatorOperand,
   IndicatorTimeframe,
 } from "@quantnest-trading/types";
+import { apiPreviewWorkflowMetrics } from "@/http";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,11 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { WorkflowLivePreview } from "@/types/api";
 import {
   SUPPORTED_INDIAN_MARKET_ASSETS,
   SUPPORTED_MARKETS,
   SUPPORTED_WEB3_ASSETS,
 } from "@quantnest-trading/types";
+import { WorkflowLivePreviewPanel } from "./WorkflowLivePreviewPanel";
 
 interface ConditionalTriggerFormProps {
   marketType: "Indian" | "Crypto" | null;
@@ -306,6 +309,9 @@ export const ConditionalTriggerForm = ({
   );
   const [rootOperator, setRootOperator] = useState<"AND" | "OR">(initial.rootOperator);
   const [groups, setGroups] = useState<UIGroup[]>(initial.groups);
+  const [preview, setPreview] = useState<WorkflowLivePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
     setMetadata((current: ConditionalTriggerMetadata) => ({
@@ -314,6 +320,50 @@ export const ConditionalTriggerForm = ({
       expression: toExpression(rootOperator, groups, marketType),
     }));
   }, [groups, marketType, rootOperator, setMetadata]);
+
+  useEffect(() => {
+    const expression = toExpression(rootOperator, groups, marketType);
+    const activeMarket = marketType || (metadata.marketType as "Indian" | "Crypto" | undefined);
+    if (!activeMarket || !expression.conditions.length) {
+      setPreview(null);
+      setPreviewError(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const fetchPreview = async () => {
+      try {
+        setPreviewLoading(true);
+        setPreviewError(null);
+        const next = await apiPreviewWorkflowMetrics({
+          marketType: activeMarket,
+          expression,
+        });
+        if (!isCancelled) {
+          setPreview(next);
+        }
+      } catch (error: any) {
+        if (!isCancelled) {
+          setPreviewError(error?.response?.data?.message || error?.message || "Failed to fetch live preview");
+        }
+      } finally {
+        if (!isCancelled) {
+          setPreviewLoading(false);
+        }
+      }
+    };
+
+    void fetchPreview();
+    const interval = window.setInterval(() => {
+      void fetchPreview();
+    }, 15_000);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [groups, rootOperator, marketType, metadata.marketType]);
 
   const updateGroup = (index: number, next: UIGroup) => {
     setGroups((prev) => prev.map((group, idx) => (idx === index ? next : group)));
@@ -556,6 +606,13 @@ export const ConditionalTriggerForm = ({
           placeholder="Enter minutes (e.g., 15)"
         />
       </div>
+
+      <WorkflowLivePreviewPanel
+        preview={preview}
+        loading={previewLoading}
+        error={previewError}
+        title="Live indicator preview"
+      />
     </div>
   );
 };

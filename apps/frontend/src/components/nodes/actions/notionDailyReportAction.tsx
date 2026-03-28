@@ -14,7 +14,7 @@ export const notionDailyReportAction = ({
   const { parentPageId, notionApiKey, aiConsent } = data.metadata || {};
 
   return (
-    <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 bg-neutral-950/90 px-4 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+    <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#7ecb89] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7ecb89]">
           Notion
