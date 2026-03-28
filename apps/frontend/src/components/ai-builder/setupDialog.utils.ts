@@ -56,6 +56,8 @@ export function getNodeLabel(type: string) {
       return "Lighter";
     case "if":
       return "If";
+    case "filter":
+      return "Filter";
     case "delay":
       return "Delay";
     case "merge":

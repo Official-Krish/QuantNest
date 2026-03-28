@@ -722,6 +722,90 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       { id: "e-merge-2-notion-3", source: "merge-2", target: "notion-3" },
     ],
   },
+  {
+    slug: "rsi-filter-alert-gate",
+    title: "RSI Filter Gate Before Alert",
+    summary:
+      "Use a filter node to gate notifications so alerts only continue when a live RSI condition passes, without creating a separate true/false branch.",
+    category: "Alerts",
+    market: "Indian",
+    difficulty: "Starter",
+    setupMinutes: 7,
+    sortOrder: 7,
+    nodeFlow: ["Timer", "Filter", "Slack"],
+    trigger: "Runs every 5 minutes during the session.",
+    logic:
+      "A timer starts the workflow. The filter checks whether RSI(14) on the 5m timeframe is below 30. If the condition passes, the Slack DM is sent. If not, execution stops quietly.",
+    actions: ["Evaluate RSI condition", "Gate downstream execution", "Send Slack DM only on pass"],
+    outcomes: [
+      "Cleaner alert gating without branch clutter",
+      "Simple example for mid-workflow filtering",
+      "Better signal quality before notifications fire",
+    ],
+    nodes: [
+      {
+        nodeId: "timer-5",
+        type: "timer",
+        data: {
+          kind: "trigger",
+          metadata: { time: 300, marketType: "indian", asset: "CDSL" },
+        },
+        position: { x: 0, y: 110 },
+      },
+      {
+        nodeId: "filter-1",
+        type: "filter",
+        data: {
+          kind: "action",
+          metadata: {
+            marketType: "Indian",
+            expression: {
+              operator: "AND",
+              conditions: [
+                {
+                  type: "group",
+                  operator: "AND",
+                  conditions: [
+                    {
+                      left: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "rsi",
+                          symbol: "CDSL",
+                          timeframe: "5m",
+                          params: { period: 14 },
+                        },
+                      },
+                      operator: "<",
+                      right: { type: "value", value: 30 },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        position: { x: 310, y: 60 },
+      },
+      {
+        nodeId: "slack-3",
+        type: "slack",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Signal desk",
+            slackBotToken: "xoxb-demo-slack-token",
+            slackUserId: "U09FILTEROPS",
+          },
+        },
+        position: { x: 650, y: 60 },
+      },
+    ],
+    edges: [
+      { id: "e-timer-5-filter-1", source: "timer-5", target: "filter-1" },
+      { id: "e-filter-1-slack-3", source: "filter-1", target: "slack-3" },
+    ],
+  },
 ];
 
 export async function seedWorkflowExamples() {

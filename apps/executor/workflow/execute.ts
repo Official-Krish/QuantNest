@@ -87,7 +87,7 @@ export async function executeRecursive(
     let nextCondition = condition;
     let targetEdges = outgoingEdges;
 
-    if (sourceNode?.type === "conditional-trigger" || sourceNode?.type === "if") {
+    if (sourceNode?.type === "conditional-trigger" || sourceNode?.type === "if" || sourceNode?.type === "filter") {
         const isRootTriggerNode =
             String(sourceNode.data?.kind || "").toLowerCase() === "trigger" &&
             sourceNode?.type === "conditional-trigger";
@@ -100,7 +100,7 @@ export async function executeRecursive(
         context.details = {
             ...(context.details || {}),
             aiContext: {
-                triggerType: "conditional-trigger",
+                triggerType: sourceNode?.type === "filter" ? "filter" : "conditional-trigger",
                 marketType: sourceNode.data?.metadata?.marketType === "Crypto" ? "Crypto" : "Indian",
                 symbol: sourceNode.data?.metadata?.asset || context.details?.symbol,
                 connectedSymbols: context.details?.aiContext?.connectedSymbols,
@@ -112,12 +112,18 @@ export async function executeRecursive(
             },
         };
 
-        targetEdges = resolveConditionalEdges({
-            sourceNode,
-            nodes,
-            outgoingEdges,
-            evaluatedCondition,
-        });
+        targetEdges = sourceNode?.type === "filter"
+            ? (evaluatedCondition ? outgoingEdges : [])
+            : resolveConditionalEdges({
+                sourceNode,
+                nodes,
+                outgoingEdges,
+                evaluatedCondition,
+              });
+
+        if (!targetEdges.length && sourceNode?.type === "filter" && evaluatedCondition === false) {
+            return { status: "Success", steps: localSteps };
+        }
 
         if (!targetEdges.length && context.userId && context.workflowId) {
             await createUserNotification({
@@ -125,13 +131,17 @@ export async function executeRecursive(
                 workflowId: context.workflowId,
                 type: "conditional_no_downstream_branch",
                 severity: "warning",
-                title: "Conditional has no downstream branch",
-                message: "A conditional node evaluated, but there was no valid true/false branch connected to continue execution.",
+                title: sourceNode?.type === "filter"
+                    ? "Filter blocked downstream execution"
+                    : "Conditional has no downstream branch",
+                message: sourceNode?.type === "filter"
+                    ? "A filter node blocked execution because its condition did not pass."
+                    : "A conditional node evaluated, but there was no valid true/false branch connected to continue execution.",
                 metadata: {
                     nodeId: sourceNode.nodeId || sourceNode.id,
                     evaluatedCondition,
                 },
-                dedupeKey: `conditional-no-branch:${context.workflowId}:${sourceNode.nodeId || sourceNode.id}:${evaluatedCondition}`,
+                dedupeKey: `${sourceNode?.type === "filter" ? "filter-blocked" : "conditional-no-branch"}:${context.workflowId}:${sourceNode.nodeId || sourceNode.id}:${evaluatedCondition}`,
                 dedupeWindowHours: 12,
             });
         }

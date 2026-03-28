@@ -10,6 +10,7 @@ const DEFAULT_ALLOWED_NODE_TYPES: NodeKind[] = [
   "price",
   "conditional-trigger",
   "if",
+  "filter",
   "delay",
   "merge",
   "Zerodha",
@@ -28,6 +29,14 @@ const ACTION_METADATA_REFERENCE: Record<StrategyBuilderActionType, string[]> = {
   lighter: ["type", "qty", "symbol", "apiKey", "accountIndex", "apiKeyIndex"],
   delay: ["durationSeconds"],
   if: [
+    "asset",
+    "marketType",
+    "condition",
+    "targetPrice",
+    "timeWindowMinutes",
+    "expression",
+  ],
+  filter: [
     "asset",
     "marketType",
     "condition",
@@ -62,6 +71,14 @@ const TRIGGER_METADATA_REFERENCE: Record<string, string[]> = {
     "expression",
   ],
   if: [
+    "asset",
+    "marketType",
+    "condition",
+    "targetPrice",
+    "timeWindowMinutes",
+    "expression",
+  ],
+  filter: [
     "asset",
     "marketType",
     "condition",
@@ -109,7 +126,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | conditional-trigger | if | delay | merge | Zerodha | Groww | gmail | slack | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
+            type: "timer | price | conditional-trigger | if | filter | delay | merge | Zerodha | Groww | gmail | slack | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -156,6 +173,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "- Multiple trigger nodes and branching paths are allowed when they improve the workflow.",
     "- For a price node, metadata must include asset, targetPrice, marketType, and condition.",
     "- Use 'if' for downstream branching logic after a trigger or action step.",
+    "- Use 'filter' to gate downstream execution with a condition but without creating true/false branches.",
     "- Use 'delay' when the user asks to wait before continuing to the next action.",
     "- Use 'merge' to join parallel or branched paths back into a single downstream step.",
     "- If the prompt says 'below', the price trigger condition must be 'below'. If the prompt says 'above', use 'above'.",

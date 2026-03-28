@@ -13,6 +13,7 @@ function getNodeAccent(type: string) {
     case "price":
       return "text-[#f17463]";
     case "if":
+    case "filter":
     case "delay":
     case "merge":
       return "text-sky-300";
@@ -47,6 +48,10 @@ function getNodeBadge(type: string, metadata: Record<string, any>) {
       return metadata.expression?.conditions?.length
         ? `${metadata.expression.conditions.length} Groups`
         : "Branch";
+    case "filter":
+      return metadata.expression?.conditions?.length
+        ? `${metadata.expression.conditions.length} Groups`
+        : "Gate";
     case "delay":
       return `${metadata.durationSeconds || 0}s`;
     case "merge":
@@ -78,6 +83,8 @@ function getNodeTitle(type: string, metadata: Record<string, any>) {
       return "Conditional branch";
     case "if":
       return "If branch";
+    case "filter":
+      return "Filter gate";
     case "delay":
       return `Wait ${metadata.durationSeconds || 0} seconds`;
     case "merge":
@@ -109,6 +116,8 @@ function getNodeDescription(type: string, metadata: Record<string, any>) {
       return "True and false paths branch from this node.";
     case "if":
       return "Routes execution into true and false branches.";
+    case "filter":
+      return "Stops downstream execution unless the condition passes.";
     case "delay":
       return "Pauses before continuing downstream.";
     case "merge":

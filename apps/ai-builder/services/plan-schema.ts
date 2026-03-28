@@ -138,7 +138,7 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       // Merge is a flow-control node with no required metadata.
     }
 
-    if (normalizedType === "if") {
+    if (normalizedType === "if" || normalizedType === "filter") {
       const hasExpression = Boolean((metadata as Record<string, unknown>).expression);
       const asset = String(metadata.asset || "").trim();
       const condition = String(metadata.condition || "").trim().toLowerCase();
@@ -150,7 +150,7 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
             issues,
             "error",
             "INVALID_GRAPH",
-            "If node must include an asset or expression.",
+            `${normalizedType === "filter" ? "Filter" : "If"} node must include an asset or expression.`,
             node.nodeId,
             "asset",
           );
@@ -161,7 +161,7 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
             issues,
             "error",
             "INVALID_GRAPH",
-            "If node must use condition 'above' or 'below' when no expression is provided.",
+            `${normalizedType === "filter" ? "Filter" : "If"} node must use condition 'above' or 'below' when no expression is provided.`,
             node.nodeId,
             "condition",
           );
@@ -172,7 +172,7 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
             issues,
             "error",
             "INVALID_GRAPH",
-            "If node must include targetPrice greater than 0 when no expression is provided.",
+            `${normalizedType === "filter" ? "Filter" : "If"} node must include targetPrice greater than 0 when no expression is provided.`,
             node.nodeId,
             "targetPrice",
           );

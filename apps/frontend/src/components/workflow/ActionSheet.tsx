@@ -88,7 +88,7 @@ export const ActionSheet = ({
       setInitialAction("Reporting");
       return;
     }
-    if (initialKind === "conditional-trigger" || initialKind === "if" || initialKind === "delay" || initialKind === "merge") {
+    if (initialKind === "conditional-trigger" || initialKind === "if" || initialKind === "filter" || initialKind === "delay" || initialKind === "merge") {
       setInitialAction("Flow Control");
       return;
     }
@@ -145,6 +145,15 @@ export const ActionSheet = ({
     (
       selectedAction !== "google-drive-daily-csv" ||
       (Boolean((metadata as any)?.googleClientEmail) && Boolean((metadata as any)?.googlePrivateKey) && Boolean((metadata as any)?.aiConsent))
+    ) &&
+    (
+      selectedAction !== "filter" ||
+      Boolean((metadata as any)?.expression) ||
+      (
+        Boolean((metadata as any)?.asset) &&
+        ["above", "below"].includes(String((metadata as any)?.condition || "")) &&
+        Number((metadata as any)?.targetPrice) > 0
+      )
     );
 
   const handleCreate = () => {
@@ -282,7 +291,7 @@ export const ActionSheet = ({
             <GoogleDriveDailyCsvForm metadata={metadata} setMetadata={setMetadata} />
           )}
 
-          {(selectedAction === "conditional-trigger" || selectedAction === "if") && (
+          {(selectedAction === "conditional-trigger" || selectedAction === "if" || selectedAction === "filter") && (
             <ConditionalTriggerForm
               marketType={marketType}
               setMarketType={setMarketType}
