@@ -15,6 +15,7 @@ import {
     verifyBrokerCredentials,
     verifyBrokerCredentialsForNodes,
 } from "../services/brokerVerification";
+import { resolveNodeMetadataSecrets } from '../services/reusableSecrets';
 import { collectIndicatorReferences, evaluateExpression, normalizeMarket, resolveOperandValue } from '../services/market';
 
 const workFlowRouter = Router();
@@ -106,12 +107,18 @@ workFlowRouter.post('/verify-broker-credentials', authMiddleware, async (req, re
             res.status(400).json({ success: false, message: "Unsupported broker type" });
             return;
         }
+        const secretId = String(req.body?.secretId || "").trim();
+        const service = brokerType as "zerodha" | "groww" | "lighter";
+        const resolved = secretId
+            ? await resolveNodeMetadataSecrets({ userId: req.userId!, service, metadata: { secretId } })
+            : null;
+
         await verifyBrokerCredentials({
             brokerType: brokerType as "zerodha" | "groww" | "lighter",
-            apiKey,
-            accessToken,
-            accountIndex,
-            apiKeyIndex,
+            apiKey: String((resolved as any)?.apiKey || apiKey),
+            accessToken: String((resolved as any)?.accessToken || accessToken),
+            accountIndex: Number((resolved as any)?.accountIndex ?? accountIndex),
+            apiKeyIndex: Number((resolved as any)?.apiKeyIndex ?? apiKeyIndex),
         });
         res.status(200).json({ success: true, message: "Credentials verified" });
     } catch (error: any) {
@@ -147,7 +154,7 @@ workFlowRouter.post('/', authMiddleware, async (req, res) => {
     }
     const { data } = parsedCreate;
     try {
-        await verifyBrokerCredentialsForNodes(data.nodes);
+        await verifyBrokerCredentialsForNodes(data.nodes, userId);
 
         const workflow = await WorkflowModel.create({
             workflowName: data.workflowName,
@@ -159,7 +166,12 @@ workFlowRouter.post('/', authMiddleware, async (req, res) => {
         });
         const ZerodhaNode = data.nodes.find((node) => node.type === "zerodha");
         if (ZerodhaNode) {
-            const accessToken = ZerodhaNode.data?.metadata.accessToken || "";
+            const resolvedMetadata = await resolveNodeMetadataSecrets({
+                userId,
+                service: "zerodha",
+                metadata: ZerodhaNode.data?.metadata || {},
+            });
+            const accessToken = (resolvedMetadata as any)?.accessToken || "";
             await saveZerodhaToken(userId, workflow._id.toString(), accessToken);
         }
         res.status(200).json({ message: "Workflow created", workflowId: workflow._id });
@@ -246,7 +258,7 @@ workFlowRouter.put('/:workflowId', authMiddleware, async (req, res) => {
     const { data } = parsedUpdate;
     try {
         const workflowId = req.params.workflowId;
-        await verifyBrokerCredentialsForNodes(data.nodes);
+        await verifyBrokerCredentialsForNodes(data.nodes, userId);
 
         const workflow = await WorkflowModel.findOneAndUpdate(
             { _id: workflowId, userId },

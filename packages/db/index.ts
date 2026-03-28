@@ -1,4 +1,61 @@
 import mongoose , { Schema } from 'mongoose';
+import crypto from "crypto";
+
+export const REUSABLE_SECRET_SERVICES = [
+    "zerodha",
+    "groww",
+    "lighter",
+    "slack",
+    "discord",
+    "whatsapp",
+    "notion-daily-report",
+    "google-drive-daily-csv",
+] as const;
+
+export type ReusableSecretService = typeof REUSABLE_SECRET_SERVICES[number];
+
+export type EncryptedSecretPayload = {
+    iv: string;
+    authTag: string;
+    ciphertext: string;
+};
+
+function getReusableSecretKey() {
+    const raw = process.env.REUSABLE_SECRET_ENCRYPTION_KEY || process.env.JWT_SECRET || "";
+    if (!raw) {
+        throw new Error("REUSABLE_SECRET_ENCRYPTION_KEY must be configured.");
+    }
+    return crypto.createHash("sha256").update(raw).digest();
+}
+
+export function encryptReusableSecretPayload(payload: Record<string, unknown>): EncryptedSecretPayload {
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv("aes-256-gcm", getReusableSecretKey(), iv);
+    const encrypted = Buffer.concat([
+        cipher.update(JSON.stringify(payload), "utf8"),
+        cipher.final(),
+    ]);
+
+    return {
+        iv: iv.toString("base64"),
+        authTag: cipher.getAuthTag().toString("base64"),
+        ciphertext: encrypted.toString("base64"),
+    };
+}
+
+export function decryptReusableSecretPayload(payload: EncryptedSecretPayload): Record<string, unknown> {
+    const decipher = crypto.createDecipheriv(
+        "aes-256-gcm",
+        getReusableSecretKey(),
+        Buffer.from(payload.iv, "base64"),
+    );
+    decipher.setAuthTag(Buffer.from(payload.authTag, "base64"));
+    const decrypted = Buffer.concat([
+        decipher.update(Buffer.from(payload.ciphertext, "base64")),
+        decipher.final(),
+    ]);
+    return JSON.parse(decrypted.toString("utf8"));
+}
 
 const UserPreferencesSchema = new Schema({
     defaultMarket: {
@@ -478,10 +535,45 @@ const AiStrategySessionSchema = new Schema({
     },
 }, { timestamps: true });
 
+const UserReusableSecretSchema = new Schema({
+    userId: {
+        type: mongoose.Types.ObjectId,
+        ref: "Users",
+        required: true,
+        index: true,
+    },
+    name: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    service: {
+        type: String,
+        enum: REUSABLE_SECRET_SERVICES,
+        required: true,
+        index: true,
+    },
+    fieldKeys: {
+        type: [String],
+        required: true,
+        default: [],
+    },
+    encryptedPayload: {
+        iv: { type: String, required: true },
+        authTag: { type: String, required: true },
+        ciphertext: { type: String, required: true },
+    },
+    lastUsedAt: {
+        type: Date,
+        required: false,
+    },
+}, { timestamps: true });
+
 // Compound unique index for userId + workflowId
 ZerodhaTokenSchema.index({ userId: 1, workflowId: 1 }, { unique: true });
 AiStrategySessionSchema.index({ userId: 1, updatedAt: -1 });
 WorkflowSchema.index({ status: 1, triggerType: 1, nextRunAt: 1 });
+UserReusableSecretSchema.index({ userId: 1, service: 1, name: 1 }, { unique: true });
 
 export const ZerodhaTokenModel = mongoose.model('ZerodhaTokens', ZerodhaTokenSchema);
 export const UserModel = mongoose.model('Users', UserSchema);
@@ -491,3 +583,4 @@ export const ExecutionModel = mongoose.model('Executions', ExecutionSchema);
 export const NotificationModel = mongoose.model('Notifications', NotificationSchema);
 export const WorkflowExampleModel = mongoose.model('WorkflowExamples', WorkflowExampleSchema);
 export const AiStrategySessionModel = mongoose.model('AiStrategySessions', AiStrategySessionSchema);
+export const UserReusableSecretModel = mongoose.model('UserReusableSecrets', UserReusableSecretSchema);

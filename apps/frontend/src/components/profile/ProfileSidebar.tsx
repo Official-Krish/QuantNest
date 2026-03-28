@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import {
   Bell,
   CreditCard,
-  PlugZap,
+  KeyRound,
   ShieldAlert,
   UserRound,
 } from "lucide-react";
@@ -24,7 +24,7 @@ const tabs: Array<{
   icon: ComponentType<{ className?: string }>;
 }> = [
   { key: "account", label: "Account", icon: UserRound },
-//   { key: "integrations", label: "Integrations", icon: PlugZap },
+  { key: "secrets", label: "Secrets", icon: KeyRound },
   { key: "billing", label: "Billing", icon: CreditCard },
   { key: "notifications", label: "Notifications", icon: Bell },
   { key: "danger", label: "Danger Zone", icon: ShieldAlert },

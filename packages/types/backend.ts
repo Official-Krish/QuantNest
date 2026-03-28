@@ -51,6 +51,30 @@ export const UpdateUserProfileSchema = z.object({
     notifications: UserProfileNotificationsSchema,
 });
 
+export const ReusableSecretServiceSchema = z.enum([
+    "zerodha",
+    "groww",
+    "lighter",
+    "slack",
+    "discord",
+    "whatsapp",
+    "notion-daily-report",
+    "google-drive-daily-csv",
+]);
+
+export const ReusableSecretPayloadSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]));
+
+export const CreateReusableSecretSchema = z.object({
+    name: z.string().trim().min(2).max(80),
+    service: ReusableSecretServiceSchema,
+    payload: ReusableSecretPayloadSchema,
+});
+
+export const UpdateReusableSecretSchema = z.object({
+    name: z.string().trim().min(2).max(80).optional(),
+    payload: ReusableSecretPayloadSchema.optional(),
+});
+
 const WorkflowNodeSchema = z.object({
     nodeId: z.string().optional(),
     type: z.string().optional(),
@@ -98,16 +122,17 @@ function validateWorkflowNodes(
         }
 
         if (type === "zerodha") {
+            const secretId = String((metadata as any).secretId || "").trim();
             const apiKey = String((metadata as any).apiKey || "").trim();
             const accessToken = String((metadata as any).accessToken || "").trim();
-            if (!ZERODHA_API_KEY_REGEX.test(apiKey)) {
+            if (!secretId && !ZERODHA_API_KEY_REGEX.test(apiKey)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "apiKey"],
                     message: "Invalid Zerodha API key format.",
                 });
             }
-            if (accessToken.length > 0 && !ACCESS_TOKEN_REGEX.test(accessToken)) {
+            if (!secretId && accessToken.length > 0 && !ACCESS_TOKEN_REGEX.test(accessToken)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "accessToken"],
@@ -117,8 +142,9 @@ function validateWorkflowNodes(
         }
 
         if (type === "groww") {
+            const secretId = String((metadata as any).secretId || "").trim();
             const accessToken = String((metadata as any).accessToken || "").trim();
-            if (!ACCESS_TOKEN_REGEX.test(accessToken)) {
+            if (!secretId && !ACCESS_TOKEN_REGEX.test(accessToken)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "accessToken"],
@@ -128,25 +154,26 @@ function validateWorkflowNodes(
         }
 
         if (type === "lighter") {
+            const secretId = String((metadata as any).secretId || "").trim();
             const apiKey = String((metadata as any).apiKey || "").trim();
             const accountIndex = Number((metadata as any).accountIndex);
             const apiKeyIndex = Number((metadata as any).apiKeyIndex);
 
-            if (!LIGHTER_PRIVATE_KEY_REGEX.test(apiKey)) {
+            if (!secretId && !LIGHTER_PRIVATE_KEY_REGEX.test(apiKey)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "apiKey"],
                     message: "Invalid Lighter API key format.",
                 });
             }
-            if (!Number.isInteger(accountIndex) || accountIndex < 0) {
+            if (!secretId && (!Number.isInteger(accountIndex) || accountIndex < 0)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "accountIndex"],
                     message: "Lighter accountIndex must be a non-negative integer.",
                 });
             }
-            if (!Number.isInteger(apiKeyIndex) || apiKeyIndex < 0) {
+            if (!secretId && (!Number.isInteger(apiKeyIndex) || apiKeyIndex < 0)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "apiKeyIndex"],
@@ -156,11 +183,12 @@ function validateWorkflowNodes(
         }
 
         if (type === "google-drive-daily-csv") {
+            const secretId = String((metadata as any).secretId || "").trim();
             const clientEmail = String((metadata as any).googleClientEmail || "").trim();
             const privateKey = String((metadata as any).googlePrivateKey || "").trim();
             const aiConsent = (metadata as any).aiConsent === true;
 
-            if (!GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(clientEmail)) {
+            if (!secretId && !GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(clientEmail)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "googleClientEmail"],
@@ -168,7 +196,7 @@ function validateWorkflowNodes(
                 });
             }
 
-            if (!privateKey.includes("BEGIN PRIVATE KEY")) {
+            if (!secretId && !privateKey.includes("BEGIN PRIVATE KEY")) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "googlePrivateKey"],
@@ -197,8 +225,9 @@ function validateWorkflowNodes(
         }
 
         if (type === "discord") {
+            const secretId = String((metadata as any).secretId || "").trim();
             const webhookUrl = String((metadata as any).webhookUrl || "").trim();
-            if (!DISCORD_WEBHOOK_REGEX.test(webhookUrl)) {
+            if (!secretId && !DISCORD_WEBHOOK_REGEX.test(webhookUrl)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "webhookUrl"],
@@ -208,16 +237,17 @@ function validateWorkflowNodes(
         }
 
         if (type === "slack") {
+            const secretId = String((metadata as any).secretId || "").trim();
             const slackBotToken = String((metadata as any).slackBotToken || "").trim();
             const slackUserId = String((metadata as any).slackUserId || "").trim();
-            if (!SLACK_BOT_TOKEN_REGEX.test(slackBotToken)) {
+            if (!secretId && !SLACK_BOT_TOKEN_REGEX.test(slackBotToken)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "slackBotToken"],
                     message: "Invalid Slack bot token format.",
                 });
             }
-            if (!SLACK_USER_ID_REGEX.test(slackUserId)) {
+            if (!secretId && !SLACK_USER_ID_REGEX.test(slackUserId)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "slackUserId"],
@@ -227,8 +257,9 @@ function validateWorkflowNodes(
         }
 
         if (type === "whatsapp") {
+            const secretId = String((metadata as any).secretId || "").trim();
             const recipientPhone = String((metadata as any).recipientPhone || "").trim();
-            if (!WHATSAPP_PHONE_REGEX.test(recipientPhone)) {
+            if (!secretId && !WHATSAPP_PHONE_REGEX.test(recipientPhone)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "recipientPhone"],
@@ -238,11 +269,12 @@ function validateWorkflowNodes(
         }
 
         if (type === "notion-daily-report") {
+            const secretId = String((metadata as any).secretId || "").trim();
             const notionApiKey = String((metadata as any).notionApiKey || "").trim();
             const parentPageId = String((metadata as any).parentPageId || "").trim();
             const aiConsent = (metadata as any).aiConsent === true;
 
-            if (!NOTION_TOKEN_REGEX.test(notionApiKey)) {
+            if (!secretId && !NOTION_TOKEN_REGEX.test(notionApiKey)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "notionApiKey"],

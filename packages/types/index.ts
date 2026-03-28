@@ -108,6 +108,7 @@ export interface TradingMetadata {
     symbol: typeof SUPPORTED_INDIAN_MARKET_ASSETS[number];
     apiKey: string;
     accessToken: string;
+    secretId?: string;
     exchange: "NSE" | "BSE";
     condition?: boolean;
 }
@@ -119,12 +120,14 @@ export interface NotificationMetadata {
     webhookUrl?: string;
     slackBotToken?: string;
     slackUserId?: string;
+    secretId?: string;
     condition?: boolean;
 }
 
 export interface NotionDailyReportMetadata {
     notionApiKey: string;
     parentPageId: string;
+    secretId?: string;
     aiConsent: boolean;
     condition?: boolean;
 }
@@ -134,6 +137,7 @@ export interface GoogleDriveDailyCsvMetadata {
     googlePrivateKey: string;
     googleDriveFolderId?: string;
     filePrefix?: string;
+    secretId?: string;
     aiConsent?: boolean;
     condition?: boolean;
 }
@@ -145,6 +149,7 @@ export interface LighterMetadata {
     apiKey: string;
     accountIndex: number;
     apiKeyIndex: number;
+    secretId?: string;
     condition?: boolean;
 }
 

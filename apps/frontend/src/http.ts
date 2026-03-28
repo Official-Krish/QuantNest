@@ -11,6 +11,9 @@ import type {
   UserProfileNotifications,
   UserProfilePreferences,
   UserProfileResponse,
+  ReusableSecretDetail,
+  ReusableSecretService,
+  ReusableSecretSummary,
   marketStatus,
   SigninResponse,
   UserNotification,
@@ -151,6 +154,40 @@ export async function apiUploadAvatar(file: File): Promise<{ avatarUrl: string }
   };
 }
 
+export async function apiGetReusableSecrets(service?: ReusableSecretService): Promise<ReusableSecretSummary[]> {
+  const res = await api.get<{ message: string; secrets: ReusableSecretSummary[] }>("/user/secrets", {
+    params: service ? { service } : undefined,
+  });
+  return res.data.secrets;
+}
+
+export async function apiGetReusableSecret(secretId: string): Promise<ReusableSecretDetail> {
+  const res = await api.get<{ message: string; secret: ReusableSecretDetail }>(`/user/secrets/${secretId}`);
+  return res.data.secret;
+}
+
+export async function apiCreateReusableSecret(body: {
+  name: string;
+  service: ReusableSecretService;
+  payload: Record<string, string | number | boolean>;
+}): Promise<ReusableSecretSummary> {
+  const res = await api.post<{ message: string; secret: ReusableSecretSummary }>("/user/secrets", body);
+  return res.data.secret;
+}
+
+export async function apiUpdateReusableSecret(secretId: string, body: {
+  name?: string;
+  payload?: Record<string, string | number | boolean>;
+}): Promise<ReusableSecretSummary> {
+  const res = await api.patch<{ message: string; secret: ReusableSecretSummary }>(`/user/secrets/${secretId}`, body);
+  return res.data.secret;
+}
+
+export async function apiDeleteReusableSecret(secretId: string): Promise<{ message: string }> {
+  const res = await api.delete<{ message: string }>(`/user/secrets/${secretId}`);
+  return res.data;
+}
+
 export async function apiVerifyEmailToken(token: string): Promise<{ message: string }> {
   const res = await api.get<{ message: string }>(`/user/verify-email?token=${encodeURIComponent(token)}`);
   return res.data;
@@ -240,6 +277,7 @@ export type VerifyBrokerCredentialsBody = {
   accessToken?: string;
   accountIndex?: number;
   apiKeyIndex?: number;
+  secretId?: string;
 };
 
 export async function apiVerifyBrokerCredentials(

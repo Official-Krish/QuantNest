@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AppBackground } from "@/components/background";
 import {
   apiGetProfile,
+  apiGetReusableSecrets,
   apiSaveProfile,
   apiUploadAvatar,
   clearAuthSession,
@@ -16,6 +17,7 @@ import { ProfileBillingTab } from "@/components/profile/ProfileBillingTab";
 import { ProfileDangerTab } from "@/components/profile/ProfileDangerTab";
 import { ProfileIntegrationsTab } from "@/components/profile/ProfileIntegrationsTab";
 import { ProfileNotificationsTab } from "@/components/profile/ProfileNotificationsTab";
+import { ProfileSecretsTab } from "@/components/profile/ProfileSecretsTab";
 import { ProfileSidebar } from "@/components/profile/ProfileSidebar";
 import { ProfileStatsGrid } from "@/components/profile/ProfileStatsGrid";
 import type {
@@ -39,6 +41,7 @@ export default function Profile() {
   const [theme, setTheme] = useState<ThemePreference>("Dark");
   const [integrations, setIntegrations] = useState<IntegrationItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [secrets, setSecrets] = useState<any[]>([]);
   const [billingPlan] = useState<"Starter" | "Pro" | "Team">("Pro");
   const [nextBillingDate] = useState("April 12, 2026");
   const [totalWorkflows, setTotalWorkflows] = useState(0);
@@ -52,7 +55,10 @@ export default function Profile() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const res = await apiGetProfile();
+        const [res, secretList] = await Promise.all([
+          apiGetProfile(),
+          apiGetReusableSecrets(),
+        ]);
         setUsername(res.username);
         setDisplayName(res.displayName);
         setEmail(res.email);
@@ -67,6 +73,7 @@ export default function Profile() {
         setExecutionsThisMonth(res.stats.executionsThisMonth);
         setMemberSince(res.memberSince);
         setAccountStatus(res.accountStatus);
+        setSecrets(secretList);
       } catch {
         clearAuthSession();
         toast.warning("Session expired", {
@@ -190,6 +197,13 @@ export default function Profile() {
               {/* {activeTab === "integrations" ? (
                 <ProfileIntegrationsTab integrations={integrations} />
               ) : null} */}
+
+              {activeTab === "secrets" ? (
+                <ProfileSecretsTab
+                  secrets={secrets}
+                  setSecrets={setSecrets}
+                />
+              ) : null}
 
               {activeTab === "billing" ? (
                 <ProfileBillingTab

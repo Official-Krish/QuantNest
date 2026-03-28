@@ -113,6 +113,8 @@ export const ActionSheet = ({
     () => getActionValidationErrors(selectedAction, metadata as Record<string, unknown>),
     [metadata, selectedAction],
   );
+  const hasReusableSecret = Boolean(String((metadata as any)?.secretId || "").trim());
+  const hasRecipientName = Boolean(String((metadata as any)?.recipientName || "").trim());
 
   const canCreateAction =
     !!selectedAction &&
@@ -124,27 +126,27 @@ export const ActionSheet = ({
     ) &&
     (
       selectedAction !== "gmail" ||
-      Boolean((metadata as any)?.recipientEmail)
+      (hasRecipientName && Boolean((metadata as any)?.recipientEmail))
     ) &&
     (
       selectedAction !== "slack" ||
-      (Boolean((metadata as any)?.slackBotToken) && Boolean((metadata as any)?.slackUserId))
+      (hasRecipientName && (hasReusableSecret || (Boolean((metadata as any)?.slackBotToken) && Boolean((metadata as any)?.slackUserId))))
     ) &&
     (
       selectedAction !== "discord" ||
-      Boolean((metadata as any)?.webhookUrl)
+      (hasRecipientName && (hasReusableSecret || Boolean((metadata as any)?.webhookUrl)))
     ) &&
     (
       selectedAction !== "whatsapp" ||
-      Boolean((metadata as any)?.recipientPhone)
+      (hasRecipientName && (hasReusableSecret || Boolean((metadata as any)?.recipientPhone)))
     ) &&
     (
       selectedAction !== "notion-daily-report" ||
-      (Boolean((metadata as any)?.notionApiKey) && Boolean((metadata as any)?.aiConsent))
+      ((hasReusableSecret || Boolean((metadata as any)?.notionApiKey)) && Boolean((metadata as any)?.aiConsent))
     ) &&
     (
       selectedAction !== "google-drive-daily-csv" ||
-      (Boolean((metadata as any)?.googleClientEmail) && Boolean((metadata as any)?.googlePrivateKey) && Boolean((metadata as any)?.aiConsent))
+      ((hasReusableSecret || (Boolean((metadata as any)?.googleClientEmail) && Boolean((metadata as any)?.googlePrivateKey))) && Boolean((metadata as any)?.aiConsent))
     ) &&
     (
       selectedAction !== "filter" ||

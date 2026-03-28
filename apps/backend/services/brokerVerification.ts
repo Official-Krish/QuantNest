@@ -1,4 +1,5 @@
 import { KiteConnect } from "kiteconnect";
+import { resolveNodeMetadataSecrets } from "./reusableSecrets";
 
 const LIGHTER_PRIVATE_KEY_REGEX = /^(0x)?[a-fA-F0-9]{64}$/;
 const BROKER_ERROR_KEYWORDS = ["zerodha", "groww", "lighter"] as const;
@@ -99,25 +100,34 @@ export async function verifyBrokerCredentials(input: {
   }
 }
 
-export async function verifyBrokerCredentialsForNodes(nodes: Array<any>): Promise<void> {
+export async function verifyBrokerCredentialsForNodes(nodes: Array<any>, userId?: string): Promise<void> {
   for (const node of nodes) {
     const type = String(node.type || "").toLowerCase();
     if (type === "zerodha") {
+      const metadata = userId
+        ? await resolveNodeMetadataSecrets({ userId, service: "zerodha", metadata: node.data?.metadata || {} })
+        : node.data?.metadata || {};
       await verifyZerodhaCredentials(
-        String(node.data?.metadata?.apiKey || ""),
-        String(node.data?.metadata?.accessToken || "")
+        String((metadata as any)?.apiKey || ""),
+        String((metadata as any)?.accessToken || "")
       );
       continue;
     }
     if (type === "groww") {
-      await verifyGrowwCredentials(String(node.data?.metadata?.accessToken || ""));
+      const metadata = userId
+        ? await resolveNodeMetadataSecrets({ userId, service: "groww", metadata: node.data?.metadata || {} })
+        : node.data?.metadata || {};
+      await verifyGrowwCredentials(String((metadata as any)?.accessToken || ""));
       continue;
     }
     if (type === "lighter") {
+      const metadata = userId
+        ? await resolveNodeMetadataSecrets({ userId, service: "lighter", metadata: node.data?.metadata || {} })
+        : node.data?.metadata || {};
       await verifyLighterCredentials(
-        String(node.data?.metadata?.apiKey || ""),
-        Number(node.data?.metadata?.accountIndex),
-        Number(node.data?.metadata?.apiKeyIndex)
+        String((metadata as any)?.apiKey || ""),
+        Number((metadata as any)?.accountIndex),
+        Number((metadata as any)?.apiKeyIndex)
       );
     }
   }

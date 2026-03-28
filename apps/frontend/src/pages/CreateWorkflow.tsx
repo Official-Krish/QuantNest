@@ -302,6 +302,7 @@ export const CreateWorkflow = () => {
           accessToken?: string;
           accountIndex?: number;
           apiKeyIndex?: number;
+          secretId?: string;
         }
       >();
 
@@ -315,9 +316,10 @@ export const CreateWorkflow = () => {
             brokerType: "zerodha" as const,
             apiKey: String(metadata.apiKey || "").trim(),
             accessToken: String(metadata.accessToken || "").trim(),
+            secretId: String(metadata.secretId || "").trim() || undefined,
           };
           verificationPayloads.set(
-            `zerodha:${payload.apiKey}:${payload.accessToken}`,
+            `zerodha:${payload.secretId || `${payload.apiKey}:${payload.accessToken}`}`,
             payload
           );
           continue;
@@ -327,9 +329,10 @@ export const CreateWorkflow = () => {
           const payload = {
             brokerType: "groww" as const,
             accessToken: String(metadata.accessToken || "").trim(),
+            secretId: String(metadata.secretId || "").trim() || undefined,
           };
           verificationPayloads.set(
-            `groww:${payload.accessToken}`,
+            `groww:${payload.secretId || payload.accessToken}`,
             payload
           );
           continue;
@@ -341,9 +344,10 @@ export const CreateWorkflow = () => {
             apiKey: String(metadata.apiKey || "").trim(),
             accountIndex: Number(metadata.accountIndex),
             apiKeyIndex: Number(metadata.apiKeyIndex),
+            secretId: String(metadata.secretId || "").trim() || undefined,
           };
           verificationPayloads.set(
-            `lighter:${payload.apiKey}:${payload.accountIndex}:${payload.apiKeyIndex}`,
+            `lighter:${payload.secretId || `${payload.apiKey}:${payload.accountIndex}:${payload.apiKeyIndex}`}`,
             payload
           );
         }

@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { ReusableSecretPicker } from "./ReusableSecretPicker";
 
 interface DiscordFormProps {
   metadata: any;
@@ -6,8 +7,29 @@ interface DiscordFormProps {
 }
 
 export const DiscordForm = ({ metadata, setMetadata }: DiscordFormProps) => {
+  const hasSecret = Boolean(String(metadata.secretId || "").trim());
+
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
+      <ReusableSecretPicker
+        service="discord"
+        secretId={metadata.secretId}
+        helperText="Reuse a saved Discord webhook or leave empty to enter a one-time webhook URL."
+        onSelectSecret={(secretId) =>
+          setMetadata((current: any) => ({
+            ...current,
+            secretId,
+            webhookUrl: "",
+          }))
+        }
+        onClearSecret={() =>
+          setMetadata((current: any) => ({
+            ...current,
+            secretId: undefined,
+          }))
+        }
+      />
+
       {/* Recipient Name */}
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
@@ -31,26 +53,29 @@ export const DiscordForm = ({ metadata, setMetadata }: DiscordFormProps) => {
       </div>
 
       {/* Webhook URL */}
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Webhook URL
-        </p>
-        <p className="text-xs text-neutral-400">
-          Discord webhook URL for sending notifications.
-        </p>
-        <Input
-          type="url"
-          value={metadata.webhookUrl || ""}
-          onChange={(e) =>
-            setMetadata((current: any) => ({
-              ...current,
-              webhookUrl: e.target.value,
-            }))
-          }
-          className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder="https://discord.com/api/webhooks/..."
-        />
-      </div>
+      {!hasSecret && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            Webhook URL
+          </p>
+          <p className="text-xs text-neutral-400">
+            Discord webhook URL for sending notifications.
+          </p>
+          <Input
+            type="url"
+            value={metadata.webhookUrl || ""}
+            onChange={(e) =>
+              setMetadata((current: any) => ({
+                ...current,
+                secretId: undefined,
+                webhookUrl: e.target.value,
+              }))
+            }
+            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+            placeholder="https://discord.com/api/webhooks/..."
+          />
+        </div>
+      )}
 
       {/* Info Box */}
       <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3 space-y-2">

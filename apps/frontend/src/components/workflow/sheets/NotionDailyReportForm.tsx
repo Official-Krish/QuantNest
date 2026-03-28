@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { ReusableSecretPicker } from "./ReusableSecretPicker";
 
 interface NotionDailyReportFormProps {
   metadata: any;
@@ -9,28 +10,52 @@ export const NotionDailyReportForm = ({
   metadata,
   setMetadata,
 }: NotionDailyReportFormProps) => {
+  const hasSecret = Boolean(String(metadata.secretId || "").trim());
+
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Notion API Key
-        </p>
-        <p className="text-xs text-neutral-400">
-          Internal integration token from Notion. Stored in workflow metadata.
-        </p>
-        <Input
-          type="password"
-          value={metadata.notionApiKey || ""}
-          onChange={(e) =>
-            setMetadata((current: any) => ({
-              ...current,
-              notionApiKey: e.target.value,
-            }))
-          }
-          className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder="ntn_..."
-        />
-      </div>
+      <ReusableSecretPicker
+        service="notion-daily-report"
+        secretId={metadata.secretId}
+        helperText="Reuse a saved Notion integration token or leave empty to enter a one-time token."
+        onSelectSecret={(secretId) =>
+          setMetadata((current: any) => ({
+            ...current,
+            secretId,
+            notionApiKey: "",
+          }))
+        }
+        onClearSecret={() =>
+          setMetadata((current: any) => ({
+            ...current,
+            secretId: undefined,
+          }))
+        }
+      />
+
+      {!hasSecret && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            Notion API Key
+          </p>
+          <p className="text-xs text-neutral-400">
+            Internal integration token from Notion. Stored in workflow metadata.
+          </p>
+          <Input
+            type="password"
+            value={metadata.notionApiKey || ""}
+            onChange={(e) =>
+              setMetadata((current: any) => ({
+                ...current,
+                secretId: undefined,
+                notionApiKey: e.target.value,
+              }))
+            }
+            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+            placeholder="ntn_..."
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">

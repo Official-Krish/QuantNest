@@ -23,30 +23,31 @@ export function validateStrongPassword(password: string): boolean {
 
 export function getActionValidationErrors(action: string, metadata: Record<string, unknown>): string[] {
   const errors: string[] = [];
+  const hasSecret = Boolean(String(metadata.secretId || "").trim());
 
   if (action === "gmail" && !validateEmail(String(metadata.recipientEmail || "").trim())) {
     errors.push("Enter a valid recipient email.");
   }
 
-  if (action === "discord" && !DISCORD_WEBHOOK_REGEX.test(String(metadata.webhookUrl || "").trim())) {
+  if (action === "discord" && !hasSecret && !DISCORD_WEBHOOK_REGEX.test(String(metadata.webhookUrl || "").trim())) {
     errors.push("Discord webhook URL format is invalid.");
   }
 
   if (action === "slack") {
-    if (!SLACK_BOT_TOKEN_REGEX.test(String(metadata.slackBotToken || "").trim())) {
+    if (!hasSecret && !SLACK_BOT_TOKEN_REGEX.test(String(metadata.slackBotToken || "").trim())) {
       errors.push("Slack bot token must start with xoxb-.");
     }
-    if (!SLACK_USER_ID_REGEX.test(String(metadata.slackUserId || "").trim())) {
+    if (!hasSecret && !SLACK_USER_ID_REGEX.test(String(metadata.slackUserId || "").trim())) {
       errors.push("Slack user ID format is invalid.");
     }
   }
 
-  if (action === "whatsapp" && !WHATSAPP_PHONE_REGEX.test(String(metadata.recipientPhone || "").trim())) {
+  if (action === "whatsapp" && !hasSecret && !WHATSAPP_PHONE_REGEX.test(String(metadata.recipientPhone || "").trim())) {
     errors.push("WhatsApp number must be in +91XXXXXXXXX format.");
   }
 
   if (action === "notion-daily-report") {
-    if (!NOTION_TOKEN_REGEX.test(String(metadata.notionApiKey || "").trim())) {
+    if (!hasSecret && !NOTION_TOKEN_REGEX.test(String(metadata.notionApiKey || "").trim())) {
       errors.push("Notion API key format is invalid.");
     }
     if (!NOTION_PAGE_ID_REGEX.test(String(metadata.parentPageId || "").trim())) {
@@ -58,10 +59,10 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   }
 
   if (action === "google-drive-daily-csv") {
-    if (!GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(String(metadata.googleClientEmail || "").trim())) {
+    if (!hasSecret && !GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(String(metadata.googleClientEmail || "").trim())) {
       errors.push("Google service account email format is invalid.");
     }
-    if (!String(metadata.googlePrivateKey || "").includes("BEGIN PRIVATE KEY")) {
+    if (!hasSecret && !String(metadata.googlePrivateKey || "").includes("BEGIN PRIVATE KEY")) {
       errors.push("Google private key format is invalid.");
     }
     if (metadata.aiConsent !== true) {
@@ -108,6 +109,7 @@ export function getTradingValidationErrors(
 ): string[] {
   const errors: string[] = [];
   const data = metadata as any;
+  const hasSecret = Boolean(String(data.secretId || "").trim());
 
   const qty = toNumber(data.qty);
   if (!Number.isFinite(qty) || qty <= 0) {
@@ -122,31 +124,31 @@ export function getTradingValidationErrors(
   }
 
   if (action === "zerodha") {
-    if (!ZERODHA_API_KEY_REGEX.test(String(data.apiKey || "").trim())) {
+    if (!hasSecret && !ZERODHA_API_KEY_REGEX.test(String(data.apiKey || "").trim())) {
       errors.push("Zerodha API key must be 8-32 alphanumeric characters.");
     }
     const accessToken = String(data.accessToken || "").trim();
-    if (accessToken.length > 0 && !ACCESS_TOKEN_REGEX.test(accessToken)) {
+    if (!hasSecret && accessToken.length > 0 && !ACCESS_TOKEN_REGEX.test(accessToken)) {
       errors.push("Zerodha access token format is invalid.");
     }
   }
 
   if (action === "groww") {
-    if (!ACCESS_TOKEN_REGEX.test(String(data.accessToken || "").trim())) {
+    if (!hasSecret && !ACCESS_TOKEN_REGEX.test(String(data.accessToken || "").trim())) {
       errors.push("Groww access token format is invalid.");
     }
   }
 
   if (action === "lighter") {
-    if (!LIGHTER_PRIVATE_KEY_REGEX.test(String(data.apiKey || "").trim())) {
+    if (!hasSecret && !LIGHTER_PRIVATE_KEY_REGEX.test(String(data.apiKey || "").trim())) {
       errors.push("Lighter API key must be a valid 64-char hex private key.");
     }
     const accountIndex = toNumber(data.accountIndex);
     const apiKeyIndex = toNumber(data.apiKeyIndex);
-    if (!Number.isInteger(accountIndex) || accountIndex < 0) {
+    if (!hasSecret && (!Number.isInteger(accountIndex) || accountIndex < 0)) {
       errors.push("Lighter account index must be a non-negative integer.");
     }
-    if (!Number.isInteger(apiKeyIndex) || apiKeyIndex < 0) {
+    if (!hasSecret && (!Number.isInteger(apiKeyIndex) || apiKeyIndex < 0)) {
       errors.push("Lighter API key index must be a non-negative integer.");
     }
   }

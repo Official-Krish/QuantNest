@@ -69,6 +69,30 @@ export interface UserProfileResponse {
   integrations: UserProfileIntegration[];
 }
 
+export type ReusableSecretService =
+  | "zerodha"
+  | "groww"
+  | "lighter"
+  | "slack"
+  | "discord"
+  | "whatsapp"
+  | "notion-daily-report"
+  | "google-drive-daily-csv";
+
+export interface ReusableSecretSummary {
+  id: string;
+  name: string;
+  service: ReusableSecretService;
+  fieldKeys: string[];
+  createdAt: string;
+  updatedAt: string;
+  lastUsedAt?: string;
+}
+
+export interface ReusableSecretDetail extends ReusableSecretSummary {
+  payload: Record<string, string | number | boolean>;
+}
+
 export interface Workflow {
   _id: string;
   workflowName: string;

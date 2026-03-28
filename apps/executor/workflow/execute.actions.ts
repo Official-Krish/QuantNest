@@ -14,6 +14,7 @@ import type { EdgeType, NodeType } from "../types";
 import { isMarketOpen } from "@quantnest-trading/market";
 import type { ExecutionContext } from "./execute.context";
 import { shouldSkipActionByCondition } from "./execute.context";
+import { resolveExecutorNodeSecrets } from "../services/reusableSecrets";
 
 function pushStep(
     steps: ExecutionStep[],
@@ -34,6 +35,25 @@ export async function executeActionNode(params: {
     steps: ExecutionStep[];
 }): Promise<void> {
     const { node, nodes, context, nextCondition, steps } = params;
+    const type = String(node.type || "").toLowerCase();
+    const resolvedMetadata =
+        type === "zerodha"
+            ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "zerodha", metadata: node.data?.metadata || {} })
+            : type === "groww"
+                ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "groww", metadata: node.data?.metadata || {} })
+                : type === "lighter"
+                    ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "lighter", metadata: node.data?.metadata || {} })
+                    : type === "slack"
+                        ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "slack", metadata: node.data?.metadata || {} })
+                        : type === "discord"
+                            ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "discord", metadata: node.data?.metadata || {} })
+                            : type === "whatsapp"
+                                ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "whatsapp", metadata: node.data?.metadata || {} })
+                                : type === "notion-daily-report"
+                                    ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "notion-daily-report", metadata: node.data?.metadata || {} })
+                                    : type === "google-drive-daily-csv"
+                                        ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "google-drive-daily-csv", metadata: node.data?.metadata || {} })
+                                        : node.data?.metadata || {};
 
     switch (node.type) {
         case "conditional":
@@ -48,7 +68,7 @@ export async function executeActionNode(params: {
                 if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
                     return;
                 }
-                const durationSeconds = Number(node.data?.metadata?.durationSeconds || 0);
+                const durationSeconds = Number((resolvedMetadata as any)?.durationSeconds || 0);
                 if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
                     pushStep(steps, {
                         nodeId: node.nodeId,
@@ -138,36 +158,36 @@ export async function executeActionNode(params: {
 
                 const result = await executeZerodhaNode(
                     node.data?.metadata?.symbol,
-                    node.data?.metadata?.qty,
-                    node.data?.metadata?.type,
-                    node.data?.metadata?.apiKey,
+                    (resolvedMetadata as any)?.qty,
+                    (resolvedMetadata as any)?.type,
+                    (resolvedMetadata as any)?.apiKey,
                     accessToken,
-                    node.data?.metadata?.exchange || "NSE"
+                    (resolvedMetadata as any)?.exchange || "NSE"
                 );
 
                 if (result === "SUCCESS") {
-                    context.eventType = node.data?.metadata?.type;
+                    context.eventType = (resolvedMetadata as any)?.type;
                     context.details = {
-                        symbol: node.data?.metadata?.symbol,
-                        quantity: node.data?.metadata?.qty,
-                        exchange: node.data?.metadata?.exchange || "NSE",
+                        symbol: (resolvedMetadata as any)?.symbol,
+                        quantity: (resolvedMetadata as any)?.qty,
+                        exchange: (resolvedMetadata as any)?.exchange || "NSE",
                         aiContext: context.details?.aiContext,
                     };
                     pushStep(steps, {
                         nodeId: node.nodeId,
                         nodeType: "Zerodha Action",
                         status: "Success",
-                        message: `${node.data?.metadata?.type.toUpperCase()} order executed for ${node.data?.metadata?.symbol}`,
+                        message: `${String((resolvedMetadata as any)?.type || "").toUpperCase()} order executed for ${(resolvedMetadata as any)?.symbol}`,
                     });
                     return;
                 }
 
                 context.eventType = "trade_failed";
                 context.details = {
-                    symbol: node.data?.metadata?.symbol,
-                    quantity: node.data?.metadata?.qty,
-                    exchange: node.data?.metadata?.exchange || "NSE",
-                    tradeType: node.data?.metadata?.type,
+                    symbol: (resolvedMetadata as any)?.symbol,
+                    quantity: (resolvedMetadata as any)?.qty,
+                    exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                    tradeType: (resolvedMetadata as any)?.type,
                     failureReason: "Trade execution failed. Please check your broker account and credentials.",
                     aiContext: context.details?.aiContext,
                 };
@@ -175,17 +195,17 @@ export async function executeActionNode(params: {
                     nodeId: node.nodeId,
                     nodeType: "Zerodha Action",
                     status: "Failed",
-                    message: `Trade execution failed for ${node.data?.metadata?.symbol}`,
+                    message: `Trade execution failed for ${(resolvedMetadata as any)?.symbol}`,
                 });
                 return;
             } catch (error: any) {
                 console.error("Zerodha execution error:", error);
                 context.eventType = "trade_failed";
                 context.details = {
-                    symbol: node.data?.metadata?.symbol,
-                    quantity: node.data?.metadata?.qty,
-                    exchange: node.data?.metadata?.exchange || "NSE",
-                    tradeType: node.data?.metadata?.type,
+                    symbol: (resolvedMetadata as any)?.symbol,
+                    quantity: (resolvedMetadata as any)?.qty,
+                    exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                    tradeType: (resolvedMetadata as any)?.type,
                     failureReason: error.message || "Unknown error occurred during trade execution.",
                     aiContext: context.details?.aiContext,
                 };
@@ -204,36 +224,36 @@ export async function executeActionNode(params: {
                     return;
                 }
                 const result = await executeGrowwNode(
-                    node.data?.metadata?.symbol,
-                    node.data?.metadata?.qty,
-                    node.data?.metadata?.type,
-                    node.data?.metadata?.exchange || "NSE",
-                    node.data?.metadata?.accessToken
+                    (resolvedMetadata as any)?.symbol,
+                    (resolvedMetadata as any)?.qty,
+                    (resolvedMetadata as any)?.type,
+                    (resolvedMetadata as any)?.exchange || "NSE",
+                    (resolvedMetadata as any)?.accessToken
                 );
 
                 if (result === "SUCCESS") {
-                    context.eventType = node.data?.metadata?.type;
+                    context.eventType = (resolvedMetadata as any)?.type;
                     context.details = {
-                        symbol: node.data?.metadata?.symbol,
-                        quantity: node.data?.metadata?.qty,
-                        exchange: node.data?.metadata?.exchange || "NSE",
+                        symbol: (resolvedMetadata as any)?.symbol,
+                        quantity: (resolvedMetadata as any)?.qty,
+                        exchange: (resolvedMetadata as any)?.exchange || "NSE",
                         aiContext: context.details?.aiContext,
                     };
                     pushStep(steps, {
                         nodeId: node.nodeId,
                         nodeType: "Groww Action",
                         status: "Success",
-                        message: `${node.data?.metadata?.type.toUpperCase()} order executed for ${node.data?.metadata?.symbol}`,
+                        message: `${String((resolvedMetadata as any)?.type || "").toUpperCase()} order executed for ${(resolvedMetadata as any)?.symbol}`,
                     });
                     return;
                 }
 
                 context.eventType = "trade_failed";
                 context.details = {
-                    symbol: node.data?.metadata?.symbol,
-                    quantity: node.data?.metadata?.qty,
-                    exchange: node.data?.metadata?.exchange || "NSE",
-                    tradeType: node.data?.metadata?.type,
+                    symbol: (resolvedMetadata as any)?.symbol,
+                    quantity: (resolvedMetadata as any)?.qty,
+                    exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                    tradeType: (resolvedMetadata as any)?.type,
                     failureReason: "Trade execution failed. Please check your broker account and credentials.",
                     aiContext: context.details?.aiContext,
                 };
@@ -241,17 +261,17 @@ export async function executeActionNode(params: {
                     nodeId: node.nodeId,
                     nodeType: "Groww Action",
                     status: "Failed",
-                    message: `Trade execution failed for ${node.data?.metadata?.symbol}`,
+                    message: `Trade execution failed for ${(resolvedMetadata as any)?.symbol}`,
                 });
                 return;
             } catch (error: any) {
                 console.error("Groww execution error:", error);
                 context.eventType = "trade_failed";
                 context.details = {
-                    symbol: node.data?.metadata?.symbol,
-                    quantity: node.data?.metadata?.qty,
-                    exchange: node.data?.metadata?.exchange || "NSE",
-                    tradeType: node.data?.metadata?.type,
+                    symbol: (resolvedMetadata as any)?.symbol,
+                    quantity: (resolvedMetadata as any)?.qty,
+                    exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                    tradeType: (resolvedMetadata as any)?.type,
                     failureReason: error.message || "Unknown error occurred during trade execution.",
                     aiContext: context.details?.aiContext,
                 };
@@ -271,20 +291,20 @@ export async function executeActionNode(params: {
                 }
                 if (context.eventType && context.details) {
                     await sendEmail(
-                        node.data?.metadata?.recipientEmail || "",
-                        node.data?.metadata?.recipientName || "User",
+                        (resolvedMetadata as any)?.recipientEmail || "",
+                        (resolvedMetadata as any)?.recipientName || "User",
                         context.eventType,
                         context.details
                     );
                 } else {
                     await sendEmail(
-                        node.data?.metadata?.recipientEmail || "",
-                        node.data?.metadata?.recipientName || "User",
+                        (resolvedMetadata as any)?.recipientEmail || "",
+                        (resolvedMetadata as any)?.recipientName || "User",
                         "notification",
                         {
-                            symbol: node.data?.metadata?.symbol || context.details?.symbol,
-                            exchange: node.data?.metadata?.exchange || "NSE",
-                            targetPrice: node.data?.metadata?.targetPrice,
+                            symbol: (resolvedMetadata as any)?.symbol || context.details?.symbol,
+                            exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                            targetPrice: (resolvedMetadata as any)?.targetPrice,
                             aiContext: context.details?.aiContext,
                         }
                     );
@@ -327,20 +347,20 @@ export async function executeActionNode(params: {
                 }
                 if (context.eventType && context.details) {
                     await sendDiscordNotification(
-                        node.data?.metadata?.webhookUrl || "",
-                        node.data?.metadata?.recipientName || "User",
+                        (resolvedMetadata as any)?.webhookUrl || "",
+                        (resolvedMetadata as any)?.recipientName || "User",
                         context.eventType,
                         context.details
                     );
                 } else {
                     await sendDiscordNotification(
-                        node.data?.metadata?.webhookUrl || "",
-                        node.data?.metadata?.recipientName || "User",
+                        (resolvedMetadata as any)?.webhookUrl || "",
+                        (resolvedMetadata as any)?.recipientName || "User",
                         "notification",
                         {
-                            symbol: node.data?.metadata?.symbol || context.details?.symbol,
-                            exchange: node.data?.metadata?.exchange || "NSE",
-                            targetPrice: node.data?.metadata?.targetPrice,
+                            symbol: (resolvedMetadata as any)?.symbol || context.details?.symbol,
+                            exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                            targetPrice: (resolvedMetadata as any)?.targetPrice,
                             aiContext: context.details?.aiContext,
                         }
                     );
@@ -383,22 +403,22 @@ export async function executeActionNode(params: {
                 }
                 if (context.eventType && context.details) {
                     await sendSlackDirectMessage(
-                        node.data?.metadata?.slackBotToken || "",
-                        node.data?.metadata?.slackUserId || "",
-                        node.data?.metadata?.recipientName || "User",
+                        (resolvedMetadata as any)?.slackBotToken || "",
+                        (resolvedMetadata as any)?.slackUserId || "",
+                        (resolvedMetadata as any)?.recipientName || "User",
                         context.eventType,
                         context.details
                     );
                 } else {
                     await sendSlackDirectMessage(
-                        node.data?.metadata?.slackBotToken || "",
-                        node.data?.metadata?.slackUserId || "",
-                        node.data?.metadata?.recipientName || "User",
+                        (resolvedMetadata as any)?.slackBotToken || "",
+                        (resolvedMetadata as any)?.slackUserId || "",
+                        (resolvedMetadata as any)?.recipientName || "User",
                         "notification",
                         {
-                            symbol: node.data?.metadata?.symbol || context.details?.symbol,
-                            exchange: node.data?.metadata?.exchange || "NSE",
-                            targetPrice: node.data?.metadata?.targetPrice,
+                            symbol: (resolvedMetadata as any)?.symbol || context.details?.symbol,
+                            exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                            targetPrice: (resolvedMetadata as any)?.targetPrice,
                             aiContext: context.details?.aiContext,
                         }
                     );
@@ -441,20 +461,20 @@ export async function executeActionNode(params: {
                 }
                 if (context.eventType && context.details) {
                     await sendWhatsAppMessage(
-                        node.data?.metadata?.recipientPhone || "",
-                        node.data?.metadata?.recipientName || "User",
+                        (resolvedMetadata as any)?.recipientPhone || "",
+                        (resolvedMetadata as any)?.recipientName || "User",
                         context.eventType,
                         context.details
                     );
                 } else {
                     await sendWhatsAppMessage(
-                        node.data?.metadata?.recipientPhone || "",
-                        node.data?.metadata?.recipientName || "User",
+                        (resolvedMetadata as any)?.recipientPhone || "",
+                        (resolvedMetadata as any)?.recipientName || "User",
                         "notification",
                         {
-                            symbol: node.data?.metadata?.symbol || context.details?.symbol,
-                            exchange: node.data?.metadata?.exchange || "NSE",
-                            targetPrice: node.data?.metadata?.targetPrice,
+                            symbol: (resolvedMetadata as any)?.symbol || context.details?.symbol,
+                            exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                            targetPrice: (resolvedMetadata as any)?.targetPrice,
                             aiContext: context.details?.aiContext,
                         }
                     );
@@ -513,9 +533,9 @@ export async function executeActionNode(params: {
                     userId: context.userId,
                     nodes,
                     metadata: {
-                        notionApiKey: node.data?.metadata?.notionApiKey,
-                        parentPageId: node.data?.metadata?.parentPageId,
-                        aiConsent: node.data?.metadata?.aiConsent,
+                        notionApiKey: (resolvedMetadata as any)?.notionApiKey,
+                        parentPageId: (resolvedMetadata as any)?.parentPageId,
+                        aiConsent: (resolvedMetadata as any)?.aiConsent,
                     },
                 });
 
@@ -573,11 +593,11 @@ export async function executeActionNode(params: {
                     userId: context.userId,
                     nodes,
                     metadata: {
-                        googleClientEmail: node.data?.metadata?.googleClientEmail,
-                        googlePrivateKey: node.data?.metadata?.googlePrivateKey,
-                        googleDriveFolderId: node.data?.metadata?.googleDriveFolderId,
-                        filePrefix: node.data?.metadata?.filePrefix,
-                        aiConsent: node.data?.metadata?.aiConsent,
+                        googleClientEmail: (resolvedMetadata as any)?.googleClientEmail,
+                        googlePrivateKey: (resolvedMetadata as any)?.googlePrivateKey,
+                        googleDriveFolderId: (resolvedMetadata as any)?.googleDriveFolderId,
+                        filePrefix: (resolvedMetadata as any)?.filePrefix,
+                        aiConsent: (resolvedMetadata as any)?.aiConsent,
                     },
                 });
 
@@ -618,12 +638,12 @@ export async function executeActionNode(params: {
                     return;
                 }
                 await ExecuteLighter(
-                    node.data?.metadata?.symbol,
-                    node.data?.metadata?.amount,
-                    node.data?.metadata?.type,
-                    node.data?.metadata?.apiKey,
-                    node.data?.metadata?.accountIndex,
-                    node.data?.metadata?.apiKeyIndex
+                    (resolvedMetadata as any)?.symbol,
+                    (resolvedMetadata as any)?.amount,
+                    (resolvedMetadata as any)?.type,
+                    (resolvedMetadata as any)?.apiKey,
+                    (resolvedMetadata as any)?.accountIndex,
+                    (resolvedMetadata as any)?.apiKeyIndex
                 );
                 pushStep(steps, {
                     nodeId: node.nodeId,

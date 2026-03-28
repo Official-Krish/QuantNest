@@ -1,4 +1,4 @@
-export type ProfileTab = "account" | "billing" | "notifications" | "danger";
+export type ProfileTab = "account" | "secrets" | "billing" | "notifications" | "danger";
 export type MarketPreference = "Indian" | "US" | "Crypto";
 export type ThemePreference = "Dark" | "Light";
 export type BrokerPreference = "Zerodha" | "Groww" | "Lighter" | "Paper Trading";

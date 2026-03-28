@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { SigninSchema, SignupSchema, UpdateUserProfileSchema } from "@quantnest-trading/types/metadata";
+import {
+    CreateReusableSecretSchema,
+    SigninSchema,
+    SignupSchema,
+    UpdateReusableSecretSchema,
+    UpdateUserProfileSchema,
+} from "@quantnest-trading/types/metadata";
 import { ExecutionModel, UserModel, WorkflowModel, ZerodhaTokenModel } from '@quantnest-trading/db/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -9,6 +15,13 @@ import { createEmailVerificationToken, getEmailVerificationExpiry, sendEmailVeri
 import { uploadAvatarToGcp } from '../services/avatarUpload';
 import { getJwtSecret } from '../utils/security';
 import multer from 'multer';
+import {
+    createReusableSecret,
+    deleteReusableSecret,
+    getReusableSecretForEdit,
+    listReusableSecrets,
+    updateReusableSecret,
+} from '../services/reusableSecrets';
 
 const userRouter = Router();
 const JWT_SECRET = getJwtSecret();
@@ -226,6 +239,127 @@ userRouter.post('/resend-verification', async (req, res) => {
         });
 
         res.status(200).json({ message: "Verification email sent." });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.get('/secrets', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    try {
+        const service = typeof req.query.service === "string" ? req.query.service : undefined;
+        const secrets = await listReusableSecrets(userId, service as any);
+        res.status(200).json({ message: "Reusable secrets retrieved", secrets });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.get('/secrets/:secretId', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    try {
+        const secretId = String(req.params.secretId || "");
+        const secret = await getReusableSecretForEdit(userId, secretId);
+        if (!secret) {
+            res.status(404).json({ message: "Secret not found" });
+            return;
+        }
+        res.status(200).json({ message: "Reusable secret retrieved", secret });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.post('/secrets', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    const parsed = CreateReusableSecretSchema.safeParse(req.body);
+    if (!parsed.success) {
+        res.status(400).json({ message: "Invalid request body", issues: parsed.error.issues });
+        return;
+    }
+
+    try {
+        const secret = await createReusableSecret({
+            userId,
+            name: parsed.data.name,
+            service: parsed.data.service,
+            payload: parsed.data.payload,
+        });
+        res.status(200).json({ message: "Reusable secret created", secret });
+    } catch (error: any) {
+        if (error?.code === 11000) {
+            res.status(409).json({ message: "A secret with this name already exists for that service." });
+            return;
+        }
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.patch('/secrets/:secretId', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    const parsed = UpdateReusableSecretSchema.safeParse(req.body);
+    if (!parsed.success) {
+        res.status(400).json({ message: "Invalid request body", issues: parsed.error.issues });
+        return;
+    }
+
+    try {
+        const secretId = String(req.params.secretId || "");
+        const secret = await updateReusableSecret({
+            userId,
+            secretId,
+            name: parsed.data.name,
+            payload: parsed.data.payload,
+        });
+        if (!secret) {
+            res.status(404).json({ message: "Secret not found" });
+            return;
+        }
+        res.status(200).json({ message: "Reusable secret updated", secret });
+    } catch (error: any) {
+        if (error?.code === 11000) {
+            res.status(409).json({ message: "A secret with this name already exists for that service." });
+            return;
+        }
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.delete('/secrets/:secretId', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    try {
+        const secretId = String(req.params.secretId || "");
+        const deleted = await deleteReusableSecret(userId, secretId);
+        if (!deleted) {
+            res.status(404).json({ message: "Secret not found" });
+            return;
+        }
+        res.status(200).json({ message: "Reusable secret deleted" });
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
     }

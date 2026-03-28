@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
+import { ReusableSecretPicker } from "./ReusableSecretPicker";
 
 interface TradingFormProps {
   metadata: TradingMetadata | {};
@@ -25,12 +26,35 @@ export const TradingForm = ({
   action
 }: TradingFormProps) => {
   const isWeb3 = action === "lighter";
+  const hasSecret = Boolean(String((metadata as any).secretId || "").trim());
   const typedMetadata = isWeb3
     ? (metadata as LighterMetadata)
     : (metadata as TradingMetadata);
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
+      <ReusableSecretPicker
+        service={action}
+        secretId={(typedMetadata as any).secretId}
+        helperText="Select a saved credential bundle from Profile > Secrets, or leave empty to enter one-time values below."
+        onSelectSecret={(secretId) =>
+          setMetadata((current: any) => ({
+            ...current,
+            secretId,
+            apiKey: "",
+            accessToken: "",
+            accountIndex: undefined,
+            apiKeyIndex: undefined,
+          }))
+        }
+        onClearSecret={() =>
+          setMetadata((current: any) => ({
+            ...current,
+            secretId: undefined,
+          }))
+        }
+      />
+
       {/* Order Type / Position Type */}
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
@@ -210,7 +234,7 @@ export const TradingForm = ({
       </div>
 
       {/* API Key */}
-      {(showApiKey || isWeb3) && (
+      {!hasSecret && (showApiKey || isWeb3) && (
         <div className="space-y-2">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
             API key
@@ -226,6 +250,7 @@ export const TradingForm = ({
             onChange={(e) =>
               setMetadata((current) => ({
                 ...current,
+                secretId: undefined,
                 apiKey: e.target.value,
               }))
             }
@@ -236,7 +261,7 @@ export const TradingForm = ({
       )}
 
       {/* Access Token (only for Indian brokers) */}
-      {!isWeb3 && (
+      {!hasSecret && !isWeb3 && (
         <div className="space-y-2">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
             Access Token
@@ -250,6 +275,7 @@ export const TradingForm = ({
             onChange={(e) =>
               setMetadata((current) => ({
                 ...current,
+                secretId: undefined,
                 accessToken: e.target.value,
               }))
             }
@@ -258,7 +284,7 @@ export const TradingForm = ({
           />
         </div>
       )}
-      {isWeb3 && (
+      {!hasSecret && isWeb3 && (
         <div className="space-y-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
                 Account Index
@@ -272,6 +298,7 @@ export const TradingForm = ({
                 onChange={(e) =>
                 setMetadata((current) => ({
                     ...current,
+                    secretId: undefined,
                     accountIndex: Number(e.target.value),
                 }))
                 }
@@ -291,6 +318,7 @@ export const TradingForm = ({
                     onChange={(e) =>
                     setMetadata((current) => ({
                         ...current,
+                        secretId: undefined,
                         apiKeyIndex: Number(e.target.value),
                     }))
                     }

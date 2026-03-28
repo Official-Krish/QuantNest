@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { ReusableSecretPicker } from "./ReusableSecretPicker";
 
 interface GoogleDriveDailyCsvFormProps {
   metadata: any;
@@ -9,43 +10,71 @@ export const GoogleDriveDailyCsvForm = ({
   metadata,
   setMetadata,
 }: GoogleDriveDailyCsvFormProps) => {
+  const hasSecret = Boolean(String(metadata.secretId || "").trim());
+
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Service Account Email
-        </p>
-        <Input
-          type="text"
-          value={metadata.googleClientEmail || ""}
-          onChange={(e) =>
-            setMetadata((current: any) => ({
-              ...current,
-              googleClientEmail: e.target.value,
-            }))
-          }
-          className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder="service-account@project.iam.gserviceaccount.com"
-        />
-      </div>
+      <ReusableSecretPicker
+        service="google-drive-daily-csv"
+        secretId={metadata.secretId}
+        helperText="Reuse a saved Google service account secret or leave empty to enter one-time credentials."
+        onSelectSecret={(secretId) =>
+          setMetadata((current: any) => ({
+            ...current,
+            secretId,
+            googleClientEmail: "",
+            googlePrivateKey: "",
+          }))
+        }
+        onClearSecret={() =>
+          setMetadata((current: any) => ({
+            ...current,
+            secretId: undefined,
+          }))
+        }
+      />
 
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Private Key
-        </p>
-        <Input
-          type="password"
-          value={metadata.googlePrivateKey || ""}
-          onChange={(e) =>
-            setMetadata((current: any) => ({
-              ...current,
-              googlePrivateKey: e.target.value,
-            }))
-          }
-          className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder="-----BEGIN PRIVATE KEY-----..."
-        />
-      </div>
+      {!hasSecret && (
+        <>
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              Service Account Email
+            </p>
+            <Input
+              type="text"
+              value={metadata.googleClientEmail || ""}
+              onChange={(e) =>
+                setMetadata((current: any) => ({
+                  ...current,
+                  secretId: undefined,
+                  googleClientEmail: e.target.value,
+                }))
+              }
+              className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder="service-account@project.iam.gserviceaccount.com"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              Private Key
+            </p>
+            <Input
+              type="password"
+              value={metadata.googlePrivateKey || ""}
+              onChange={(e) =>
+                setMetadata((current: any) => ({
+                  ...current,
+                  secretId: undefined,
+                  googlePrivateKey: e.target.value,
+                }))
+              }
+              className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder="-----BEGIN PRIVATE KEY-----..."
+            />
+          </div>
+        </>
+      )}
 
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
