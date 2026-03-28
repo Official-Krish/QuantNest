@@ -147,6 +147,21 @@ export function PreviewIf({ data }: any) {
   );
 }
 
+export function PreviewFilter({ data }: any) {
+  const groups = data.metadata?.expression?.conditions?.length || 1;
+  return (
+    <PreviewShell
+      accent="#14b8a6"
+      tone="action"
+      kindBadge="Action"
+      label="Filter"
+      badge={`${groups}G`}
+      title="Gate downstream"
+      subtitle="Continue only when condition passes"
+    />
+  );
+}
+
 export function PreviewDelay({ data }: any) {
   const seconds = Number(data.metadata?.durationSeconds || 0);
   return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Delay" badge="WAIT" title={`${seconds || 0}s pause`} subtitle="Wait before next step" />;
@@ -221,6 +236,7 @@ export const aiPreviewNodeTypes = {
   timer: PreviewTimer,
   "conditional-trigger": PreviewConditional,
   if: PreviewIf,
+  filter: PreviewFilter,
   delay: PreviewDelay,
   merge: PreviewMerge,
   zerodha: PreviewZerodha,

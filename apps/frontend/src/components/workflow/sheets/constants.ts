@@ -64,6 +64,11 @@ export const SUPPORTED_ACTIONS = {
             description: "Evaluate a condition mid-workflow and branch into true or false paths",
         },
         {
+            id: "filter",
+            title: "Filter",
+            description: "Continue only when a condition passes, without creating extra branches",
+        },
+        {
             id: "delay",
             title: "Delay",
             description: "Wait for a fixed duration before continuing to the next node",

@@ -5,6 +5,7 @@ export type NodeKind =
     | "timer"
     | "conditional-trigger"
     | "if"
+    | "filter"
     | "delay"
     | "merge"
     | "Zerodha"
@@ -43,6 +44,7 @@ export type NodeMetadata =
     | MergeNodeMetadata
     | LighterMetadata
     | IfNodeMetadata
+    | FilterNodeMetadata
     | ConditionalTriggerMetadata
     | NotionDailyReportMetadata
     | GoogleDriveDailyCsvMetadata
@@ -58,6 +60,16 @@ export interface MergeNodeMetadata {
 }
 
 export interface IfNodeMetadata {
+    condition?: "above" | "below";
+    targetPrice?: number;
+    marketType?: "indian" | "web3" | IndicatorMarket;
+    asset?: typeof SUPPORTED_INDIAN_MARKET_ASSETS[number] | typeof SUPPORTED_WEB3_ASSETS[number] | string;
+    timeWindowMinutes?: number;
+    startTime?: Date;
+    expression?: IndicatorConditionGroup;
+}
+
+export interface FilterNodeMetadata {
     condition?: "above" | "below";
     targetPrice?: number;
     marketType?: "indian" | "web3" | IndicatorMarket;
