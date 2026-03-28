@@ -182,7 +182,8 @@ export function PreviewMerge() {
 }
 
 export function PreviewZerodha({ data }: any) {
-  const { symbol = "Trade", qty = 0, type = "buy" } = data.metadata || {};
+  const { symbol = "Trade", qty = 0, type = "buy", secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
   return (
     <PreviewShell
       accent="#f17463"
@@ -191,20 +192,22 @@ export function PreviewZerodha({ data }: any) {
       label="Zerodha"
       badge={String(type).toUpperCase()}
       title={`${qty} ${symbol}`}
-      subtitle="Broker order"
+      subtitle={hasSecret ? "Broker order · credentials from stored secret" : "Broker order"}
       iconService="zerodha"
     />
   );
 }
 
 export function PreviewGroww({ data }: any) {
-  const { symbol = "Trade", qty = 0 } = data.metadata || {};
-  return <PreviewShell accent="#34d399" tone="action" kindBadge="Action" label="Groww" title={`${qty} ${symbol}`} subtitle="Broker order" iconService="groww" />;
+  const { symbol = "Trade", qty = 0, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  return <PreviewShell accent="#34d399" tone="action" kindBadge="Action" label="Groww" title={`${qty} ${symbol}`} subtitle={hasSecret ? "Broker order · credentials from stored secret" : "Broker order"} iconService="groww" />;
 }
 
 export function PreviewLighter({ data }: any) {
-  const { symbol = "Trade", qty = 0 } = data.metadata || {};
-  return <PreviewShell accent="#fbbf24" tone="action" kindBadge="Action" label="Lighter" title={`${qty} ${symbol}`} subtitle="Broker order" iconService="lighter" />;
+  const { symbol = "Trade", qty = 0, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  return <PreviewShell accent="#fbbf24" tone="action" kindBadge="Action" label="Lighter" title={`${qty} ${symbol}`} subtitle={hasSecret ? "Broker order · credentials from stored secret" : "Broker order"} iconService="lighter" />;
 }
 
 export function PreviewGmail({ data }: any) {
@@ -213,22 +216,44 @@ export function PreviewGmail({ data }: any) {
 }
 
 export function PreviewDiscord({ data }: any) {
-  const { channelName = "Discord" } = data.metadata || {};
-  return <PreviewShell accent="#8190ff" tone="action" kindBadge="Action" label="Discord" badge="WEBHOOK" title={channelName} subtitle="Notification" iconService="discord" />;
+  const { channelName = "Discord", secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const subtitle = hasSecret ? "Webhook from stored secret" : "Notification";
+  return <PreviewShell accent="#8190ff" tone="action" kindBadge="Action" label="Discord" badge="WEBHOOK" title={channelName} subtitle={subtitle} iconService="discord" />;
+}
+
+export function PreviewSlack({ data }: any) {
+  const { recipientName = "User", slackUserId, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const subtitle = hasSecret ? "Recipient from stored secret" : slackUserId || "No Slack user";
+  return <PreviewShell accent="#e87bc1" tone="action" kindBadge="Action" label="Slack" badge="DM" title={recipientName} subtitle={subtitle} iconService="slack" />;
 }
 
 export function PreviewWhatsApp({ data }: any) {
-  const { recipientPhone = "No phone" } = data.metadata || {};
-  return <PreviewShell accent="#25D366" tone="action" kindBadge="Action" label="WhatsApp" badge="MSG" title="WhatsApp alert" subtitle={recipientPhone} iconService="whatsapp" />;
+  const { recipientPhone, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const subtitle = hasSecret ? "Recipient from stored secret" : recipientPhone || "No phone";
+  return <PreviewShell accent="#25D366" tone="action" kindBadge="Action" label="WhatsApp" badge="MSG" title="WhatsApp alert" subtitle={subtitle} iconService="whatsapp" />;
 }
 
 export function PreviewNotion({ data }: any) {
-  const parentPageId = data.metadata?.parentPageId ? "Parent page set" : "Missing parent";
-  return <PreviewShell accent="#e5e7eb" tone="action" kindBadge="Action" label="Notion" badge="REPORT" title="Daily report" subtitle={parentPageId} iconService="notion-daily-report" />;
+  const { parentPageId, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const subtitle = hasSecret
+    ? parentPageId
+      ? "Parent page set · credentials from stored secret"
+      : "Missing parent page · credentials from stored secret"
+    : parentPageId
+      ? "Parent page set"
+      : "Missing parent";
+  return <PreviewShell accent="#e5e7eb" tone="action" kindBadge="Action" label="Notion" badge="REPORT" title="Daily report" subtitle={subtitle} iconService="notion-daily-report" />;
 }
 
-export function PreviewGoogleDrive() {
-  return <PreviewShell accent="#8ab4f8" tone="action" kindBadge="Action" label="Drive" badge="CSV" title="Daily CSV export" subtitle="Reporting" iconService="google-drive-daily-csv" />;
+export function PreviewGoogleDrive({ data }: any) {
+  const { secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const subtitle = hasSecret ? "Reporting · credentials from stored secret" : "Reporting";
+  return <PreviewShell accent="#8ab4f8" tone="action" kindBadge="Action" label="Drive" badge="CSV" title="Daily CSV export" subtitle={subtitle} iconService="google-drive-daily-csv" />;
 }
 
 export const aiPreviewNodeTypes = {
@@ -243,6 +268,7 @@ export const aiPreviewNodeTypes = {
   groww: PreviewGroww,
   lighter: PreviewLighter,
   gmail: PreviewGmail,
+  slack: PreviewSlack,
   discord: PreviewDiscord,
   whatsapp: PreviewWhatsApp,
   "notion-daily-report": PreviewNotion,

@@ -8,13 +8,18 @@ export const notionDailyReportAction = ({
       parentPageId?: string;
       notionApiKey?: string;
       aiConsent?: boolean;
+      secretId?: string;
     };
   };
 }) => {
-  const { parentPageId, notionApiKey, aiConsent } = data.metadata || {};
+  const { parentPageId, notionApiKey, aiConsent, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const keyDisplay = hasSecret
+    ? "Credentials from stored secret"
+    : notionApiKey ? "Notion key provided" : "Missing Notion API key";
 
   return (
-    <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#7ecb89] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
+    <div className="min-w-57.5 rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#7ecb89] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7ecb89]">
           Notion
@@ -30,7 +35,7 @@ export const notionDailyReportAction = ({
         {parentPageId ? "Parent page configured" : "Workspace parent mode"}
       </div>
       <div className="mt-1 text-[11px] text-neutral-500">
-        {notionApiKey ? "Notion key provided" : "Missing Notion API key"}
+        {keyDisplay}
       </div>
       <div className="mt-1 text-[11px] text-neutral-500">
         {aiConsent ? "AI consent enabled" : "AI consent required"}

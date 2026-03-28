@@ -8,13 +8,18 @@ export const slackAction = ({
     metadata: {
       slackUserId?: string;
       recipientName?: string;
+      secretId?: string;
     };
   };
 }) => {
-  const { slackUserId, recipientName } = data.metadata || {};
+  const { slackUserId, recipientName, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const recipientDisplay = hasSecret
+    ? "Recipient from stored secret"
+    : slackUserId || "No Slack user selected";
 
   return (
-    <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#38bdf8] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
+    <div className="min-w-57.5 rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#38bdf8] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#e87bc1]">
           <ServiceLogo service="slack" size={14} />
@@ -28,7 +33,7 @@ export const slackAction = ({
         {recipientName || "User"}
       </div>
       <div className="mt-1 truncate text-[11px] text-neutral-400">
-        {slackUserId || "No Slack user selected"}
+        {recipientDisplay}
       </div>
       <div className="mt-1 text-[11px] text-neutral-500">
         Sends a Slack direct message on workflow events

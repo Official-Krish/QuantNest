@@ -9,13 +9,18 @@ export const googleDriveDailyCsvAction = ({
       googleDriveFolderId?: string;
       filePrefix?: string;
       aiConsent?: boolean;
+      secretId?: string;
     };
   };
 }) => {
-  const { googleClientEmail, googleDriveFolderId, filePrefix, aiConsent } = data.metadata || {};
+  const { googleClientEmail, googleDriveFolderId, filePrefix, aiConsent, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const accountDisplay = hasSecret
+    ? "Credentials from stored secret"
+    : googleClientEmail ? googleClientEmail : "Missing service account email";
 
   return (
-    <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#8ab4f8] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
+    <div className="min-w-57.5 rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#8ab4f8] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8ab4f8]">
           Google Drive
@@ -31,7 +36,7 @@ export const googleDriveDailyCsvAction = ({
         {googleDriveFolderId ? "Drive folder configured" : "Uploads to account root"}
       </div>
       <div className="mt-1 text-[11px] text-neutral-500 truncate">
-        {googleClientEmail ? googleClientEmail : "Missing service account email"}
+        {accountDisplay}
       </div>
       <div className="mt-1 text-[11px] text-neutral-500">
         Prefix: {filePrefix || "quantnest-trades"}
