@@ -22,6 +22,7 @@ import { TradingForm } from "./sheets/TradingForm";
 import { GmailForm } from "./sheets/GmailForm";
 import { DelayForm } from "./sheets/DelayForm";
 import { SlackForm } from "./sheets/SlackForm";
+import { TelegramForm } from "./sheets/TelegramForm";
 import { DiscordForm } from "./sheets/DiscordForm";
 import { WhatsappForm } from "./sheets/WhatsappForm";
 import { ActionSheets } from "./sheets/ActionSheets";
@@ -80,7 +81,7 @@ export const ActionSheet = ({
       setInitialAction("Order Execution");
       return;
     }
-    if (["gmail", "slack", "discord", "whatsapp"].includes(initialKind)) {
+    if (["gmail", "slack", "telegram", "discord", "whatsapp"].includes(initialKind)) {
       setInitialAction("Order Notification");
       return;
     }
@@ -131,6 +132,10 @@ export const ActionSheet = ({
     (
       selectedAction !== "slack" ||
       (hasRecipientName && (hasReusableSecret || (Boolean((metadata as any)?.slackBotToken) && Boolean((metadata as any)?.slackUserId))))
+    ) &&
+    (
+      selectedAction !== "telegram" ||
+      (hasRecipientName && (hasReusableSecret || (Boolean((metadata as any)?.telegramBotToken) && Boolean((metadata as any)?.telegramChatId))))
     ) &&
     (
       selectedAction !== "discord" ||
@@ -275,6 +280,10 @@ export const ActionSheet = ({
 
           {selectedAction === "slack" && (
             <SlackForm metadata={metadata} setMetadata={setMetadata} />
+          )}
+
+          {selectedAction === "telegram" && (
+            <TelegramForm metadata={metadata} setMetadata={setMetadata} />
           )}
 
           {selectedAction === "discord" && (

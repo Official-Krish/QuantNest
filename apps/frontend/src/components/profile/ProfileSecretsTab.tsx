@@ -19,6 +19,7 @@ import {
   apiUpdateReusableSecret,
 } from "@/http";
 import type { ReusableSecretService, ReusableSecretSummary } from "@/types/api";
+import { TelegramChatLookup } from "@/components/workflow/sheets/TelegramChatLookup";
 
 const SERVICE_FIELDS: Record<ReusableSecretService, Array<{ key: string; label: string; type?: "text" | "password" | "number" }>> = {
   zerodha: [
@@ -36,6 +37,10 @@ const SERVICE_FIELDS: Record<ReusableSecretService, Array<{ key: string; label: 
   slack: [
     { key: "slackBotToken", label: "Bot Token", type: "password" },
     { key: "slackUserId", label: "Slack User ID" },
+  ],
+  telegram: [
+    { key: "telegramBotToken", label: "Bot Token", type: "password" },
+    { key: "telegramChatId", label: "Chat ID" },
   ],
   discord: [
     { key: "webhookUrl", label: "Webhook URL", type: "password" },
@@ -57,6 +62,7 @@ const SERVICE_LABELS: Record<ReusableSecretService, string> = {
   groww: "Groww",
   lighter: "Lighter",
   slack: "Slack",
+  telegram: "Telegram",
   discord: "Discord",
   whatsapp: "WhatsApp",
   "notion-daily-report": "Notion",
@@ -307,6 +313,20 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
                 </div>
               ))}
             </div>
+
+            {selectedService === "telegram" ? (
+              <TelegramChatLookup
+                compact
+                botToken={payload.telegramBotToken || ""}
+                selectedChatId={payload.telegramChatId}
+                onSelectChat={(chat) =>
+                  setPayload((current) => ({
+                    ...current,
+                    telegramChatId: chat.id,
+                  }))
+                }
+              />
+            ) : null}
 
             <Button
               onClick={() => void handleSave()}

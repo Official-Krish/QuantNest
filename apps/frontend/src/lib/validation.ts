@@ -3,6 +3,8 @@ import type { LighterMetadata, TradingMetadata } from "@quantnest-trading/types"
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const SLACK_BOT_TOKEN_REGEX = /^xoxb-[A-Za-z0-9-]+$/;
 export const SLACK_USER_ID_REGEX = /^[UW][A-Z0-9]+$/;
+export const TELEGRAM_BOT_TOKEN_REGEX = /^\d{6,12}:[A-Za-z0-9_-]{20,}$/;
+export const TELEGRAM_CHAT_ID_REGEX = /^-?\d{5,20}$/;
 export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,100}$/;
 export const ZERODHA_API_KEY_REGEX = /^[A-Za-z0-9]{8,32}$/;
 export const ACCESS_TOKEN_REGEX = /^[A-Za-z0-9._-]{16,512}$/;
@@ -39,6 +41,15 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
     }
     if (!hasSecret && !SLACK_USER_ID_REGEX.test(String(metadata.slackUserId || "").trim())) {
       errors.push("Slack user ID format is invalid.");
+    }
+  }
+
+  if (action === "telegram") {
+    if (!hasSecret && !TELEGRAM_BOT_TOKEN_REGEX.test(String(metadata.telegramBotToken || "").trim())) {
+      errors.push("Telegram bot token format is invalid.");
+    }
+    if (!hasSecret && !TELEGRAM_CHAT_ID_REGEX.test(String(metadata.telegramChatId || "").trim())) {
+      errors.push("Telegram chat ID format is invalid.");
     }
   }
 

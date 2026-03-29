@@ -17,6 +17,7 @@ const DEFAULT_ALLOWED_NODE_TYPES: NodeKind[] = [
   "Groww",
   "gmail",
   "slack",
+  "telegram",
   "discord",
   "whatsapp",
   "notion-daily-report",
@@ -47,6 +48,7 @@ const ACTION_METADATA_REFERENCE: Record<StrategyBuilderActionType, string[]> = {
   merge: [],
   gmail: ["recipientEmail", "recipientName"],
   slack: ["slackBotToken", "slackUserId", "recipientName"],
+  telegram: ["telegramBotToken", "telegramChatId", "recipientName"],
   discord: ["webhookUrl", "recipientName"],
   whatsapp: ["recipientPhone", "recipientName"],
   "notion-daily-report": ["notionApiKey", "parentPageId", "aiConsent"],
@@ -126,7 +128,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | conditional-trigger | if | filter | delay | merge | Zerodha | Groww | gmail | slack | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
+            type: "timer | price | conditional-trigger | if | filter | delay | merge | Zerodha | Groww | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
             data: {
               kind: "trigger | action",
               metadata: {},

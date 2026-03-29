@@ -806,6 +806,59 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       { id: "e-filter-1-slack-3", source: "filter-1", target: "slack-3" },
     ],
   },
+  {
+    slug: "price-telegram-alert",
+    title: "Price Trigger Telegram Alert",
+    summary:
+      "Trigger a one-shot Telegram alert when price crosses a threshold, without requiring a broker execution node downstream.",
+    category: "Alerts",
+    market: "Indian",
+    difficulty: "Starter",
+    setupMinutes: 5,
+    sortOrder: 8,
+    nodeFlow: ["Price Trigger", "Telegram"],
+    trigger: "Runs once when price crosses the target, then pauses automatically.",
+    logic:
+      "A price trigger watches HDFC below a threshold and sends a Telegram bot message to the selected chat as soon as the level is crossed.",
+    actions: ["Watch a live threshold", "Send Telegram alert", "Auto-pause after success"],
+    outcomes: [
+      "Simple one-shot alerting flow",
+      "Good starter example for Telegram setup",
+      "Clear separation between trigger asset and notification destination",
+    ],
+    nodes: [
+      {
+        nodeId: "price-telegram-1",
+        type: "price",
+        data: {
+          kind: "trigger",
+          metadata: {
+            asset: "HDFC",
+            targetPrice: 1000,
+            marketType: "indian",
+            condition: "below",
+          },
+        },
+        position: { x: 0, y: 90 },
+      },
+      {
+        nodeId: "telegram-1",
+        type: "telegram",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Krish",
+            telegramBotToken: "123456789:telegram-demo-token",
+            telegramChatId: "859425297",
+          },
+        },
+        position: { x: 350, y: 90 },
+      },
+    ],
+    edges: [
+      { id: "e-price-telegram-1", source: "price-telegram-1", target: "telegram-1" },
+    ],
+  },
 ];
 
 export async function seedWorkflowExamples() {

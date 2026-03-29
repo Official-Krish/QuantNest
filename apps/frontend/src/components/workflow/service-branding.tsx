@@ -1,6 +1,6 @@
 import type { IconType } from "react-icons";
 import { HiOutlineBolt } from "react-icons/hi2";
-import { SiDiscord, SiGmail, SiGoogledrive, SiNotion, SiSlack, SiWhatsapp, SiZerodha } from "react-icons/si";
+import { SiDiscord, SiGmail, SiGoogledrive, SiNotion, SiSlack, SiTelegram, SiWhatsapp, SiZerodha } from "react-icons/si";
 import { TbChartCandleFilled, TbPlugConnected } from "react-icons/tb";
 
 type ServiceBrand = {
@@ -40,6 +40,12 @@ const SERVICE_BRANDS: Record<string, ServiceBrand> = {
     colorClassName: "text-[#e87bc1]",
     tintClassName: "bg-[#4A154B]/18",
     borderClassName: "border-[#4A154B]/25",
+  },
+  telegram: {
+    icon: SiTelegram,
+    colorClassName: "text-[#229ED9]",
+    tintClassName: "bg-[#229ED9]/12",
+    borderClassName: "border-[#229ED9]/25",
   },
   discord: {
     icon: SiDiscord,

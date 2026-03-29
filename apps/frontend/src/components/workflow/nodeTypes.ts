@@ -7,6 +7,7 @@ import { delayAction } from "@/components/nodes/actions/delayAction";
 import { filterAction } from "@/components/nodes/actions/filterAction";
 import { mergeAction } from "@/components/nodes/actions/mergeAction";
 import { slackAction } from "@/components/nodes/actions/slackAction";
+import { telegramAction } from "@/components/nodes/actions/telegramAction";
 import { discordAction } from "@/components/nodes/actions/discordAction";
 import { ifAction } from "@/components/nodes/actions/ifAction";
 import { whatsappAction } from "@/components/nodes/actions/whatsappAction";
@@ -26,6 +27,7 @@ export const workflowNodeTypes = {
   if: ifAction,
   gmail: gmailAction,
   slack: slackAction,
+  telegram: telegramAction,
   discord: discordAction,
   whatsapp: whatsappAction,
   "notion-daily-report": notionDailyReportAction,

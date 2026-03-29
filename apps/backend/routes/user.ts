@@ -15,6 +15,7 @@ import { createEmailVerificationToken, getEmailVerificationExpiry, sendEmailVeri
 import { uploadAvatarToGcp } from '../services/avatarUpload';
 import { getJwtSecret } from '../utils/security';
 import multer from 'multer';
+import axios from 'axios';
 import {
     createReusableSecret,
     deleteReusableSecret,
@@ -35,6 +36,7 @@ const INTEGRATION_CATALOG = [
     { key: "groww", name: "Groww", description: "Retail brokerage connections used across active workflows.", nodeType: "groww" },
     { key: "gmail", name: "Gmail", description: "Email delivery accounts referenced by workflow actions.", nodeType: "gmail" },
     { key: "slack", name: "Slack", description: "Direct-message destinations configured for workflow notifications.", nodeType: "slack" },
+    { key: "telegram", name: "Telegram", description: "Bot destinations configured for workflow notifications.", nodeType: "telegram" },
     { key: "whatsapp", name: "WhatsApp", description: "Messaging destinations configured for urgent notifications.", nodeType: "whatsapp" },
     { key: "notion", name: "Notion", description: "Workspace destinations used for reports and journaling.", nodeType: "notion-daily-report" },
     { key: "discord", name: "Discord", description: "Webhook destinations used for community and bot alerts.", nodeType: "discord" },
@@ -365,6 +367,81 @@ userRouter.delete('/secrets/:secretId', authMiddleware, async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.post('/telegram/chats', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    const botToken = String(req.body?.botToken || "").trim();
+    if (!botToken) {
+        res.status(400).json({ message: "Telegram bot token is required" });
+        return;
+    }
+
+    try {
+        const telegramRes = await axios.get(`https://api.telegram.org/bot${botToken}/getUpdates`, {
+            timeout: 10000,
+        });
+
+        if (!telegramRes.data?.ok) {
+            res.status(400).json({ message: "Unable to fetch Telegram chats from this bot token" });
+            return;
+        }
+
+        const chatsById = new Map<string, {
+            id: string;
+            title: string;
+            username?: string;
+            type: "private" | "group" | "supergroup" | "channel" | "unknown";
+            lastMessageAt?: string;
+        }>();
+
+        for (const update of telegramRes.data?.result || []) {
+            const chat =
+                update?.message?.chat ||
+                update?.edited_message?.chat ||
+                update?.callback_query?.message?.chat ||
+                update?.channel_post?.chat ||
+                update?.my_chat_member?.chat;
+
+            if (!chat?.id) continue;
+
+            const type = ["private", "group", "supergroup", "channel"].includes(chat.type)
+                ? chat.type
+                : "unknown";
+            const title = chat.title || [chat.first_name, chat.last_name].filter(Boolean).join(" ") || chat.username || String(chat.id);
+            const lastMessageAt = update?.message?.date
+                ? new Date(update.message.date * 1000).toISOString()
+                : update?.edited_message?.date
+                    ? new Date(update.edited_message.date * 1000).toISOString()
+                    : update?.channel_post?.date
+                        ? new Date(update.channel_post.date * 1000).toISOString()
+                        : undefined;
+
+            chatsById.set(String(chat.id), {
+                id: String(chat.id),
+                title,
+                username: chat.username,
+                type,
+                lastMessageAt,
+            });
+        }
+
+        const chats = Array.from(chatsById.values()).sort((a, b) => {
+            return (b.lastMessageAt || "").localeCompare(a.lastMessageAt || "");
+        });
+
+        res.status(200).json({ message: "Telegram chats retrieved", chats });
+    } catch (error: any) {
+        const description = error?.response?.data?.description;
+        res.status(500).json({
+            message: description || "Failed to fetch Telegram chats. Ask the user to start the bot and send it a message first.",
+        });
     }
 });
 

@@ -12,6 +12,7 @@ export type NodeKind =
     | "Groww"
     | "gmail"
     | "slack"
+    | "telegram"
     | "whatsapp"
     | "discord"
     | "notion-daily-report"
@@ -120,6 +121,8 @@ export interface NotificationMetadata {
     webhookUrl?: string;
     slackBotToken?: string;
     slackUserId?: string;
+    telegramBotToken?: string;
+    telegramChatId?: string;
     secretId?: string;
     condition?: boolean;
 }

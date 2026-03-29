@@ -78,6 +78,7 @@ export type StrategyBuilderActionType =
   | "merge"
   | "gmail"
   | "slack"
+  | "telegram"
   | "discord"
   | "whatsapp"
   | "notion-daily-report"
@@ -241,6 +242,7 @@ export const AI_NODE_KIND_VALUES = [
   "Groww",
   "gmail",
   "slack",
+  "telegram",
   "discord",
   "whatsapp",
   "notion-daily-report",
@@ -259,6 +261,7 @@ export const AI_PREFERRED_ACTION_VALUES = [
   "merge",
   "gmail",
   "slack",
+  "telegram",
   "discord",
   "whatsapp",
   "notion-daily-report",

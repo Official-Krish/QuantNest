@@ -30,6 +30,11 @@ export const SUPPORTED_ACTIONS = {
             description: "Send Slack direct messages for workflow events",
         },
         {
+            id: "telegram",
+            title: "Telegram",
+            description: "Send Telegram bot messages for workflow events",
+        },
+        {
             id: "discord",
             title: "Discord",
             description: "Send Discord webhook notifications for workflow events",

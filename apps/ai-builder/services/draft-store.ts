@@ -1,5 +1,7 @@
 import { AiStrategySessionModel } from "@quantnest-trading/db/client";
 import {
+  AI_ALLOWED_NODE_TYPE_VALUES,
+  AI_PREFERRED_ACTION_VALUES,
   aiStrategyDraftSessionSchema,
   aiStrategyDraftSummarySchema,
   aiStrategySetupStateSchema,
@@ -17,6 +19,30 @@ import { AiBuilderError } from "../errors";
 
 function createId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeDraftRequest(request: AiStrategyBuilderRequest): AiStrategyBuilderRequest {
+  const allowedNodeTypes = Array.from(
+    new Set([
+      ...(request.allowedNodeTypes || []),
+      ...AI_ALLOWED_NODE_TYPE_VALUES,
+    ]),
+  ) as AiStrategyBuilderRequest["allowedNodeTypes"];
+
+  const preferredActions = request.preferredActions?.length
+    ? Array.from(
+        new Set([
+          ...request.preferredActions,
+          ...AI_PREFERRED_ACTION_VALUES,
+        ]),
+      ) as AiStrategyBuilderRequest["preferredActions"]
+    : request.preferredActions;
+
+  return {
+    ...request,
+    allowedNodeTypes,
+    preferredActions,
+  };
 }
 
 function deriveStatus(response: AiStrategyBuilderResponse): AiStrategyDraftSession["status"] {
@@ -104,6 +130,7 @@ function buildDraftSession(
 ): AiStrategyDraftSession {
   const createdAt = input.createdAt || new Date().toISOString();
   const updatedAt = input.updatedAt || createdAt;
+  const normalizedRequest = normalizeDraftRequest(request);
 
   return aiStrategyDraftSessionSchema.parse({
     draftId,
@@ -111,7 +138,7 @@ function buildDraftSession(
     status: deriveStatus(response),
     createdAt,
     updatedAt,
-    request,
+    request: normalizedRequest,
     response,
     edits: input.edits || [],
     messages:
@@ -120,17 +147,17 @@ function buildDraftSession(
           id: createId("msg"),
           role: "user",
           kind: "prompt",
-          content: request.prompt,
+          content: normalizedRequest.prompt,
           createdAt,
           metadata: {
-            market: request.market,
-            goal: request.goal,
+            market: normalizedRequest.market,
+            goal: normalizedRequest.goal,
           },
         },
         ...buildAssistantMessages(response, createdAt),
       ],
     workflowVersions:
-      input.workflowVersions || [buildWorkflowVersion(response, request, createdAt)],
+      input.workflowVersions || [buildWorkflowVersion(response, normalizedRequest, createdAt)],
     setupState: input.setupState,
     workflowId: input.workflowId,
   });
@@ -183,7 +210,30 @@ class AiDraftStore {
         issues: issueDetails,
       });
     }
-    return parsed.data;
+    const normalized = buildDraftSession(parsed.data.draftId, parsed.data.request, parsed.data.response, {
+      createdAt: parsed.data.createdAt,
+      updatedAt: parsed.data.updatedAt,
+      edits: parsed.data.edits,
+      messages: parsed.data.messages,
+      workflowVersions: parsed.data.workflowVersions,
+      setupState: parsed.data.setupState,
+      workflowId: parsed.data.workflowId,
+    });
+
+    if (JSON.stringify(normalized.request) !== JSON.stringify(parsed.data.request)) {
+      await AiStrategySessionModel.updateOne(
+        { _id: draftId, userId },
+        {
+          $set: {
+            title: normalized.title,
+            status: normalized.status,
+            sessionData: normalized,
+          },
+        },
+      );
+    }
+
+    return normalized;
   }
 
   async update(

@@ -28,6 +28,7 @@ export type WorkflowType = {
     userId: mongoose.Types.ObjectId;
     workflowName: string;
     status?: "active" | "paused";
+    triggerType?: "timer" | "price-trigger" | "conditional-trigger";
     nodes: mongoose.Types.DocumentArray<{
         id: string;
         nodeId: string;

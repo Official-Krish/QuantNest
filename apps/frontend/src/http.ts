@@ -14,6 +14,7 @@ import type {
   ReusableSecretDetail,
   ReusableSecretService,
   ReusableSecretSummary,
+  TelegramChatSummary,
   marketStatus,
   SigninResponse,
   UserNotification,
@@ -186,6 +187,13 @@ export async function apiUpdateReusableSecret(secretId: string, body: {
 export async function apiDeleteReusableSecret(secretId: string): Promise<{ message: string; pausedWorkflowCount: number }> {
   const res = await api.delete<{ message: string; pausedWorkflowCount: number }>(`/user/secrets/${secretId}`);
   return res.data;
+}
+
+export async function apiGetTelegramChats(botToken: string): Promise<TelegramChatSummary[]> {
+  const res = await api.post<{ message: string; chats: TelegramChatSummary[] }>("/user/telegram/chats", {
+    botToken,
+  });
+  return res.data.chats;
 }
 
 export async function apiVerifyEmailToken(token: string): Promise<{ message: string }> {
