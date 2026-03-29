@@ -37,6 +37,10 @@ const SERVICE_FIELDS: Record<ReusableSecretService, Array<{ key: string; label: 
     { key: "slackBotToken", label: "Bot Token", type: "password" },
     { key: "slackUserId", label: "Slack User ID" },
   ],
+  telegram: [
+    { key: "telegramBotToken", label: "Bot Token", type: "password" },
+    { key: "telegramChatId", label: "Chat ID" },
+  ],
   discord: [
     { key: "webhookUrl", label: "Webhook URL", type: "password" },
   ],
@@ -57,6 +61,7 @@ const SERVICE_LABELS: Record<ReusableSecretService, string> = {
   groww: "Groww",
   lighter: "Lighter",
   slack: "Slack",
+  telegram: "Telegram",
   discord: "Discord",
   whatsapp: "WhatsApp",
   "notion-daily-report": "Notion",

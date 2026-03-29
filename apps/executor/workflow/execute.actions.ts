@@ -7,6 +7,7 @@ import { wasDailyActionCreatedToday } from "../executors/reporting/helpers";
 import { sendDiscordNotification } from "../executors/discord";
 import { sendEmail } from "../executors/gmail";
 import { sendSlackDirectMessage } from "../executors/slack";
+import { sendTelegramMessage } from "../executors/telegram";
 import { executeGrowwNode } from "../executors/groww";
 import { sendWhatsAppMessage } from "../executors/whatsapp";
 import { executeZerodhaNode } from "../executors/zerodha";
@@ -45,6 +46,8 @@ export async function executeActionNode(params: {
                     ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "lighter", metadata: node.data?.metadata || {} })
                     : type === "slack"
                         ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "slack", metadata: node.data?.metadata || {} })
+                        : type === "telegram"
+                            ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "telegram", metadata: node.data?.metadata || {} })
                         : type === "discord"
                             ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "discord", metadata: node.data?.metadata || {} })
                             : type === "whatsapp"
@@ -450,6 +453,64 @@ export async function executeActionNode(params: {
                     nodeType: "Slack Action",
                     status: "Failed",
                     message: "Failed to send Slack direct message",
+                });
+                return;
+            }
+
+        case "telegram":
+            try {
+                if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+                    return;
+                }
+                if (context.eventType && context.details) {
+                    await sendTelegramMessage(
+                        (resolvedMetadata as any)?.telegramBotToken || "",
+                        String((resolvedMetadata as any)?.telegramChatId || ""),
+                        (resolvedMetadata as any)?.recipientName || "User",
+                        context.eventType,
+                        context.details
+                    );
+                } else {
+                    await sendTelegramMessage(
+                        (resolvedMetadata as any)?.telegramBotToken || "",
+                        String((resolvedMetadata as any)?.telegramChatId || ""),
+                        (resolvedMetadata as any)?.recipientName || "User",
+                        "notification",
+                        {
+                            symbol: (resolvedMetadata as any)?.symbol || context.details?.symbol,
+                            exchange: (resolvedMetadata as any)?.exchange || "NSE",
+                            targetPrice: (resolvedMetadata as any)?.targetPrice,
+                            aiContext: context.details?.aiContext,
+                        }
+                    );
+                }
+                pushStep(steps, {
+                    nodeId: node.nodeId,
+                    nodeType: "Telegram Action",
+                    status: "Success",
+                    message: "Telegram message sent",
+                });
+                return;
+            } catch (error) {
+                console.error("Telegram execution error:", error);
+                if (context.userId) {
+                    await createUserNotification({
+                        userId: context.userId,
+                        workflowId: context.workflowId,
+                        type: "telegram_delivery_failed",
+                        severity: "error",
+                        title: "Telegram delivery failed",
+                        message: "A Telegram notification action could not be delivered.",
+                        metadata: { nodeId: node.nodeId },
+                        dedupeKey: `telegram-failed:${context.workflowId}:${node.nodeId}`,
+                        dedupeWindowHours: 2,
+                    });
+                }
+                pushStep(steps, {
+                    nodeId: node.nodeId,
+                    nodeType: "Telegram Action",
+                    status: "Failed",
+                    message: "Failed to send Telegram message",
                 });
                 return;
             }

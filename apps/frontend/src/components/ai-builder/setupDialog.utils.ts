@@ -12,6 +12,7 @@ const NODE_TYPE_TO_REUSABLE_SECRET_SERVICE: Record<string, ReusableSecretService
   groww: "groww",
   lighter: "lighter",
   slack: "slack",
+  telegram: "telegram",
   discord: "discord",
   whatsapp: "whatsapp",
   "notion-daily-report": "notion-daily-report",
@@ -23,6 +24,7 @@ const REUSABLE_SECRET_SERVICE_FIELDS: Record<ReusableSecretService, string[]> = 
   groww: ["accessToken"],
   lighter: ["apiKey", "accountIndex", "apiKeyIndex"],
   slack: ["slackBotToken", "slackUserId"],
+  telegram: ["telegramBotToken", "telegramChatId"],
   discord: ["webhookUrl"],
   whatsapp: ["recipientPhone"],
   "notion-daily-report": ["notionApiKey"],
@@ -48,6 +50,10 @@ export function getFieldLabel(field: string) {
       return "Slack bot token";
     case "slackUserId":
       return "Slack user ID";
+    case "telegramBotToken":
+      return "Telegram bot token";
+    case "telegramChatId":
+      return "Telegram chat ID";
     case "webhookUrl":
       return "Webhook URL";
     case "notionApiKey":
@@ -95,6 +101,8 @@ export function getNodeLabel(type: string) {
       return "Discord";
     case "slack":
       return "Slack";
+    case "telegram":
+      return "Telegram";
     case "whatsapp":
       return "WhatsApp";
     case "notion-daily-report":
@@ -108,7 +116,7 @@ export function getNodeLabel(type: string) {
 
 export function getFieldType(field: string, secret?: boolean): "text" | "password" | "number" {
   if (field === "accountIndex" || field === "apiKeyIndex") return "number";
-  if (field === "slackBotToken") return "password";
+  if (field === "slackBotToken" || field === "telegramBotToken") return "password";
   if (secret) return "password";
   return "text";
 }

@@ -6,6 +6,7 @@ export const REUSABLE_SECRET_SERVICES = [
     "groww",
     "lighter",
     "slack",
+    "telegram",
     "discord",
     "whatsapp",
     "notion-daily-report",

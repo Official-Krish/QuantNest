@@ -74,6 +74,7 @@ export type ReusableSecretService =
   | "groww"
   | "lighter"
   | "slack"
+  | "telegram"
   | "discord"
   | "whatsapp"
   | "notion-daily-report"

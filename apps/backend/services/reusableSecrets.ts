@@ -11,6 +11,7 @@ export const SECRET_SERVICE_FIELDS: Record<ReusableSecretService, string[]> = {
   groww: ["accessToken"],
   lighter: ["apiKey", "accountIndex", "apiKeyIndex"],
   slack: ["slackBotToken", "slackUserId"],
+  telegram: ["telegramBotToken", "telegramChatId"],
   discord: ["webhookUrl"],
   whatsapp: ["recipientPhone"],
   "notion-daily-report": ["notionApiKey"],

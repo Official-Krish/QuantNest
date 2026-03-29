@@ -23,6 +23,7 @@
     "googleapis": "^171.4.0",
     "kiteconnect": "^5.1.0",
     "mongoose": "^9.0.0",
-    "resend": "^6.9.1"
+    "resend": "^6.9.1",
+    "telegraf": "^4.16.3"
   }
 }

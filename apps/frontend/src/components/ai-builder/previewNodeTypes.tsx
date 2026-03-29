@@ -229,6 +229,13 @@ export function PreviewSlack({ data }: any) {
   return <PreviewShell accent="#e87bc1" tone="action" kindBadge="Action" label="Slack" badge="DM" title={recipientName} subtitle={subtitle} iconService="slack" />;
 }
 
+export function PreviewTelegram({ data }: any) {
+  const { recipientName = "User", telegramChatId, secretId } = data.metadata || {};
+  const hasSecret = Boolean(String(secretId || "").trim());
+  const subtitle = hasSecret ? "Recipient from stored secret" : telegramChatId || "No chat ID";
+  return <PreviewShell accent="#229ED9" tone="action" kindBadge="Action" label="Telegram" badge="BOT" title={recipientName} subtitle={subtitle} iconService="telegram" />;
+}
+
 export function PreviewWhatsApp({ data }: any) {
   const { recipientPhone, secretId } = data.metadata || {};
   const hasSecret = Boolean(String(secretId || "").trim());
@@ -269,6 +276,7 @@ export const aiPreviewNodeTypes = {
   lighter: PreviewLighter,
   gmail: PreviewGmail,
   slack: PreviewSlack,
+  telegram: PreviewTelegram,
   discord: PreviewDiscord,
   whatsapp: PreviewWhatsApp,
   "notion-daily-report": PreviewNotion,

@@ -7,6 +7,8 @@ const LIGHTER_PRIVATE_KEY_REGEX = /^(0x)?[a-fA-F0-9]{64}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SLACK_BOT_TOKEN_REGEX = /^xoxb-[A-Za-z0-9-]+$/;
 const SLACK_USER_ID_REGEX = /^[UW][A-Z0-9]+$/;
+const TELEGRAM_BOT_TOKEN_REGEX = /^\d{6,12}:[A-Za-z0-9_-]{20,}$/;
+const TELEGRAM_CHAT_ID_REGEX = /^-?\d{5,20}$/;
 const DISCORD_WEBHOOK_REGEX = /^https:\/\/(discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/;
 const WHATSAPP_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
 const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
@@ -56,6 +58,7 @@ export const ReusableSecretServiceSchema = z.enum([
     "groww",
     "lighter",
     "slack",
+    "telegram",
     "discord",
     "whatsapp",
     "notion-daily-report",
@@ -252,6 +255,26 @@ function validateWorkflowNodes(
                     code: "custom",
                     path: [...path, "slackUserId"],
                     message: "Invalid Slack user ID format.",
+                });
+            }
+        }
+
+        if (type === "telegram") {
+            const secretId = String((metadata as any).secretId || "").trim();
+            const telegramBotToken = String((metadata as any).telegramBotToken || "").trim();
+            const telegramChatId = String((metadata as any).telegramChatId || "").trim();
+            if (!secretId && !TELEGRAM_BOT_TOKEN_REGEX.test(telegramBotToken)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "telegramBotToken"],
+                    message: "Invalid Telegram bot token format.",
+                });
+            }
+            if (!secretId && !TELEGRAM_CHAT_ID_REGEX.test(telegramChatId)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "telegramChatId"],
+                    message: "Invalid Telegram chat ID format.",
                 });
             }
         }
