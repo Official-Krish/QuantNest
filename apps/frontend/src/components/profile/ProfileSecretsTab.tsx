@@ -153,8 +153,13 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
   };
 
   const handleDelete = async (secretId: string) => {
-    await apiDeleteReusableSecret(secretId);
-    toast.success("Reusable secret deleted");
+    const result = await apiDeleteReusableSecret(secretId);
+    toast.success("Reusable secret deleted", {
+      description:
+        result.pausedWorkflowCount > 0
+          ? `${result.pausedWorkflowCount} workflow${result.pausedWorkflowCount === 1 ? "" : "s"} paused because they were using this secret.`
+          : undefined,
+    });
     await refreshSecrets(selectedService);
     if (selectedSecretId === secretId) resetForm();
   };

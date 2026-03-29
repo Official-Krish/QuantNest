@@ -183,8 +183,8 @@ export async function apiUpdateReusableSecret(secretId: string, body: {
   return res.data.secret;
 }
 
-export async function apiDeleteReusableSecret(secretId: string): Promise<{ message: string }> {
-  const res = await api.delete<{ message: string }>(`/user/secrets/${secretId}`);
+export async function apiDeleteReusableSecret(secretId: string): Promise<{ message: string; pausedWorkflowCount: number }> {
+  const res = await api.delete<{ message: string; pausedWorkflowCount: number }>(`/user/secrets/${secretId}`);
   return res.data;
 }
 

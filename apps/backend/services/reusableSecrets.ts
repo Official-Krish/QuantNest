@@ -3,6 +3,7 @@ import {
   encryptReusableSecretPayload,
   type ReusableSecretService,
   UserReusableSecretModel,
+  WorkflowModel,
 } from "@quantnest-trading/db/client";
 
 export const SECRET_SERVICE_FIELDS: Record<ReusableSecretService, string[]> = {
@@ -121,7 +122,27 @@ export async function updateReusableSecret(params: {
 
 export async function deleteReusableSecret(userId: string, secretId: string) {
   const deleted = await UserReusableSecretModel.findOneAndDelete({ _id: secretId, userId });
-  return Boolean(deleted);
+  if (!deleted) {
+    return { deleted: false, pausedWorkflowCount: 0 };
+  }
+
+  const pauseResult = await WorkflowModel.updateMany(
+    {
+      userId,
+      status: "active",
+      "nodes.data.metadata.secretId": secretId,
+    },
+    {
+      $set: {
+        status: "paused",
+      },
+    },
+  );
+
+  return {
+    deleted: true,
+    pausedWorkflowCount: pauseResult.modifiedCount || 0,
+  };
 }
 
 export async function resolveSecretPayload(userId: string, secretId?: string | null) {

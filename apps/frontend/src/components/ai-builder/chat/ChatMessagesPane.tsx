@@ -174,6 +174,40 @@ function InlineMissingInputsCard({
     };
   }, [servicesToLoad.join("|"), secretsByService]);
 
+  useEffect(() => {
+    const nextOverrides = { ...metadataOverrides };
+    let changed = false;
+
+    for (const [nodeId] of entries) {
+      const node = activeDraft.response.plan.nodes.find((entry) => entry.nodeId === nodeId);
+      if (!node) continue;
+
+      const service = getReusableSecretServiceForNodeType(String(node.type));
+      if (!service || !(service in secretsByService)) continue;
+
+      const baseMetadata = node.data.metadata || {};
+      const overrideMetadata = metadataOverrides[nodeId] || {};
+      const resolvedSecretId = Object.prototype.hasOwnProperty.call(overrideMetadata, "secretId")
+        ? String(overrideMetadata.secretId || "").trim()
+        : String(baseMetadata.secretId || "").trim();
+
+      if (!resolvedSecretId) continue;
+
+      const isValid = (secretsByService[service] || []).some((secret) => secret.id === resolvedSecretId);
+      if (isValid) continue;
+
+      nextOverrides[nodeId] = {
+        ...overrideMetadata,
+        secretId: "",
+      };
+      changed = true;
+    }
+
+    if (changed) {
+      onMetadataOverridesChange(nextOverrides);
+    }
+  }, [activeDraft.response.plan.nodes, entries, metadataOverrides, onMetadataOverridesChange, secretsByService]);
+
   const setFieldValue = (nodeId: string, key: string, rawValue: string, type: string) => {
     const nextValue = type === "number" ? Number(rawValue) : rawValue;
     onMetadataOverridesChange({
@@ -187,7 +221,7 @@ function InlineMissingInputsCard({
 
   const setSecretId = (nodeId: string, secretId?: string) => {
     const nextNodeOverrides = { ...(metadataOverrides[nodeId] || {}) };
-    if (secretId) {
+    if (secretId !== undefined) {
       nextNodeOverrides.secretId = secretId;
     } else {
       delete nextNodeOverrides.secretId;
@@ -224,9 +258,11 @@ function InlineMissingInputsCard({
           const service = getReusableSecretServiceForNodeType(String(node.type));
           const availableSecrets = service ? (secretsByService[service] || []) : [];
           const nodeType = String(node.type);
-          const currentSecretId = String(overrideMetadata.secretId || baseMetadata.secretId || "").trim();
-          const hasSecretId = currentSecretId.length > 0;
-          const suggestedSecretId = currentSecretId ? null : suggestReusableSecretId(availableSecrets, inputs);
+          const currentSecretId = Object.prototype.hasOwnProperty.call(overrideMetadata, "secretId")
+            ? String(overrideMetadata.secretId || "").trim()
+            : String(baseMetadata.secretId || "").trim();
+          const hasValidSecretId = currentSecretId.length > 0 && availableSecrets.some((secret) => secret.id === currentSecretId);
+          const suggestedSecretId = hasValidSecretId ? null : suggestReusableSecretId(availableSecrets, inputs);
           const suggestedSecret = suggestedSecretId
             ? availableSecrets.find((secret) => secret.id === suggestedSecretId)
             : null;
@@ -243,8 +279,8 @@ function InlineMissingInputsCard({
                     Reusable secret
                   </div>
                   <Select
-                    value={currentSecretId || "manual"}
-                    onValueChange={(value) => setSecretId(nodeId, value === "manual" ? undefined : value)}
+                    value={hasValidSecretId ? currentSecretId : "manual"}
+                    onValueChange={(value) => setSecretId(nodeId, value === "manual" ? "" : value)}
                   >
                     <SelectTrigger className="h-9 border-neutral-800 bg-[#111111] text-xs text-neutral-100">
                       <SelectValue placeholder="Use one-time values" />
@@ -259,9 +295,13 @@ function InlineMissingInputsCard({
                     </SelectContent>
                   </Select>
 
-                  {currentSecretId ? (
+                  {hasValidSecretId ? (
                     <div className="text-[11px] text-[#f7b2a7]">
                       Credentials will resolve from this saved secret at runtime.
+                    </div>
+                  ) : currentSecretId ? (
+                    <div className="text-[11px] text-amber-300">
+                      This saved secret is no longer available. Choose another secret or enter values manually.
                     </div>
                   ) : suggestedSecret ? (
                     <button
@@ -282,7 +322,7 @@ function InlineMissingInputsCard({
 
               <div className="grid gap-3 md:grid-cols-2">
                 {inputs
-                  .filter((input) => !shouldHideInputWhenSecretSelected(nodeType, input.field, hasSecretId))
+                  .filter((input) => !shouldHideInputWhenSecretSelected(nodeType, input.field, hasValidSecretId))
                   .map((input) => {
                   const type = getFieldType(input.field, input.secret);
                   const value = overrideMetadata[input.field] ?? baseMetadata[input.field] ?? "";

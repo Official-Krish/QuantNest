@@ -355,11 +355,14 @@ userRouter.delete('/secrets/:secretId', authMiddleware, async (req, res) => {
     try {
         const secretId = String(req.params.secretId || "");
         const deleted = await deleteReusableSecret(userId, secretId);
-        if (!deleted) {
+        if (!deleted.deleted) {
             res.status(404).json({ message: "Secret not found" });
             return;
         }
-        res.status(200).json({ message: "Reusable secret deleted" });
+        res.status(200).json({
+            message: "Reusable secret deleted",
+            pausedWorkflowCount: deleted.pausedWorkflowCount,
+        });
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
     }
