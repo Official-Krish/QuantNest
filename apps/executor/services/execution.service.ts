@@ -49,6 +49,25 @@ export async function executeWorkflowSafe(workflow: WorkflowType, condition?: bo
         execution.endTime = new Date();
         await execution.save();
 
+        if (execution.status === "Success" && workflow.triggerType && workflow.triggerType !== "timer") {
+            const persistedWorkflow = await WorkflowModel.findById(workflow._id);
+            if (persistedWorkflow?.status !== "paused") {
+                await pauseWorkflow(workflow._id.toString());
+                await createUserNotification({
+                    userId: workflow.userId.toString(),
+                    workflowId: workflow._id.toString(),
+                    workflowName: workflow.workflowName,
+                    type: "workflow_auto_paused_after_one_shot_trigger",
+                    severity: "info",
+                    title: "Workflow paused after one-time trigger run",
+                    message: `${workflow.workflowName} ran successfully and was paused automatically because ${workflow.triggerType} workflows are one-shot triggers.`,
+                    metadata: { triggerType: workflow.triggerType },
+                    dedupeKey: `workflow-one-shot-paused:${workflow._id}`,
+                    dedupeWindowHours: 24,
+                });
+            }
+        }
+
         if (execution.status === "Failed") {
             const recentExecutions = await ExecutionModel.find({ workflowId: workflow._id })
                 .sort({ startTime: -1 })

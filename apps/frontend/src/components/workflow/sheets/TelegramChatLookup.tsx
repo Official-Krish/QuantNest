@@ -60,10 +60,10 @@ export function TelegramChatLookup({
           variant="outline"
           onClick={() => void handleLoadChats()}
           disabled={loading}
-          className={compact ? "h-9 rounded-xl border-neutral-800 bg-neutral-950 text-xs text-neutral-200" : "h-10 rounded-xl border-neutral-800 bg-neutral-950 text-xs text-neutral-200"}
+          className={compact ? "h-9 rounded-xl border-neutral-800 bg-neutral-950 text-xs text-neutral-200 cursor-pointer" : "h-10 rounded-xl border-neutral-800 bg-neutral-950 text-xs text-neutral-200 cursor-pointer"}
         >
           {loading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="mr-2 h-3.5 w-3.5" />}
-          Detect chats
+          Detect Chat ID
         </Button>
         <p className="text-[11px] text-neutral-500">
           After the user messages the bot, fetch available chat IDs.
