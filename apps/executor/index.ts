@@ -5,7 +5,6 @@ import { pollOnce } from "./jobs/workflow.poller";
 
 async function start() {
     await connectDB();
-    console.log("Workflow executor running");
 
     setInterval(async () => {
         try {

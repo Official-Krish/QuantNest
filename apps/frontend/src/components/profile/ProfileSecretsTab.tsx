@@ -19,6 +19,7 @@ import {
   apiUpdateReusableSecret,
 } from "@/http";
 import type { ReusableSecretService, ReusableSecretSummary } from "@/types/api";
+import { TelegramChatLookup } from "@/components/workflow/sheets/TelegramChatLookup";
 
 const SERVICE_FIELDS: Record<ReusableSecretService, Array<{ key: string; label: string; type?: "text" | "password" | "number" }>> = {
   zerodha: [
@@ -312,6 +313,20 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
                 </div>
               ))}
             </div>
+
+            {selectedService === "telegram" ? (
+              <TelegramChatLookup
+                compact
+                botToken={payload.telegramBotToken || ""}
+                selectedChatId={payload.telegramChatId}
+                onSelectChat={(chat) =>
+                  setPayload((current) => ({
+                    ...current,
+                    telegramChatId: chat.id,
+                  }))
+                }
+              />
+            ) : null}
 
             <Button
               onClick={() => void handleSave()}

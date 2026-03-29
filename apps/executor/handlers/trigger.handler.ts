@@ -8,53 +8,33 @@ export async function handlePriceTrigger(
     workflow: WorkflowType,
     trigger: NodeType
 ): Promise<boolean> {
-    const { condition, targetPrice } = trigger.data?.metadata || {};
+    const { condition, targetPrice, asset, marketType } = trigger.data?.metadata || {};
     
-    if (!condition || typeof targetPrice !== "number") {
+    if (!condition || typeof targetPrice !== "number" || !asset) {
         console.error("Invalid price trigger metadata");
         return false;
     }
 
-    const market = workflow.nodes[0]?.data?.metadata?.marketType || "Indian";
+    const normalizedMarket = String(marketType || workflow.nodes[0]?.data?.metadata?.marketType || "Indian").toLowerCase();
+    const market = normalizedMarket === "crypto" || normalizedMarket === "web3" ? "Crypto" : "Indian";
+    const normalizedAsset = String(asset).trim();
 
-    const actions = workflow.nodes.filter(
-        (n: any) => n?.data?.kind === "action" || n?.data?.kind === "ACTION"
-    );
-
-    if (actions.length === 0) return false;
-
-    const assets = [
-        ...new Set(
-            actions
-                .map((a: any) => a.data?.metadata?.symbol)
-                .filter(Boolean)
-        ),
-    ];
-
-    for (const asset of assets) {
-        if ((market === "Indian" && !SUPPORTED_INDIAN_MARKET_ASSETS.includes(asset as string)) || (market === "Crypto" && !SUPPORTED_WEB3_ASSETS.includes(asset as string))) {
-            console.error(`Unsupported asset ${asset}`);
-            return false;
-        }
+    if (
+        (market === "Indian" && !SUPPORTED_INDIAN_MARKET_ASSETS.includes(normalizedAsset as string)) ||
+        (market === "Crypto" && !SUPPORTED_WEB3_ASSETS.includes(normalizedAsset as string))
+    ) {
+        console.error(`Unsupported asset ${normalizedAsset}`);
+        return false;
     }
 
-    const priceMap: Record<string, number> = {};
+    const currentPrice = await getCurrentPrice(normalizedAsset, market);
 
-    for (const asset of assets) {
-        priceMap[asset as string] = await getCurrentPrice(asset as string, market);
+    if (condition === "above") {
+        return currentPrice > targetPrice;
     }
 
-    for (const action of actions) {
-        const asset = action.data?.metadata?.symbol;
-        const currentPrice = priceMap[asset];
-        if (currentPrice === undefined) continue;
-
-        if (
-            (condition === "above" && currentPrice > targetPrice) ||
-            (condition === "below" && currentPrice < targetPrice)
-        ) {
-            return true;
-        }
+    if (condition === "below") {
+        return currentPrice < targetPrice;
     }
 
     return false;

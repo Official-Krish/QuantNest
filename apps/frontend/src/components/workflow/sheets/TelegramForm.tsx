@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { TelegramChatLookup } from "./TelegramChatLookup";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 
 interface TelegramFormProps {
@@ -97,6 +98,19 @@ export const TelegramForm = ({ metadata, setMetadata }: TelegramFormProps) => {
               placeholder="123456789"
             />
           </div>
+
+          <TelegramChatLookup
+            botToken={String(metadata.telegramBotToken || "")}
+            selectedChatId={metadata.telegramChatId}
+            onSelectChat={(chat) =>
+              setMetadata((current: any) => ({
+                ...current,
+                secretId: undefined,
+                telegramChatId: chat.id,
+                recipientName: current.recipientName || chat.title,
+              }))
+            }
+          />
         </>
       )}
 

@@ -10,19 +10,22 @@ export async function sendTelegramMessage(
   eventType: EventType,
   details: NotificationDetails,
 ) {
-  const telegram = new Telegram(telegramBotToken);
+  try {
+    const telegram = new Telegram(telegramBotToken);
 
-  const aiInsight = await generateTradeReasoning(eventType, details, {
-    provider: "gemini",
-    model: "gemini-2.5-flash",
-  });
-  const enrichedDetails: NotificationDetails = {
-    ...details,
-    ...(aiInsight ? { aiInsight } : {}),
-  };
+    const aiInsight = await generateTradeReasoning(eventType, details, {
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+    });
+    const enrichedDetails: NotificationDetails = {
+      ...details,
+      ...(aiInsight ? { aiInsight } : {}),
+    };
 
-  const { subject, message } = getNotificationContent(name, eventType, enrichedDetails);
-  const finalMessage = appendAiInsight(message, enrichedDetails);
-
-  await telegram.sendMessage(telegramChatId, `${subject}\n\n${finalMessage}`);
+    const { subject, message } = getNotificationContent(name, eventType, enrichedDetails);
+    const finalMessage = appendAiInsight(message, enrichedDetails);
+    await telegram.sendMessage(telegramChatId, `${subject}\n\n${finalMessage}`);
+  } catch (err) {
+    console.error("Error sending Telegram message:", err);
+  }
 }

@@ -94,6 +94,14 @@ export interface ReusableSecretDetail extends ReusableSecretSummary {
   payload: Record<string, string | number | boolean>;
 }
 
+export interface TelegramChatSummary {
+  id: string;
+  title: string;
+  username?: string;
+  type: "private" | "group" | "supergroup" | "channel" | "unknown";
+  lastMessageAt?: string;
+}
+
 export interface Workflow {
   _id: string;
   workflowName: string;
