@@ -6,11 +6,21 @@ import { pollOnce } from "./jobs/workflow.poller";
 async function start() {
     await connectDB();
 
+    let pollInFlight = false;
+
     setInterval(async () => {
+        if (pollInFlight) {
+            return;
+        }
+
+        pollInFlight = true;
+
         try {
             await pollOnce();
         } catch (err) {
             console.error("Poller crash prevented", err);
+        } finally {
+            pollInFlight = false;
         }
     }, POLL_INTERVAL);
 }

@@ -29,6 +29,21 @@ export type WorkflowType = {
     workflowName: string;
     status?: "active" | "paused";
     triggerType?: "timer" | "price-trigger" | "conditional-trigger";
+    triggerNodeId?: string;
+    triggerConfig?: {
+        intervalSeconds?: number;
+        asset?: string;
+        marketType?: string;
+        condition?: "above" | "below";
+        targetPrice?: number;
+        timeWindowMinutes?: number;
+        startTime?: string | Date;
+        expression?: IndicatorConditionGroup;
+        [key: string]: unknown;
+    };
+    nextRunAt?: Date | null;
+    lastTriggeredAt?: Date | null;
+    lastEvaluatedAt?: Date | null;
     nodes: mongoose.Types.DocumentArray<{
         id: string;
         nodeId: string;

@@ -1,21 +1,89 @@
 import { WorkflowModel } from "@quantnest-trading/db/client";
 import { deriveWorkflowTriggerState } from "@quantnest-trading/executor-utils";
 import { canExecute, executeWorkflowSafe } from "../services/execution.service";
-import { evaluateConditionalMetadata, handleConditionalTrigger, handlePriceTrigger } from "../handlers/trigger.handler";
+import {
+    evaluateConditionalMetadata,
+    handleConditionalTrigger,
+    handlePriceTrigger,
+} from "../handlers/trigger.handler";
 import { indicatorEngine } from "../services/indicator.engine";
+import type { NodeType, WorkflowType } from "../types";
 
-async function backfillWorkflowTriggerState() {
+const ACTIVE_WORKFLOW_QUERY = {
+    $or: [
+        { status: "active" },
+        { status: { $exists: false } },
+    ],
+};
+
+function isTriggerNode(node: NodeType | null | undefined): boolean {
+    return String(node?.data?.kind || "").toLowerCase() === "trigger";
+}
+
+function findWorkflowTrigger(workflow: WorkflowType): NodeType | undefined {
+    if (workflow.triggerNodeId) {
+        const storedTrigger = workflow.nodes.find((node) => {
+            const candidateId = String(node?.nodeId || node?.id || "").trim();
+            return candidateId === workflow.triggerNodeId;
+        });
+
+        if (storedTrigger && isTriggerNode(storedTrigger)) {
+            return storedTrigger as NodeType;
+        }
+    }
+
+    return workflow.nodes.find((node) => isTriggerNode(node)) as NodeType | undefined;
+}
+
+function getConditionalExpression(trigger: NodeType): unknown {
+    return trigger.data?.metadata?.expression;
+}
+
+function getTimerIntervalSeconds(workflow: WorkflowType, trigger: NodeType): number | null {
+    const interval = Number(
+        workflow.triggerConfig?.intervalSeconds ?? trigger.data?.metadata?.time,
+    );
+
+    if (!Number.isFinite(interval) || interval <= 0) {
+        return null;
+    }
+
+    return interval;
+}
+
+async function backfillWorkflowTriggerState(now: Date) {
     const workflowsMissingTriggerState = await WorkflowModel.find({
-        $or: [
-            { triggerType: { $exists: false } },
-            { triggerType: null },
-            { triggerNodeId: { $exists: false } },
+        $and: [
+            ACTIVE_WORKFLOW_QUERY,
+            {
+                $or: [
+                    { triggerType: { $exists: false } },
+                    { triggerType: null },
+                    { triggerNodeId: { $exists: false } },
+                    { triggerNodeId: null },
+                    { triggerConfig: { $exists: false } },
+                    { triggerConfig: null },
+                    {
+                        $and: [
+                            { triggerType: "timer" },
+                            {
+                                $or: [
+                                    { nextRunAt: { $exists: false } },
+                                    { nextRunAt: null },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
         ],
     }).limit(100);
 
     for (const workflow of workflowsMissingTriggerState) {
-        const nextState = deriveWorkflowTriggerState(workflow.nodes as any);
-        if (!nextState.triggerType) continue;
+        const nextState = deriveWorkflowTriggerState(workflow.nodes as NodeType[], now);
+        if (!nextState.triggerType) {
+            continue;
+        }
 
         await WorkflowModel.updateOne(
             { _id: workflow._id },
@@ -28,44 +96,40 @@ async function backfillWorkflowTriggerState() {
 
 async function registerConditionalExpressions() {
     const workflows = await WorkflowModel.find({
-        $or: [
-            { status: "active" },
-            { status: { $exists: false } },
-        ],
+        ...ACTIVE_WORKFLOW_QUERY,
         triggerType: "conditional-trigger",
-    }).select({ nodes: 1 });
+    }).select({ triggerNodeId: 1, triggerConfig: 1, nodes: 1 });
 
     for (const workflow of workflows) {
-        const conditionalNodes = workflow.nodes.filter((n: any) => n?.type === "conditional-trigger");
-        for (const node of conditionalNodes) {
-            if (node?.data?.metadata?.expression) {
-                indicatorEngine.registerExpression(node.data.metadata.expression);
-            }
+        const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
+        const expression =
+            workflow.triggerConfig?.expression ??
+            (trigger ? getConditionalExpression(trigger) : undefined);
+
+        if (expression) {
+            indicatorEngine.registerExpression(expression as Parameters<typeof indicatorEngine.registerExpression>[0]);
         }
     }
 }
 
 async function processTimerWorkflows(now: Date) {
     const workflows = await WorkflowModel.find({
-        $or: [
-            { status: "active" },
-            { status: { $exists: false } },
-        ],
+        ...ACTIVE_WORKFLOW_QUERY,
         triggerType: "timer",
         nextRunAt: { $lte: now },
     });
 
     for (const workflow of workflows) {
         try {
-            const trigger = workflow.nodes.find((n: any) =>
-                String(n?.data?.kind || "").toLowerCase() === "trigger",
-            );
-            if (!trigger) continue;
+            const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
+            if (!trigger) {
+                continue;
+            }
 
-            const interval = Number(
-                (workflow as any).triggerConfig?.intervalSeconds ?? trigger.data?.metadata?.time,
-            );
-            if (!Number.isFinite(interval) || interval <= 0) continue;
+            const intervalSeconds = getTimerIntervalSeconds(workflow as unknown as WorkflowType, trigger);
+            if (!intervalSeconds) {
+                continue;
+            }
 
             await WorkflowModel.updateOne(
                 { _id: workflow._id },
@@ -73,12 +137,12 @@ async function processTimerWorkflows(now: Date) {
                     $set: {
                         lastEvaluatedAt: now,
                         lastTriggeredAt: now,
-                        nextRunAt: new Date(now.getTime() + interval * 1000),
+                        nextRunAt: new Date(now.getTime() + intervalSeconds * 1000),
                     },
                 },
             );
 
-            await executeWorkflowSafe(workflow);
+            await executeWorkflowSafe(workflow as unknown as WorkflowType);
         } catch (err) {
             console.error(`Timer workflow error (${workflow.workflowName})`, err);
         }
@@ -87,22 +151,25 @@ async function processTimerWorkflows(now: Date) {
 
 async function processPriceWorkflows(now: Date) {
     const workflows = await WorkflowModel.find({
-        $or: [
-            { status: "active" },
-            { status: { $exists: false } },
-        ],
+        ...ACTIVE_WORKFLOW_QUERY,
         triggerType: "price-trigger",
     });
 
     for (const workflow of workflows) {
         try {
-            const trigger = workflow.nodes.find((n: any) =>
-                String(n?.data?.kind || "").toLowerCase() === "trigger",
-            );
-            if (!trigger) continue;
-            if (!(await canExecute(workflow._id.toString()))) continue;
+            const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
+            if (!trigger) {
+                continue;
+            }
 
-            const shouldExecute = await handlePriceTrigger(workflow, trigger as any);
+            if (!(await canExecute(workflow._id.toString()))) {
+                continue;
+            }
+
+            const shouldExecute = await handlePriceTrigger(
+                workflow as unknown as WorkflowType,
+                trigger,
+            );
 
             await WorkflowModel.updateOne(
                 { _id: workflow._id },
@@ -115,7 +182,7 @@ async function processPriceWorkflows(now: Date) {
             );
 
             if (shouldExecute) {
-                await executeWorkflowSafe(workflow);
+                await executeWorkflowSafe(workflow as unknown as WorkflowType);
             }
         } catch (err) {
             console.error(`Price workflow error (${workflow.workflowName})`, err);
@@ -125,24 +192,26 @@ async function processPriceWorkflows(now: Date) {
 
 async function processConditionalWorkflows(now: Date) {
     const workflows = await WorkflowModel.find({
-        $or: [
-            { status: "active" },
-            { status: { $exists: false } },
-        ],
+        ...ACTIVE_WORKFLOW_QUERY,
         triggerType: "conditional-trigger",
     });
 
     for (const workflow of workflows) {
         try {
-            const trigger = workflow.nodes.find((n: any) =>
-                String(n?.data?.kind || "").toLowerCase() === "trigger",
-            );
-            if (!trigger) continue;
-            if (!(await canExecute(workflow._id.toString()))) continue;
+            const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
+            if (!trigger) {
+                continue;
+            }
 
-            const shouldExecute = await handleConditionalTrigger(
+            if (!(await canExecute(workflow._id.toString()))) {
+                continue;
+            }
+
+            const shouldEvaluate = await handleConditionalTrigger(
                 trigger.data?.metadata?.timeWindowMinutes,
-                trigger.data?.metadata?.startTime ? new Date(trigger.data.metadata.startTime) : undefined,
+                trigger.data?.metadata?.startTime
+                    ? new Date(trigger.data.metadata.startTime)
+                    : undefined,
             );
 
             await WorkflowModel.updateOne(
@@ -154,18 +223,25 @@ async function processConditionalWorkflows(now: Date) {
                 },
             );
 
-            if (shouldExecute) {
-                const condition = await evaluateConditionalMetadata(trigger.data?.metadata);
-                await WorkflowModel.updateOne(
-                    { _id: workflow._id },
-                    {
-                        $set: {
-                            lastTriggeredAt: now,
-                        },
-                    },
-                );
-                await executeWorkflowSafe(workflow, condition);
+            if (!shouldEvaluate) {
+                continue;
             }
+
+            const condition = await evaluateConditionalMetadata(trigger.data?.metadata);
+            if (!condition) {
+                continue;
+            }
+
+            await WorkflowModel.updateOne(
+                { _id: workflow._id },
+                {
+                    $set: {
+                        lastTriggeredAt: now,
+                    },
+                },
+            );
+
+            await executeWorkflowSafe(workflow as unknown as WorkflowType, condition);
         } catch (err) {
             console.error(`Conditional workflow error (${workflow.workflowName})`, err);
         }
@@ -175,7 +251,7 @@ async function processConditionalWorkflows(now: Date) {
 export async function pollOnce() {
     const now = new Date();
 
-    await backfillWorkflowTriggerState();
+    await backfillWorkflowTriggerState(now);
     await registerConditionalExpressions();
     await indicatorEngine.refreshSubscribedSymbols();
     await processTimerWorkflows(now);
