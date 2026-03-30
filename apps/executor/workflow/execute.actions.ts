@@ -1,5 +1,6 @@
 import { checkTokenStatus, createUserNotification, getMarketStatus, getZerodhaToken, pauseWorkflow } from "@quantnest-trading/executor-utils";
 import type { ExecutionStep } from "@quantnest-trading/types";
+import { getNodeRegistryEntry } from "@quantnest-trading/node-registry";
 import { createGoogleDriveDailyTradesCsv } from "../executors/googleDrive";
 import { ExecuteLighter } from "../executors/lighter";
 import { createNotionDailyReport, isNotionReportWindowOpen, wasNotionReportCreatedToday } from "../executors/notion";
@@ -37,26 +38,15 @@ export async function executeActionNode(params: {
 }): Promise<void> {
     const { node, nodes, context, nextCondition, steps } = params;
     const type = String(node.type || "").toLowerCase();
-    const resolvedMetadata =
-        type === "zerodha"
-            ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "zerodha", metadata: node.data?.metadata || {} })
-            : type === "groww"
-                ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "groww", metadata: node.data?.metadata || {} })
-                : type === "lighter"
-                    ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "lighter", metadata: node.data?.metadata || {} })
-                    : type === "slack"
-                        ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "slack", metadata: node.data?.metadata || {} })
-                        : type === "telegram"
-                            ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "telegram", metadata: node.data?.metadata || {} })
-                        : type === "discord"
-                            ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "discord", metadata: node.data?.metadata || {} })
-                            : type === "whatsapp"
-                                ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "whatsapp", metadata: node.data?.metadata || {} })
-                                : type === "notion-daily-report"
-                                    ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "notion-daily-report", metadata: node.data?.metadata || {} })
-                                    : type === "google-drive-daily-csv"
-                                        ? await resolveExecutorNodeSecrets({ userId: context.userId, service: "google-drive-daily-csv", metadata: node.data?.metadata || {} })
-                                        : node.data?.metadata || {};
+    const registryEntry = getNodeRegistryEntry(type);
+    const reusableSecretService = registryEntry?.reusableSecretService;
+    const resolvedMetadata = reusableSecretService
+        ? await resolveExecutorNodeSecrets({
+            userId: context.userId,
+            service: reusableSecretService as Parameters<typeof resolveExecutorNodeSecrets>[0]["service"],
+            metadata: node.data?.metadata || {},
+        })
+        : node.data?.metadata || {};
 
     switch (node.type) {
         case "conditional":

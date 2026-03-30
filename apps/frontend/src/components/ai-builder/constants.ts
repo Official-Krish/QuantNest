@@ -1,40 +1,12 @@
 import type { AiStrategyBuilderRequest } from "@/types/api";
+import {
+  getAiAllowedNodeTypes,
+  getAiPreferredActionOptions,
+} from "@quantnest-trading/node-registry";
 
-export const AI_ACTION_OPTIONS: NonNullable<AiStrategyBuilderRequest["preferredActions"]> = [
-  "zerodha",
-  "groww",
-  "lighter",
-  "delay",
-  "if",
-  "filter",
-  "merge",
-  "gmail",
-  "slack",
-  "telegram",
-  "discord",
-  "whatsapp",
-  "notion-daily-report",
-  "google-drive-daily-csv",
-];
+export const AI_ACTION_OPTIONS = getAiPreferredActionOptions() as NonNullable<AiStrategyBuilderRequest["preferredActions"]>;
 
-export const AI_ALLOWED_NODE_TYPES: NonNullable<AiStrategyBuilderRequest["allowedNodeTypes"]> = [
-  "timer",
-  "price",
-  "conditional-trigger",
-  "if",
-  "filter",
-  "delay",
-  "merge",
-  "zerodha",
-  "groww",
-  "gmail",
-  "slack",
-  "telegram",
-  "discord",
-  "whatsapp",
-  "notion-daily-report",
-  "google-drive-daily-csv",
-];
+export const AI_ALLOWED_NODE_TYPES = getAiAllowedNodeTypes() as NonNullable<AiStrategyBuilderRequest["allowedNodeTypes"]>;
 
 export const DEFAULT_AI_CONSTRAINTS =
   "Keep the workflow simple\nCollect missing credentials in missingInputs";

@@ -1,96 +1,18 @@
 import type {
   AiStrategyBuilderRequest,
   AiStrategyWorkflowPlan,
-  StrategyBuilderActionType,
 } from "@quantnest-trading/types/ai";
-import type { NodeKind } from "@quantnest-trading/types";
+import {
+  getActionMetadataReference,
+  getAiPromptNodeTypes,
+  getTriggerMetadataReference,
+} from "@quantnest-trading/node-registry";
 
-const DEFAULT_ALLOWED_NODE_TYPES: NodeKind[] = [
-  "timer",
-  "price",
-  "conditional-trigger",
-  "if",
-  "filter",
-  "delay",
-  "merge",
-  "Zerodha",
-  "Groww",
-  "gmail",
-  "slack",
-  "telegram",
-  "discord",
-  "whatsapp",
-  "notion-daily-report",
-  "google-drive-daily-csv",
-];
+const DEFAULT_ALLOWED_NODE_TYPES = getAiPromptNodeTypes();
 
-const ACTION_METADATA_REFERENCE: Record<StrategyBuilderActionType, string[]> = {
-  zerodha: ["type", "qty", "symbol", "apiKey", "accessToken", "exchange"],
-  groww: ["type", "qty", "symbol", "accessToken", "exchange"],
-  lighter: ["type", "qty", "symbol", "apiKey", "accountIndex", "apiKeyIndex"],
-  delay: ["durationSeconds"],
-  if: [
-    "asset",
-    "marketType",
-    "condition",
-    "targetPrice",
-    "timeWindowMinutes",
-    "expression",
-  ],
-  filter: [
-    "asset",
-    "marketType",
-    "condition",
-    "targetPrice",
-    "timeWindowMinutes",
-    "expression",
-  ],
-  merge: [],
-  gmail: ["recipientEmail", "recipientName"],
-  slack: ["slackBotToken", "slackUserId", "recipientName"],
-  telegram: ["telegramBotToken", "telegramChatId", "recipientName"],
-  discord: ["webhookUrl", "recipientName"],
-  whatsapp: ["recipientPhone", "recipientName"],
-  "notion-daily-report": ["notionApiKey", "parentPageId", "aiConsent"],
-  "google-drive-daily-csv": [
-    "googleClientEmail",
-    "googlePrivateKey",
-    "googleDriveFolderId",
-    "filePrefix",
-    "aiConsent",
-  ],
-};
+const ACTION_METADATA_REFERENCE = getActionMetadataReference();
 
-const TRIGGER_METADATA_REFERENCE: Record<string, string[]> = {
-  timer: ["time", "marketType", "asset"],
-  price: ["asset", "targetPrice", "marketType", "condition"],
-  "conditional-trigger": [
-    "asset",
-    "marketType",
-    "condition",
-    "targetPrice",
-    "timeWindowMinutes",
-    "expression",
-  ],
-  if: [
-    "asset",
-    "marketType",
-    "condition",
-    "targetPrice",
-    "timeWindowMinutes",
-    "expression",
-  ],
-  filter: [
-    "asset",
-    "marketType",
-    "condition",
-    "targetPrice",
-    "timeWindowMinutes",
-    "expression",
-  ],
-  delay: ["durationSeconds"],
-  merge: [],
-};
+const TRIGGER_METADATA_REFERENCE = getTriggerMetadataReference();
 
 export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): string {
   const allowedNodeTypes = (input.allowedNodeTypes?.length

@@ -21,6 +21,14 @@ import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
 
+type SupportedTriggerKind = "timer" | "price-trigger" | "conditional-trigger";
+
+const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = ["timer", "price-trigger", "conditional-trigger"];
+
+const isSupportedTriggerKind = (kind: string): kind is SupportedTriggerKind => {
+  return SUPPORTED_TRIGGER_KINDS.includes(kind as SupportedTriggerKind);
+};
+
 export const TriggerSheet = ({
   onSelect,
   open,
@@ -45,15 +53,14 @@ export const TriggerSheet = ({
   const [metadata, setMetadata] = useState<
     PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata
   >(() => ({} as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata));
-  const [selectedTrigger, setSelectedTrigger] = useState("");
-  
+  const [selectedTrigger, setSelectedTrigger] = useState<SupportedTriggerKind | "">("");
 
   useEffect(() => {
     if (!open) return;
 
     const nextSelectedTrigger =
-      initialKind && (["timer", "price-trigger", "conditional-trigger"] as unknown as NodeKind[]).includes(initialKind)
-        ? initialKind
+      initialKind && isSupportedTriggerKind(initialKind)
+        ? (initialKind as SupportedTriggerKind)
         : "";
 
     setSelectedTrigger(nextSelectedTrigger);
@@ -93,37 +100,32 @@ export const TriggerSheet = ({
 
           <TriggerTypeSelector
             value={selectedTrigger}
-            onValueChange={setSelectedTrigger}
+            onValueChange={(value) => setSelectedTrigger(value as SupportedTriggerKind | "")}
             triggers={SUPPORTED_TRIGGERS}
           />
 
-          {selectedTrigger === "timer" && (
+          {selectedTrigger === "timer" ? (
             <TimerForm
-              metadata={metadata as TimerNodeMetadata}
-              setMetadata={setMetadata}
-              setMarketType={setMarketType}
               marketType={marketType}
+              setMarketType={setMarketType}
+              metadata={metadata as TimerNodeMetadata}
+              setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
             />
-          )}
-
-          {selectedTrigger === "price-trigger" && (
+          ) : selectedTrigger === "price-trigger" ? (
             <PriceTriggerForm
               marketType={marketType}
-              metadata={metadata as PriceTriggerNodeMetadata}
-              setMetadata={setMetadata}
               setMarketType={setMarketType}
+              metadata={metadata as PriceTriggerNodeMetadata}
+              setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
             />
-          )}
-          {
-            selectedTrigger === "conditional-trigger" && (
-              <ConditionalTriggerForm
-                marketType={marketType}
-                setMarketType={setMarketType}
-                metadata={metadata as ConditionalTriggerMetadata}
-                setMetadata={setMetadata}
-              />
-             )
-          }
+          ) : selectedTrigger === "conditional-trigger" ? (
+            <ConditionalTriggerForm
+              marketType={marketType}
+              setMarketType={setMarketType}
+              metadata={metadata as ConditionalTriggerMetadata}
+              setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
+            />
+          ) : null}
         </SheetHeader>
 
         <SheetFooter className="border-t border-neutral-900 bg-black/90 p-4">

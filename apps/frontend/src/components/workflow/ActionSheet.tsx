@@ -4,6 +4,10 @@ import {
   type NodeMetadata,
   type TradingMetadata,
 } from "@quantnest-trading/types";
+import {
+  getBuilderPanelActions,
+  type BuilderPanelGroup,
+} from "@quantnest-trading/node-registry";
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { getActionValidationErrors, getTradingValidationErrors } from "@/lib/validation";
@@ -16,19 +20,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useEffect, useMemo, useState } from "react";
-import { SUPPORTED_ACTIONS } from "./sheets/constants";
 import { ActionTypeSelector } from "./sheets/ActionTypeSelector";
-import { TradingForm } from "./sheets/TradingForm";
-import { GmailForm } from "./sheets/GmailForm";
-import { DelayForm } from "./sheets/DelayForm";
-import { SlackForm } from "./sheets/SlackForm";
-import { TelegramForm } from "./sheets/TelegramForm";
-import { DiscordForm } from "./sheets/DiscordForm";
-import { WhatsappForm } from "./sheets/WhatsappForm";
 import { ActionSheets } from "./sheets/ActionSheets";
-import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
-import { NotionDailyReportForm } from "./sheets/NotionDailyReportForm";
-import { GoogleDriveDailyCsvForm } from "./sheets/GoogleDriveDailyCsvForm";
+import { getBuilderPanelGroupForNodeType, renderBuilderForm } from "./builderRegistry";
 
 export const ActionSheet = ({
   onSelect,
@@ -55,7 +49,7 @@ export const ActionSheet = ({
 }) => {
   const [metadata, setMetadata] = useState<TradingMetadata | LighterMetadata | {}>({});
   const [selectedAction, setSelectedAction] = useState("");
-  const [initialAction, setInitialAction] = useState<"Order Notification" | "Order Execution" | "Flow Control" | "Reporting" | undefined>(undefined);
+  const [initialAction, setInitialAction] = useState<BuilderPanelGroup | undefined>(undefined);
 
   useEffect(() => {
     if (!open) return;
@@ -77,25 +71,34 @@ export const ActionSheet = ({
       setMarketType("Crypto");
     }
 
-    if (["zerodha", "groww", "lighter"].includes(initialKind)) {
-      setInitialAction("Order Execution");
-      return;
+    setInitialAction(getBuilderPanelGroupForNodeType(initialKind));
+  }, [initialKind, initialMetadata, open, setMarketType]);
+
+  const availableActions = useMemo(() => {
+    if (!initialAction) {
+      return [];
     }
-    if (["gmail", "slack", "telegram", "discord", "whatsapp"].includes(initialKind)) {
-      setInitialAction("Order Notification");
-      return;
-    }
-    if (["notion-daily-report", "google-drive-daily-csv"].includes(initialKind)) {
-      setInitialAction("Reporting");
-      return;
-    }
-    if (initialKind === "conditional-trigger" || initialKind === "if" || initialKind === "filter" || initialKind === "delay" || initialKind === "merge") {
-      setInitialAction("Flow Control");
+
+    return getBuilderPanelActions(initialAction, hasZerodhaAction, marketType);
+  }, [initialAction, hasZerodhaAction, marketType]);
+
+  useEffect(() => {
+    if (!open) {
       return;
     }
 
-    setInitialAction(undefined);
-  }, [initialKind, initialMetadata, open, setMarketType]);
+    if (!selectedAction) {
+      return;
+    }
+
+    const isStillAvailable = availableActions.some((action) => action.id === selectedAction);
+    if (isStillAvailable) {
+      return;
+    }
+
+    setSelectedAction("");
+    setMetadata({});
+  }, [availableActions, open, selectedAction]);
 
   const tradingValidationErrors = useMemo(() => {
     if (
@@ -186,7 +189,7 @@ export const ActionSheet = ({
           {/* Step 1: Select Action Type */}
           <ActionTypeSelector
             value={initialAction || ""}
-            onValueChange={(value) => setInitialAction(value as "Order Notification" | "Order Execution" | "Flow Control" | "Reporting")}
+            onValueChange={(value) => setInitialAction(value as BuilderPanelGroup)}
             actions={[
               {
                 id: "Order Execution",
@@ -223,7 +226,7 @@ export const ActionSheet = ({
             <ActionSheets
               value={selectedAction}
               onValueChange={setSelectedAction}
-              actions={SUPPORTED_ACTIONS["Notification"]}
+              actions={availableActions}
               initialAction={initialAction}
             />
           )}
@@ -232,7 +235,7 @@ export const ActionSheet = ({
             <ActionSheets
               value={selectedAction}
               onValueChange={setSelectedAction}
-              actions={hasZerodhaAction ? SUPPORTED_ACTIONS["Reporting"] : []}
+              actions={availableActions}
               initialAction={initialAction}
             />
           )}
@@ -241,7 +244,7 @@ export const ActionSheet = ({
             <ActionSheets
               value={selectedAction}
               onValueChange={setSelectedAction}
-              actions={SUPPORTED_ACTIONS["Flow"]}
+              actions={availableActions}
               initialAction={initialAction}
             />
           )}
@@ -250,19 +253,21 @@ export const ActionSheet = ({
             <ActionSheets
               value={selectedAction}
               onValueChange={setSelectedAction}
-              actions={marketType && marketType in SUPPORTED_ACTIONS ? SUPPORTED_ACTIONS[marketType] : []}
+              actions={availableActions}
               initialAction={initialAction}
             />
           )}
 
-          {(selectedAction === "zerodha" || selectedAction === "groww" || selectedAction === "lighter") && (
-            <TradingForm
-              metadata={metadata}
-              setMetadata={setMetadata}
-              showApiKey={selectedAction === "zerodha"}
-              action={selectedAction as "zerodha" | "groww" | "lighter"}
-            />
-          )}
+          {renderBuilderForm(selectedAction, {
+            metadata,
+            setMetadata,
+            setMarketType,
+            marketType,
+            showApiKey: selectedAction === "zerodha",
+            action: selectedAction,
+            selectedAction,
+          })}
+
           {(tradingValidationErrors.length > 0 || actionValidationErrors.length > 0) && (
             <div className="rounded-md border border-amber-500/35 bg-amber-500/10 p-3 text-xs text-amber-200">
               <p className="font-medium text-amber-300">Complete validation:</p>
@@ -274,46 +279,6 @@ export const ActionSheet = ({
             </div>
           )}
 
-          {selectedAction === "gmail" && (
-            <GmailForm metadata={metadata} setMetadata={setMetadata} />
-          )}
-
-          {selectedAction === "slack" && (
-            <SlackForm metadata={metadata} setMetadata={setMetadata} />
-          )}
-
-          {selectedAction === "telegram" && (
-            <TelegramForm metadata={metadata} setMetadata={setMetadata} />
-          )}
-
-          {selectedAction === "discord" && (
-            <DiscordForm metadata={metadata} setMetadata={setMetadata} />
-          )}
-
-          {selectedAction === "whatsapp" && (
-            <WhatsappForm metadata={metadata} setMetadata={setMetadata} />
-          )}
-
-          {selectedAction === "notion-daily-report" && (
-            <NotionDailyReportForm metadata={metadata} setMetadata={setMetadata} />
-          )}
-
-          {selectedAction === "google-drive-daily-csv" && (
-            <GoogleDriveDailyCsvForm metadata={metadata} setMetadata={setMetadata} />
-          )}
-
-          {(selectedAction === "conditional-trigger" || selectedAction === "if" || selectedAction === "filter") && (
-            <ConditionalTriggerForm
-              marketType={marketType}
-              setMarketType={setMarketType}
-              metadata={metadata as any}
-              setMetadata={setMetadata}
-            />
-          )}
-
-          {selectedAction === "delay" && (
-            <DelayForm metadata={metadata} setMetadata={setMetadata} />
-          )}
         </SheetHeader>
         <SheetFooter className="border-t border-neutral-900 bg-black/90 p-4">
           <Button

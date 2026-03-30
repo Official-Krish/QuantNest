@@ -16,6 +16,7 @@
     "./indicators": "./indicators.ts"
   },
   "dependencies": {
+    "@quantnest-trading/node-registry": "workspace:^",
     "zod": "^4.1.13"
   }
 }

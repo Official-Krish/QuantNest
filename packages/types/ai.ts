@@ -1,5 +1,10 @@
 import { z } from "zod";
 import type { NodeKind } from "./index";
+import {
+  getAiAllowedNodeTypes,
+  getAiPreferredActionOptions,
+  getAiPromptNodeTypes,
+} from "@quantnest-trading/node-registry";
 
 export type AiProviderName = "gemini" | "openai" | "anthropic";
 
@@ -237,46 +242,30 @@ export interface AiStrategyDraftEditRequest {
   model?: AiModelRequestOptions;
 }
 
-export const AI_NODE_KIND_VALUES = [
-  "timer",
-  "price",
-  "conditional-trigger",
-  "if",
-  "filter",
-  "delay",
-  "merge",
-  "Zerodha",
-  "Groww",
-  "gmail",
-  "slack",
-  "telegram",
-  "discord",
-  "whatsapp",
-  "notion-daily-report",
-  "google-drive-daily-csv",
-] as const;
+export const AI_NODE_KIND_VALUES = getAiPromptNodeTypes() as [string, ...string[]];
 
-export const AI_ALLOWED_NODE_TYPE_VALUES = [...AI_NODE_KIND_VALUES, "zerodha", "groww"] as const;
+export const AI_ALLOWED_NODE_TYPE_VALUES = getAiAllowedNodeTypes() as [string, ...string[]];
 
-export const AI_PREFERRED_ACTION_VALUES = [
-  "zerodha",
-  "groww",
-  "lighter",
-  "delay",
-  "if",
-  "filter",
-  "merge",
-  "gmail",
-  "slack",
-  "telegram",
-  "discord",
-  "whatsapp",
-  "notion-daily-report",
-  "google-drive-daily-csv",
-] as const;
+export const AI_PREFERRED_ACTION_VALUES = getAiPreferredActionOptions() as [string, ...string[]];
 
-export const strategyNodeKindSchema = z.enum(AI_NODE_KIND_VALUES);
-export const strategyAllowedNodeTypeSchema = z.enum(AI_ALLOWED_NODE_TYPE_VALUES);
+const nodeKindSet = new Set(AI_NODE_KIND_VALUES.map((value) => String(value).toLowerCase()));
+const allowedNodeTypeSet = new Set(AI_ALLOWED_NODE_TYPE_VALUES.map((value) => String(value).toLowerCase()));
+const preferredActionSet = new Set(AI_PREFERRED_ACTION_VALUES.map((value) => String(value).toLowerCase()));
+
+export const strategyNodeKindSchema = z.custom<NodeKind | Lowercase<NodeKind>>(
+  (value) => typeof value === "string" && nodeKindSet.has(value.toLowerCase()),
+  "Unsupported AI node kind",
+);
+
+export const strategyAllowedNodeTypeSchema = z.custom<NodeKind | Lowercase<NodeKind>>(
+  (value) => typeof value === "string" && allowedNodeTypeSet.has(value.toLowerCase()),
+  "Unsupported allowed node type",
+);
+
+export const strategyPreferredActionSchema = z.custom<StrategyBuilderActionType>(
+  (value) => typeof value === "string" && preferredActionSet.has(value.toLowerCase()),
+  "Unsupported preferred action",
+);
 
 export const aiModelRequestOptionsSchema = z.object({
   provider: z.string().trim().min(1).optional(),
@@ -290,7 +279,7 @@ export const strategyBuilderRequestSchema = z.object({
   riskPreference: z.enum(["conservative", "balanced", "aggressive"]).optional(),
   brokerExecution: z.boolean().optional(),
   allowDirectExecution: z.boolean().optional(),
-  preferredActions: z.array(z.enum(AI_PREFERRED_ACTION_VALUES)).optional(),
+  preferredActions: z.array(strategyPreferredActionSchema).optional(),
   constraints: z.array(z.string().trim().min(1)).optional(),
   model: aiModelRequestOptionsSchema.optional(),
   allowedNodeTypes: z.array(strategyAllowedNodeTypeSchema).optional(),

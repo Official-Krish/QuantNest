@@ -6,6 +6,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@quantnest-trading/db": "workspace:^",
+    "@quantnest-trading/node-registry": "workspace:^",
     "@quantnest-trading/market": "workspace:^",
     "@quantnest-trading/types": "workspace:^",
     "@quantnest-trading/executor-utils": "workspace:^",
