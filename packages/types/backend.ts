@@ -14,6 +14,7 @@ const WHATSAPP_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
 const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
 const NOTION_PAGE_ID_REGEX = /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
 const GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX = /^[A-Za-z0-9-]+@[A-Za-z0-9-]+\.iam\.gserviceaccount\.com$/;
+const GOOGLE_SHEET_URL_REGEX = /^https?:\/\/(?:docs\.google\.com\/spreadsheets\/d\/)[A-Za-z0-9-_]+(?:\/[^\s]*)?(?:\?[^\s]*)?$/i;
 
 export const SignupSchema = z.object({
     username: z.string().min(3).max(30),
@@ -212,6 +213,27 @@ function validateWorkflowNodes(
                     code: "custom",
                     path: [...path, "aiConsent"],
                     message: "AI consent is required for Google Drive AI insights.",
+                });
+            }
+        }
+
+        if (type === "google-sheets-report") {
+            const sheetUrl = String((metadata as any).sheetUrl || "").trim();
+            const sheetId = String((metadata as any).sheetId || "").trim();
+
+            if (!sheetUrl || !GOOGLE_SHEET_URL_REGEX.test(sheetUrl)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "sheetUrl"],
+                    message: "Invalid Google Sheet URL.",
+                });
+            }
+
+            if (sheetId.length > 0 && !/^[A-Za-z0-9-_]{20,}$/.test(sheetId)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "sheetId"],
+                    message: "Invalid Google spreadsheet ID format.",
                 });
             }
         }

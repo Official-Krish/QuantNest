@@ -16,7 +16,8 @@ export type NodeKind =
     | "whatsapp"
     | "discord"
     | "notion-daily-report"
-    | "google-drive-daily-csv";
+    | "google-drive-daily-csv"
+    | "google-sheets-report";
 
 export interface NodeType {
     type: NodeKind;
@@ -49,6 +50,7 @@ export type NodeMetadata =
     | ConditionalTriggerMetadata
     | NotionDailyReportMetadata
     | GoogleDriveDailyCsvMetadata
+    | GoogleSheetsReportMetadata
     | {};
 
 export interface DelayNodeMetadata {
@@ -142,6 +144,14 @@ export interface GoogleDriveDailyCsvMetadata {
     filePrefix?: string;
     secretId?: string;
     aiConsent?: boolean;
+    condition?: boolean;
+}
+
+export interface GoogleSheetsReportMetadata {
+    sheetUrl: string;
+    sheetId?: string;
+    sheetName?: string;
+    serviceAccountEmail?: string;
     condition?: boolean;
 }
 

@@ -1,6 +1,6 @@
 import type { IconType } from "react-icons";
 import { HiOutlineBolt } from "react-icons/hi2";
-import { SiDiscord, SiGmail, SiGoogledrive, SiNotion, SiSlack, SiTelegram, SiWhatsapp, SiZerodha } from "react-icons/si";
+import { SiDiscord, SiGmail, SiGoogledrive, SiGooglesheets, SiNotion, SiSlack, SiTelegram, SiWhatsapp, SiZerodha } from "react-icons/si";
 import { TbChartCandleFilled, TbPlugConnected } from "react-icons/tb";
 
 type ServiceBrand = {
@@ -70,6 +70,12 @@ const SERVICE_BRANDS: Record<string, ServiceBrand> = {
     colorClassName: "text-[#8ab4f8]",
     tintClassName: "bg-[#8ab4f8]/12",
     borderClassName: "border-[#8ab4f8]/25",
+  },
+  "google-sheets-report": {
+    icon: SiGooglesheets,
+    colorClassName: "text-[#34A853]",
+    tintClassName: "bg-[#34A853]/12",
+    borderClassName: "border-[#34A853]/25",
   },
 };
 

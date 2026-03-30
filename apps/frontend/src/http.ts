@@ -289,6 +289,10 @@ export type VerifyBrokerCredentialsBody = {
   secretId?: string;
 };
 
+export type VerifyGoogleSheetsBody = {
+  sheetUrl: string;
+};
+
 export async function apiVerifyBrokerCredentials(
   body: VerifyBrokerCredentialsBody
 ): Promise<{ success: boolean; message: string }> {
@@ -297,6 +301,39 @@ export async function apiVerifyBrokerCredentials(
     body
   );
   return res.data;
+}
+
+export async function apiVerifyGoogleSheets(
+  body: VerifyGoogleSheetsBody
+): Promise<{
+  success: boolean;
+  message: string;
+  sheet: {
+    sheetId: string;
+    sheetName: string;
+    spreadsheetTitle: string;
+    serviceAccountEmail: string;
+  };
+}> {
+  const res = await api.post<{
+    success: boolean;
+    message: string;
+    sheet: {
+      sheetId: string;
+      sheetName: string;
+      spreadsheetTitle: string;
+      serviceAccountEmail: string;
+    };
+  }>("/workflow/verify-google-sheets", body);
+  return res.data;
+}
+
+export async function apiGetGoogleSheetsServiceAccount(): Promise<{ serviceAccountEmail: string }> {
+  const res = await api.get<{
+    success: boolean;
+    serviceAccountEmail: string;
+  }>("/workflow/google-sheets/service-account");
+  return { serviceAccountEmail: res.data.serviceAccountEmail };
 }
 
 export async function apiGetNotifications(): Promise<{ notifications: UserNotification[] }> {

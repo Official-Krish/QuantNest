@@ -28,6 +28,8 @@ Create `apps/executor/.env`:
 MONGO_URL=mongodb://localhost:27017/myapp
 RESEND_API_KEY=your_resend_key
 GOOGLE_API_KEY=your_gemini_key
+GOOGLE_SHEETS_SERVICE_ACCOUNT_EMAIL=quantnest@your-project.iam.gserviceaccount.com
+GOOGLE_SHEETS_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
 ## Run Locally

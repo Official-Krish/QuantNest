@@ -15,6 +15,7 @@ import {
     verifyBrokerCredentials,
     verifyBrokerCredentialsForNodes,
 } from "../services/brokerVerification";
+import { getGoogleSheetsServiceAccountEmail, verifyGoogleSheetAccess } from "../services/googleSheets";
 import { resolveNodeMetadataSecrets } from '../services/reusableSecrets';
 import { collectIndicatorReferences, evaluateExpression, normalizeMarket, resolveOperandValue } from '../services/market';
 
@@ -139,6 +140,49 @@ workFlowRouter.post('/verify-broker-credentials', authMiddleware, async (req, re
             message: error?.message || "Credential verification failed",
         });
     }
+});
+
+workFlowRouter.post('/verify-google-sheets', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(401).json({ success: false, message: "Unauthorized" });
+        return;
+    }
+
+    try {
+        const sheetUrl = String(req.body?.sheetUrl || "").trim();
+        const verification = await verifyGoogleSheetAccess({
+            sheetUrl,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Google Sheet verified",
+            sheet: verification,
+        });
+    } catch (error: any) {
+        res.status(400).json({
+            success: false,
+            message: error?.message || "Google Sheet verification failed",
+            serviceAccountEmail: getGoogleSheetsServiceAccountEmail(),
+        });
+    }
+});
+
+workFlowRouter.get('/google-sheets/service-account', authMiddleware, async (req, res) => {
+    const serviceAccountEmail = getGoogleSheetsServiceAccountEmail();
+    if (!serviceAccountEmail) {
+        res.status(500).json({
+            success: false,
+            message: "Google Sheets service account is not configured on backend.",
+        });
+        return;
+    }
+
+    res.status(200).json({
+        success: true,
+        serviceAccountEmail,
+    });
 });
 
 workFlowRouter.post('/', authMiddleware, async (req, res) => {

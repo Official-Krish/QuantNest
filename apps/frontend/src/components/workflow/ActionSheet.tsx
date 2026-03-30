@@ -157,6 +157,10 @@ export const ActionSheet = ({
       ((hasReusableSecret || (Boolean((metadata as any)?.googleClientEmail) && Boolean((metadata as any)?.googlePrivateKey))) && Boolean((metadata as any)?.aiConsent))
     ) &&
     (
+      selectedAction !== "google-sheets-report" ||
+      Boolean((metadata as any)?.sheetUrl)
+    ) &&
+    (
       selectedAction !== "filter" ||
       Boolean((metadata as any)?.expression) ||
       (
