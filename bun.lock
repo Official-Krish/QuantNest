@@ -25,6 +25,7 @@
         "zod": "^4.1.13",
       },
       "devDependencies": {
+        "@quantnest-trading/node-registry": "workspace:^",
         "@quantnest-trading/types": "workspace:^",
         "@types/bun": "latest",
         "@types/jsonwebtoken": "^9.0.10",
@@ -83,6 +84,7 @@
         "@quantnest-trading/executor-utils": "workspace:^",
         "@quantnest-trading/lighter-sdk-ts": "workspace:^",
         "@quantnest-trading/market": "workspace:^",
+        "@quantnest-trading/node-registry": "workspace:^",
         "@quantnest-trading/types": "workspace:^",
         "@types/bun": "latest",
       },
@@ -118,6 +120,7 @@
       },
       "devDependencies": {
         "@eslint/js": "^9.39.1",
+        "@quantnest-trading/node-registry": "workspace:^",
         "@quantnest-trading/types": "workspace:^",
         "@types/node": "^24.10.1",
         "@types/react": "^19.2.5",
@@ -202,9 +205,19 @@
         "typescript": "^5",
       },
     },
+    "packages/node-registry": {
+      "name": "@quantnest-trading/node-registry",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "packages/types": {
       "name": "@quantnest-trading/types",
       "dependencies": {
+        "@quantnest-trading/node-registry": "workspace:^",
         "zod": "^4.1.13",
       },
       "devDependencies": {
@@ -444,6 +457,8 @@
     "@quantnest-trading/lighter-sdk-ts": ["@quantnest-trading/lighter-sdk-ts@workspace:packages/lighter-sdk-ts"],
 
     "@quantnest-trading/market": ["@quantnest-trading/market@workspace:packages/market"],
+
+    "@quantnest-trading/node-registry": ["@quantnest-trading/node-registry@workspace:packages/node-registry"],
 
     "@quantnest-trading/types": ["@quantnest-trading/types@workspace:packages/types"],
 

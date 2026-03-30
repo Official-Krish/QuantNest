@@ -1,0 +1,15 @@
+{
+  "name": "@quantnest-trading/node-registry",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "exports": {
+    ".": "./index.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

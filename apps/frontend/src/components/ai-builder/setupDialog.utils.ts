@@ -5,31 +5,11 @@ import type {
   ReusableSecretService,
   ReusableSecretSummary,
 } from "@/types/api";
+import {
+  getNodeRegistryEntry,
+  NODE_METADATA_FIELD_LABELS,
+} from "@quantnest-trading/node-registry";
 import type { AiMetadataOverrides } from "./types";
-
-const NODE_TYPE_TO_REUSABLE_SECRET_SERVICE: Record<string, ReusableSecretService> = {
-  zerodha: "zerodha",
-  groww: "groww",
-  lighter: "lighter",
-  slack: "slack",
-  telegram: "telegram",
-  discord: "discord",
-  whatsapp: "whatsapp",
-  "notion-daily-report": "notion-daily-report",
-  "google-drive-daily-csv": "google-drive-daily-csv",
-};
-
-const REUSABLE_SECRET_SERVICE_FIELDS: Record<ReusableSecretService, string[]> = {
-  zerodha: ["apiKey", "accessToken"],
-  groww: ["accessToken"],
-  lighter: ["apiKey", "accountIndex", "apiKeyIndex"],
-  slack: ["slackBotToken", "slackUserId"],
-  telegram: ["telegramBotToken", "telegramChatId"],
-  discord: ["webhookUrl"],
-  whatsapp: ["recipientPhone"],
-  "notion-daily-report": ["notionApiKey"],
-  "google-drive-daily-csv": ["googleClientEmail", "googlePrivateKey"],
-};
 
 function getResponse(result: AiStrategyBuilderResponse | AiStrategyDraftSession | null) {
   if (!result) return null;
@@ -37,81 +17,11 @@ function getResponse(result: AiStrategyBuilderResponse | AiStrategyDraftSession 
 }
 
 export function getFieldLabel(field: string) {
-  switch (field) {
-    case "apiKey":
-      return "API key";
-    case "accessToken":
-      return "Access token";
-    case "recipientEmail":
-      return "Recipient email";
-    case "recipientPhone":
-      return "Recipient phone";
-    case "slackBotToken":
-      return "Slack bot token";
-    case "slackUserId":
-      return "Slack user ID";
-    case "telegramBotToken":
-      return "Telegram bot token";
-    case "telegramChatId":
-      return "Telegram chat ID";
-    case "webhookUrl":
-      return "Webhook URL";
-    case "notionApiKey":
-      return "Notion API key";
-    case "parentPageId":
-      return "Parent page ID";
-    case "googleClientEmail":
-      return "Google service account email";
-    case "googlePrivateKey":
-      return "Google private key";
-    case "googleDriveFolderId":
-      return "Google Drive folder ID";
-    case "accountIndex":
-      return "Account index";
-    case "apiKeyIndex":
-      return "API key index";
-    case "durationSeconds":
-      return "Delay duration (seconds)";
-    case "aiConsent":
-      return "AI consent";
-    default:
-      return field;
-  }
+  return NODE_METADATA_FIELD_LABELS[field] || field;
 }
 
 export function getNodeLabel(type: string) {
-  switch (type.toLowerCase()) {
-    case "zerodha":
-      return "Zerodha";
-    case "groww":
-      return "Groww";
-    case "lighter":
-      return "Lighter";
-    case "if":
-      return "If";
-    case "filter":
-      return "Filter";
-    case "delay":
-      return "Delay";
-    case "merge":
-      return "Merge";
-    case "gmail":
-      return "Gmail";
-    case "discord":
-      return "Discord";
-    case "slack":
-      return "Slack";
-    case "telegram":
-      return "Telegram";
-    case "whatsapp":
-      return "WhatsApp";
-    case "notion-daily-report":
-      return "Notion";
-    case "google-drive-daily-csv":
-      return "Google Drive";
-    default:
-      return type;
-  }
+  return getNodeRegistryEntry(type)?.title || type;
 }
 
 export function getFieldType(field: string, secret?: boolean): "text" | "password" | "number" {
@@ -198,13 +108,11 @@ export function groupMissingInputs(
 }
 
 export function getReusableSecretServiceForNodeType(nodeType: string): ReusableSecretService | null {
-  return NODE_TYPE_TO_REUSABLE_SECRET_SERVICE[String(nodeType || "").toLowerCase()] || null;
+  return (getNodeRegistryEntry(nodeType)?.reusableSecretService as ReusableSecretService | undefined) || null;
 }
 
 export function getSecretBackedFieldsForNodeType(nodeType: string): string[] {
-  const service = getReusableSecretServiceForNodeType(nodeType);
-  if (!service) return [];
-  return REUSABLE_SECRET_SERVICE_FIELDS[service] || [];
+  return getNodeRegistryEntry(nodeType)?.secretFieldKeys || [];
 }
 
 export function shouldHideInputWhenSecretSelected(

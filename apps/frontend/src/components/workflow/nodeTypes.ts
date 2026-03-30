@@ -1,37 +1,8 @@
-import { PriceTrigger } from "@/components/nodes/triggers/PriceTrigger";
-import { Timer } from "@/components/nodes/triggers/timers";
-import { zerodhaAction } from "@/components/nodes/actions/zerodha";
-import { growwAction } from "@/components/nodes/actions/growwAction";
-import { gmailAction } from "@/components/nodes/actions/gmailAction";
-import { delayAction } from "@/components/nodes/actions/delayAction";
-import { filterAction } from "@/components/nodes/actions/filterAction";
-import { mergeAction } from "@/components/nodes/actions/mergeAction";
-import { slackAction } from "@/components/nodes/actions/slackAction";
-import { telegramAction } from "@/components/nodes/actions/telegramAction";
-import { discordAction } from "@/components/nodes/actions/discordAction";
-import { ifAction } from "@/components/nodes/actions/ifAction";
-import { whatsappAction } from "@/components/nodes/actions/whatsappAction";
-import { notionDailyReportAction } from "@/components/nodes/actions/notionDailyReportAction";
-import { googleDriveDailyCsvAction } from "@/components/nodes/actions/googleDriveDailyCsvAction";
-import { lighterAction } from "@/components/nodes/actions/lighterAction";
-import { conditionTrigger } from "@/components/nodes/triggers/condtional";
+import { NODE_REGISTRY } from "@quantnest-trading/node-registry";
+import { getBuilderNodeRenderer } from "./builderRegistry";
 
-export const workflowNodeTypes = {
-  "price-trigger": PriceTrigger,
-  timer: Timer,
-  zerodha: zerodhaAction,
-  groww: growwAction,
-  delay: delayAction,
-  filter: filterAction,
-  merge: mergeAction,
-  if: ifAction,
-  gmail: gmailAction,
-  slack: slackAction,
-  telegram: telegramAction,
-  discord: discordAction,
-  whatsapp: whatsappAction,
-  "notion-daily-report": notionDailyReportAction,
-  "google-drive-daily-csv": googleDriveDailyCsvAction,
-  lighter: lighterAction,
-  "conditional-trigger": conditionTrigger,
-};
+export const workflowNodeTypes = Object.fromEntries(
+  NODE_REGISTRY
+    .map((entry) => [entry.id, getBuilderNodeRenderer(entry.id)])
+    .filter(([, renderer]) => Boolean(renderer)),
+);

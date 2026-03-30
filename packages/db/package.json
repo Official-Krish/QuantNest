@@ -17,6 +17,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@quantnest-trading/node-registry": "workspace:^",
     "@types/mongoose": "^5.11.97",
     "mongoose": "^9.0.0"
   }
