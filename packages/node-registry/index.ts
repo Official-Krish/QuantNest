@@ -351,7 +351,8 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         executorActionHandlerId: "google-sheets-report",
         aiAllowed: true,
         aiPreferredAction: true,
-        metadataFields: ["sheetUrl", "sheetId", "sheetName", "serviceAccountEmail"],
+        aliases: ["Google Sheets Report", "google sheets report", "google-sheets"],
+        metadataFields: ["sheetUrl", "sheetName"],
     },
 ];
 

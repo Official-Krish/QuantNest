@@ -87,7 +87,8 @@ export type StrategyBuilderActionType =
   | "discord"
   | "whatsapp"
   | "notion-daily-report"
-  | "google-drive-daily-csv";
+  | "google-drive-daily-csv"
+  | "google-sheets-report";
 
 export interface AiStrategyBuilderRequest {
   prompt: string;
