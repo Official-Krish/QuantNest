@@ -146,7 +146,9 @@ export function getTradingValidationErrors(
       errors.push("Zerodha API key must be 8-32 alphanumeric characters.");
     }
     const accessToken = String(data.accessToken || "").trim();
-    if (!hasSecret && accessToken.length > 0 && !ACCESS_TOKEN_REGEX.test(accessToken)) {
+    if (!hasSecret && !accessToken) {
+      errors.push("Zerodha access token is required.");
+    } else if (!hasSecret && !ACCESS_TOKEN_REGEX.test(accessToken)) {
       errors.push("Zerodha access token format is invalid.");
     }
   }

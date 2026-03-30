@@ -136,6 +136,13 @@ function validateWorkflowNodes(
                     message: "Invalid Zerodha API key format.",
                 });
             }
+            if (!secretId && !accessToken) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "accessToken"],
+                    message: "Zerodha access token is required.",
+                });
+            }
             if (!secretId && accessToken.length > 0 && !ACCESS_TOKEN_REGEX.test(accessToken)) {
                 ctx.addIssue({
                     code: "custom",

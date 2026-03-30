@@ -245,7 +245,7 @@ export const TradingForm = ({
               : "Your broker API key used only when this node runs."}
           </p>
           <Input
-            type="text"
+            type="password"
             value={typedMetadata.apiKey || ""}
             onChange={(e) =>
               setMetadata((current) => ({
@@ -267,10 +267,12 @@ export const TradingForm = ({
             Access Token
           </p>
           <p className="text-xs text-neutral-400">
-            Your broker access token for authentication.
+            {action === "zerodha"
+              ? "Required for Zerodha authentication."
+              : "Your broker access token for authentication."}
           </p>
           <Input
-            type="text"
+            type="password"
             value={!isWeb3 && (typedMetadata as TradingMetadata).accessToken || ""}
             onChange={(e) =>
               setMetadata((current) => ({
