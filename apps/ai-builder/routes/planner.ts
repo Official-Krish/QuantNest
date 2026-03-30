@@ -202,11 +202,50 @@ router.post("/strategy/drafts/:draftId/edit", serviceAuthMiddleware, async (req,
   }
 });
 
+router.get("/strategy/drafts/:draftId/versions/:versionId", serviceAuthMiddleware, async (req, res) => {
+  try {
+    const userId = requireUserId(req.userId);
+    const payload = await aiDraftStore.getVersion(
+      userId,
+      String(req.params.draftId),
+      String(req.params.versionId),
+    );
+
+    res.status(200).json({
+      success: true,
+      data: payload,
+    });
+  } catch (error) {
+    if (isAiBuilderError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      return;
+    }
+
+    const message = error instanceof Error ? error.message : "Failed to load AI draft version.";
+    res.status(500).json({
+      success: false,
+      code: "INTERNAL_ERROR",
+      message,
+    });
+  }
+});
+
 router.put("/strategy/drafts/:draftId/setup", serviceAuthMiddleware, async (req, res) => {
   try {
     const userId = requireUserId(req.userId);
+    const versionId = typeof req.query.versionId === "string" ? req.query.versionId.trim() : "";
     const setupState = aiStrategySetupStateSchema.parse(req.body);
-    const draft = await aiDraftStore.updateSetupState(userId, String(req.params.draftId), setupState);
+    const draft = await aiDraftStore.updateSetupState(
+      userId,
+      String(req.params.draftId),
+      setupState,
+      versionId || undefined,
+    );
 
     res.status(200).json({
       success: true,
