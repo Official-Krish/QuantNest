@@ -6,6 +6,7 @@ import {
   apiEditAiStrategyDraft,
   apiGetAiModels,
   apiGetAiStrategyDraft,
+  apiGetAiStrategyDraftVersion,
   apiListAiStrategyDrafts,
   apiSaveAiStrategyDraftSetup,
 } from "@/http";
@@ -15,6 +16,7 @@ import type {
   AiStrategyConversationMessage,
   AiStrategyDraftSession,
   AiStrategyDraftSummary,
+  AiStrategySetupState,
 } from "@/types/api";
 import { DEFAULT_AI_CONSTRAINTS } from "@/components/ai-builder/constants";
 import { normalizeGeneratedNodes } from "@/components/ai-builder/utils";
@@ -31,6 +33,25 @@ import { ChatTopHeader } from "@/components/ai-builder/chat/ChatTopHeader";
 import { ChatMessagesPane } from "@/components/ai-builder/chat/ChatMessagesPane";
 import { ChatComposerSection } from "@/components/ai-builder/chat/ChatComposerSection";
 import { RightSidebar } from "@/components/ai-builder/chat/RightSidebar";
+
+function getVersionSetupState(
+  draft: AiStrategyDraftSession,
+  versionId?: string,
+): AiStrategySetupState | undefined {
+  if (!versionId) return undefined;
+
+  const mapped = draft.setupStateByVersionId?.[versionId];
+  if (mapped) {
+    return mapped;
+  }
+
+  const latestVersionId = draft.workflowVersions[draft.workflowVersions.length - 1]?.id;
+  if (latestVersionId && latestVersionId === versionId) {
+    return draft.setupState;
+  }
+
+  return undefined;
+}
 
 export function AiStrategyChatBuilder() {
   const navigate = useNavigate();
@@ -113,9 +134,12 @@ export function AiStrategyChatBuilder() {
   }, [draftSummaries, search]);
 
   const syncActiveDraft = (draft: AiStrategyDraftSession) => {
+    const latestVersion = draft.workflowVersions[draft.workflowVersions.length - 1];
+    const latestSetupState = getVersionSetupState(draft, latestVersion?.id);
+
     setActiveDraft(draft);
-    setWorkflowName(draft.setupState?.workflowName || draft.response.plan.workflowName);
-    setMetadataOverrides(draft.setupState?.metadataOverrides || {});
+    setWorkflowName(latestSetupState?.workflowName || latestVersion?.response.plan.workflowName || draft.response.plan.workflowName);
+    setMetadataOverrides(latestSetupState?.metadataOverrides || {});
     setMarket(draft.request.market);
     setGoal(draft.request.goal);
     setRiskPreference(draft.request.riskPreference ?? "balanced");
@@ -125,7 +149,7 @@ export function AiStrategyChatBuilder() {
     setConstraints((draft.request.constraints || []).join("\n") || DEFAULT_AI_CONSTRAINTS);
     setSelectedProvider(String(draft.request.model?.provider || selectedProvider));
     setSelectedModel(String(draft.request.model?.model || selectedModel));
-    setActiveVersionId(draft.workflowVersions[draft.workflowVersions.length - 1]?.id || "");
+    setActiveVersionId(latestVersion?.id || "");
     window.localStorage.setItem(LAST_CHAT_DRAFT_STORAGE_KEY, draft.draftId);
     setDraftSummaries((current) => {
       const summary: AiStrategyDraftSummary = {
@@ -142,12 +166,16 @@ export function AiStrategyChatBuilder() {
   };
 
   useEffect(() => {
-    if (!activeDraft) return;
+    if (!activeDraft || !activeVersionId) return;
+
+    const selectedSetupState = getVersionSetupState(activeDraft, activeVersionId);
+    const selectedVersion = activeDraft.workflowVersions.find((version) => version.id === activeVersionId);
+    if (!selectedVersion) return;
 
     const nextSetupState = { workflowName, metadataOverrides };
     const existing = {
-      workflowName: activeDraft.setupState?.workflowName || "",
-      metadataOverrides: activeDraft.setupState?.metadataOverrides || {},
+      workflowName: selectedSetupState?.workflowName || selectedVersion.response.plan.workflowName || "",
+      metadataOverrides: selectedSetupState?.metadataOverrides || {},
     };
 
     if (JSON.stringify(nextSetupState) === JSON.stringify(existing)) {
@@ -155,13 +183,13 @@ export function AiStrategyChatBuilder() {
     }
 
     const timer = window.setTimeout(() => {
-      void apiSaveAiStrategyDraftSetup(activeDraft.draftId, nextSetupState)
+      void apiSaveAiStrategyDraftSetup(activeDraft.draftId, nextSetupState, activeVersionId)
         .then((draft) => setActiveDraft(draft))
         .catch(() => {});
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [activeDraft, workflowName, metadataOverrides]);
+  }, [activeDraft, activeVersionId, workflowName, metadataOverrides]);
 
   useEffect(() => {
     if (!chatScrollRef.current) return;
@@ -183,6 +211,37 @@ export function AiStrategyChatBuilder() {
       activeDraft.workflowVersions[activeDraft.workflowVersions.length - 1]
     );
   }, [activeDraft?.workflowVersions, activeVersionId]);
+
+  useEffect(() => {
+    if (!activeDraft || !activeVersionId) return;
+
+    let cancelled = false;
+
+    void apiGetAiStrategyDraftVersion(activeDraft.draftId, activeVersionId)
+      .then((payload) => {
+        if (cancelled) return;
+
+        setWorkflowName(payload.setupState?.workflowName || payload.version.response.plan.workflowName);
+        setMetadataOverrides(payload.setupState?.metadataOverrides || {});
+      })
+      .catch(() => {
+        if (cancelled) return;
+
+        const fallbackVersion =
+          activeDraft.workflowVersions.find((version) => version.id === activeVersionId) ||
+          activeDraft.workflowVersions[activeDraft.workflowVersions.length - 1];
+
+        if (!fallbackVersion) return;
+
+        const fallbackSetupState = getVersionSetupState(activeDraft, fallbackVersion.id);
+        setWorkflowName(fallbackSetupState?.workflowName || fallbackVersion.response.plan.workflowName);
+        setMetadataOverrides(fallbackSetupState?.metadataOverrides || {});
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDraft, activeVersionId]);
 
   const handleNewChat = () => {
     setActiveDraft(null);
@@ -287,6 +346,7 @@ export function AiStrategyChatBuilder() {
 
   const openInBuilder = () => {
     if (!selectedVersion) return;
+
     navigate("/create/builder", {
       state: {
         generatedPlan: {
@@ -426,7 +486,7 @@ export function AiStrategyChatBuilder() {
 
       <AiPlanSetupDialog
         open={setupOpen}
-        result={activeDraft}
+        result={selectedVersion?.response || null}
         workflowName={workflowName}
         metadataOverrides={metadataOverrides}
         onOpenChange={setSetupOpen}

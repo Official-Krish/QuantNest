@@ -208,7 +208,14 @@ export interface AiStrategyDraftSession {
   messages: AiStrategyConversationMessage[];
   workflowVersions: AiStrategyWorkflowVersion[];
   setupState?: AiStrategySetupState;
+  setupStateByVersionId?: Record<string, AiStrategySetupState>;
   workflowId?: string;
+}
+
+export interface AiStrategyDraftVersionPayload {
+  draftId: string;
+  version: AiStrategyWorkflowVersion;
+  setupState?: AiStrategySetupState;
 }
 
 export interface AiStrategyDraftSummary {
@@ -403,11 +410,24 @@ export const aiStrategyDraftSessionSchema = z.object({
     (value) => (value === null ? undefined : value),
     aiStrategySetupStateSchema.optional(),
   ),
+  setupStateByVersionId: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    z.record(z.string(), aiStrategySetupStateSchema).optional(),
+  ),
   workflowId: z.preprocess(
     (value) => (value === null ? undefined : value),
     z.string().trim().min(1).optional(),
   ),
 }) satisfies z.ZodType<AiStrategyDraftSession>;
+
+export const aiStrategyDraftVersionPayloadSchema = z.object({
+  draftId: z.string().trim().min(1),
+  version: aiStrategyWorkflowVersionSchema,
+  setupState: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    aiStrategySetupStateSchema.optional(),
+  ),
+}) satisfies z.ZodType<AiStrategyDraftVersionPayload>;
 
 export const aiStrategyDraftSummarySchema = z.object({
   draftId: z.string().trim().min(1),

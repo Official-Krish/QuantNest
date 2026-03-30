@@ -263,9 +263,32 @@ aiRouter.post("/strategy/drafts/:draftId/edit", authMiddleware, async (req, res)
   }
 });
 
+aiRouter.get("/strategy/drafts/:draftId/versions/:versionId", authMiddleware, async (req, res) => {
+  try {
+    const result = await proxyAiBuilder(
+      `/api/v1/strategy/drafts/${req.params.draftId}/versions/${req.params.versionId}`,
+      {
+        method: "GET",
+        userId: req.userId || undefined,
+      },
+    );
+
+    res.status(result.status).json(result.data);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to load AI draft version.",
+    });
+  }
+});
+
 aiRouter.put("/strategy/drafts/:draftId/setup", authMiddleware, async (req, res) => {
   try {
-    const result = await proxyAiBuilder(`/api/v1/strategy/drafts/${req.params.draftId}/setup`, {
+    const setupPath = typeof req.query.versionId === "string" && req.query.versionId.trim()
+      ? `/api/v1/strategy/drafts/${req.params.draftId}/setup?versionId=${encodeURIComponent(req.query.versionId.trim())}`
+      : `/api/v1/strategy/drafts/${req.params.draftId}/setup`;
+    const result = await proxyAiBuilder(setupPath, {
       method: "PUT",
       userId: req.userId || undefined,
       data: req.body,

@@ -536,6 +536,34 @@ const AiStrategySessionSchema = new Schema({
     },
 }, { timestamps: true });
 
+const AiStrategyDraftVersionSchema = new Schema({
+    userId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'Users',
+        required: true,
+        index: true,
+    },
+    draftId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'AiStrategySessions',
+        required: true,
+        index: true,
+    },
+    versionId: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    version: {
+        type: Schema.Types.Mixed,
+        required: true,
+    },
+    setupState: {
+        type: Schema.Types.Mixed,
+        required: false,
+    },
+}, { timestamps: true });
+
 const UserReusableSecretSchema = new Schema({
     userId: {
         type: mongoose.Types.ObjectId,
@@ -573,6 +601,8 @@ const UserReusableSecretSchema = new Schema({
 // Compound unique index for userId + workflowId
 ZerodhaTokenSchema.index({ userId: 1, workflowId: 1 }, { unique: true });
 AiStrategySessionSchema.index({ userId: 1, updatedAt: -1 });
+AiStrategyDraftVersionSchema.index({ userId: 1, draftId: 1, versionId: 1 }, { unique: true });
+AiStrategyDraftVersionSchema.index({ draftId: 1, createdAt: 1 });
 WorkflowSchema.index({ status: 1, triggerType: 1, nextRunAt: 1 });
 UserReusableSecretSchema.index({ userId: 1, service: 1, name: 1 }, { unique: true });
 
@@ -584,4 +614,5 @@ export const ExecutionModel = mongoose.model('Executions', ExecutionSchema);
 export const NotificationModel = mongoose.model('Notifications', NotificationSchema);
 export const WorkflowExampleModel = mongoose.model('WorkflowExamples', WorkflowExampleSchema);
 export const AiStrategySessionModel = mongoose.model('AiStrategySessions', AiStrategySessionSchema);
+export const AiStrategyDraftVersionModel = mongoose.model('AiStrategyDraftVersions', AiStrategyDraftVersionSchema);
 export const UserReusableSecretModel = mongoose.model('UserReusableSecrets', UserReusableSecretSchema);

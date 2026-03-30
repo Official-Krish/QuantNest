@@ -4,6 +4,7 @@ import type {
   AiStrategyDraftEditRequest,
   AiStrategyDraftSession,
   AiStrategyDraftSummary,
+  AiStrategyDraftVersionPayload,
   AiStrategySetupState,
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
@@ -382,13 +383,27 @@ export async function apiEditAiStrategyDraft(
   return res.data.data.draft;
 }
 
+export async function apiGetAiStrategyDraftVersion(
+  draftId: string,
+  versionId: string,
+): Promise<AiStrategyDraftVersionPayload> {
+  const res = await api.get<{ success: boolean; data: AiStrategyDraftVersionPayload }>(
+    `/ai/strategy/drafts/${draftId}/versions/${versionId}`,
+  );
+  return res.data.data;
+}
+
 export async function apiSaveAiStrategyDraftSetup(
   draftId: string,
   body: AiStrategySetupState,
+  versionId?: string,
 ): Promise<AiStrategyDraftSession> {
   const res = await api.put<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
     `/ai/strategy/drafts/${draftId}/setup`,
     body,
+    {
+      params: versionId ? { versionId } : undefined,
+    },
   );
   return res.data.data.draft;
 }
