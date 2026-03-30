@@ -15,6 +15,20 @@ export type BuilderFormId =
     | "notion-daily-report"
     | "google-drive-daily-csv"
     | "none";
+export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "conditional-trigger";
+export type ExecutorActionHandlerId =
+    | "noop"
+    | "delay"
+    | "zerodha"
+    | "groww"
+    | "lighter"
+    | "gmail"
+    | "slack"
+    | "telegram"
+    | "discord"
+    | "whatsapp"
+    | "notion-daily-report"
+    | "google-drive-daily-csv";
 
 export interface NodeRegistryEntry {
     id: string;
@@ -32,6 +46,8 @@ export interface NodeRegistryEntry {
     metadataFields: string[];
     reusableSecretService?: string;
     secretFieldKeys?: string[];
+    executorTriggerProcessorId?: ExecutorTriggerProcessorId;
+    executorActionHandlerId?: ExecutorActionHandlerId;
     aliases?: string[];
 }
 
@@ -64,6 +80,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         kind: "trigger",
         builderFormId: "timer",
         builderRendererId: "timer",
+        executorTriggerProcessorId: "timer",
         aiAllowed: true,
         aiNodeType: "timer",
         aiPromptNodeType: "timer",
@@ -76,6 +93,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         kind: "trigger",
         builderFormId: "price-trigger",
         builderRendererId: "price-trigger",
+        executorTriggerProcessorId: "price-trigger",
         aiAllowed: true,
         aiNodeType: "price",
         aiPromptNodeType: "price",
@@ -90,6 +108,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderCategory: "Flow",
         builderFormId: "conditional",
         builderRendererId: "conditional-trigger",
+        executorTriggerProcessorId: "conditional-trigger",
         aiAllowed: true,
         aiNodeType: "conditional-trigger",
         aiPromptNodeType: "conditional-trigger",
@@ -104,6 +123,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Order Execution",
         builderFormId: "trading",
         builderRendererId: "zerodha",
+        executorActionHandlerId: "zerodha",
         aiAllowed: true,
         aiPreferredAction: true,
         aiNodeType: "zerodha",
@@ -122,6 +142,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Order Execution",
         builderFormId: "trading",
         builderRendererId: "groww",
+        executorActionHandlerId: "groww",
         aiAllowed: true,
         aiPreferredAction: true,
         aiNodeType: "groww",
@@ -140,6 +161,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Order Execution",
         builderFormId: "trading",
         builderRendererId: "lighter",
+        executorActionHandlerId: "lighter",
         aiPreferredAction: true,
         metadataFields: ["type", "qty", "symbol", "apiKey", "accountIndex", "apiKeyIndex"],
         reusableSecretService: "lighter",
@@ -154,6 +176,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Flow Control",
         builderFormId: "conditional",
         builderRendererId: "if",
+        executorActionHandlerId: "noop",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
@@ -167,6 +190,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Flow Control",
         builderFormId: "conditional",
         builderRendererId: "filter",
+        executorActionHandlerId: "noop",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
@@ -180,6 +204,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Flow Control",
         builderFormId: "delay",
         builderRendererId: "delay",
+        executorActionHandlerId: "delay",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["durationSeconds"],
@@ -193,6 +218,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Flow Control",
         builderFormId: "none",
         builderRendererId: "merge",
+        executorActionHandlerId: "noop",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: [],
@@ -206,6 +232,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Order Notification",
         builderFormId: "gmail",
         builderRendererId: "gmail",
+        executorActionHandlerId: "gmail",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["recipientEmail", "recipientName"],
@@ -219,6 +246,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Order Notification",
         builderFormId: "slack",
         builderRendererId: "slack",
+        executorActionHandlerId: "slack",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["slackBotToken", "slackUserId", "recipientName"],
@@ -234,6 +262,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Order Notification",
         builderFormId: "telegram",
         builderRendererId: "telegram",
+        executorActionHandlerId: "telegram",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["telegramBotToken", "telegramChatId", "recipientName"],
@@ -249,6 +278,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Order Notification",
         builderFormId: "discord",
         builderRendererId: "discord",
+        executorActionHandlerId: "discord",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["webhookUrl", "recipientName"],
@@ -264,6 +294,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Order Notification",
         builderFormId: "whatsapp",
         builderRendererId: "whatsapp",
+        executorActionHandlerId: "whatsapp",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["recipientPhone", "recipientName"],
@@ -279,6 +310,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Reporting",
         builderFormId: "notion-daily-report",
         builderRendererId: "notion-daily-report",
+        executorActionHandlerId: "notion-daily-report",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["notionApiKey", "parentPageId", "aiConsent"],
@@ -294,6 +326,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderPanelGroup: "Reporting",
         builderFormId: "google-drive-daily-csv",
         builderRendererId: "google-drive-daily-csv",
+        executorActionHandlerId: "google-drive-daily-csv",
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["googleClientEmail", "googlePrivateKey", "googleDriveFolderId", "filePrefix", "aiConsent"],

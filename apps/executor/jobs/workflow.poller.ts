@@ -1,5 +1,7 @@
 import { WorkflowModel } from "@quantnest-trading/db/client";
 import { deriveWorkflowTriggerState } from "@quantnest-trading/executor-utils";
+import { NODE_REGISTRY } from "@quantnest-trading/node-registry";
+import type { ExecutorTriggerProcessorId } from "@quantnest-trading/node-registry";
 import { canExecute, executeWorkflowSafe } from "../services/execution.service";
 import {
     evaluateConditionalMetadata,
@@ -248,13 +250,23 @@ async function processConditionalWorkflows(now: Date) {
     }
 }
 
+const triggerProcessorMap: Record<ExecutorTriggerProcessorId, (now: Date) => Promise<void>> = {
+    timer: processTimerWorkflows,
+    "price-trigger": processPriceWorkflows,
+    "conditional-trigger": processConditionalWorkflows,
+};
+
+const registryTriggerProcessors = NODE_REGISTRY
+    .filter((entry) => entry.kind === "trigger" && entry.executorTriggerProcessorId)
+    .map((entry) => entry.executorTriggerProcessorId!) satisfies ExecutorTriggerProcessorId[];
+
 export async function pollOnce() {
     const now = new Date();
 
     await backfillWorkflowTriggerState(now);
     await registerConditionalExpressions();
     await indicatorEngine.refreshSubscribedSymbols();
-    await processTimerWorkflows(now);
-    await processPriceWorkflows(now);
-    await processConditionalWorkflows(now);
+    for (const processorId of registryTriggerProcessors) {
+        await triggerProcessorMap[processorId](now);
+    }
 }
