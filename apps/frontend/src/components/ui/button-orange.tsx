@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, forwardRef } from "react"
+import { type ButtonHTMLAttributes, forwardRef } from "react"
 import { cn } from "@/lib/utils"
 
 interface OrangeButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
