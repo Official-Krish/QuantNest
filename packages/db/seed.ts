@@ -860,6 +860,71 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       { id: "e-price-telegram-1", source: "price-telegram-1", target: "telegram-1" },
     ],
   },
+  {
+    slug: "google-sheets-execution-report",
+    title: "Google Sheets Execution Report",
+    summary:
+      "Append each run summary to Google Sheets so teams can review execution activity in one shared sheet.",
+    category: "Reporting",
+    market: "Indian",
+    difficulty: "Starter",
+    setupMinutes: 6,
+    sortOrder: 9,
+    nodeFlow: ["Timer", "Zerodha", "Google Sheets Report"],
+    trigger: "Runs on a fixed interval and writes a reporting row after execution.",
+    logic:
+      "Timer starts the workflow, Zerodha action executes, and Google Sheets Report appends execution context to the configured spreadsheet tab.",
+    actions: ["Execute Zerodha action", "Append row to Google Sheets"],
+    outcomes: [
+      "Shared live reporting sheet",
+      "Low-friction daily monitoring",
+      "No manual copy-paste logging",
+    ],
+    nodes: [
+      {
+        nodeId: "timer-gs-1",
+        type: "timer",
+        data: {
+          kind: "trigger",
+          metadata: { time: 900, marketType: "indian", asset: "HDFC" },
+        },
+        position: { x: 0, y: 90 },
+      },
+      {
+        nodeId: "zerodha-gs-1",
+        type: "zerodha",
+        data: {
+          kind: "action",
+          metadata: {
+            type: "buy",
+            qty: 1,
+            symbol: "HDFC",
+            apiKey: "ZERODHA_API_KEY",
+            accessToken: "ZERODHA_ACCESS_TOKEN",
+            exchange: "NSE",
+          },
+        },
+        position: { x: 320, y: 90 },
+      },
+      {
+        nodeId: "sheets-1",
+        type: "google-sheets-report",
+        data: {
+          kind: "action",
+          metadata: {
+            sheetUrl: "https://docs.google.com/spreadsheets/d/1exampleSheetId1234567890abcdef/edit?gid=0#gid=0",
+            sheetName: "Execution Logs",
+            serviceAccountEmail: "quantnest@your-project.iam.gserviceaccount.com",
+          },
+        },
+        position: { x: 680, y: 90 },
+      },
+    ],
+    edges: [
+      { id: "e-timer-gs-1-zerodha-gs-1", source: "timer-gs-1", target: "zerodha-gs-1" },
+      { id: "e-zerodha-gs-1-sheets-1", source: "zerodha-gs-1", target: "sheets-1" },
+    ],
+  },
 ];
 
 function assertWorkflowExampleSeeds(seeds: WorkflowExampleSeed[]) {

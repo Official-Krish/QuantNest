@@ -50,7 +50,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | conditional-trigger | if | filter | delay | merge | Zerodha | Groww | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv",
+            type: "timer | price | conditional-trigger | if | filter | delay | merge | Zerodha | Groww | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report",
             data: {
               kind: "trigger | action",
               metadata: {},

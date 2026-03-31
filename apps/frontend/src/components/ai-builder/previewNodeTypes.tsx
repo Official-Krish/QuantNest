@@ -263,6 +263,16 @@ export function PreviewGoogleDrive({ data }: any) {
   return <PreviewShell accent="#8ab4f8" tone="action" kindBadge="Action" label="Drive" badge="CSV" title="Daily CSV export" subtitle={subtitle} iconService="google-drive-daily-csv" />;
 }
 
+export function PreviewGoogleSheets({ data }: any) {
+  const { sheetName, sheetUrl } = data.metadata || {};
+  const subtitle = sheetName
+    ? `Tab: ${sheetName}`
+    : sheetUrl
+      ? "Sheet URL configured"
+      : "Missing Sheet URL";
+  return <PreviewShell accent="#34A853" tone="action" kindBadge="Action" label="Sheets" badge="REPORT" title="Execution report" subtitle={subtitle} iconService="google-sheets-report" />;
+}
+
 export const aiPreviewNodeTypes = {
   "price-trigger": PreviewPriceTrigger,
   timer: PreviewTimer,
@@ -281,4 +291,5 @@ export const aiPreviewNodeTypes = {
   whatsapp: PreviewWhatsApp,
   "notion-daily-report": PreviewNotion,
   "google-drive-daily-csv": PreviewGoogleDrive,
+  "google-sheets-report": PreviewGoogleSheets,
 };

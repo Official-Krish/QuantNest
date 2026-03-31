@@ -139,6 +139,8 @@ export const CreateWorkflow = () => {
               nodeType = "zerodha";
             } else if (metadata.notionApiKey !== undefined || metadata.parentPageId !== undefined || metadata.aiConsent !== undefined) {
               nodeType = "notion-daily-report";
+            } else if (metadata.sheetUrl !== undefined || metadata.sheetId !== undefined || metadata.sheetName !== undefined) {
+              nodeType = "google-sheets-report";
             } else if (metadata.googleClientEmail !== undefined || metadata.googlePrivateKey !== undefined || metadata.googleDriveFolderId !== undefined) {
               nodeType = "google-drive-daily-csv";
             } else if (metadata.recipientPhone !== undefined) {

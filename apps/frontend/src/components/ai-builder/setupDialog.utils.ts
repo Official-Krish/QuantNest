@@ -16,12 +16,112 @@ function getResponse(result: AiStrategyBuilderResponse | AiStrategyDraftSession 
   return "response" in result ? result.response : result;
 }
 
+function getUserEditableMissingInputs(
+  response: NonNullable<ReturnType<typeof getResponse>>,
+  requiredOnly = false,
+) {
+  const nodeTypeById = new Map(
+    response.plan.nodes.map((node) => [node.nodeId, String(node.type)]),
+  );
+
+  return response.plan.missingInputs.filter((input) => {
+    if (requiredOnly && !input.required) return false;
+
+    const nodeType = nodeTypeById.get(input.nodeId) || input.nodeType;
+    const entry = getNodeRegistryEntry(nodeType);
+    if (!entry) return true;
+
+    const editableFields = new Set([
+      ...entry.metadataFields,
+      ...(entry.secretFieldKeys || []),
+    ]);
+    return editableFields.has(input.field);
+  });
+}
+
+export function getRequiredMissingInputsCount(
+  result: AiStrategyBuilderResponse | AiStrategyDraftSession | null,
+) {
+  const response = getResponse(result);
+  if (!response) return 0;
+  return getUserEditableMissingInputs(response, true).length;
+}
+
 export function getFieldLabel(field: string) {
   return NODE_METADATA_FIELD_LABELS[field] || field;
 }
 
 export function getNodeLabel(type: string) {
   return getNodeRegistryEntry(type)?.title || type;
+}
+
+export function isGoogleSheetsReportNodeType(nodeType: string) {
+  return getNodeRegistryEntry(nodeType)?.id === "google-sheets-report";
+}
+
+export function getGoogleSheetsVerificationErrorDetails(error: unknown): {
+  friendlyMessage: string;
+  serviceAccountEmail?: string;
+} {
+  const maybeError = error as {
+    response?: {
+      data?: {
+        message?: string;
+        serviceAccountEmail?: string;
+      };
+    };
+    message?: string;
+  };
+
+  const rawMessage = String(
+    maybeError?.response?.data?.message || maybeError?.message || "",
+  ).trim();
+  const serviceAccountEmail = String(
+    maybeError?.response?.data?.serviceAccountEmail || "",
+  ).trim();
+  const lower = rawMessage.toLowerCase();
+
+  if (lower.includes("invalid google sheet url") || lower.includes("invalid url")) {
+    return {
+      friendlyMessage: "Please paste a valid Google Sheet link.",
+      serviceAccountEmail,
+    };
+  }
+
+  if (
+    lower.includes("add our service account") ||
+    lower.includes("share settings") ||
+    lower.includes("access denied") ||
+    lower.includes("forbidden") ||
+    lower.includes("403") ||
+    lower.includes("404") ||
+    lower.includes("caller does not have permission") ||
+    lower.includes("insufficient permission") ||
+    lower.includes("permission denied")
+  ) {
+    return {
+      friendlyMessage: "Please add our service account email in Google Sheet Share settings (Editor access), then try again.",
+      serviceAccountEmail,
+    };
+  }
+
+  if (
+    lower.includes("service account") ||
+    lower.includes("misconfigured") ||
+    lower.includes("bad_base64_decode") ||
+    lower.includes("pem") ||
+    lower.includes("decoder")
+  ) {
+    return {
+      friendlyMessage: "Google Sheets setup is temporarily unavailable. Please try again in a few minutes.",
+      serviceAccountEmail,
+    };
+  }
+
+  return {
+    friendlyMessage: "Could not verify this sheet right now. Please try again.",
+    serviceAccountEmail,
+  };
 }
 
 export function getFieldType(field: string, secret?: boolean): "text" | "password" | "number" {
@@ -55,7 +155,7 @@ export function collectSetupErrors(
     ]),
   );
 
-  for (const input of response.plan.missingInputs.filter((entry) => entry.required)) {
+  for (const input of getUserEditableMissingInputs(response, true)) {
     const node = response.plan.nodes.find((entry) => entry.nodeId === input.nodeId);
     if (!node) continue;
 
@@ -99,12 +199,12 @@ export function groupMissingInputs(
   result: AiStrategyBuilderResponse | AiStrategyDraftSession | null,
 ) {
   const response = getResponse(result);
-  return (
-    response?.plan.missingInputs.reduce<Record<string, typeof response.plan.missingInputs>>((acc, input) => {
-      acc[input.nodeId] = [...(acc[input.nodeId] || []), input];
-      return acc;
-    }, {}) || {}
-  );
+  if (!response) return {};
+
+  return getUserEditableMissingInputs(response, false).reduce<Record<string, typeof response.plan.missingInputs>>((acc, input) => {
+    acc[input.nodeId] = [...(acc[input.nodeId] || []), input];
+    return acc;
+  }, {});
 }
 
 export function getReusableSecretServiceForNodeType(nodeType: string): ReusableSecretService | null {

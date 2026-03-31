@@ -3,6 +3,7 @@ import type { ExecutionStep } from "@quantnest-trading/types";
 import { getNodeRegistryEntry } from "@quantnest-trading/node-registry";
 import type { ExecutorActionHandlerId } from "@quantnest-trading/node-registry";
 import { createGoogleDriveDailyTradesCsv } from "../executors/googleDrive";
+import { createGoogleSheetsExecutionReport } from "../executors/googleSheets";
 import { ExecuteLighter } from "../executors/lighter";
 import { createNotionDailyReport, isNotionReportWindowOpen, wasNotionReportCreatedToday } from "../executors/notion";
 import { wasDailyActionCreatedToday } from "../executors/reporting/helpers";
@@ -532,6 +533,55 @@ const googleDriveActionHandler: ActionHandler = async ({ node, nodes, context, n
     }
 };
 
+const googleSheetsActionHandler: ActionHandler = async ({ node, context, nextCondition, steps, resolvedMetadata }) => {
+    try {
+        if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+            return;
+        }
+        if (!context.workflowId) throw new Error("Workflow ID is required to append Google Sheets report");
+        if (!context.userId) throw new Error("User ID is required to append Google Sheets report");
+
+        const updatedRange = await createGoogleSheetsExecutionReport({
+            workflowId: context.workflowId,
+            userId: context.userId,
+            metadata: {
+                sheetUrl: (resolvedMetadata as any)?.sheetUrl,
+                sheetId: (resolvedMetadata as any)?.sheetId,
+                sheetName: (resolvedMetadata as any)?.sheetName,
+            },
+            context,
+        });
+
+        pushStep(steps, {
+            nodeId: node.nodeId,
+            nodeType: "Google Sheets Report",
+            status: "Success",
+            message: `Google Sheets row appended (${updatedRange})`,
+        });
+    } catch (error: any) {
+        console.error("Google Sheets report append error:", error);
+        if (context.userId) {
+            await createUserNotification({
+                userId: context.userId,
+                workflowId: context.workflowId,
+                type: "google_sheets_report_failed",
+                severity: "error",
+                title: "Google Sheets report failed",
+                message: error?.message || "Failed to append workflow report row to Google Sheets.",
+                metadata: { nodeId: node.nodeId },
+                dedupeKey: `google-sheets-report-failed:${context.workflowId}:${node.nodeId}`,
+                dedupeWindowHours: 6,
+            });
+        }
+        pushStep(steps, {
+            nodeId: node.nodeId,
+            nodeType: "Google Sheets Report",
+            status: "Failed",
+            message: error?.message || "Failed to append Google Sheets row",
+        });
+    }
+};
+
 const lighterActionHandler: ActionHandler = async ({ node, nextCondition, steps, resolvedMetadata }) => {
     try {
         if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
@@ -575,6 +625,7 @@ const actionHandlerMap: Record<ExecutorActionHandlerId, ActionHandler> = {
     whatsapp: whatsappActionHandler,
     "notion-daily-report": notionActionHandler,
     "google-drive-daily-csv": googleDriveActionHandler,
+    "google-sheets-report": googleSheetsActionHandler,
 };
 
 export async function executeActionNode(params: {

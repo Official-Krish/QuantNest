@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type RefObject } from "react";
-import { apiGetReusableSecrets } from "@/http";
+import { apiGetGoogleSheetsServiceAccount, apiGetReusableSecrets, apiVerifyGoogleSheets } from "@/http";
 import type {
   AiStrategyConversationMessage,
   AiStrategyDraftSession,
@@ -10,9 +10,12 @@ import type { AiMetadataOverrides } from "@/components/ai-builder/types";
 import {
   getFieldLabel,
   getFieldType,
+  getGoogleSheetsVerificationErrorDetails,
   getNodeLabel,
+  getRequiredMissingInputsCount,
   getReusableSecretServiceForNodeType,
   groupMissingInputs,
+  isGoogleSheetsReportNodeType,
   shouldHideInputWhenSecretSelected,
   suggestReusableSecretId,
 } from "@/components/ai-builder/setupDialog.utils";
@@ -23,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 import { ChatBubble } from "./ChatBubble";
 import { WorkflowCanvasCard } from "./WorkflowCanvasCard";
 import { cx, type LocalTheme } from "./shared";
@@ -56,7 +60,7 @@ function AssistantResponseCard({
   theme: LocalTheme;
 }) {
   const validation = version.response.validation;
-  const missingCount = version.response.plan.missingInputs.filter((input) => input.required).length;
+  const missingCount = getRequiredMissingInputsCount(version.response);
   const topWarnings = version.response.validation.issues.filter((issue) => issue.severity === "warning").slice(0, 2);
   const topErrors = version.response.validation.issues.filter((issue) => issue.severity === "error").slice(0, 2);
 
@@ -136,6 +140,15 @@ function InlineMissingInputsCard({
   const groupedInputs = groupMissingInputs(activeDraft);
   const entries = Object.entries(groupedInputs);
   const [secretsByService, setSecretsByService] = useState<Partial<Record<ReusableSecretService, ReusableSecretSummary[]>>>({});
+  const [googleSheetsServiceAccountEmail, setGoogleSheetsServiceAccountEmail] = useState("");
+  const [googleSheetsVerifyingByNode, setGoogleSheetsVerifyingByNode] = useState<Record<string, boolean>>({});
+  const [googleSheetsVerifySuccessByNode, setGoogleSheetsVerifySuccessByNode] = useState<Record<string, string>>({});
+  const [copiedGoogleSheetsNodeId, setCopiedGoogleSheetsNodeId] = useState<string | null>(null);
+
+  const hasGoogleSheetsNode = entries.some(([nodeId]) => {
+    const node = activeDraft.response.plan.nodes.find((entry) => entry.nodeId === nodeId);
+    return node ? isGoogleSheetsReportNodeType(String(node.type)) : false;
+  });
 
   const servicesToLoad = Array.from(
     new Set(
@@ -175,6 +188,29 @@ function InlineMissingInputsCard({
   }, [servicesToLoad.join("|"), secretsByService]);
 
   useEffect(() => {
+    if (!hasGoogleSheetsNode || googleSheetsServiceAccountEmail) return;
+
+    let cancelled = false;
+
+    const loadServiceAccount = async () => {
+      try {
+        const response = await apiGetGoogleSheetsServiceAccount();
+        if (!cancelled) {
+          setGoogleSheetsServiceAccountEmail(response.serviceAccountEmail || "");
+        }
+      } catch {
+        // Keep setup usable even when the helper endpoint is temporarily unavailable.
+      }
+    };
+
+    void loadServiceAccount();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasGoogleSheetsNode, googleSheetsServiceAccountEmail]);
+
+  useEffect(() => {
     const nextOverrides = { ...metadataOverrides };
     let changed = false;
 
@@ -210,6 +246,15 @@ function InlineMissingInputsCard({
 
   const setFieldValue = (nodeId: string, key: string, rawValue: string, type: string) => {
     const nextValue = type === "number" ? Number(rawValue) : rawValue;
+
+    if (key === "sheetUrl") {
+      setGoogleSheetsVerifySuccessByNode((current) => {
+        const next = { ...current };
+        delete next[nodeId];
+        return next;
+      });
+    }
+
     onMetadataOverridesChange({
       ...metadataOverrides,
       [nodeId]: {
@@ -217,6 +262,85 @@ function InlineMissingInputsCard({
         [key]: nextValue,
       },
     });
+  };
+
+  const verifyGoogleSheetNode = async (
+    nodeId: string,
+    baseMetadata: Record<string, unknown>,
+    overrideMetadata: Record<string, unknown>,
+  ) => {
+    const sheetUrl = String(overrideMetadata.sheetUrl ?? baseMetadata.sheetUrl ?? "").trim();
+    if (!sheetUrl) {
+      toast.error("Google Sheet verification failed", {
+        description: "Please paste a valid Google Sheet link.",
+      });
+      return;
+    }
+
+    setGoogleSheetsVerifyingByNode((current) => ({ ...current, [nodeId]: true }));
+    setGoogleSheetsVerifySuccessByNode((current) => {
+      const next = { ...current };
+      delete next[nodeId];
+      return next;
+    });
+
+    try {
+      const response = await apiVerifyGoogleSheets({ sheetUrl });
+
+      onMetadataOverridesChange({
+        ...metadataOverrides,
+        [nodeId]: {
+          ...(metadataOverrides[nodeId] || {}),
+          sheetId: response.sheet.sheetId,
+          sheetName: response.sheet.sheetName,
+          serviceAccountEmail: response.sheet.serviceAccountEmail,
+        },
+      });
+
+      setGoogleSheetsServiceAccountEmail(response.sheet.serviceAccountEmail || "");
+      setGoogleSheetsVerifySuccessByNode((current) => ({
+        ...current,
+        [nodeId]: `Verified: ${response.sheet.spreadsheetTitle} (${response.sheet.sheetName})`,
+      }));
+
+      toast.success("Google Sheet verified", {
+        description: `${response.sheet.spreadsheetTitle} (${response.sheet.sheetName})`,
+      });
+    } catch (error) {
+      const { friendlyMessage, serviceAccountEmail } = getGoogleSheetsVerificationErrorDetails(error);
+      if (serviceAccountEmail) {
+        setGoogleSheetsServiceAccountEmail(serviceAccountEmail);
+        onMetadataOverridesChange({
+          ...metadataOverrides,
+          [nodeId]: {
+            ...(metadataOverrides[nodeId] || {}),
+            serviceAccountEmail,
+          },
+        });
+      }
+
+      toast.error("Google Sheet verification failed", {
+        description: friendlyMessage,
+      });
+    } finally {
+      setGoogleSheetsVerifyingByNode((current) => ({ ...current, [nodeId]: false }));
+    }
+  };
+
+  const copyGoogleSheetsServiceAccount = async (nodeId: string, email: string) => {
+    if (!email) return;
+
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopiedGoogleSheetsNodeId(nodeId);
+      setTimeout(() => {
+        setCopiedGoogleSheetsNodeId((current) => (current === nodeId ? null : current));
+      }, 1500);
+    } catch {
+      toast.error("Could not copy service account email", {
+        description: "Please copy it manually.",
+      });
+    }
   };
 
   const setSecretId = (nodeId: string, secretId?: string) => {
@@ -245,7 +369,7 @@ function InlineMissingInputsCard({
           </div>
         </div>
         <div className="rounded-full bg-amber-500/12 px-2.5 py-1 text-[10px] text-amber-400">
-          {activeDraft.response.plan.missingInputs.filter((input) => input.required).length} required
+          {getRequiredMissingInputsCount(activeDraft)} required
         </div>
       </div>
 
@@ -258,6 +382,7 @@ function InlineMissingInputsCard({
           const service = getReusableSecretServiceForNodeType(String(node.type));
           const availableSecrets = service ? (secretsByService[service] || []) : [];
           const nodeType = String(node.type);
+          const isGoogleSheetsNode = isGoogleSheetsReportNodeType(nodeType);
           const currentSecretId = Object.prototype.hasOwnProperty.call(overrideMetadata, "secretId")
             ? String(overrideMetadata.secretId || "").trim()
             : String(baseMetadata.secretId || "").trim();
@@ -266,6 +391,13 @@ function InlineMissingInputsCard({
           const suggestedSecret = suggestedSecretId
             ? availableSecrets.find((secret) => secret.id === suggestedSecretId)
             : null;
+          const googleSheetsServiceEmail = String(
+            overrideMetadata.serviceAccountEmail ??
+            baseMetadata.serviceAccountEmail ??
+            googleSheetsServiceAccountEmail,
+          ).trim();
+          const isVerifyingGoogleSheet = Boolean(googleSheetsVerifyingByNode[nodeId]);
+          const googleSheetsVerifySuccess = googleSheetsVerifySuccessByNode[nodeId] || "";
 
           return (
             <div key={nodeId} className={cx("rounded-xl border p-3", theme === "dark" ? "border-neutral-800 bg-black" : "border-neutral-200 bg-[#fafafa]")}>
@@ -347,6 +479,57 @@ function InlineMissingInputsCard({
                   );
                   })}
               </div>
+
+              {isGoogleSheetsNode ? (
+                <div className="mt-3 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => verifyGoogleSheetNode(nodeId, baseMetadata, overrideMetadata)}
+                    disabled={isVerifyingGoogleSheet}
+                    className={cx(
+                      "w-full rounded-xl px-3 py-2 text-xs font-medium transition",
+                      theme === "dark"
+                        ? "bg-neutral-100 text-neutral-900 hover:bg-neutral-200 disabled:opacity-60"
+                        : "bg-neutral-900 text-neutral-100 hover:bg-neutral-700 disabled:opacity-60",
+                    )}
+                  >
+                    {isVerifyingGoogleSheet ? "Verifying access..." : "Verify Sheet Access"}
+                  </button>
+
+                  {googleSheetsVerifySuccess ? (
+                    <div className={cx("rounded-lg border p-2 text-[11px]", theme === "dark" ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-200" : "border-emerald-300 bg-emerald-50 text-emerald-700")}>
+                      {googleSheetsVerifySuccess}
+                    </div>
+                  ) : null}
+
+                  <div className={cx("rounded-lg border p-2", theme === "dark" ? "border-neutral-700/50 bg-neutral-900/30" : "border-neutral-200 bg-neutral-50") }>
+                    <p className={cx("text-[11px]", theme === "dark" ? "text-neutral-400" : "text-neutral-600")}>
+                      Share your Google Sheet with this service account as Editor before verification.
+                    </p>
+                    {googleSheetsServiceEmail ? (
+                      <div className={cx("mt-2 flex items-center justify-between gap-2 rounded-md border px-2 py-2", theme === "dark" ? "border-neutral-700/70 bg-black/30" : "border-neutral-200 bg-white") }>
+                        <p className={cx("truncate text-[11px]", theme === "dark" ? "text-neutral-200" : "text-neutral-700")}>{googleSheetsServiceEmail}</p>
+                        <button
+                          type="button"
+                          onClick={() => copyGoogleSheetsServiceAccount(nodeId, googleSheetsServiceEmail)}
+                          className={cx(
+                            "rounded-md border px-2 py-1 text-[11px] transition",
+                            theme === "dark"
+                              ? "border-neutral-700 bg-neutral-900 text-neutral-100 hover:bg-neutral-800"
+                              : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100",
+                          )}
+                        >
+                          {copiedGoogleSheetsNodeId === nodeId ? "Copied" : "Copy"}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className={cx("mt-1 text-[11px]", theme === "dark" ? "text-neutral-500" : "text-neutral-500")}>
+                        Service account email will appear once backend configuration is loaded.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
           );
         })}
@@ -507,7 +690,7 @@ export function ChatMessagesPane({
                     />
                     {activeDraft &&
                     versionForMessage.id === activeDraft.workflowVersions[activeDraft.workflowVersions.length - 1]?.id &&
-                    versionForMessage.response.plan.missingInputs.length > 0 ? (
+                    getRequiredMissingInputsCount(activeDraft) > 0 ? (
                       <div className="pt-2">
                         <InlineMissingInputsCard
                           activeDraft={activeDraft}

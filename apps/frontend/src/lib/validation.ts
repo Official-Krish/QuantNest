@@ -14,6 +14,7 @@ export const WHATSAPP_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
 export const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
 export const NOTION_PAGE_ID_REGEX = /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
 export const GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX = /^[A-Za-z0-9-]+@[A-Za-z0-9-]+\.iam\.gserviceaccount\.com$/;
+export const GOOGLE_SHEET_URL_REGEX = /^https?:\/\/(?:docs\.google\.com\/spreadsheets\/d\/)[A-Za-z0-9-_]+(?:\/[^\s]*)?(?:\?[^\s]*)?$/i;
 
 export function validateEmail(email: string): boolean {
   return EMAIL_REGEX.test(email.trim());
@@ -81,6 +82,12 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
     }
   }
 
+  if (action === "google-sheets-report") {
+    if (!GOOGLE_SHEET_URL_REGEX.test(String(metadata.sheetUrl || "").trim())) {
+      errors.push("Enter a valid Google Sheet URL.");
+    }
+  }
+
   return errors;
 }
 
@@ -139,7 +146,9 @@ export function getTradingValidationErrors(
       errors.push("Zerodha API key must be 8-32 alphanumeric characters.");
     }
     const accessToken = String(data.accessToken || "").trim();
-    if (!hasSecret && accessToken.length > 0 && !ACCESS_TOKEN_REGEX.test(accessToken)) {
+    if (!hasSecret && !accessToken) {
+      errors.push("Zerodha access token is required.");
+    } else if (!hasSecret && !ACCESS_TOKEN_REGEX.test(accessToken)) {
       errors.push("Zerodha access token format is invalid.");
     }
   }

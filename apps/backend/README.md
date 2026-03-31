@@ -27,6 +27,8 @@ MONGO_URL=mongodb://localhost:27017/myapp
 JWT_SECRET=replace_with_secure_secret
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173
+GOOGLE_SHEETS_SERVICE_ACCOUNT_EMAIL=
+GOOGLE_SHEETS_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 # Optional cookie controls for K8s/ingress deployments
 # AUTH_COOKIE_NAME=quantnest_auth
 # COOKIE_DOMAIN=.yourdomain.com

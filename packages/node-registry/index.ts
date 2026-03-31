@@ -14,6 +14,7 @@ export type BuilderFormId =
     | "delay"
     | "notion-daily-report"
     | "google-drive-daily-csv"
+    | "google-sheets-report"
     | "none";
 export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "conditional-trigger";
 export type ExecutorActionHandlerId =
@@ -28,7 +29,8 @@ export type ExecutorActionHandlerId =
     | "discord"
     | "whatsapp"
     | "notion-daily-report"
-    | "google-drive-daily-csv";
+    | "google-drive-daily-csv"
+    | "google-sheets-report";
 
 export interface NodeRegistryEntry {
     id: string;
@@ -65,6 +67,10 @@ export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
     parentPageId: "Parent page ID",
     googleClientEmail: "Google service account email",
     googlePrivateKey: "Google private key",
+    sheetUrl: "Google Sheet URL",
+    sheetId: "Google Spreadsheet ID",
+    sheetName: "Google Sheet tab name",
+    serviceAccountEmail: "Backend service account email",
     googleDriveFolderId: "Google Drive folder ID",
     accountIndex: "Account index",
     apiKeyIndex: "API key index",
@@ -332,6 +338,21 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         metadataFields: ["googleClientEmail", "googlePrivateKey", "googleDriveFolderId", "filePrefix", "aiConsent"],
         reusableSecretService: "google-drive-daily-csv",
         secretFieldKeys: ["googleClientEmail", "googlePrivateKey"],
+    },
+    {
+        id: "google-sheets-report",
+        title: "Google Sheets Report",
+        description: "Append workflow execution data to a Google Sheet",
+        kind: "action",
+        builderCategory: "Reporting",
+        builderPanelGroup: "Reporting",
+        builderFormId: "google-sheets-report",
+        builderRendererId: "google-sheets-report",
+        executorActionHandlerId: "google-sheets-report",
+        aiAllowed: true,
+        aiPreferredAction: true,
+        aliases: ["Google Sheets Report", "google sheets report", "google-sheets"],
+        metadataFields: ["sheetUrl", "sheetName"],
     },
 ];
 
