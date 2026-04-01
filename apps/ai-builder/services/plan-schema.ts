@@ -164,9 +164,8 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
 
     if (normalizedType === "price") {
       const asset = String(metadata.asset || "").trim();
-      const targetPrice = Number(metadata.targetPrice);
-      const condition = String(metadata.condition || "").trim().toLowerCase();
       const marketType = String(metadata.marketType || "").trim().toLowerCase();
+      const mode = String(metadata.mode || "threshold").trim().toLowerCase();
 
       if (!asset) {
         pushIssue(issues, "error", "INVALID_GRAPH", "Price trigger is missing asset.", node.nodeId, "asset");
@@ -181,26 +180,80 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
         );
       }
 
-      if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
-        pushIssue(
-          issues,
-          "error",
-          "INVALID_GRAPH",
-          "Price trigger must include a targetPrice greater than 0.",
-          node.nodeId,
-          "targetPrice",
-        );
-      }
+      if (mode === "change") {
+        const changeDirection = String(metadata.changeDirection || "").trim().toLowerCase();
+        const changeType = String(metadata.changeType || "").trim().toLowerCase();
+        const changeValue = Number(metadata.changeValue);
+        const changeWindowMinutes = Number(metadata.changeWindowMinutes);
 
-      if (!["above", "below"].includes(condition)) {
-        pushIssue(
-          issues,
-          "error",
-          "INVALID_GRAPH",
-          "Price trigger must use condition 'above' or 'below'.",
-          node.nodeId,
-          "condition",
-        );
+        if (!["increase", "decrease"].includes(changeDirection)) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Price change trigger must use changeDirection 'increase' or 'decrease'.",
+            node.nodeId,
+            "changeDirection",
+          );
+        }
+
+        if (!["absolute", "percent"].includes(changeType)) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Price change trigger must use changeType 'absolute' or 'percent'.",
+            node.nodeId,
+            "changeType",
+          );
+        }
+
+        if (!Number.isFinite(changeValue) || changeValue <= 0) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Price change trigger must include changeValue greater than 0.",
+            node.nodeId,
+            "changeValue",
+          );
+        }
+
+        if (!Number.isFinite(changeWindowMinutes) || changeWindowMinutes <= 0) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Price change trigger must include changeWindowMinutes greater than 0.",
+            node.nodeId,
+            "changeWindowMinutes",
+          );
+        }
+      } else {
+        const targetPrice = Number(metadata.targetPrice);
+        const condition = String(metadata.condition || "").trim().toLowerCase();
+
+        if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Price trigger must include a targetPrice greater than 0.",
+            node.nodeId,
+            "targetPrice",
+          );
+        }
+
+        if (!["above", "below"].includes(condition)) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Price trigger must use condition 'above' or 'below'.",
+            node.nodeId,
+            "condition",
+          );
+        }
       }
 
       if (!["indian", "crypto", "web3"].includes(marketType)) {
@@ -420,6 +473,43 @@ function validatePromptAlignedSemantics(
         "error",
         "PROMPT_MISMATCH",
         "Prompt requested a crossover condition, but the generated expression does not include crosses_above/crosses_below.",
+      );
+    }
+  }
+
+  const asksForVolumeSpike = /volume\s*(spike|surge)|spike\s+in\s+volume|high\s+volume|volume\s*above/i.test(prompt);
+  if (asksForVolumeSpike) {
+    const conditionalNodes = plan.nodes.filter((node) => String(node.type).toLowerCase() === "conditional-trigger");
+
+    if (!conditionalNodes.length) {
+      pushIssue(
+        issues,
+        "error",
+        "PROMPT_MISMATCH",
+        "Prompt requested a volume spike condition, but the generated plan does not contain a conditional trigger.",
+      );
+      return;
+    }
+
+    const hasVolumeClause = conditionalNodes.some((node) => {
+      const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+      const clauses = extractClauses(metadata.expression);
+      return clauses.some((clause: any) => {
+        const left = clause?.left as { type?: string; indicator?: { indicator?: string } } | undefined;
+        const right = clause?.right as { type?: string; indicator?: { indicator?: string } } | undefined;
+        return (
+          (left?.type === "indicator" && String(left?.indicator?.indicator || "").toLowerCase() === "volume") ||
+          (right?.type === "indicator" && String(right?.indicator?.indicator || "").toLowerCase() === "volume")
+        );
+      });
+    });
+
+    if (!hasVolumeClause) {
+      pushIssue(
+        issues,
+        "error",
+        "PROMPT_MISMATCH",
+        "Prompt requested a volume spike condition, but the generated expression does not include a volume clause.",
       );
     }
   }

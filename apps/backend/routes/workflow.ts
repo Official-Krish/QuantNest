@@ -8,6 +8,7 @@ import type {
 import { createUserNotification, deriveWorkflowTriggerState, saveZerodhaToken } from '@quantnest-trading/executor-utils';
 import {
     getCurrentPrice,
+    getHistoricalChart,
     type MarketCandle,
 } from '@quantnest-trading/market';
 import {
@@ -21,6 +22,14 @@ import { collectIndicatorReferences, evaluateExpression, normalizeMarket, resolv
 
 const workFlowRouter = Router();
 
+function getChartIntervalForWindow(windowMinutes: number): "1m" | "2m" | "5m" | "15m" | "60m" {
+    if (windowMinutes <= 30) return "1m";
+    if (windowMinutes <= 60) return "2m";
+    if (windowMinutes <= 180) return "5m";
+    if (windowMinutes <= 720) return "15m";
+    return "60m";
+}
+
 
 workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
     try {
@@ -28,6 +37,13 @@ workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
         const asset = typeof req.body?.asset === "string" ? req.body.asset : undefined;
         const targetPrice = typeof req.body?.targetPrice === "number" ? req.body.targetPrice : Number(req.body?.targetPrice);
         const condition = req.body?.condition;
+        const mode = String(req.body?.mode || "threshold").toLowerCase();
+        const changeType = String(req.body?.changeType || "").toLowerCase();
+        const changeDirection = String(req.body?.changeDirection || "").toLowerCase();
+        const changeValue = typeof req.body?.changeValue === "number" ? req.body.changeValue : Number(req.body?.changeValue);
+        const changeWindowMinutes = typeof req.body?.changeWindowMinutes === "number"
+            ? req.body.changeWindowMinutes
+            : Number(req.body?.changeWindowMinutes);
         const expression = req.body?.expression as IndicatorConditionGroup | undefined;
         const historicalCache = new Map<string, MarketCandle[]>();
         const valueCache = new Map<string, number | null>();
@@ -35,20 +51,60 @@ workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
         let currentPrice: number | undefined;
         let conditionMet: boolean | undefined;
         let distanceToTarget: number | null | undefined;
+        let baselinePrice: number | null | undefined;
+        let priceChange: number | null | undefined;
+        let priceChangePercent: number | null | undefined;
 
         if (asset) {
             currentPrice = await getCurrentPrice(asset, marketType);
         }
 
-        if (
-            typeof currentPrice === "number" &&
-            Number.isFinite(targetPrice) &&
-            (condition === "above" || condition === "below")
-        ) {
-            distanceToTarget = currentPrice - targetPrice;
-            conditionMet = condition === "above"
-                ? currentPrice > targetPrice
-                : currentPrice < targetPrice;
+        if (typeof currentPrice === "number") {
+            if (
+                mode === "change" &&
+                Number.isFinite(changeWindowMinutes) &&
+                changeWindowMinutes > 0
+            ) {
+                const periodStart = new Date(Date.now() - changeWindowMinutes * 60 * 1000);
+                const candles = await getHistoricalChart(
+                    asset!,
+                    marketType,
+                    periodStart,
+                    getChartIntervalForWindow(changeWindowMinutes),
+                );
+
+                const baselineCandle = candles.find((candle) => typeof candle?.close === "number" && Number.isFinite(candle.close));
+                baselinePrice = baselineCandle?.close ?? null;
+                if (typeof baselinePrice === "number" && Number.isFinite(baselinePrice) && baselinePrice > 0) {
+                    const delta = currentPrice - baselinePrice;
+                    priceChange = delta;
+                    priceChangePercent = (delta / baselinePrice) * 100;
+
+                    const directionalMatch = changeDirection === "increase"
+                        ? delta >= 0
+                        : changeDirection === "decrease"
+                            ? delta <= 0
+                            : false;
+
+                    const magnitude = Math.abs(delta);
+                    const observedChange = changeType === "percent"
+                        ? Math.abs(priceChangePercent)
+                        : magnitude;
+
+                    if (Number.isFinite(changeValue) && changeValue > 0) {
+                        distanceToTarget = observedChange - changeValue;
+                        conditionMet = directionalMatch && observedChange >= changeValue;
+                    }
+                }
+            } else if (
+                Number.isFinite(targetPrice) &&
+                (condition === "above" || condition === "below")
+            ) {
+                distanceToTarget = currentPrice - targetPrice;
+                conditionMet = condition === "above"
+                    ? currentPrice > targetPrice
+                    : currentPrice < targetPrice;
+            }
         }
 
         const indicatorSnapshot = [];
@@ -81,6 +137,9 @@ workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
             currentPrice,
             conditionMet,
             distanceToTarget,
+            baselinePrice,
+            priceChange,
+            priceChangePercent,
             indicatorSnapshot,
             evaluatedAt: new Date().toISOString(),
         };

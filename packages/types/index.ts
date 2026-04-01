@@ -100,9 +100,14 @@ export interface TimerNodeMetadata {
 
 export interface PriceTriggerNodeMetadata {
     asset: string;
-    targetPrice: number;
+    targetPrice?: number;
     marketType: "indian" | "web3";
-    condition: "above" | "below";
+    condition?: "above" | "below";
+    mode?: "threshold" | "change";
+    changeType?: "absolute" | "percent";
+    changeDirection?: "increase" | "decrease";
+    changeValue?: number;
+    changeWindowMinutes?: number;
 }
 
 export interface TradingMetadata {

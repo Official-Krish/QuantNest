@@ -245,6 +245,86 @@ function validateWorkflowNodes(
             }
         }
 
+        if (type === "price-trigger" || type === "price") {
+            const asset = String((metadata as any).asset || "").trim();
+            const marketType = String((metadata as any).marketType || "").trim().toLowerCase();
+            const mode = String((metadata as any).mode || "threshold").trim().toLowerCase();
+
+            if (!asset) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "asset"],
+                    message: "Price trigger asset is required.",
+                });
+            }
+
+            if (!["indian", "crypto", "web3"].includes(marketType)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "marketType"],
+                    message: "Price trigger marketType must be Indian or Crypto/Web3.",
+                });
+            }
+
+            if (mode === "change") {
+                const changeType = String((metadata as any).changeType || "").trim().toLowerCase();
+                const changeDirection = String((metadata as any).changeDirection || "").trim().toLowerCase();
+                const changeValue = Number((metadata as any).changeValue);
+                const changeWindowMinutes = Number((metadata as any).changeWindowMinutes);
+
+                if (!["absolute", "percent"].includes(changeType)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "changeType"],
+                        message: "Price change type must be absolute or percent.",
+                    });
+                }
+
+                if (!["increase", "decrease"].includes(changeDirection)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "changeDirection"],
+                        message: "Price change direction must be increase or decrease.",
+                    });
+                }
+
+                if (!Number.isFinite(changeValue) || changeValue <= 0) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "changeValue"],
+                        message: "Price change value must be greater than 0.",
+                    });
+                }
+
+                if (!Number.isFinite(changeWindowMinutes) || changeWindowMinutes <= 0) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "changeWindowMinutes"],
+                        message: "Price change window must be greater than 0 minutes.",
+                    });
+                }
+            } else {
+                const condition = String((metadata as any).condition || "").trim().toLowerCase();
+                const targetPrice = Number((metadata as any).targetPrice);
+
+                if (!["above", "below"].includes(condition)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "condition"],
+                        message: "Price trigger condition must be above or below.",
+                    });
+                }
+
+                if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "targetPrice"],
+                        message: "Price trigger target price must be greater than 0.",
+                    });
+                }
+            }
+        }
+
         if (type === "gmail") {
             const recipientEmail = String((metadata as any).recipientEmail || "").trim();
             if (!EMAIL_REGEX.test(recipientEmail)) {

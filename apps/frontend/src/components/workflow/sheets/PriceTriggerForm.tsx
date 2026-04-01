@@ -41,18 +41,39 @@ export const PriceTriggerForm = ({
       return;
     }
 
+    const allowedAssets = activeMarket === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS;
+    if (!allowedAssets.includes(asset as any)) {
+      setPreview(null);
+      setPreviewError(null);
+      return;
+    }
+
     let isCancelled = false;
 
     const fetchPreview = async () => {
       try {
         setPreviewLoading(true);
         setPreviewError(null);
-        const next = await apiPreviewWorkflowMetrics({
-          marketType: activeMarket,
-          asset,
-          targetPrice: Number(metadata.targetPrice),
-          condition: metadata.condition,
-        });
+        const mode = metadata.mode || "threshold";
+        const next = await apiPreviewWorkflowMetrics(
+          mode === "change"
+            ? {
+                marketType: activeMarket,
+                asset,
+                mode,
+                changeType: metadata.changeType,
+                changeDirection: metadata.changeDirection,
+                changeValue: Number(metadata.changeValue),
+                changeWindowMinutes: Number(metadata.changeWindowMinutes),
+              }
+            : {
+                marketType: activeMarket,
+                asset,
+                mode: "threshold",
+                targetPrice: Number(metadata.targetPrice),
+                condition: metadata.condition,
+              },
+        );
         if (!isCancelled) {
           setPreview(next);
         }
@@ -76,64 +97,211 @@ export const PriceTriggerForm = ({
       isCancelled = true;
       window.clearInterval(interval);
     };
-  }, [marketType, metadata.asset, metadata.condition, metadata.marketType, metadata.targetPrice]);
+  }, [
+    marketType,
+    metadata.asset,
+    metadata.changeDirection,
+    metadata.changeType,
+    metadata.changeValue,
+    metadata.changeWindowMinutes,
+    metadata.condition,
+    metadata.marketType,
+    metadata.mode,
+    metadata.targetPrice,
+  ]);
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
       {/* Condition */}
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Condition
+          Trigger mode
         </p>
         <p className="text-xs text-neutral-400">
-          Run when price is above or below the threshold.
+          Choose a fixed threshold or a change over a time window.
         </p>
         <Select
           onValueChange={(value) =>
             setMetadata((current: any) => ({
               ...current,
-              condition: value as "above" | "below",
+              mode: value as "threshold" | "change",
+              ...(value === "threshold"
+                ? {
+                    condition: current.condition || "above",
+                    targetPrice: Number(current.targetPrice) > 0 ? Number(current.targetPrice) : undefined,
+                  }
+                : {
+                    changeType: current.changeType || "percent",
+                    changeDirection: current.changeDirection || "increase",
+                    changeValue: Number(current.changeValue) > 0 ? Number(current.changeValue) : 2,
+                    changeWindowMinutes: Number(current.changeWindowMinutes) > 0 ? Number(current.changeWindowMinutes) : 60,
+                  }),
             }))
           }
-          value={metadata.condition || "above"}
+          value={metadata.mode || "threshold"}
         >
           <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
-            <SelectValue placeholder="Select condition" />
+            <SelectValue placeholder="Select trigger mode" />
           </SelectTrigger>
           <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
             <SelectGroup>
-              <SelectItem value="above" className="cursor-pointer text-sm">
-                Above
+              <SelectItem value="threshold" className="cursor-pointer text-sm">
+                Price threshold
               </SelectItem>
-              <SelectItem value="below" className="cursor-pointer text-sm">
-                Below
+              <SelectItem value="change" className="cursor-pointer text-sm">
+                Price change
               </SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Price Threshold */}
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Price threshold
-        </p>
-        <p className="text-xs text-neutral-400">
-          Run this workflow when the selected asset crosses this price.
-        </p>
-        <Input
-          type="number"
-          value={metadata.targetPrice || ""}
-          onChange={(e) =>
-            setMetadata((current: any) => ({
-              ...current,
-              targetPrice: Number(e.target.value),
-            }))
-          }
-          className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder="Enter price threshold"
-        />
-      </div>
+      {metadata.mode !== "change" ? (
+        <>
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              Condition
+            </p>
+            <p className="text-xs text-neutral-400">
+              Run when price is above or below the threshold.
+            </p>
+            <Select
+              onValueChange={(value) =>
+                setMetadata((current: any) => ({
+                  ...current,
+                  condition: value as "above" | "below",
+                }))
+              }
+              value={metadata.condition || "above"}
+            >
+              <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+                <SelectValue placeholder="Select condition" />
+              </SelectTrigger>
+              <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                <SelectGroup>
+                  <SelectItem value="above" className="cursor-pointer text-sm">
+                    Above
+                  </SelectItem>
+                  <SelectItem value="below" className="cursor-pointer text-sm">
+                    Below
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              Price threshold
+            </p>
+            <p className="text-xs text-neutral-400">
+              Run this workflow when the selected asset crosses this price.
+            </p>
+            <Input
+              type="number"
+              value={metadata.targetPrice || ""}
+              onChange={(e) =>
+                setMetadata((current: any) => ({
+                  ...current,
+                  targetPrice: Number(e.target.value),
+                }))
+              }
+              className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder="Enter price threshold"
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              Change direction
+            </p>
+            <Select
+              onValueChange={(value) =>
+                setMetadata((current: any) => ({
+                  ...current,
+                  changeDirection: value as "increase" | "decrease",
+                }))
+              }
+              value={metadata.changeDirection || "increase"}
+            >
+              <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+                <SelectValue placeholder="Select direction" />
+              </SelectTrigger>
+              <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                <SelectGroup>
+                  <SelectItem value="increase" className="cursor-pointer text-sm">Increase</SelectItem>
+                  <SelectItem value="decrease" className="cursor-pointer text-sm">Decrease</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              Change type
+            </p>
+            <Select
+              onValueChange={(value) =>
+                setMetadata((current: any) => ({
+                  ...current,
+                  changeType: value as "absolute" | "percent",
+                }))
+              }
+              value={metadata.changeType || "percent"}
+            >
+              <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+                <SelectValue placeholder="Select change type" />
+              </SelectTrigger>
+              <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                <SelectGroup>
+                  <SelectItem value="percent" className="cursor-pointer text-sm">Percent (%)</SelectItem>
+                  <SelectItem value="absolute" className="cursor-pointer text-sm">Absolute (price points)</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              Change value
+            </p>
+            <Input
+              type="number"
+              min={0}
+              value={metadata.changeValue || ""}
+              onChange={(e) =>
+                setMetadata((current: any) => ({
+                  ...current,
+                  changeValue: Number(e.target.value),
+                }))
+              }
+              className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder={metadata.changeType === "absolute" ? "e.g. 50" : "e.g. 2"}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+              Window (minutes)
+            </p>
+            <Input
+              type="number"
+              min={1}
+              value={metadata.changeWindowMinutes || ""}
+              onChange={(e) =>
+                setMetadata((current: any) => ({
+                  ...current,
+                  changeWindowMinutes: Number(e.target.value),
+                }))
+              }
+              className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder="e.g. 60"
+            />
+          </div>
+        </>
+      )}
 
 
       {/* Market Selection Indian/Web3 */}
@@ -147,6 +315,7 @@ export const PriceTriggerForm = ({
                 setMetadata((current: any) => ({
                 ...current,
                 marketType: value,
+                asset: undefined,
                 }))
             }
           }

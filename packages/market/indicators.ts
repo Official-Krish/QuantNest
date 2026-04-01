@@ -238,3 +238,157 @@ export function calculateRsiSeries(candles: MarketCandle[], period?: number): nu
 
   return series;
 }
+
+function calculateEmaFromSeries(values: number[], period: number): number[] {
+  const normalizedPeriod = normalizePeriod(period, 14);
+  if (values.length < normalizedPeriod) {
+    return [];
+  }
+
+  const multiplier = 2 / (normalizedPeriod + 1);
+  const seed = values.slice(0, normalizedPeriod).reduce((acc, value) => acc + value, 0) / normalizedPeriod;
+  const emaSeries = [seed];
+  let ema = seed;
+
+  for (let i = normalizedPeriod; i < values.length; i++) {
+    const value = values[i];
+    if (value == null) break;
+    ema = (value - ema) * multiplier + ema;
+    emaSeries.push(ema);
+  }
+
+  return emaSeries;
+}
+
+function calculateMacdComponents(
+  candles: MarketCandle[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9,
+): {
+  macdSeries: number[];
+  signalSeries: number[];
+  histogramSeries: number[];
+} {
+  const closes = getCloseSeries(candles);
+  const normalizedFast = normalizePeriod(fastPeriod, 12);
+  const normalizedSlow = normalizePeriod(slowPeriod, 26);
+  const normalizedSignal = normalizePeriod(signalPeriod, 9);
+
+  if (closes.length < normalizedSlow) {
+    return {
+      macdSeries: [],
+      signalSeries: [],
+      histogramSeries: [],
+    };
+  }
+
+  const fastEma = calculateEmaFromSeries(closes, normalizedFast);
+  const slowEma = calculateEmaFromSeries(closes, normalizedSlow);
+
+  if (!fastEma.length || !slowEma.length) {
+    return {
+      macdSeries: [],
+      signalSeries: [],
+      histogramSeries: [],
+    };
+  }
+
+  const slowSeedIndex = normalizedSlow - 1;
+  const macdSeries = closes
+    .map((_, idx) => {
+      if (idx < slowSeedIndex) return null;
+      const fastIndex = idx - (normalizedFast - 1);
+      const slowIndex = idx - (normalizedSlow - 1);
+      const fastValue = fastEma[fastIndex];
+      const slowValue = slowEma[slowIndex];
+      if (fastValue == null || slowValue == null) return null;
+      if (!Number.isFinite(fastValue) || !Number.isFinite(slowValue)) return null;
+      return fastValue - slowValue;
+    })
+    .filter((value): value is number => value != null);
+
+  const signalSeries = calculateEmaFromSeries(macdSeries, normalizedSignal);
+  if (!signalSeries.length) {
+    return {
+      macdSeries,
+      signalSeries: [],
+      histogramSeries: [],
+    };
+  }
+
+  const histogramSeries = macdSeries
+    .slice(macdSeries.length - signalSeries.length)
+    .map((macd, index) => {
+      const signalValue = signalSeries[index];
+      if (signalValue == null) return null;
+      return macd - signalValue;
+    })
+    .filter((value): value is number => value != null);
+
+  return {
+    macdSeries,
+    signalSeries,
+    histogramSeries,
+  };
+}
+
+export function calculateMacd(
+  candles: MarketCandle[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9,
+): number | null {
+  const { macdSeries, signalSeries } = calculateMacdComponents(candles, fastPeriod, slowPeriod, signalPeriod);
+  if (!macdSeries.length || !signalSeries.length) return null;
+  return macdSeries[macdSeries.length - 1] ?? null;
+}
+
+export function calculateMacdSignal(
+  candles: MarketCandle[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9,
+): number | null {
+  const { signalSeries } = calculateMacdComponents(candles, fastPeriod, slowPeriod, signalPeriod);
+  if (!signalSeries.length) return null;
+  return signalSeries[signalSeries.length - 1] ?? null;
+}
+
+export function calculateMacdHistogram(
+  candles: MarketCandle[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9,
+): number | null {
+  const { histogramSeries } = calculateMacdComponents(candles, fastPeriod, slowPeriod, signalPeriod);
+  if (!histogramSeries.length) return null;
+  return histogramSeries[histogramSeries.length - 1] ?? null;
+}
+
+export function calculateMacdSeries(
+  candles: MarketCandle[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9,
+): number[] {
+  return calculateMacdComponents(candles, fastPeriod, slowPeriod, signalPeriod).macdSeries;
+}
+
+export function calculateMacdSignalSeries(
+  candles: MarketCandle[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9,
+): number[] {
+  return calculateMacdComponents(candles, fastPeriod, slowPeriod, signalPeriod).signalSeries;
+}
+
+export function calculateMacdHistogramSeries(
+  candles: MarketCandle[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9,
+): number[] {
+  return calculateMacdComponents(candles, fastPeriod, slowPeriod, signalPeriod).histogramSeries;
+}

@@ -126,6 +126,9 @@ export interface WorkflowLivePreview {
   currentPrice?: number;
   conditionMet?: boolean;
   distanceToTarget?: number | null;
+  baselinePrice?: number | null;
+  priceChange?: number | null;
+  priceChangePercent?: number | null;
   indicatorSnapshot: WorkflowPreviewSnapshotEntry[];
   evaluatedAt: string;
 }
@@ -133,8 +136,13 @@ export interface WorkflowLivePreview {
 export interface WorkflowPreviewRequest {
   marketType?: "Indian" | "Crypto" | "indian" | "web3";
   asset?: string;
+  mode?: "threshold" | "change";
   targetPrice?: number;
   condition?: "above" | "below";
+  changeType?: "absolute" | "percent";
+  changeDirection?: "increase" | "decrease";
+  changeValue?: number;
+  changeWindowMinutes?: number;
   expression?: IndicatorConditionGroup;
 }
 
