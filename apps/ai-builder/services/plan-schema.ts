@@ -474,6 +474,39 @@ function validatePromptAlignedSemantics(
   issues: AiStrategyValidationIssue[],
 ) {
   const prompt = request.prompt.toLowerCase();
+  const expectedMarketTypes = request.market === "Crypto"
+    ? new Set(["crypto", "web3"])
+    : new Set(["indian"]);
+
+  for (const node of plan.nodes) {
+    const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+    const normalizedType = String(node.type || "").toLowerCase();
+    const rawMarketType = String(metadata.marketType || "").trim().toLowerCase();
+
+    if (!rawMarketType) continue;
+
+    const shouldValidateMarketType =
+      normalizedType === "market-session" ||
+      normalizedType === "price" ||
+      normalizedType === "price-trigger" ||
+      normalizedType === "conditional-trigger" ||
+      normalizedType === "if" ||
+      normalizedType === "filter";
+
+    if (!shouldValidateMarketType) continue;
+
+    if (!expectedMarketTypes.has(rawMarketType)) {
+      pushIssue(
+        issues,
+        "error",
+        "PROMPT_MISMATCH",
+        `Node marketType '${rawMarketType}' does not match requested market '${request.market}'.`,
+        node.nodeId,
+        "marketType",
+      );
+    }
+  }
+
   const priceNode = plan.nodes.find((node) => String(node.type).toLowerCase() === "price");
   const priceMatch = prompt.match(/price(?:\s+\w+){0,8}?\s+(below|above)\s+(\d+(?:\.\d+)?)/i);
 
@@ -606,6 +639,15 @@ function buildValidationReport(
 
   if (triggerNodes.length === 0) {
     pushIssue(issues, "error", "INVALID_GRAPH", "Generated plan does not contain a trigger node.");
+  }
+
+  if (triggerNodes.length > 1) {
+    pushIssue(
+      issues,
+      "error",
+      "INVALID_GRAPH",
+      "Generated plan contains multiple trigger nodes. Use exactly one trigger node and move additional conditions into downstream filter/if nodes.",
+    );
   }
 
   if (nodeIds.size !== plan.nodes.length) {
