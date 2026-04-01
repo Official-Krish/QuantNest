@@ -1,5 +1,8 @@
 import {
     calculateEma,
+    calculateMacd,
+    calculateMacdHistogram,
+    calculateMacdSignal,
     calculatePctChange,
     calculateRsi,
     calculateSma,
@@ -179,6 +182,27 @@ export async function computeIndicatorValue(
             return calculateRsi(evaluationCandles, period);
         case "pct_change":
             return calculatePctChange(evaluationCandles, period);
+        case "macd":
+            return calculateMacd(
+                evaluationCandles,
+                ref.params?.fastPeriod,
+                ref.params?.slowPeriod,
+                ref.params?.signalPeriod,
+            );
+        case "macd_signal":
+            return calculateMacdSignal(
+                evaluationCandles,
+                ref.params?.fastPeriod,
+                ref.params?.slowPeriod,
+                ref.params?.signalPeriod,
+            );
+        case "macd_histogram":
+            return calculateMacdHistogram(
+                evaluationCandles,
+                ref.params?.fastPeriod,
+                ref.params?.slowPeriod,
+                ref.params?.signalPeriod,
+            );
         default:
             return null;
     }

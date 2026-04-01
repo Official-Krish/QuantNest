@@ -68,7 +68,17 @@ const OPERATOR_OPTIONS: Array<{ value: IndicatorComparator; label: string }> = [
   { value: "crosses_above", label: "Crosses Above" },
   { value: "crosses_below", label: "Crosses Below" },
 ];
-const INDICATORS: IndicatorKind[] = ["price", "volume", "ema", "sma", "rsi", "pct_change"];
+const INDICATORS: IndicatorKind[] = [
+  "price",
+  "volume",
+  "ema",
+  "sma",
+  "rsi",
+  "pct_change",
+  "macd",
+  "macd_signal",
+  "macd_histogram",
+];
 const PERIOD_INDICATORS: IndicatorKind[] = ["ema", "sma", "rsi", "pct_change"];
 
 function defaultIndicator(marketType: "Indian" | "Crypto" | null): UIIndicator {

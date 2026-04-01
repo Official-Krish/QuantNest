@@ -2,7 +2,16 @@ export type IndicatorTimeframe = "1m" | "5m" | "15m" | "1h";
 
 export type IndicatorMarket = "Indian" | "Crypto";
 
-export type IndicatorKind = "price" | "volume" | "ema" | "sma" | "rsi" | "pct_change";
+export type IndicatorKind =
+    | "price"
+    | "volume"
+    | "ema"
+    | "sma"
+    | "rsi"
+    | "pct_change"
+    | "macd"
+    | "macd_signal"
+    | "macd_histogram";
 
 export type IndicatorComparator =
     | ">"
@@ -16,6 +25,9 @@ export type IndicatorComparator =
 
 export interface IndicatorParams {
     period?: number;
+    fastPeriod?: number;
+    slowPeriod?: number;
+    signalPeriod?: number;
 }
 
 export interface IndicatorReference {

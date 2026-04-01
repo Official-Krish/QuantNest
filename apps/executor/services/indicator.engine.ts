@@ -9,6 +9,9 @@ import type {
 } from "@quantnest-trading/types";
 import {
     calculateEma,
+    calculateMacd,
+    calculateMacdHistogram,
+    calculateMacdSignal,
     calculatePctChange,
     calculatePrice,
     calculateRsi,
@@ -394,6 +397,27 @@ export class IndicatorEngine {
                 return calculateRsi(marketCandles, period);
             case "pct_change":
                 return calculatePctChange(marketCandles, period);
+            case "macd":
+                return calculateMacd(
+                    marketCandles,
+                    ref.params?.fastPeriod,
+                    ref.params?.slowPeriod,
+                    ref.params?.signalPeriod,
+                );
+            case "macd_signal":
+                return calculateMacdSignal(
+                    marketCandles,
+                    ref.params?.fastPeriod,
+                    ref.params?.slowPeriod,
+                    ref.params?.signalPeriod,
+                );
+            case "macd_histogram":
+                return calculateMacdHistogram(
+                    marketCandles,
+                    ref.params?.fastPeriod,
+                    ref.params?.slowPeriod,
+                    ref.params?.signalPeriod,
+                );
             default:
                 return null;
         }
