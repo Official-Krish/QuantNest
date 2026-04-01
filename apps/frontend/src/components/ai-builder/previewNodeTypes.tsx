@@ -73,7 +73,22 @@ function PreviewShell({
 }
 
 export function PreviewPriceTrigger({ data }: any) {
-  const { asset = "-", condition = "above", targetPrice = 0 } = data.metadata || {};
+  const {
+    asset = "-",
+    mode = "threshold",
+    condition = "above",
+    targetPrice = 0,
+    changeDirection = "increase",
+    changeType = "percent",
+    changeValue = 0,
+    changeWindowMinutes = 60,
+  } = data.metadata || {};
+  const title = mode === "change"
+    ? `${changeDirection} ${changeValue}${changeType === "percent" ? "%" : " pts"} in ${changeWindowMinutes}m`
+    : `${condition} ${targetPrice}`;
+  const subtitle = mode === "change"
+    ? `Trigger on ${asset} momentum`
+    : `Trigger on ${asset}`;
   return (
     <PreviewShell
       accent="#60a5fa"
@@ -81,8 +96,8 @@ export function PreviewPriceTrigger({ data }: any) {
       kindBadge="Trigger"
       label="Price"
       badge={asset}
-      title={`${condition} ${targetPrice}`}
-      subtitle={`Trigger on ${asset}`}
+      title={title}
+      subtitle={subtitle}
       showTarget={false}
     />
   );

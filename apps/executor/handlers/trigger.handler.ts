@@ -1,16 +1,34 @@
 import type { ConditionalTriggerMetadata, IndicatorConditionGroup } from "@quantnest-trading/types";
 import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
-import { getCurrentPrice } from "@quantnest-trading/market";
+import { getCurrentPrice, getHistoricalChart } from "@quantnest-trading/market";
 import type { NodeType, WorkflowType } from "../types";
 import { indicatorEngine } from "../services/indicator.engine";
+
+function getChartIntervalForWindow(windowMinutes: number): "1m" | "2m" | "5m" | "15m" | "60m" {
+    if (windowMinutes <= 30) return "1m";
+    if (windowMinutes <= 60) return "2m";
+    if (windowMinutes <= 180) return "5m";
+    if (windowMinutes <= 720) return "15m";
+    return "60m";
+}
 
 export async function handlePriceTrigger(
     workflow: WorkflowType,
     trigger: NodeType
 ): Promise<boolean> {
-    const { condition, targetPrice, asset, marketType } = trigger.data?.metadata || {};
-    
-    if (!condition || typeof targetPrice !== "number" || !asset) {
+    const {
+        condition,
+        targetPrice,
+        asset,
+        marketType,
+        mode,
+        changeType,
+        changeDirection,
+        changeValue,
+        changeWindowMinutes,
+    } = trigger.data?.metadata || {};
+
+    if (!asset) {
         console.error("Invalid price trigger metadata");
         return false;
     }
@@ -28,6 +46,59 @@ export async function handlePriceTrigger(
     }
 
     const currentPrice = await getCurrentPrice(normalizedAsset, market);
+
+    if (mode === "change") {
+        const normalizedDirection = String(changeDirection || "").toLowerCase();
+        const normalizedType = String(changeType || "").toLowerCase();
+        const requiredChange = Number(changeValue);
+        const windowMinutes = Number(changeWindowMinutes);
+
+        if (
+            !["increase", "decrease"].includes(normalizedDirection) ||
+            !["absolute", "percent"].includes(normalizedType) ||
+            !Number.isFinite(requiredChange) ||
+            requiredChange <= 0 ||
+            !Number.isFinite(windowMinutes) ||
+            windowMinutes <= 0
+        ) {
+            console.error("Invalid price-change trigger metadata");
+            return false;
+        }
+
+        const periodStart = new Date(Date.now() - windowMinutes * 60 * 1000);
+        const candles = await getHistoricalChart(
+            normalizedAsset,
+            market,
+            periodStart,
+            getChartIntervalForWindow(windowMinutes),
+        );
+
+        const baselineCandle = candles.find((candle) => typeof candle?.close === "number" && Number.isFinite(candle.close));
+        const baselinePriceRaw = baselineCandle?.close;
+        if (typeof baselinePriceRaw !== "number" || !Number.isFinite(baselinePriceRaw) || baselinePriceRaw <= 0) {
+            return false;
+        }
+
+        const baselinePrice = baselinePriceRaw;
+
+        const delta = currentPrice - baselinePrice;
+        const directionalMatch = normalizedDirection === "increase" ? delta >= 0 : delta <= 0;
+        if (!directionalMatch) {
+            return false;
+        }
+
+        const magnitude = Math.abs(delta);
+        const observedChange = normalizedType === "percent"
+            ? (magnitude / baselinePrice) * 100
+            : magnitude;
+
+        return observedChange >= requiredChange;
+    }
+
+    if (!condition || typeof targetPrice !== "number") {
+        console.error("Invalid threshold price trigger metadata");
+        return false;
+    }
 
     if (condition === "above") {
         return currentPrice > targetPrice;

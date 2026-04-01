@@ -23,6 +23,20 @@ export function WorkflowLivePreviewPanel({
   error: string | null;
   title?: string;
 }) {
+  const fallbackPriceChange =
+    typeof preview?.priceChange === "number"
+      ? preview.priceChange
+      : typeof preview?.currentPrice === "number" && typeof preview?.baselinePrice === "number"
+        ? preview.currentPrice - preview.baselinePrice
+        : null;
+
+  const fallbackPriceChangePercent =
+    typeof preview?.priceChangePercent === "number"
+      ? preview.priceChangePercent
+      : typeof fallbackPriceChange === "number" && typeof preview?.baselinePrice === "number" && preview.baselinePrice > 0
+        ? (fallbackPriceChange / preview.baselinePrice) * 100
+        : null;
+
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
       <div className="flex items-center justify-between gap-3">
@@ -66,8 +80,18 @@ export function WorkflowLivePreviewPanel({
                 <div className="mt-1 text-lg font-semibold text-neutral-100">{formatValue(preview.currentPrice)}</div>
               </div>
               <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-3">
-                <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Distance to target</div>
-                <div className="mt-1 text-lg font-semibold text-neutral-100">{formatValue(preview.distanceToTarget)}</div>
+                <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
+                  {typeof fallbackPriceChange === "number" || typeof fallbackPriceChangePercent === "number"
+                    ? "Observed change"
+                    : "Distance to target"}
+                </div>
+                <div className="mt-1 text-lg font-semibold text-neutral-100">
+                  {typeof fallbackPriceChangePercent === "number"
+                    ? `${fallbackPriceChangePercent.toFixed(2)}%`
+                    : typeof fallbackPriceChange === "number"
+                      ? formatValue(fallbackPriceChange)
+                      : formatValue(preview.distanceToTarget)}
+                </div>
               </div>
               <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-3">
                 <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Last checked</div>

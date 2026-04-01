@@ -95,7 +95,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "",
     "Rules:",
     "- Multiple trigger nodes and branching paths are allowed when they improve the workflow.",
-    "- For a price node, metadata must include asset, targetPrice, marketType, and condition.",
+    "- For a price node, metadata must include asset and marketType. Use either threshold mode (condition + targetPrice) or change mode (changeDirection + changeType + changeValue + changeWindowMinutes).",
     "- For conditional-trigger expressions, supported comparators are: >, >=, <, <=, ==, !=, crosses_above, crosses_below.",
     "- Use crosses_above/crosses_below only when both left and right operands are indicators (for crossover events like EMA20 crossing EMA50).",
     "- Never return an empty conditional-trigger expression; include at least one clause inside expression.conditions.",
