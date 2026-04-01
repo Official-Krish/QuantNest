@@ -11,8 +11,14 @@ function formatOperand(operand: any): string {
   return `${String(indicator.indicator).toUpperCase()}${period} ${indicator.symbol} @${indicator.timeframe}`;
 }
 
+function formatOperator(operator: string): string {
+  if (operator === "crosses_above") return "crosses above";
+  if (operator === "crosses_below") return "crosses below";
+  return operator;
+}
+
 function formatClause(clause: any): string {
-  return `${formatOperand(clause.left)} ${clause.operator} ${formatOperand(clause.right)}`;
+  return `${formatOperand(clause.left)} ${formatOperator(String(clause.operator || ""))} ${formatOperand(clause.right)}`;
 }
 
 export const conditionTrigger = ({
@@ -31,6 +37,11 @@ export const conditionTrigger = ({
   };
 }) => {
   const { marketType, asset, condition, targetPrice, timeWindowMinutes, startTime, expression } = data.metadata || {};
+  const expressionConditions = Array.isArray((expression as any)?.conditions)
+    ? (expression as any).conditions
+    : [];
+  const groupCount = expressionConditions.length;
+  const rootOperator = (expression as any)?.operator || "AND";
   const { preview, loading } = useWorkflowLivePreview(
     expression || asset
       ? {
@@ -50,7 +61,7 @@ export const conditionTrigger = ({
   if (typeof targetPrice === "number") details.push({ label: "Target Price", value: targetPrice });
   if (startTime) details.push({ label: "Start Time", value: new Date(startTime).toLocaleString() });
   if (typeof timeWindowMinutes === "number") details.push({ label: "Time Window (min)", value: timeWindowMinutes });
-  if (expression) details.push({ label: "Groups", value: expression.conditions.length });
+  if (expression) details.push({ label: "Groups", value: groupCount });
 
   return (
     <div className="min-w-[230px] rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#a78bfa] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
@@ -59,7 +70,7 @@ export const conditionTrigger = ({
           Condition
         </span>
         <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
-          {expression ? `${expression.conditions.length} Group${expression.conditions.length > 1 ? "s" : ""}` : "No Expression"}
+          {expression ? `${groupCount} Group${groupCount > 1 ? "s" : ""}` : "No Expression"}
         </span>
       </div>
       {details.length > 0 && (
@@ -71,10 +82,10 @@ export const conditionTrigger = ({
           ))}
         </div>
       )}
-      {expression?.conditions?.length ? (
+      {expressionConditions.length ? (
         <div className="mt-2 space-y-2">
           <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Logic Graph</div>
-          {expression.conditions.map((groupOrClause: any, index: number) => {
+          {expressionConditions.map((groupOrClause: any, index: number) => {
             const group = groupOrClause?.type === "group"
               ? groupOrClause
               : {
@@ -87,7 +98,7 @@ export const conditionTrigger = ({
                 {index > 0 && (
                   <div className="flex justify-center">
                     <span className="rounded-full border border-neutral-700 bg-neutral-900 px-2 py-0.5 text-[9px] font-semibold text-[#f17463]">
-                      {expression.operator}
+                      {rootOperator}
                     </span>
                   </div>
                 )}

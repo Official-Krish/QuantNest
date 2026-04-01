@@ -66,9 +66,37 @@ export function compareValues(left: number, right: number, operator: IndicatorCo
             return left === right;
         case "!=":
             return left !== right;
+        case "crosses_above":
+        case "crosses_below":
+            return false;
         default:
             return false;
     }
+}
+
+async function resolveOperandPair(
+    operand: ConditionOperand,
+    valueCache: Map<string, number | null>,
+    historicalCache: Map<string, MarketCandle[]>,
+): Promise<{ current: number | null; previous: number | null }> {
+    if (operand.type === "value") {
+        return {
+            current: operand.value,
+            previous: operand.value,
+        };
+    }
+
+    const ref = {
+        ...operand.indicator,
+        marketType: normalizeMarket(operand.indicator.marketType),
+    };
+
+    const current = await computeIndicatorValue(ref, historicalCache, 0);
+    const previous = await computeIndicatorValue(ref, historicalCache, 1);
+
+    valueCache.set(refKey(ref), current);
+
+    return { current, previous };
 }
 
 export function collectIndicatorReferences(expression: IndicatorConditionGroup): IndicatorReference[] {
@@ -105,6 +133,7 @@ export function collectIndicatorReferences(expression: IndicatorConditionGroup):
 export async function computeIndicatorValue(
     ref: IndicatorReference,
     historicalCache: Map<string, MarketCandle[]>,
+    offsetFromEnd = 0,
 ): Promise<number | null> {
     const marketType = normalizeMarket(ref.marketType);
     if (ref.indicator === "price") {
@@ -135,17 +164,21 @@ export async function computeIndicatorValue(
         historicalCache.set(candleCacheKey, candles);
     }
 
+    const evaluationCandles = offsetFromEnd > 0
+        ? candles.slice(0, Math.max(0, candles.length - offsetFromEnd))
+        : candles;
+
     switch (ref.indicator) {
         case "volume":
-            return calculateVolume(candles);
+            return calculateVolume(evaluationCandles);
         case "sma":
-            return calculateSma(candles, period);
+            return calculateSma(evaluationCandles, period);
         case "ema":
-            return calculateEma(candles, period);
+            return calculateEma(evaluationCandles, period);
         case "rsi":
-            return calculateRsi(candles, period);
+            return calculateRsi(evaluationCandles, period);
         case "pct_change":
-            return calculatePctChange(candles, period);
+            return calculatePctChange(evaluationCandles, period);
         default:
             return null;
     }
@@ -182,6 +215,26 @@ export async function evaluateExpression(
         expression.conditions.map(async (condition) => {
             if (isGroup(condition)) {
                 return evaluateExpression(condition, valueCache, historicalCache);
+            }
+
+            if (condition.operator === "crosses_above" || condition.operator === "crosses_below") {
+                const leftPair = await resolveOperandPair(condition.left, valueCache, historicalCache);
+                const rightPair = await resolveOperandPair(condition.right, valueCache, historicalCache);
+
+                if (
+                    leftPair.current == null ||
+                    leftPair.previous == null ||
+                    rightPair.current == null ||
+                    rightPair.previous == null
+                ) {
+                    return false;
+                }
+
+                if (condition.operator === "crosses_above") {
+                    return leftPair.previous <= rightPair.previous && leftPair.current > rightPair.current;
+                }
+
+                return leftPair.previous >= rightPair.previous && leftPair.current < rightPair.current;
             }
 
             const left = await resolveOperandValue(condition.left, valueCache, historicalCache);

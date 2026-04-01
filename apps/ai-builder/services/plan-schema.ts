@@ -18,6 +18,115 @@ const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", 
 const TRIGGER_TYPES = new Set(["timer", "price", "conditional-trigger"]);
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
 
+function canonicalizeComparator(operator: string): string {
+  const normalized = String(operator || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[-\s]+/g, "_");
+
+  if (["crosses_below", "cross_below", "crossed_below", "crossbelow", "crossesbelow"].includes(normalized)) {
+    return "crosses_below";
+  }
+
+  if (["crosses_above", "cross_above", "crossed_above", "crossabove", "crossesabove"].includes(normalized)) {
+    return "crosses_above";
+  }
+
+  return normalized;
+}
+
+function getAllClauses(expression: unknown): Array<Record<string, unknown>> {
+  const expr = expression as { conditions?: unknown[] } | undefined;
+  const conditions = Array.isArray(expr?.conditions) ? expr.conditions : [];
+  const clauses: Array<Record<string, unknown>> = [];
+
+  for (const entry of conditions) {
+    const node = entry as { type?: string; conditions?: unknown[] };
+    if (node?.type === "clause") {
+      clauses.push(node as Record<string, unknown>);
+      continue;
+    }
+
+    if (node?.type === "group" && Array.isArray(node.conditions)) {
+      for (const nested of node.conditions) {
+        const clause = nested as { type?: string };
+        if (clause?.type === "clause") {
+          clauses.push(clause as Record<string, unknown>);
+        }
+      }
+    }
+  }
+
+  return clauses;
+}
+
+function normalizeCrossoverOperatorsInPlan(plan: AiStrategyWorkflowPlan, prompt: string): void {
+  const wantsCrossover = /(cross(?:es|ed)?[_\s-]?(above|below)|crossover)/i.test(prompt);
+  const wantsBelow = /cross(?:es|ed)?[_\s-]?below|crossover[^\n]*below/i.test(prompt);
+  const wantsAbove = /cross(?:es|ed)?[_\s-]?above|crossover[^\n]*above/i.test(prompt);
+
+  for (const node of plan.nodes) {
+    if (String(node.type).toLowerCase() !== "conditional-trigger") continue;
+
+    const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+    const clauses = getAllClauses(metadata.expression);
+
+    for (const clause of clauses) {
+      const currentOperator = canonicalizeComparator(String(clause.operator || ""));
+      const left = clause.left as { type?: string } | undefined;
+      const right = clause.right as { type?: string } | undefined;
+      const isIndicatorVsIndicator = left?.type === "indicator" && right?.type === "indicator";
+
+      if (currentOperator === "crosses_above" || currentOperator === "crosses_below") {
+        clause.operator = currentOperator;
+        continue;
+      }
+
+      if (!wantsCrossover || !isIndicatorVsIndicator) {
+        clause.operator = currentOperator || clause.operator;
+        continue;
+      }
+
+      if ((currentOperator === "<" || currentOperator === "<=") && wantsBelow) {
+        clause.operator = "crosses_below";
+        continue;
+      }
+
+      if ((currentOperator === ">" || currentOperator === ">=") && wantsAbove) {
+        clause.operator = "crosses_above";
+        continue;
+      }
+
+      clause.operator = currentOperator || clause.operator;
+    }
+  }
+}
+
+function extractClauses(expression: unknown): Array<{ operator?: string }> {
+  const expr = expression as { conditions?: unknown[] } | undefined;
+  const conditions = Array.isArray(expr?.conditions) ? expr.conditions : [];
+  const clauses: Array<{ operator?: string }> = [];
+
+  for (const entry of conditions) {
+    const node = entry as { type?: string; operator?: string; conditions?: unknown[] };
+    if (node?.type === "clause") {
+      clauses.push(node);
+      continue;
+    }
+
+    if (node?.type === "group" && Array.isArray(node.conditions)) {
+      for (const nested of node.conditions) {
+        const clause = nested as { type?: string; operator?: string };
+        if (clause?.type === "clause") {
+          clauses.push(clause);
+        }
+      }
+    }
+  }
+
+  return clauses;
+}
+
 function extractJsonBlock(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed.startsWith("```")) {
@@ -116,6 +225,20 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           "Timer node must include a time greater than 0.",
           node.nodeId,
           "time",
+        );
+      }
+    }
+
+    if (normalizedType === "conditional-trigger") {
+      const clauses = extractClauses((metadata as Record<string, unknown>).expression);
+      if (!clauses.length) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Conditional trigger must include a non-empty expression with at least one clause.",
+          node.nodeId,
+          "expression",
         );
       }
     }
@@ -264,6 +387,39 @@ function validatePromptAlignedSemantics(
         `Prompt requested price trigger target ${expectedTarget}, but the plan returned ${Number.isFinite(actualTarget) ? actualTarget : "missing"}.`,
         priceNode.nodeId,
         "targetPrice",
+      );
+    }
+  }
+
+  const asksForCrossover = /(cross(?:es|ed)?[_\s-]?(above|below)|crossover)/i.test(prompt);
+  if (asksForCrossover) {
+    const conditionalNodes = plan.nodes.filter((node) => String(node.type).toLowerCase() === "conditional-trigger");
+
+    if (!conditionalNodes.length) {
+      pushIssue(
+        issues,
+        "error",
+        "PROMPT_MISMATCH",
+        "Prompt requested a crossover trigger, but the generated plan does not contain a conditional trigger.",
+      );
+      return;
+    }
+
+    const hasCrossoverClause = conditionalNodes.some((node) => {
+      const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+      const clauses = extractClauses(metadata.expression);
+      return clauses.some((clause) => {
+        const operator = String(clause.operator || "").toLowerCase();
+        return operator === "crosses_above" || operator === "crosses_below";
+      });
+    });
+
+    if (!hasCrossoverClause) {
+      pushIssue(
+        issues,
+        "error",
+        "PROMPT_MISMATCH",
+        "Prompt requested a crossover condition, but the generated expression does not include crosses_above/crosses_below.",
       );
     }
   }
@@ -434,6 +590,7 @@ export function normalizeStrategyPlanResponse(
   }
 
   const plan = aiStrategyWorkflowPlanSchema.parse(parsed);
+  normalizeCrossoverOperatorsInPlan(plan, request.prompt || "");
   const validation = buildValidationReport(plan, request);
 
   assertNoValidationErrors(validation);

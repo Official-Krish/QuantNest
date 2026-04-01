@@ -208,12 +208,50 @@ export class IndicatorEngine {
     }
 
     private async evaluateClause(clause: IndicatorConditionClause): Promise<boolean> {
+        if (clause.operator === "crosses_above" || clause.operator === "crosses_below") {
+            const leftPair = await this.resolveOperandPair(clause.left);
+            const rightPair = await this.resolveOperandPair(clause.right);
+
+            if (
+                leftPair.current == null ||
+                leftPair.previous == null ||
+                rightPair.current == null ||
+                rightPair.previous == null
+            ) {
+                return false;
+            }
+
+            if (clause.operator === "crosses_above") {
+                return leftPair.previous <= rightPair.previous && leftPair.current > rightPair.current;
+            }
+
+            return leftPair.previous >= rightPair.previous && leftPair.current < rightPair.current;
+        }
+
         const left = await this.resolveOperand(clause.left);
         const right = await this.resolveOperand(clause.right);
         if (left == null || right == null) {
             return false;
         }
         return compareValues(left, right, clause.operator);
+    }
+
+    private async resolveOperandPair(operand: ConditionOperand): Promise<{ current: number | null; previous: number | null }> {
+        if (operand.type === "value") {
+            return {
+                current: operand.value,
+                previous: operand.value,
+            };
+        }
+
+        await this.resolveOperand(operand);
+
+        const ref: IndicatorReference = {
+            ...operand.indicator,
+            marketType: toMarketType(operand.indicator.marketType),
+        };
+
+        return this.computeFromHistoryPair(ref);
     }
 
     private async resolveOperand(operand: ConditionOperand): Promise<number | null> {
@@ -310,6 +348,26 @@ export class IndicatorEngine {
         const history = this.candles.get(key) || [];
         const active = this.activeCandles.get(key);
         const series = active ? [...history, active] : history;
+
+        return this.computeFromSeries(ref, series);
+    }
+
+    private computeFromHistoryPair(ref: IndicatorReference): { current: number | null; previous: number | null } {
+        const marketType = toMarketType(ref.marketType);
+        const key = this.candleKey(marketType, ref.symbol, ref.timeframe);
+        const history = this.candles.get(key) || [];
+        const active = this.activeCandles.get(key);
+        const series = active ? [...history, active] : history;
+
+        const current = this.computeFromSeries(ref, series);
+        const previous = series.length > 1
+            ? this.computeFromSeries(ref, series.slice(0, -1))
+            : null;
+
+        return { current, previous };
+    }
+
+    private computeFromSeries(ref: IndicatorReference, series: Candle[]): number | null {
         if (series.length === 0) {
             return null;
         }
