@@ -57,6 +57,8 @@ interface UIGroup {
   clauses: UIClause[];
 }
 
+type TriggerTemplateMode = "custom" | "volume-spike";
+
 const TIMEFRAMES: IndicatorTimeframe[] = ["1m", "5m", "15m", "1h"];
 const OPERATOR_OPTIONS: Array<{ value: IndicatorComparator; label: string }> = [
   { value: ">", label: ">" },
@@ -81,12 +83,84 @@ const INDICATORS: IndicatorKind[] = [
 ];
 const PERIOD_INDICATORS: IndicatorKind[] = ["ema", "sma", "rsi", "pct_change"];
 
+const DEFAULT_VOLUME_SPIKE_THRESHOLD = 1_000_000;
+
+function defaultSymbolForMarket(marketType: "Indian" | "Crypto" | null): string {
+  return (marketType === "Crypto" ? SUPPORTED_WEB3_ASSETS[0] : SUPPORTED_INDIAN_MARKET_ASSETS[0]) || "";
+}
+
 function defaultIndicator(marketType: "Indian" | "Crypto" | null): UIIndicator {
   return {
-    symbol: (marketType === "Crypto" ? SUPPORTED_WEB3_ASSETS[0] : SUPPORTED_INDIAN_MARKET_ASSETS[0]) || "",
+    symbol: defaultSymbolForMarket(marketType),
     timeframe: "5m",
     indicator: "rsi",
     period: 14,
+  };
+}
+
+function buildVolumeSpikePreset(
+  marketType: "Indian" | "Crypto" | null,
+  symbol?: string,
+  timeframe: IndicatorTimeframe = "5m",
+  threshold: number = DEFAULT_VOLUME_SPIKE_THRESHOLD,
+): { rootOperator: "AND" | "OR"; groups: UIGroup[] } {
+  const resolvedSymbol = symbol || defaultSymbolForMarket(marketType);
+  return {
+    rootOperator: "AND",
+    groups: [
+      {
+        operator: "AND",
+        clauses: [
+          {
+            left: {
+              symbol: resolvedSymbol,
+              timeframe,
+              indicator: "volume",
+            },
+            operator: ">",
+            rightMode: "value",
+            rightValue: threshold,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function tryExtractVolumeSpikePreset(expression: IndicatorConditionGroup | undefined): {
+  symbol: string;
+  timeframe: IndicatorTimeframe;
+  threshold: number;
+} | null {
+  if (!expression || expression.type !== "group" || !Array.isArray(expression.conditions) || expression.conditions.length !== 1) {
+    return null;
+  }
+
+  const firstGroup = expression.conditions[0];
+  if (firstGroup.type !== "group" || !Array.isArray(firstGroup.conditions) || firstGroup.conditions.length !== 1) {
+    return null;
+  }
+
+  const clause = firstGroup.conditions[0];
+  if (
+    clause.type !== "clause" ||
+    clause.left.type !== "indicator" ||
+    clause.left.indicator.indicator !== "volume" ||
+    clause.operator !== ">" ||
+    clause.right.type !== "value"
+  ) {
+    return null;
+  }
+
+  const threshold = Number(clause.right.value);
+  if (!Number.isFinite(threshold) || threshold <= 0) {
+    return null;
+  }
+
+  return {
+    symbol: clause.left.indicator.symbol,
+    timeframe: clause.left.indicator.timeframe,
+    threshold,
   };
 }
 
@@ -320,6 +394,12 @@ export const ConditionalTriggerForm = ({
   metadata,
   setMetadata,
 }: ConditionalTriggerFormProps) => {
+  const extractedVolumePreset = useMemo(
+    () => tryExtractVolumeSpikePreset(metadata.expression),
+    // only for mount/edit open state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
   const initial = useMemo(
     () => fromExpression(metadata.expression, marketType),
     // only for mount/edit open state
@@ -328,9 +408,37 @@ export const ConditionalTriggerForm = ({
   );
   const [rootOperator, setRootOperator] = useState<"AND" | "OR">(initial.rootOperator);
   const [groups, setGroups] = useState<UIGroup[]>(initial.groups);
+  const [templateMode, setTemplateMode] = useState<TriggerTemplateMode>(
+    extractedVolumePreset ? "volume-spike" : "custom",
+  );
+  const [volumeSpikeSymbol, setVolumeSpikeSymbol] = useState<string>(
+    extractedVolumePreset?.symbol || defaultSymbolForMarket(marketType),
+  );
+  const [volumeSpikeTimeframe, setVolumeSpikeTimeframe] = useState<IndicatorTimeframe>(
+    extractedVolumePreset?.timeframe || "5m",
+  );
+  const [volumeSpikeThreshold, setVolumeSpikeThreshold] = useState<number>(
+    extractedVolumePreset?.threshold || DEFAULT_VOLUME_SPIKE_THRESHOLD,
+  );
   const [preview, setPreview] = useState<WorkflowLivePreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const activeMarket = marketType || (metadata.marketType as "Indian" | "Crypto" | undefined) || "Indian";
+  const marketAssets = activeMarket === "Crypto" ? SUPPORTED_WEB3_ASSETS : SUPPORTED_INDIAN_MARKET_ASSETS;
+
+  useEffect(() => {
+    if (!marketAssets.includes(volumeSpikeSymbol as any)) {
+      setVolumeSpikeSymbol(marketAssets[0] || "");
+    }
+  }, [marketAssets, volumeSpikeSymbol]);
+
+  useEffect(() => {
+    if (templateMode !== "volume-spike") return;
+    const preset = buildVolumeSpikePreset(activeMarket, volumeSpikeSymbol, volumeSpikeTimeframe, volumeSpikeThreshold);
+    setRootOperator(preset.rootOperator);
+    setGroups(preset.groups);
+  }, [activeMarket, templateMode, volumeSpikeSymbol, volumeSpikeThreshold, volumeSpikeTimeframe]);
 
   useEffect(() => {
     setMetadata((current: ConditionalTriggerMetadata) => ({
@@ -412,6 +520,70 @@ export const ConditionalTriggerForm = ({
         </Select>
       </div>
 
+      <div className="space-y-2">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Template</p>
+        <p className="text-xs text-neutral-400">Use a quick setup or switch to full custom condition builder.</p>
+        <Select value={templateMode} onValueChange={(value) => setTemplateMode(value as TriggerTemplateMode)}>
+          <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+            <SelectValue placeholder="Select template" />
+          </SelectTrigger>
+          <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+            <SelectItem value="volume-spike" className="text-sm">Volume Spike (Simple)</SelectItem>
+            <SelectItem value="custom" className="text-sm">Custom (Advanced)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {templateMode === "volume-spike" ? (
+        <div className="space-y-3 rounded-2xl border border-neutral-800 p-3 bg-neutral-950/50">
+          <p className="text-xs text-neutral-400">
+            Triggers when volume is greater than your threshold.
+          </p>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Asset</p>
+            <Select value={volumeSpikeSymbol} onValueChange={setVolumeSpikeSymbol}>
+              <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+                <SelectValue placeholder="Select asset" />
+              </SelectTrigger>
+              <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                {marketAssets.map((asset) => (
+                  <SelectItem key={asset} value={asset} className="text-sm">{asset}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Timeframe</p>
+            <Select value={volumeSpikeTimeframe} onValueChange={(value) => setVolumeSpikeTimeframe(value as IndicatorTimeframe)}>
+              <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+                <SelectValue placeholder="Select timeframe" />
+              </SelectTrigger>
+              <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                {TIMEFRAMES.map((timeframe) => (
+                  <SelectItem key={timeframe} value={timeframe} className="text-sm">{timeframe}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Volume Threshold</p>
+            <Input
+              type="number"
+              min={1}
+              value={volumeSpikeThreshold}
+              onChange={(e) => setVolumeSpikeThreshold(Number(e.target.value) || DEFAULT_VOLUME_SPIKE_THRESHOLD)}
+              className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder="e.g. 1000000"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {templateMode === "custom" ? (
+        <>
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Condition Set Joiner</p>
         <p className="text-xs text-neutral-400">Join all groups using a root operator.</p>
@@ -605,6 +777,8 @@ export const ConditionalTriggerForm = ({
       >
         + Add Group
       </Button>
+        </>
+      ) : null}
 
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Time Window (minutes)</p>
