@@ -476,6 +476,43 @@ function validatePromptAlignedSemantics(
       );
     }
   }
+
+  const asksForVolumeSpike = /volume\s*(spike|surge)|spike\s+in\s+volume|high\s+volume|volume\s*above/i.test(prompt);
+  if (asksForVolumeSpike) {
+    const conditionalNodes = plan.nodes.filter((node) => String(node.type).toLowerCase() === "conditional-trigger");
+
+    if (!conditionalNodes.length) {
+      pushIssue(
+        issues,
+        "error",
+        "PROMPT_MISMATCH",
+        "Prompt requested a volume spike condition, but the generated plan does not contain a conditional trigger.",
+      );
+      return;
+    }
+
+    const hasVolumeClause = conditionalNodes.some((node) => {
+      const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+      const clauses = extractClauses(metadata.expression);
+      return clauses.some((clause: any) => {
+        const left = clause?.left as { type?: string; indicator?: { indicator?: string } } | undefined;
+        const right = clause?.right as { type?: string; indicator?: { indicator?: string } } | undefined;
+        return (
+          (left?.type === "indicator" && String(left?.indicator?.indicator || "").toLowerCase() === "volume") ||
+          (right?.type === "indicator" && String(right?.indicator?.indicator || "").toLowerCase() === "volume")
+        );
+      });
+    });
+
+    if (!hasVolumeClause) {
+      pushIssue(
+        issues,
+        "error",
+        "PROMPT_MISMATCH",
+        "Prompt requested a volume spike condition, but the generated expression does not include a volume clause.",
+      );
+    }
+  }
 }
 
 function buildValidationReport(

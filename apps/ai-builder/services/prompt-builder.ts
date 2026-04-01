@@ -108,6 +108,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "- Never default a price trigger targetPrice to 0. Use the exact threshold from the prompt.",
     "- Use conditional-trigger when the strategy mentions thresholds, comparisons, RSI, EMA, MACD, or branching.",
     "- For indicator trigger requests (RSI/EMA/MACD), prefer conditional-trigger with expression clauses.",
+    "- For volume spike requests, use conditional-trigger with a volume clause (for example: volume > numeric threshold).",
     "- Supported indicator names in expression operands include price, volume, ema, sma, rsi, pct_change, macd, macd_signal, macd_histogram.",
     "- Use sourceHandle=true and sourceHandle=false for conditional branches.",
     "- Keep action nodes reachable from at least one trigger path.",

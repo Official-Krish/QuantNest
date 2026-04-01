@@ -48,6 +48,17 @@ Important correction for crossover requests:
   {"type":"clause","left":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"ema","params":{"period":20}}},"operator":"crosses_below","right":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"ema","params":{"period":50}}}}
 `
     : "";
+  const volumeSpikeHint = /volume\s*(spike|surge)|spike\s+in\s+volume|high\s+volume|volume\s*above/i.test(input.prompt)
+    ? `
+
+Important correction for volume spike requests:
+- Add a conditional-trigger node with metadata.expression.
+- metadata.expression.conditions must include at least one volume clause.
+- Use indicator "volume" as left or right operand in at least one clause.
+- Example clause shape:
+  {"type":"clause","left":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"volume"}},"operator":">","right":{"type":"value","value":1000000}}
+`
+    : "";
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -64,7 +75,7 @@ Important correction for crossover requests:
 
 Previous output was invalid for this reason: ${error.message}
 
-Correct the structure and regenerate a valid full workflow JSON.${crossoverHint}
+Correct the structure and regenerate a valid full workflow JSON.${crossoverHint}${volumeSpikeHint}
 
 Regenerate the workflow plan. Return only corrected JSON.`;
         continue;
