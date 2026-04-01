@@ -4,7 +4,15 @@ export type IndicatorMarket = "Indian" | "Crypto";
 
 export type IndicatorKind = "price" | "volume" | "ema" | "sma" | "rsi" | "pct_change";
 
-export type IndicatorComparator = ">" | ">=" | "<" | "<=" | "==" | "!=";
+export type IndicatorComparator =
+    | ">"
+    | ">="
+    | "<"
+    | "<="
+    | "=="
+    | "!="
+    | "crosses_above"
+    | "crosses_below";
 
 export interface IndicatorParams {
     period?: number;

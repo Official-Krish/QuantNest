@@ -105,6 +105,26 @@ export function PreviewTimer({ data }: any) {
 
 export function PreviewConditional({ data }: any) {
   const groups = data.metadata?.groups?.length || 1;
+  const expression = data.metadata?.expression;
+  const firstGroup = expression?.conditions?.find((entry: any) => entry?.type === "group")
+    || expression?.conditions?.[0];
+  const firstClause = firstGroup?.type === "group"
+    ? firstGroup.conditions?.find((entry: any) => entry?.type === "clause")
+    : firstGroup?.type === "clause"
+      ? firstGroup
+      : null;
+
+  const operatorLabel = (() => {
+    const operator = String(firstClause?.operator || "").toLowerCase();
+    if (operator === "crosses_above") return "crosses above";
+    if (operator === "crosses_below") return "crosses below";
+    return operator || "condition";
+  })();
+
+  const subtitle = firstClause
+    ? `First clause: ${operatorLabel}`
+    : "True / false outputs";
+
   return (
     <div className="min-w-[170px] rounded-2xl border border-sky-500/35 bg-sky-500/8 px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
       <div className="mb-2">
@@ -117,7 +137,7 @@ export function PreviewConditional({ data }: any) {
         <span className="rounded-full bg-black/50 px-1.5 py-0.5 text-[8px] font-mono text-neutral-200">{groups}G</span>
       </div>
       <div className="mt-1.5 text-[12px] font-semibold leading-4 text-neutral-100">Branch workflow</div>
-      <div className="mt-1 text-[10px] leading-4 text-neutral-300/80">True / false outputs</div>
+      <div className="mt-1 text-[10px] leading-4 text-neutral-300/80">{subtitle}</div>
       <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-neutral-900 !bg-neutral-300" />
       <Handle type="source" id="true" position={Position.Right} className="!h-2 !w-2 !border !border-neutral-900 !bg-emerald-400" style={{ top: "40%" }} />
       <Handle type="source" id="false" position={Position.Right} className="!h-2 !w-2 !border !border-neutral-900 !bg-rose-400" style={{ top: "68%" }} />

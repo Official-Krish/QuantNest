@@ -132,7 +132,11 @@ export const WorkflowCanvas = ({
     );
 
     return edges.map((edge) => {
-      const color = sourceNodeColor(typeById.get(edge.source) || "");
+      const color = edge.sourceHandle === "true"
+        ? "#34d399"
+        : edge.sourceHandle === "false"
+          ? "#f87171"
+          : sourceNodeColor(typeById.get(edge.source) || "");
       return {
         ...edge,
         style: {

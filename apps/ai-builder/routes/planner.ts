@@ -36,6 +36,18 @@ async function generatePlanWithRetry(
   prompt: string,
 ) {
   let attemptPrompt = prompt;
+  const crossoverHint = /(cross(?:es|ed)?[_\s-]?(above|below)|crossover)/i.test(input.prompt)
+    ? `
+
+Important correction for crossover requests:
+- Add a conditional-trigger node with metadata.expression.
+- metadata.expression.conditions must include at least one clause.
+- Use operator exactly "crosses_above" or "crosses_below".
+- For crossover clause, both left and right must be indicator operands.
+- Example clause shape:
+  {"type":"clause","left":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"ema","params":{"period":20}}},"operator":"crosses_below","right":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"ema","params":{"period":50}}}}
+`
+    : "";
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -51,6 +63,8 @@ async function generatePlanWithRetry(
         attemptPrompt = `${prompt}
 
 Previous output was invalid for this reason: ${error.message}
+
+Correct the structure and regenerate a valid full workflow JSON.${crossoverHint}
 
 Regenerate the workflow plan. Return only corrected JSON.`;
         continue;

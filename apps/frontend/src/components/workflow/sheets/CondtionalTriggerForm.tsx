@@ -58,7 +58,16 @@ interface UIGroup {
 }
 
 const TIMEFRAMES: IndicatorTimeframe[] = ["1m", "5m", "15m", "1h"];
-const OPERATORS: IndicatorComparator[] = [">", ">=", "<", "<=", "==", "!="];
+const OPERATOR_OPTIONS: Array<{ value: IndicatorComparator; label: string }> = [
+  { value: ">", label: ">" },
+  { value: ">=", label: ">=" },
+  { value: "<", label: "<" },
+  { value: "<=", label: "<=" },
+  { value: "==", label: "==" },
+  { value: "!=", label: "!=" },
+  { value: "crosses_above", label: "Crosses Above" },
+  { value: "crosses_below", label: "Crosses Below" },
+];
 const INDICATORS: IndicatorKind[] = ["price", "volume", "ema", "sma", "rsi", "pct_change"];
 const PERIOD_INDICATORS: IndicatorKind[] = ["ema", "sma", "rsi", "pct_change"];
 
@@ -494,9 +503,9 @@ export const ConditionalTriggerForm = ({
                       <SelectValue placeholder="Comparator" />
                     </SelectTrigger>
                     <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-                      {OPERATORS.map((op) => (
-                        <SelectItem key={op} value={op} className="text-xs">
-                          {op}
+                      {OPERATOR_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-xs">
+                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
