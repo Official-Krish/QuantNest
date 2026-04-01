@@ -5,6 +5,7 @@ export type BuilderFormId =
     | "timer"
     | "price-trigger"
     | "conditional"
+    | "market-session"
     | "trading"
     | "gmail"
     | "slack"
@@ -16,7 +17,7 @@ export type BuilderFormId =
     | "google-drive-daily-csv"
     | "google-sheets-report"
     | "none";
-export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "conditional-trigger";
+export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "conditional-trigger" | "market-session";
 export type ExecutorActionHandlerId =
     | "noop"
     | "delay"
@@ -119,6 +120,20 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         aiNodeType: "conditional-trigger",
         aiPromptNodeType: "conditional-trigger",
         metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
+    },
+    {
+        id: "market-session",
+        title: "Market Session",
+        description: "Run this trigger when market opens or closes",
+        kind: "trigger",
+        builderCategory: "Flow",
+        builderFormId: "market-session",
+        builderRendererId: "market-session",
+        executorTriggerProcessorId: "market-session",
+        aiAllowed: true,
+        aiNodeType: "market-session",
+        aiPromptNodeType: "market-session",
+        metadataFields: ["marketType", "event", "triggerTime"],
     },
     {
         id: "zerodha",

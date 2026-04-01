@@ -11,7 +11,7 @@ export interface TokenStatus {
 }
 
 export interface DerivedWorkflowTriggerState {
-    triggerType?: "timer" | "price-trigger" | "conditional-trigger";
+    triggerType?: "timer" | "price-trigger" | "conditional-trigger" | "market-session";
     triggerNodeId?: string;
     triggerConfig?: Record<string, unknown>;
     nextRunAt?: Date;
@@ -335,6 +335,15 @@ export function deriveWorkflowTriggerState(
             timeWindowMinutes: rawMetadata.timeWindowMinutes,
             startTime: rawMetadata.startTime,
             expression: rawMetadata.expression,
+        };
+        return nextState;
+    }
+
+    if (triggerType === "market-session") {
+        nextState.triggerConfig = {
+            marketType: rawMetadata.marketType,
+            event: rawMetadata.event,
+            triggerTime: rawMetadata.triggerTime,
         };
         return nextState;
     }

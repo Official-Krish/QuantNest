@@ -163,3 +163,64 @@ export async function evaluateConditionalMetadata(metadata?: ConditionalTriggerM
 
     return false;
 }
+
+export async function handleMarketSessionTrigger(
+    event: "market-open" | "market-close" | "at-time",
+    lastTriggeredAt: Date | null | undefined,
+    lastEvaluatedAt: Date | null | undefined,
+    triggerTime?: string, // HH:MM format for at-time events
+    marketType?: string,
+): Promise<boolean> {
+    const now = new Date();
+    const istTime = new Date(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+    const currentHours = istTime.getHours();
+    const currentMinutes = istTime.getMinutes();
+    const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+    const normalizedMarketType = String(marketType || "indian").trim().toLowerCase();
+    const isCryptoMarket = normalizedMarketType === "crypto" || normalizedMarketType === "web3";
+
+    void lastEvaluatedAt;
+
+    if (event === "market-open") {
+        const marketOpenTimeMinutes = isCryptoMarket ? 0 : 9 * 60 + 15;
+        const wasNotTriggeredToday = !lastTriggeredAt || lastTriggeredAt.toDateString() !== istTime.toDateString();
+        const isNowAfterOpen = currentTimeInMinutes >= marketOpenTimeMinutes;
+        const isWithinGraceWindow = currentTimeInMinutes < marketOpenTimeMinutes + 1; // 1 minute grace
+
+        return wasNotTriggeredToday && isNowAfterOpen && isWithinGraceWindow;
+    }
+
+    if (event === "market-close") {
+        const marketCloseTimeMinutes = isCryptoMarket ? (23 * 60 + 59) : (15 * 60 + 30);
+        const wasNotTriggeredToday = !lastTriggeredAt || lastTriggeredAt.toDateString() !== istTime.toDateString();
+        const isNowAfterClose = currentTimeInMinutes >= marketCloseTimeMinutes;
+        const isWithinGraceWindow = currentTimeInMinutes < marketCloseTimeMinutes + 1; // 1 minute grace
+
+        return wasNotTriggeredToday && isNowAfterClose && isWithinGraceWindow;
+    }
+
+    if (event === "at-time" && triggerTime) {
+        const triggerParts = triggerTime.split(":");
+        if (triggerParts.length !== 2) {
+            return false;
+        }
+
+        const triggerHours = Number(triggerParts[0]);
+        const triggerMinutes = Number(triggerParts[1]);
+        if (!Number.isFinite(triggerHours) || !Number.isFinite(triggerMinutes)) {
+            return false;
+        }
+        if (triggerHours < 0 || triggerHours > 23 || triggerMinutes < 0 || triggerMinutes > 59) {
+            return false;
+        }
+
+        const triggerTimeInMinutes = triggerHours * 60 + triggerMinutes;
+        const wasNotTriggeredToday = !lastTriggeredAt || lastTriggeredAt.toDateString() !== istTime.toDateString();
+        const isNowAfterTrigger = currentTimeInMinutes >= triggerTimeInMinutes;
+        const isWithinGraceWindow = currentTimeInMinutes < triggerTimeInMinutes + 1; // 1 minute grace
+
+        return wasNotTriggeredToday && isNowAfterTrigger && isWithinGraceWindow;
+    }
+
+    return false;
+}

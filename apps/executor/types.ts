@@ -28,7 +28,7 @@ export type WorkflowType = {
     userId: mongoose.Types.ObjectId;
     workflowName: string;
     status?: "active" | "paused";
-    triggerType?: "timer" | "price-trigger" | "conditional-trigger";
+    triggerType?: "timer" | "price-trigger" | "conditional-trigger" | "market-session";
     triggerNodeId?: string;
     triggerConfig?: {
         intervalSeconds?: number;
@@ -39,6 +39,8 @@ export type WorkflowType = {
         timeWindowMinutes?: number;
         startTime?: string | Date;
         expression?: IndicatorConditionGroup;
+        event?: "market-open" | "market-close" | "at-time";
+        triggerTime?: string;
         [key: string]: unknown;
     };
     nextRunAt?: Date | null;

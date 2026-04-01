@@ -7,6 +7,7 @@ import {
     evaluateConditionalMetadata,
     handleConditionalTrigger,
     handlePriceTrigger,
+    handleMarketSessionTrigger,
 } from "../handlers/trigger.handler";
 import { indicatorEngine } from "../services/indicator.engine";
 import type { NodeType, WorkflowType } from "../types";
@@ -250,10 +251,55 @@ async function processConditionalWorkflows(now: Date) {
     }
 }
 
+async function processMarketSessionWorkflows(now: Date) {
+    const workflows = await WorkflowModel.find({
+        ...ACTIVE_WORKFLOW_QUERY,
+        triggerType: "market-session",
+    });
+
+    for (const workflow of workflows) {
+        try {
+            const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
+            if (!trigger) {
+                continue;
+            }
+
+            if (!(await canExecute(workflow._id.toString()))) {
+                continue;
+            }
+
+            const shouldExecute = await handleMarketSessionTrigger(
+                trigger.data?.metadata?.event || "market-open",
+                workflow.lastTriggeredAt ?? null,
+                workflow.lastEvaluatedAt ?? null,
+                trigger.data?.metadata?.triggerTime,
+                trigger.data?.metadata?.marketType,
+            );
+
+            await WorkflowModel.updateOne(
+                { _id: workflow._id },
+                {
+                    $set: {
+                        lastEvaluatedAt: now,
+                        ...(shouldExecute ? { lastTriggeredAt: now } : {}),
+                    },
+                },
+            );
+
+            if (shouldExecute) {
+                await executeWorkflowSafe(workflow as unknown as WorkflowType);
+            }
+        } catch (err) {
+            console.error(`Market session workflow error (${workflow.workflowName})`, err);
+        }
+    }
+}
+
 const triggerProcessorMap: Record<ExecutorTriggerProcessorId, (now: Date) => Promise<void>> = {
     timer: processTimerWorkflows,
     "price-trigger": processPriceWorkflows,
     "conditional-trigger": processConditionalWorkflows,
+    "market-session": processMarketSessionWorkflows,
 };
 
 const registryTriggerProcessors = NODE_REGISTRY

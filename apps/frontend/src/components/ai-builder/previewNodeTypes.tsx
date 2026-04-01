@@ -160,6 +160,38 @@ export function PreviewConditional({ data }: any) {
   );
 }
 
+export function PreviewMarketSession({ data }: any) {
+  const {
+    marketType = "indian",
+    event = "market-open",
+    triggerTime,
+  } = data.metadata || {};
+
+  const marketLabel = String(marketType).toLowerCase() === "web3" ? "Crypto" : "Indian";
+  const title = event === "market-close"
+    ? "Market close"
+    : event === "at-time"
+      ? `At ${triggerTime || "--:--"}`
+      : "Market open";
+
+  const subtitle = event === "at-time"
+    ? "Time-based session trigger"
+    : "Session-based workflow trigger";
+
+  return (
+    <PreviewShell
+      accent="#10b981"
+      tone="trigger"
+      kindBadge="Trigger"
+      label="Market Session"
+      badge={marketLabel}
+      title={title}
+      subtitle={subtitle}
+      showTarget={false}
+    />
+  );
+}
+
 export function PreviewIf({ data }: any) {
   const groups = data.metadata?.expression?.conditions?.length || 1;
   return (
@@ -312,6 +344,7 @@ export const aiPreviewNodeTypes = {
   "price-trigger": PreviewPriceTrigger,
   timer: PreviewTimer,
   "conditional-trigger": PreviewConditional,
+  "market-session": PreviewMarketSession,
   if: PreviewIf,
   filter: PreviewFilter,
   delay: PreviewDelay,
