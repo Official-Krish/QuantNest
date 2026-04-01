@@ -31,6 +31,7 @@ import {
   suggestReusableSecretId,
 } from "./setupDialog.utils";
 import { toast } from "sonner";
+import { TelegramChatLookup } from "@/components/workflow/sheets/TelegramChatLookup";
 
 export function AiPlanSetupDialog({
   open,
@@ -304,7 +305,9 @@ export function AiPlanSetupDialog({
             const baseMetadata = node.data.metadata || {};
             const overrideMetadata = metadataOverrides[nodeId] || {};
             const nodeType = String(node.type);
+            const normalizedNodeType = nodeType.toLowerCase();
             const isGoogleSheetsNode = isGoogleSheetsReportNodeType(nodeType);
+            const isTelegramNode = normalizedNodeType === "telegram";
             const service = getReusableSecretServiceForNodeType(nodeType);
             const availableSecrets = service ? (secretsByService[service] || []) : [];
             const currentSecretId = Object.prototype.hasOwnProperty.call(overrideMetadata, "secretId")
@@ -322,6 +325,12 @@ export function AiPlanSetupDialog({
             ).trim();
             const isVerifyingGoogleSheet = Boolean(googleSheetsVerifyingByNode[nodeId]);
             const googleSheetsVerifySuccess = googleSheetsVerifySuccessByNode[nodeId] || "";
+            const telegramBotToken = String(
+              overrideMetadata.telegramBotToken ?? baseMetadata.telegramBotToken ?? "",
+            ).trim();
+            const telegramChatId = String(
+              overrideMetadata.telegramChatId ?? baseMetadata.telegramChatId ?? "",
+            ).trim();
 
             return (
               <div key={nodeId} className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
@@ -417,6 +426,31 @@ export function AiPlanSetupDialog({
                     );
                     })}
                 </div>
+
+                {isTelegramNode && !hasValidSecretId ? (
+                  <div className="mt-3">
+                    <TelegramChatLookup
+                      botToken={telegramBotToken}
+                      selectedChatId={telegramChatId}
+                      compact
+                      onSelectChat={(chat) =>
+                        onMetadataOverridesChange({
+                          ...metadataOverrides,
+                          [nodeId]: {
+                            ...(metadataOverrides[nodeId] || {}),
+                            telegramChatId: chat.id,
+                            recipientName: String(
+                              (metadataOverrides[nodeId] as Record<string, unknown> | undefined)?.recipientName ||
+                              overrideMetadata.recipientName ||
+                              baseMetadata.recipientName ||
+                              "",
+                            ).trim() || chat.title,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                ) : null}
 
                 {isGoogleSheetsNode ? (
                   <div className="mt-3 space-y-2">
