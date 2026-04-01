@@ -8,7 +8,7 @@ import type {
 import { buildFallbackDailyPerformanceAnalysis, buildFallbackInsight } from "../fallbacks";
 import { normalizeDailyPerformanceAnalysis, extractJsonBlock, normalizeInsight } from "../normalization";
 import { buildDailyPerformancePrompt, buildTradeReasoningPrompt } from "../prompts";
-import { buildDefaultReferences, buildIndicatorSnapshot } from "../indicatorContext";
+import { buildDefaultReferences, buildIndicatorSnapshot, buildMarketDataContext } from "../indicatorContext";
 import type { RawInsightResponse } from "../normalization";
 
 export class GeminiReasoningProvider implements AiReasoningProvider {
@@ -31,6 +31,23 @@ export class GeminiReasoningProvider implements AiReasoningProvider {
             const defaultReferences = buildDefaultReferences(details);
             const indicatorSnapshot = await buildIndicatorSnapshot(details, defaultReferences);
 
+            // Fetch market data context for better AI reasoning
+            const marketType = details.aiContext?.marketType || "Indian";
+            const primarySymbols = [details.symbol, details.aiContext?.symbol]
+                .filter((s): s is string => typeof s === "string" && s.length > 0);
+            const uniqueSymbols = [...new Set(primarySymbols)];
+
+            const marketDataArray = await Promise.all(
+                uniqueSymbols.map((symbol) =>
+                    buildMarketDataContext(symbol, marketType).catch((error) => {
+                        console.error(`Failed to fetch market data for ${symbol}:`, error);
+                        return null;
+                    })
+                )
+            );
+
+            const marketData = marketDataArray.filter((data) => data !== null);
+
             const payload = {
                 eventType,
                 symbol: details.symbol,
@@ -39,6 +56,7 @@ export class GeminiReasoningProvider implements AiReasoningProvider {
                 targetPrice: details.targetPrice,
                 condition: details.condition,
                 triggerContext: details.aiContext || {},
+                marketData: marketData.length > 0 ? marketData : undefined,
                 indicatorSnapshot,
             };
             const prompt = buildTradeReasoningPrompt(payload);
