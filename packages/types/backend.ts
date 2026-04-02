@@ -444,11 +444,17 @@ function validateWorkflowNodes(
                 });
             }
 
-            if (!["market-open", "market-close", "at-time", "pause-at-time"].includes(event)) {
+            if (![
+                "market-open",
+                "market-close",
+                "at-time",
+                "pause-at-time",
+                "session-window",
+            ].includes(event)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "event"],
-                    message: "Market session event must be market-open, market-close, at-time, or pause-at-time.",
+                    message: "Market session event must be market-open, market-close, at-time, pause-at-time, or session-window.",
                 });
             }
 
@@ -479,6 +485,26 @@ function validateWorkflowNodes(
                             message: "Invalid time: hours must be 0-23, minutes must be 0-59.",
                         });
                     }
+                }
+            }
+
+            if (event === "session-window") {
+                const endTime = String((metadata as any).endTime || "").trim();
+
+                if (!triggerTime || !/^\d{1,2}:\d{2}$/.test(triggerTime)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "triggerTime"],
+                        message: "Session-window start time must be in HH:MM format.",
+                    });
+                }
+
+                if (!endTime || !/^\d{1,2}:\d{2}$/.test(endTime)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "endTime"],
+                        message: "Session-window end time must be in HH:MM format.",
+                    });
                 }
             }
         }

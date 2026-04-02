@@ -409,12 +409,18 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           "marketType",
         );
       }
-      if (!["market-open", "market-close", "at-time", "pause-at-time"].includes(event)) {
+      if (![
+        "market-open",
+        "market-close",
+        "at-time",
+        "pause-at-time",
+        "session-window",
+      ].includes(event)) {
         pushIssue(
           issues,
           "error",
           "INVALID_GRAPH",
-          "Market-session node must include a valid event (market-open, market-close, at-time, or pause-at-time).",
+          "Market-session node must include a valid event (market-open, market-close, at-time, pause-at-time, or session-window).",
           node.nodeId,
           "event",
         );
@@ -461,6 +467,30 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
             "Market-session triggerTime has invalid hour/minute values.",
             node.nodeId,
             "triggerTime",
+          );
+        }
+      } else if (event === "session-window") {
+        const endTime = String(metadata.endTime || "").trim();
+
+        if (!triggerTime || !/^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(triggerTime)) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Market-session session-window start time must be in HH:MM format.",
+            node.nodeId,
+            "triggerTime",
+          );
+        }
+
+        if (!endTime || !/^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(endTime)) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Market-session session-window end time must be in HH:MM format.",
+            node.nodeId,
+            "endTime",
           );
         }
       }

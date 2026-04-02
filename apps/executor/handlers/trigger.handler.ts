@@ -165,10 +165,11 @@ export async function evaluateConditionalMetadata(metadata?: ConditionalTriggerM
 }
 
 export async function handleMarketSessionTrigger(
-    event: "market-open" | "market-close" | "at-time" | "pause-at-time",
+    event: "market-open" | "market-close" | "at-time" | "pause-at-time" | "session-window",
     lastTriggeredAt: Date | null | undefined,
     lastEvaluatedAt: Date | null | undefined,
     triggerTime?: string, // HH:MM format for at-time events
+    endTime?: string, // HH:MM format for session-window events
     marketType?: string,
 ): Promise<boolean> {
     const now = new Date();
@@ -220,6 +221,32 @@ export async function handleMarketSessionTrigger(
         const isWithinGraceWindow = currentTimeInMinutes < triggerTimeInMinutes + 1; // 1 minute grace
 
         return wasNotTriggeredToday && isNowAfterTrigger && isWithinGraceWindow;
+    }
+
+    if (event === "session-window" && triggerTime && endTime) {
+        const parseTime = (value: string): number | null => {
+            const parts = value.split(":");
+            if (parts.length !== 2) return null;
+
+            const hours = Number(parts[0]);
+            const minutes = Number(parts[1]);
+            if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+
+            return hours * 60 + minutes;
+        };
+
+        const startMinutes = parseTime(triggerTime);
+        const endMinutes = parseTime(endTime);
+        if (startMinutes === null || endMinutes === null) {
+            return false;
+        }
+
+        const isWithinWindow = startMinutes <= endMinutes
+            ? currentTimeInMinutes >= startMinutes && currentTimeInMinutes < endMinutes
+            : currentTimeInMinutes >= startMinutes || currentTimeInMinutes < endMinutes;
+
+        return isWithinWindow;
     }
 
     return false;

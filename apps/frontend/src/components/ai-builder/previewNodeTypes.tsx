@@ -26,7 +26,7 @@ function PreviewShell({
 }) {
   return (
     <div
-      className={`min-w-[160px] rounded-2xl border px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] ${
+      className={`min-w-40 rounded-2xl border px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] ${
         tone === "trigger"
           ? "border-sky-500/35 bg-sky-500/8"
           : "border-[#f17463]/35 bg-[#f17463]/10"
@@ -58,14 +58,14 @@ function PreviewShell({
         <Handle
           type="target"
           position={Position.Left}
-          className="!h-2 !w-2 !border !border-neutral-900 !bg-neutral-300"
+          className="h-2! w-2! border! border-neutral-900! bg-neutral-300!"
         />
       ) : null}
       <Handle
         type="source"
         position={Position.Right}
         id={sourceHandle}
-        className="!h-2 !w-2 !border !border-neutral-900"
+        className="h-2! w-2! border! border-neutral-900!"
         style={{ backgroundColor: accent }}
       />
     </div>
@@ -141,7 +141,7 @@ export function PreviewConditional({ data }: any) {
     : "True / false outputs";
 
   return (
-    <div className="min-w-[170px] rounded-2xl border border-sky-500/35 bg-sky-500/8 px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+    <div className="min-w-42.5 rounded-2xl border border-sky-500/35 bg-sky-500/8 px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
       <div className="mb-2">
         <span className="rounded-full bg-sky-500/14 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-sky-300">
           Trigger
@@ -153,9 +153,9 @@ export function PreviewConditional({ data }: any) {
       </div>
       <div className="mt-1.5 text-[12px] font-semibold leading-4 text-neutral-100">Branch workflow</div>
       <div className="mt-1 text-[10px] leading-4 text-neutral-300/80">{subtitle}</div>
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-neutral-900 !bg-neutral-300" />
-      <Handle type="source" id="true" position={Position.Right} className="!h-2 !w-2 !border !border-neutral-900 !bg-emerald-400" style={{ top: "40%" }} />
-      <Handle type="source" id="false" position={Position.Right} className="!h-2 !w-2 !border !border-neutral-900 !bg-rose-400" style={{ top: "68%" }} />
+      <Handle type="target" position={Position.Left} className="h-2! w-2! border! border-neutral-900! bg-neutral-300!" />
+      <Handle type="source" id="true" position={Position.Right} className="h-2! w-2! border! border-neutral-900! bg-emerald-400!" style={{ top: "40%" }} />
+      <Handle type="source" id="false" position={Position.Right} className="h-2! w-2! border! border-neutral-900! bg-rose-400!" style={{ top: "68%" }} />
     </div>
   );
 }
@@ -165,11 +165,14 @@ export function PreviewMarketSession({ data }: any) {
     marketType = "indian",
     event = "market-open",
     triggerTime,
+    endTime,
   } = data.metadata || {};
 
   const marketLabel = String(marketType).toLowerCase() === "web3" ? "Crypto" : "Indian";
   const title = event === "market-close"
     ? "Market close"
+    : event === "session-window"
+      ? `Session ${triggerTime || "--:--"} - ${endTime || "--:--"}`
     : event === "pause-at-time"
       ? `Pause at ${triggerTime || "--:--"}`
     : event === "at-time"
@@ -178,6 +181,8 @@ export function PreviewMarketSession({ data }: any) {
 
   const subtitle = event === "pause-at-time"
     ? "Pauses workflow at selected time"
+    : event === "session-window"
+    ? "Active across the full crypto session window"
     : event === "at-time"
     ? "Time-based session trigger"
     : "Session-based workflow trigger";
@@ -199,7 +204,7 @@ export function PreviewMarketSession({ data }: any) {
 export function PreviewIf({ data }: any) {
   const groups = data.metadata?.expression?.conditions?.length || 1;
   return (
-    <div className="min-w-[170px] rounded-2xl border border-[#f17463]/35 bg-[#f17463]/10 px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+    <div className="min-w-42.5 rounded-2xl border border-[#f17463]/35 bg-[#f17463]/10 px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
       <div className="mb-2">
         <span className="rounded-full bg-[#f17463]/16 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-[#f59a8d]">
           Action
@@ -211,9 +216,9 @@ export function PreviewIf({ data }: any) {
       </div>
       <div className="mt-1.5 text-[12px] font-semibold leading-4 text-neutral-100">Branch downstream</div>
       <div className="mt-1 text-[10px] leading-4 text-neutral-300/80">True / false outputs</div>
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border !border-neutral-900 !bg-neutral-300" />
-      <Handle type="source" id="true" position={Position.Right} className="!h-2 !w-2 !border !border-neutral-900 !bg-emerald-400" style={{ top: "40%" }} />
-      <Handle type="source" id="false" position={Position.Right} className="!h-2 !w-2 !border !border-neutral-900 !bg-rose-400" style={{ top: "68%" }} />
+      <Handle type="target" position={Position.Left} className="h-2! w-2! border! border-neutral-900! bg-neutral-300!" />
+      <Handle type="source" id="true" position={Position.Right} className="h-2! w-2! border! border-neutral-900! bg-emerald-400!" style={{ top: "40%" }} />
+      <Handle type="source" id="false" position={Position.Right} className="h-2! w-2! border! border-neutral-900! bg-rose-400!" style={{ top: "68%" }} />
     </div>
   );
 }

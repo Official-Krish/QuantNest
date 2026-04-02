@@ -10,7 +10,7 @@ export const MarketSessionTrigger = ({
   };
   isConnectable: boolean;
 }) => {
-  const { marketType = "indian", event = "market-open", triggerTime } = data.metadata || {};
+  const { marketType = "indian", event = "market-open", triggerTime, endTime } = data.metadata || {};
 
   const marketLabel = marketType === "web3" ? "Crypto" : "Indian";
   
@@ -20,6 +20,9 @@ export const MarketSessionTrigger = ({
   if (event === "market-close") {
     eventLabel = "Market Closes";
     timeText = "3:30 PM IST";
+  } else if (event === "session-window") {
+    eventLabel = triggerTime && endTime ? `Session ${triggerTime} - ${endTime}` : "Session window";
+    timeText = triggerTime && endTime ? `${triggerTime} - ${endTime}` : "session window";
   } else if (event === "at-time" && triggerTime) {
     eventLabel = `At ${triggerTime}`;
     timeText = triggerTime;
@@ -44,6 +47,7 @@ export const MarketSessionTrigger = ({
       <div className="mt-1 text-[11px] text-neutral-400">
         {event === "market-open" && `Executes when market opens at ${timeText}`}
         {event === "market-close" && `Executes when market closes at ${timeText}`}
+        {event === "session-window" && `Executes during the session window ${timeText}`}
         {event === "at-time" && `Executes every day at ${timeText}`}
         {event === "pause-at-time" && `Pauses workflow every day at ${timeText}`}
       </div>
@@ -57,6 +61,7 @@ export const MarketSessionTrigger = ({
         <div className="mt-1.5 text-[11px] font-semibold text-neutral-100">
           {event === "market-open" && "Waiting for market open"}
           {event === "market-close" && "Waiting for market close"}
+          {event === "session-window" && `Active from ${timeText}`}
           {event === "at-time" && `Waiting for ${triggerTime}`}
           {event === "pause-at-time" && `Will pause at ${triggerTime}`}
         </div>

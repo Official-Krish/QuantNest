@@ -272,13 +272,15 @@ async function processMarketSessionWorkflows(now: Date) {
                 | "market-open"
                 | "market-close"
                 | "at-time"
-                | "pause-at-time";
+                | "pause-at-time"
+                | "session-window";
 
             const shouldExecute = await handleMarketSessionTrigger(
                 event,
                 workflow.lastTriggeredAt ?? null,
                 workflow.lastEvaluatedAt ?? null,
                 trigger.data?.metadata?.triggerTime,
+                trigger.data?.metadata?.endTime,
                 trigger.data?.metadata?.marketType,
             );
 
