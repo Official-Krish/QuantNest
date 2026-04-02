@@ -15,6 +15,57 @@ type RightSidebarProps = {
   onSelectVersion: (id: string) => void;
 };
 
+function formatNodeTypeLabel(type: string) {
+  const value = String(type || "").toLowerCase();
+  const known: Record<string, string> = {
+    "price-trigger": "Price",
+    timer: "Timer",
+    "conditional-trigger": "Condition",
+    "market-session": "Session",
+    if: "If",
+    filter: "Filter",
+    delay: "Delay",
+    merge: "Merge",
+    zerodha: "Zerodha",
+    groww: "Groww",
+    lighter: "Lighter",
+    gmail: "Gmail",
+    slack: "Slack",
+    telegram: "Telegram",
+    discord: "Discord",
+    whatsapp: "WhatsApp",
+    "notion-daily-report": "Notion",
+    "google-drive-daily-csv": "Drive",
+    "google-sheets-report": "Sheets",
+  };
+
+  if (known[value]) return known[value];
+  return value
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase()) || "Update";
+}
+
+function getChangeIndicator(
+  currentVersion: AiStrategyDraftSession["workflowVersions"][number],
+  previousVersion: AiStrategyDraftSession["workflowVersions"][number] | undefined,
+) {
+  if (!previousVersion) return null;
+
+  const currentTypes = currentVersion.response.plan.nodes.map((node) => String(node.type || ""));
+  const previousTypes = previousVersion.response.plan.nodes.map((node) => String(node.type || ""));
+
+  const firstChangedType = currentTypes.find((type, index) => type !== previousTypes[index]);
+  if (firstChangedType) {
+    return `~${formatNodeTypeLabel(firstChangedType)}`;
+  }
+
+  if (currentTypes.length !== previousTypes.length) {
+    return "~Structure";
+  }
+
+  return null;
+}
+
 export function RightSidebar({
   panel,
   border,
@@ -26,6 +77,8 @@ export function RightSidebar({
   activeVersionId,
   onSelectVersion,
 }: RightSidebarProps) {
+  const versions = activeDraft?.workflowVersions || [];
+
   return (
     <aside className={cx("h-full min-h-0 overflow-y-auto", panel)}>
       <div className="space-y-0">
@@ -42,9 +95,13 @@ export function RightSidebar({
         <div className={cx("border-b px-4 py-4", border)}>
           <div className={cx("mb-4 text-xs font-medium uppercase tracking-[0.18em]", muted)}>Version History</div>
           <div className="space-y-3">
-            {activeDraft?.workflowVersions.length ? (
-              activeDraft.workflowVersions.map((version, index) => {
+            {versions.length ? (
+              versions.map((version, index) => {
                 const isActive = version.id === activeVersionId;
+                const previousVersion = versions[index - 1];
+                const nodeCount = version.response.plan.nodes.length;
+                const changeIndicator = getChangeIndicator(version, previousVersion);
+
                 return (
                   <button
                     key={version.id}
@@ -68,14 +125,23 @@ export function RightSidebar({
                         </div>
                         <div className={cx("mt-1 text-xs", muted)}>{version.response.plan.workflowName}</div>
                       </div>
-                      <div className={cx("rounded-full px-2 py-0.5 text-[10px]", theme === "dark" ? "bg-neutral-800 text-neutral-300" : "bg-neutral-100 text-neutral-500")}>
+                      <div
+                        className={cx(
+                          "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                          isActive
+                            ? "bg-[#f17463] text-white"
+                            : theme === "dark"
+                              ? "bg-neutral-800 text-neutral-300"
+                              : "bg-neutral-100 text-neutral-500",
+                        )}
+                      >
                         v{index + 1}
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <SmallPill label={version.response.plan.marketType} theme={theme} />
-                      <SmallPill label={`${version.response.plan.nodes.length}`} theme={theme} />
-                      <SmallPill label={`${version.response.validation.branchCount} branches`} theme={theme} />
+                      <SmallPill label={`${nodeCount} nodes`} theme={theme} />
+                      {changeIndicator ? <SmallPill label={changeIndicator} theme={theme} active /> : null}
                     </div>
                   </button>
                 );

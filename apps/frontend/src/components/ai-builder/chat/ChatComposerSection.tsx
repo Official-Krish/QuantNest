@@ -266,10 +266,21 @@ export function ChatComposerSection({
             />
 
             {/* Options row section */}
-            <div style={{ padding: "8px 18px", display: "flex", alignItems: "center", gap: 8, position: "relative", flexWrap: "wrap" }}>
+            <div
+              style={{
+                padding: "8px 18px",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                position: "relative",
+                flexWrap: "nowrap",
+                overflow: "visible",
+                whiteSpace: "nowrap",
+              }}
+            >
               {/* Provider select */}
               <Select value={selectedProvider} onValueChange={onSelectedProviderChange}>
-                <SelectTrigger className={cx(selectTriggerClass, "w-37")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "w-32 shrink-0")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Provider" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
@@ -283,7 +294,7 @@ export function ChatComposerSection({
 
               {/* Model select */}
               <Select value={selectedModel} onValueChange={onSelectedModelChange}>
-                <SelectTrigger className={cx(selectTriggerClass, "min-w-47.5")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "min-w-40 shrink-0")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Model" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
@@ -306,7 +317,7 @@ export function ChatComposerSection({
                 value={market}
                 onValueChange={(value) => onMarketChange(value as AiStrategyBuilderRequest["market"])}
               >
-                <SelectTrigger className={cx(selectTriggerClass, "w-26")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "w-22 shrink-0")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Market" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
@@ -320,7 +331,7 @@ export function ChatComposerSection({
                 value={goal}
                 onValueChange={(value) => onGoalChange(value as AiStrategyBuilderRequest["goal"])}
               >
-                <SelectTrigger className={cx(selectTriggerClass, "w-26")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "w-22 shrink-0")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Goal" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
@@ -338,7 +349,7 @@ export function ChatComposerSection({
                   onRiskPreferenceChange(value as AiStrategyBuilderRequest["riskPreference"])
                 }
               >
-                <SelectTrigger className={cx(selectTriggerClass, "w-31.5")} style={{ fontFamily: MONO }}>
+                <SelectTrigger className={cx(selectTriggerClass, "w-28 shrink-0")} style={{ fontFamily: MONO }}>
                   <SelectValue placeholder="Risk" />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>

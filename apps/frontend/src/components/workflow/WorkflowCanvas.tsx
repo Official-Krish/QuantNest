@@ -252,13 +252,6 @@ export const WorkflowCanvas = ({
           >
             {saving ? "Saving..." : workflowId ? "Update workflow" : "Save workflow"}
           </OrangeButton>
-          <Button
-            variant="outline"
-            className="border-red-500/40 bg-red-500/10 px-4 py-2 text-xs font-medium text-red-300 hover:bg-red-500/20"
-            onClick={onResetWorkflow}
-          >
-            Reset workflow
-          </Button>
         </div>
       )}
 
