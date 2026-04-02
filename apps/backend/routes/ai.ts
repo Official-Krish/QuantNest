@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Router } from "express";
-import { AiStrategySessionModel } from "@quantnest-trading/db/client";
+import { AiStrategyDraftVersionModel, AiStrategySessionModel } from "@quantnest-trading/db/client";
 import {
   aiStrategyDraftSessionSchema,
   aiStrategyDraftSummarySchema,
@@ -41,7 +41,7 @@ function getAiServiceToken(userId?: string): string {
 async function proxyAiBuilder(
   path: string,
   options: {
-    method: "GET" | "POST" | "PUT" | "DELETE";
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     userId?: string;
     headers?: Record<string, string>;
     data?: unknown;
@@ -306,17 +306,115 @@ aiRouter.put("/strategy/drafts/:draftId/setup", authMiddleware, async (req, res)
 
 aiRouter.delete("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
   try {
-    const result = await proxyAiBuilder(`/api/v1/strategy/drafts/${req.params.draftId}`, {
-      method: "DELETE",
-      userId: req.userId || undefined,
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const draftId = String(req.params.draftId);
+    const deletedSession = await AiStrategySessionModel.findOneAndDelete({
+      _id: draftId,
+      userId,
     });
 
-    res.status(result.status).json(result.data);
+    if (!deletedSession) {
+      res.status(404).json({
+        success: false,
+        code: "DRAFT_NOT_FOUND",
+        message: "AI draft session was not found.",
+      });
+      return;
+    }
+
+    await AiStrategyDraftVersionModel.deleteMany({ userId, draftId });
+
+    res.status(200).json({
+      success: true,
+      data: { draftId },
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
       message: error instanceof Error ? error.message : "Failed to delete AI draft.",
+    });
+  }
+});
+
+aiRouter.patch("/strategy/drafts/:draftId/title", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const draftId = String(req.params.draftId);
+    const title = String(req.body?.title || "").trim();
+    if (title.length < 3 || title.length > 120) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_REQUEST",
+        message: "Draft title must be between 3 and 120 characters.",
+      });
+      return;
+    }
+
+    const doc = await AiStrategySessionModel.findOne({ _id: draftId, userId }).lean();
+    if (!doc) {
+      res.status(404).json({
+        success: false,
+        code: "DRAFT_NOT_FOUND",
+        message: "AI draft session was not found.",
+      });
+      return;
+    }
+
+    const parsedDraft = aiStrategyDraftSessionSchema.safeParse(doc.sessionData);
+    if (!parsedDraft.success) {
+      res.status(500).json({
+        success: false,
+        code: "INVALID_DRAFT_DATA",
+        message: "Stored draft session data is invalid.",
+      });
+      return;
+    }
+
+    const draft = {
+      ...parsedDraft.data,
+      title,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await AiStrategySessionModel.updateOne(
+      { _id: draftId, userId },
+      {
+        $set: {
+          title,
+          status: parsedDraft.data.status,
+          sessionData: draft,
+        },
+      },
+    );
+
+    res.status(200).json({
+      success: true,
+      data: { draft },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to rename AI draft.",
     });
   }
 });

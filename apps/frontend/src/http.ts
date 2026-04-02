@@ -453,3 +453,14 @@ export async function apiDeleteAiStrategyDraft(
   );
   return res.data.data;
 }
+
+export async function apiRenameAiStrategyDraft(
+  draftId: string,
+  title: string,
+): Promise<AiStrategyDraftSession> {
+  const res = await api.patch<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
+    `/ai/strategy/drafts/${draftId}/title`,
+    { title },
+  );
+  return res.data.data.draft;
+}

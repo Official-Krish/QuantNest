@@ -9,6 +9,7 @@ import {
   apiGetAiStrategyDraft,
   apiGetAiStrategyDraftVersion,
   apiListAiStrategyDrafts,
+  apiRenameAiStrategyDraft,
   apiSaveAiStrategyDraftSetup,
 } from "@/http";
 import type {
@@ -317,6 +318,39 @@ export function AiStrategyChatBuilder() {
     setPendingDeleteDraftId(draftId);
   };
 
+  const handleRenameDraft = async (draftId: string, nextTitleRaw: string) => {
+    const nextTitle = nextTitleRaw.trim();
+    if (nextTitle.length < 3) {
+      toast.error("Title must be at least 3 characters.");
+      return;
+    }
+
+    try {
+      const updatedDraft = await apiRenameAiStrategyDraft(draftId, nextTitle);
+      setDraftSummaries((current) =>
+        current.map((entry) =>
+          entry.draftId === updatedDraft.draftId
+            ? {
+                ...entry,
+                title: updatedDraft.title,
+                updatedAt: updatedDraft.updatedAt,
+              }
+            : entry,
+        ),
+      );
+
+      if (activeDraft?.draftId === updatedDraft.draftId) {
+        setActiveDraft(updatedDraft);
+      }
+
+      toast.success("Conversation renamed");
+    } catch (e: any) {
+      const message = e?.response?.data?.message ?? e?.message ?? "Failed to rename conversation.";
+      toast.error(message);
+      throw e;
+    }
+  };
+
   const handleSend = async () => {
     if (composer.trim().length < 4 || !selectedModel) return;
 
@@ -431,6 +465,7 @@ export function AiStrategyChatBuilder() {
           filteredDrafts={filteredDrafts}
           activeDraftId={activeDraft?.draftId}
           onLoadDraft={handleLoadDraft}
+          onRenameDraft={handleRenameDraft}
           onDeleteDraft={handleDeleteDraft}
           onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
           onNewChat={handleNewChat}

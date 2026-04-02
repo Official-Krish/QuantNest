@@ -104,6 +104,7 @@ export type SessionRowProps = {
   active: boolean;
   theme: LocalTheme;
   onClick: () => void;
+  onRename: (nextTitle: string) => Promise<void> | void;
   onDelete: () => void;
 };
 

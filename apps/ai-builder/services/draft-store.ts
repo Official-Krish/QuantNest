@@ -492,22 +492,6 @@ class AiDraftStore {
       setupState,
     };
   }
-
-  async remove(userId: string, draftId: string): Promise<void> {
-    const deletedSession = await AiStrategySessionModel.findOneAndDelete({
-      _id: draftId,
-      userId,
-    });
-
-    if (!deletedSession) {
-      throw new AiBuilderError("DRAFT_NOT_FOUND", "AI draft session was not found.", 404);
-    }
-
-    await AiStrategyDraftVersionModel.deleteMany({
-      userId,
-      draftId,
-    });
-  }
 }
 
 export const aiDraftStore = new AiDraftStore();
