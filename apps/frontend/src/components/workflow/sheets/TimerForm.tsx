@@ -20,11 +20,11 @@ interface TimerFormProps {
 
 export const TimerForm = ({ setMarketType, metadata, setMetadata, marketType }: TimerFormProps) => {
   return (
-    <div className="space-y-2 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+    <div className="space-y-3 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
+      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
         Interval
       </p>
-      <p className="text-xs text-neutral-400">
+      <p className="text-sm text-neutral-300">
         Number of seconds after which the trigger should run.
       </p>
       <Input
@@ -39,7 +39,7 @@ export const TimerForm = ({ setMarketType, metadata, setMetadata, marketType }: 
         className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
       />
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
             Select Market
         </p>
         <Select
@@ -79,7 +79,7 @@ export const TimerForm = ({ setMarketType, metadata, setMetadata, marketType }: 
       {/* Asset according to market */}
         {marketType && 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
               Asset
             </p>
             <Select

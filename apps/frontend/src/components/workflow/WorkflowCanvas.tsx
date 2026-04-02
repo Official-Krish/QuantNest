@@ -114,9 +114,17 @@ export const WorkflowCanvas = ({
   hasZerodhaAction,
 }: WorkflowCanvasProps) => {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [previewTriggerKind, setPreviewTriggerKind] = useState<string | null>(null);
   const menuNodeKind = nodeMenu ? String(nodeMenu.node.data?.kind || "action").toLowerCase() : "action";
   const menuNodeType = nodeMenu ? String(nodeMenu.node.type || "node") : "node";
   const menuNodeLabel = menuNodeType.replaceAll("-", " ");
+
+  const previewTriggerTitle = previewTriggerKind
+    ? previewTriggerKind
+        .split("-")
+        .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+        .join(" ")
+    : "Trigger Preview";
 
   const sourceNodeColor = (nodeType: string) => {
     const normalized = nodeType.toLowerCase();
@@ -168,6 +176,20 @@ export const WorkflowCanvas = ({
 
       {!nodes.length && !routeWorkflowId && !loading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center">
+          {showTriggerSheet ? (
+            <div className="mb-2 w-65 rounded-2xl border border-[#f17463]/40 border-l-4 border-l-[#f17463] bg-[#f17463]/10 px-4 py-3 text-left shadow-[0_20px_45px_rgba(0,0,0,0.35)]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#ff9e8f]">
+                Ghost node preview
+              </p>
+              <p className="mt-1 text-sm font-semibold text-neutral-100">
+                {previewTriggerTitle}
+              </p>
+              <p className="mt-1 text-xs text-neutral-300">
+                This placeholder updates as you choose a trigger.
+              </p>
+            </div>
+          ) : null}
+
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-neutral-500">
             Start with a trigger
           </p>
@@ -295,6 +317,7 @@ export const WorkflowCanvas = ({
             onSelect={onTriggerSelect}
             marketType={marketType}
             setMarketType={setMarketType}
+            onPreviewTriggerChange={setPreviewTriggerKind}
           />
         )}
 
@@ -312,6 +335,7 @@ export const WorkflowCanvas = ({
             onSelect={onEditTriggerSave}
             marketType={marketType}
             setMarketType={setMarketType}
+            onPreviewTriggerChange={setPreviewTriggerKind}
           />
         )}
 

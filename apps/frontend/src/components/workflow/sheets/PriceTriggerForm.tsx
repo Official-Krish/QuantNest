@@ -114,10 +114,10 @@ export const PriceTriggerForm = ({
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
       {/* Condition */}
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
           Trigger mode
         </p>
-        <p className="text-xs text-neutral-400">
+        <p className="text-sm text-neutral-300">
           Choose a fixed threshold or a change over a time window.
         </p>
         <Select
@@ -159,10 +159,10 @@ export const PriceTriggerForm = ({
       {metadata.mode !== "change" ? (
         <>
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
               Condition
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-sm text-neutral-300">
               Run when price is above or below the threshold.
             </p>
             <Select
@@ -191,10 +191,10 @@ export const PriceTriggerForm = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
               Price threshold
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-sm text-neutral-300">
               Run this workflow when the selected asset crosses this price.
             </p>
             <Input
@@ -214,7 +214,7 @@ export const PriceTriggerForm = ({
       ) : (
         <>
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
               Change direction
             </p>
             <Select
@@ -239,7 +239,7 @@ export const PriceTriggerForm = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
               Change type
             </p>
             <Select
@@ -264,7 +264,7 @@ export const PriceTriggerForm = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
               Change value
             </p>
             <Input
@@ -283,7 +283,7 @@ export const PriceTriggerForm = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
               Window (minutes)
             </p>
             <Input
@@ -306,7 +306,7 @@ export const PriceTriggerForm = ({
 
       {/* Market Selection Indian/Web3 */}
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
             Select Market
         </p>
         <Select
@@ -348,7 +348,7 @@ export const PriceTriggerForm = ({
       {/* Asset according to market */}
       {marketType && 
         <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
             Asset
           </p>
           <Select

@@ -234,17 +234,17 @@ export const MarketSessionTriggerForm = ({
       <div className="rounded-2xl border border-neutral-800/80 bg-neutral-950/70 p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f17463]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-300">
               Market Session Trigger
             </p>
             <h3 className="mt-2 text-sm font-medium text-neutral-100">
               Keep the workflow tied to a session window
             </h3>
-            <p className="mt-1 text-xs leading-relaxed text-neutral-400">
+            <p className="mt-1 text-sm leading-relaxed text-neutral-300">
               Choose the market, select when it should fire, and optionally pause the workflow at a fixed time.
             </p>
           </div>
-          <div className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-neutral-300">
+          <div className="rounded-full border border-[#f17463]/45 bg-[#f17463]/12 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-[#ffb8ad]">
             {marketTitle}
           </div>
         </div>
@@ -253,19 +253,19 @@ export const MarketSessionTriggerForm = ({
           <button
             type="button"
             onClick={() => handleMarketTypeChange("Indian")}
-            className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+            className={`rounded-2xl border px-4 py-3 text-left transition-all cursor-pointer ${
               marketType === "Indian"
-                ? "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]"
-                : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                ? "border-[#f17463]/60 bg-[#f17463]/10 shadow-[0_0_0_1px_rgba(241,116,99,0.15)]"
+                : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900"
             }`}
           >
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-neutral-100">Indian</span>
-              <span className="rounded-full bg-neutral-950 px-2 py-0.5 text-[10px] font-mono text-neutral-400">
+              <span className="rounded-full bg-neutral-950 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
                 NSE / BSE
               </span>
             </div>
-            <p className="mt-1 text-xs text-neutral-400">
+            <p className="mt-1 text-sm text-neutral-300">
               Intraday session timing for Indian markets.
             </p>
           </button>
@@ -273,35 +273,35 @@ export const MarketSessionTriggerForm = ({
           <button
             type="button"
             onClick={() => handleMarketTypeChange("Crypto")}
-            className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+            className={`rounded-2xl border px-4 py-3 text-left transition-all cursor-pointer ${
               marketType === "Crypto"
-                ? "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]"
-                : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                ? "border-[#f17463]/60 bg-[#f17463]/10 shadow-[0_0_0_1px_rgba(241,116,99,0.15)]"
+                : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900"
             }`}
           >
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-neutral-100">Crypto</span>
-              <span className="rounded-full bg-neutral-950 px-2 py-0.5 text-[10px] font-mono text-neutral-400">
+              <span className="rounded-full bg-neutral-950 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
                 24 / 7
               </span>
             </div>
-            <p className="mt-1 text-xs text-neutral-400">
+            <p className="mt-1 text-sm text-neutral-300">
               IST-based session timing for crypto workflows.
             </p>
           </button>
         </div>
-        <p className="mt-3 text-[11px] text-neutral-500">{marketDescription}</p>
+        <p className="mt-3 text-sm text-neutral-300">{marketDescription}</p>
       </div>
 
       <div className="space-y-2 rounded-2xl border border-neutral-800/80 bg-neutral-950/70 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f17463]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-300">
               Timing
             </p>
-            <p className="mt-1 text-xs text-neutral-400">{eventDescription}</p>
+            <p className="mt-1 text-sm text-neutral-300">{eventDescription}</p>
           </div>
-          <div className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-neutral-300">
+          <div className="rounded-full border border-[#f17463]/45 bg-[#f17463]/12 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-[#ffb8ad]">
             {eventLabel}
           </div>
         </div>
@@ -312,35 +312,35 @@ export const MarketSessionTriggerForm = ({
               <button
                 type="button"
                 onClick={() => handleEventChange("market-open")}
-                className={`rounded-xl border px-3 py-3 text-left transition ${
+                className={`rounded-xl border px-3 py-3 text-left transition cursor-pointer ${
                   event === "market-open"
-                    ? "border-emerald-500/50 bg-emerald-500/10"
-                    : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                    ? "border-[#f17463]/60 bg-[#f17463]/10 shadow-[0_0_0_1px_rgba(241,116,99,0.12)]"
+                    : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900"
                 }`}
               >
                 <div className="text-sm font-medium text-neutral-100">Market open</div>
-                <div className="mt-1 text-[11px] text-neutral-400">Starts at 9:15 AM IST.</div>
+                <div className="mt-1 text-xs text-neutral-300">Starts at 9:15 AM IST.</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleEventChange("market-close")}
-                className={`rounded-xl border px-3 py-3 text-left transition ${
+                className={`rounded-xl border px-3 py-3 text-left transition cursor-pointer ${
                   event === "market-close"
-                    ? "border-emerald-500/50 bg-emerald-500/10"
-                    : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                    ? "border-[#f17463]/60 bg-[#f17463]/10 shadow-[0_0_0_1px_rgba(241,116,99,0.12)]"
+                    : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900"
                 }`}
               >
                 <div className="text-sm font-medium text-neutral-100">Market close</div>
-                <div className="mt-1 text-[11px] text-neutral-400">Starts at 3:30 PM IST.</div>
+                <div className="mt-1 text-xs text-neutral-300">Starts at 3:30 PM IST.</div>
               </button>
             </>
           )}
 
           {marketType === "Crypto" ? (
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 px-3 py-3 sm:col-span-2">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 px-3 py-3 sm:col-span-2 cursor-pointer">
               <div className="text-sm font-medium text-neutral-100">Use the crypto preset below</div>
-              <div className="mt-1 text-[11px] text-neutral-400">
+              <div className="mt-1 text-xs text-neutral-300">
                 Select a session window from presets, or set start and stop times manually.
               </div>
             </div>
@@ -349,40 +349,40 @@ export const MarketSessionTriggerForm = ({
               <button
                 type="button"
                 onClick={() => handleEventChange("at-time")}
-                className={`rounded-xl border px-3 py-3 text-left transition ${
+                className={`rounded-xl border px-3 py-3 text-left transition cursor-pointer ${
                   event === "at-time"
-                    ? "border-emerald-500/50 bg-emerald-500/10"
-                    : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                    ? "border-[#f17463]/60 bg-[#f17463]/10 shadow-[0_0_0_1px_rgba(241,116,99,0.12)]"
+                    : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900"
                 }`}
               >
                 <div className="text-sm font-medium text-neutral-100">Run at time</div>
-                <div className="mt-1 text-[11px] text-neutral-400">Use a specific IST time.</div>
+                <div className="mt-1 text-xs text-neutral-300">Use a specific IST time.</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleEventChange("pause-at-time")}
-                className={`rounded-xl border px-3 py-3 text-left transition ${
+                className={`rounded-xl border px-3 py-3 text-left transition cursor-pointer ${
                   event === "pause-at-time"
-                    ? "border-emerald-500/50 bg-emerald-500/10"
-                    : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                    ? "border-[#f17463]/60 bg-[#f17463]/10 shadow-[0_0_0_1px_rgba(241,116,99,0.12)]"
+                    : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900"
                 }`}
               >
                 <div className="text-sm font-medium text-neutral-100">Pause workflow</div>
-                <div className="mt-1 text-[11px] text-neutral-400">Stop execution at a fixed time.</div>
+                <div className="mt-1 text-xs text-neutral-300">Stop execution at a fixed time.</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleEventChange("session-window")}
-                className={`rounded-xl border px-3 py-3 text-left transition sm:col-span-2 ${
+                className={`rounded-xl border px-3 py-3 text-left transition cursor-pointer sm:col-span-2 ${
                   event === "session-window"
-                    ? "border-emerald-500/50 bg-emerald-500/10"
-                    : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                    ? "border-[#f17463]/60 bg-[#f17463]/10 shadow-[0_0_0_1px_rgba(241,116,99,0.12)]"
+                    : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900"
                 }`}
               >
                 <div className="text-sm font-medium text-neutral-100">Indian session window</div>
-                <div className="mt-1 text-[11px] text-neutral-400">Set a start and stop time for the session.</div>
+                <div className="mt-1 text-xs text-neutral-300">Set a full session range with explicit start and end time.</div>
               </button>
             </>
           )}
@@ -398,7 +398,7 @@ export const MarketSessionTriggerForm = ({
                 type="time"
                 value={triggerTime}
                 onChange={(e) => handleTimeChange(e.target.value)}
-                className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-100 outline-none transition focus:border-emerald-500"
+                className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-100 outline-none transition focus:border-[#f17463]"
               />
               <span className="hidden shrink-0 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-neutral-400 sm:inline-flex">
                 IST
@@ -420,7 +420,7 @@ export const MarketSessionTriggerForm = ({
                 type="time"
                 value={endTime}
                 onChange={(e) => handleEndTimeChange(e.target.value)}
-                className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-100 outline-none transition focus:border-emerald-500"
+                className="h-11 w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-100 outline-none transition focus:border-[#f17463]"
               />
               <span className="hidden shrink-0 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-neutral-400 sm:inline-flex">
                 IST
@@ -435,10 +435,10 @@ export const MarketSessionTriggerForm = ({
 
       <div className="space-y-3 rounded-2xl border border-neutral-800/80 bg-neutral-950/70 p-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f17463]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-300">
             Quick presets
           </p>
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-sm text-neutral-300">
             Common session setups for Indian and crypto workflows.
           </p>
         </div>
@@ -455,16 +455,16 @@ export const MarketSessionTriggerForm = ({
                 key={preset.id}
                 type="button"
                 onClick={() => handlePresetSelect(preset)}
-                className={`rounded-2xl border px-3 py-3 text-left transition ${
+                className={`rounded-2xl border px-3 py-3 text-left transition cursor-pointer ${
                   isActive
-                    ? "border-emerald-500/50 bg-emerald-500/10"
-                    : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                    ? "border-[#f17463]/60 bg-[#f17463]/10 shadow-[0_0_0_1px_rgba(241,116,99,0.12)]"
+                    : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium text-neutral-100">{preset.label}</div>
-                    <div className="mt-1 text-[11px] text-neutral-400">{preset.description}</div>
+                    <div className="mt-1 text-xs text-neutral-300">{preset.description}</div>
                   </div>
                   <div className="shrink-0 rounded-full bg-neutral-950 px-2.5 py-1 text-[10px] font-mono text-neutral-300">
                     {preset.endTime ? `${preset.triggerTime} - ${preset.endTime}` : preset.triggerTime}
@@ -481,7 +481,7 @@ export const MarketSessionTriggerForm = ({
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
             Summary
           </span>
-          <span className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-emerald-300">
+          <span className="rounded-full border border-[#f17463]/45 bg-[#f17463]/12 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-[#ffb8ad]">
             Active
           </span>
         </div>
