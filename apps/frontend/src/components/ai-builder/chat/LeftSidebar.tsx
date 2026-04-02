@@ -14,6 +14,7 @@ type LeftSidebarProps = {
   filteredDrafts: AiStrategyDraftSummary[];
   activeDraftId?: string;
   onLoadDraft: (draftId: string) => void;
+  onDeleteDraft: (draftId: string) => void;
   onToggleTheme: () => void;
   onNewChat: () => void;
 };
@@ -29,6 +30,7 @@ export function LeftSidebar({
   filteredDrafts,
   activeDraftId,
   onLoadDraft,
+  onDeleteDraft,
   onToggleTheme,
   onNewChat,
 }: LeftSidebarProps) {
@@ -98,6 +100,7 @@ export function LeftSidebar({
                   active={activeDraftId === item.draftId}
                   theme={theme}
                   onClick={() => onLoadDraft(item.draftId)}
+                  onDelete={() => onDeleteDraft(item.draftId)}
                 />
               ))}
             </div>

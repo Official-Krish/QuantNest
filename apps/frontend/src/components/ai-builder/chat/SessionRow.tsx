@@ -1,7 +1,8 @@
 import type { SessionRowProps } from "./shared";
 import { cx } from "./shared";
+import { Trash2 } from "lucide-react";
 
-export function SessionRow({ item, active, theme, onClick }: SessionRowProps) {
+export function SessionRow({ item, active, theme, onClick, onDelete }: SessionRowProps) {
   const statusTone =
     item.status === "ready"
       ? "text-emerald-500"
@@ -38,7 +39,26 @@ export function SessionRow({ item, active, theme, onClick }: SessionRowProps) {
             {item.lastMessage || "Open to continue refining"}
           </div>
         </div>
-        <div className={cx("text-[10px]", theme === "dark" ? "text-neutral-500" : "text-neutral-400")}>{updatedLabel}</div>
+        <div className="flex shrink-0 items-center gap-1">
+          <div className={cx("text-[10px] whitespace-nowrap", theme === "dark" ? "text-neutral-500" : "text-neutral-400")}>{updatedLabel}</div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDelete();
+            }}
+            className={cx(
+              "inline-flex h-6 w-6 items-center justify-center rounded-md border transition cursor-pointer",
+              theme === "dark"
+                ? "border-neutral-700 bg-neutral-900 text-neutral-400 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-300"
+                : "border-neutral-200 bg-neutral-50 text-neutral-500 hover:border-red-300 hover:bg-red-50 hover:text-red-500",
+            )}
+            aria-label="Delete conversation"
+            title="Delete conversation"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
       <div className="mt-2 flex items-center gap-2">
         <span className={cx("h-1.5 w-1.5 rounded-full", statusTone, "bg-current")} />

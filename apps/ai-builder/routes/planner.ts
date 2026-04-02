@@ -306,4 +306,34 @@ router.put("/strategy/drafts/:draftId/setup", serviceAuthMiddleware, async (req,
   }
 });
 
+router.delete("/strategy/drafts/:draftId", serviceAuthMiddleware, async (req, res) => {
+  try {
+    const userId = requireUserId(req.userId);
+    const draftId = String(req.params.draftId);
+    await aiDraftStore.remove(userId, draftId);
+
+    res.status(200).json({
+      success: true,
+      data: { draftId },
+    });
+  } catch (error) {
+    if (isAiBuilderError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      return;
+    }
+
+    const message = error instanceof Error ? error.message : "Failed to delete AI draft.";
+    res.status(500).json({
+      success: false,
+      code: "INTERNAL_ERROR",
+      message,
+    });
+  }
+});
+
 export default router;

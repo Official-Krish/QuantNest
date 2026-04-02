@@ -104,6 +104,7 @@ export type SessionRowProps = {
   active: boolean;
   theme: LocalTheme;
   onClick: () => void;
+  onDelete: () => void;
 };
 
 export type WorkflowCanvasCardProps = {

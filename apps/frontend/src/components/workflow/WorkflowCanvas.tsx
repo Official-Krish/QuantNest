@@ -35,6 +35,7 @@ export interface WorkflowCanvasProps {
   canSave: boolean;
   saving: boolean;
   onSave: () => void;
+  onResetWorkflow: () => void;
   showTriggerSheet: boolean;
   setShowTriggerSheet: (open: boolean) => void;
   onTriggerSelect: (type: any, metadata: any) => void;
@@ -82,6 +83,7 @@ export const WorkflowCanvas = ({
   canSave,
   saving,
   onSave,
+  onResetWorkflow,
   showTriggerSheet,
   setShowTriggerSheet,
   onTriggerSelect,
@@ -185,6 +187,13 @@ export const WorkflowCanvas = ({
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-950/85 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.28)] backdrop-blur-sm">
         <button
           type="button"
+          className="rounded-full px-3 py-1 text-[11px] font-medium text-red-300 hover:bg-red-500/10 cursor-pointer"
+          onClick={onResetWorkflow}
+        >
+          Reset workflow
+        </button>
+        <button
+          type="button"
           className="rounded-full px-3 py-1 text-[11px] font-medium text-neutral-200 hover:bg-neutral-900/90 cursor-pointer"
           onClick={() => reactFlowInstance?.fitView({ padding: 0.2, duration: 350 })}
         >
@@ -221,6 +230,13 @@ export const WorkflowCanvas = ({
           >
             {saving ? "Saving..." : workflowId ? "Update workflow" : "Save workflow"}
           </OrangeButton>
+          <Button
+            variant="outline"
+            className="border-red-500/40 bg-red-500/10 px-4 py-2 text-xs font-medium text-red-300 hover:bg-red-500/20"
+            onClick={onResetWorkflow}
+          >
+            Reset workflow
+          </Button>
         </div>
       )}
 

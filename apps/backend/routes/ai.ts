@@ -41,7 +41,7 @@ function getAiServiceToken(userId?: string): string {
 async function proxyAiBuilder(
   path: string,
   options: {
-    method: "GET" | "POST" | "PUT";
+    method: "GET" | "POST" | "PUT" | "DELETE";
     userId?: string;
     headers?: Record<string, string>;
     data?: unknown;
@@ -300,6 +300,23 @@ aiRouter.put("/strategy/drafts/:draftId/setup", authMiddleware, async (req, res)
       success: false,
       code: "AI_PROXY_ERROR",
       message: error instanceof Error ? error.message : "Failed to save AI draft setup.",
+    });
+  }
+});
+
+aiRouter.delete("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
+  try {
+    const result = await proxyAiBuilder(`/api/v1/strategy/drafts/${req.params.draftId}`, {
+      method: "DELETE",
+      userId: req.userId || undefined,
+    });
+
+    res.status(result.status).json(result.data);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to delete AI draft.",
     });
   }
 });

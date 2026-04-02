@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import {
   apiCreateAiStrategyDraft,
+  apiDeleteAiStrategyDraft,
   apiEditAiStrategyDraft,
   apiGetAiModels,
   apiGetAiStrategyDraft,
@@ -33,6 +34,16 @@ import { ChatTopHeader } from "@/components/ai-builder/chat/ChatTopHeader";
 import { ChatMessagesPane } from "@/components/ai-builder/chat/ChatMessagesPane";
 import { ChatComposerSection } from "@/components/ai-builder/chat/ChatComposerSection";
 import { RightSidebar } from "@/components/ai-builder/chat/RightSidebar";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 function getVersionSetupState(
   draft: AiStrategyDraftSession,
@@ -83,6 +94,7 @@ export function AiStrategyChatBuilder() {
   const [selectedModel, setSelectedModel] = useState("");
   const [activeVersionId, setActiveVersionId] = useState("");
   const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const [pendingDeleteDraftId, setPendingDeleteDraftId] = useState<string | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -269,6 +281,42 @@ export function AiStrategyChatBuilder() {
     }
   };
 
+  const performDeleteDraft = async (draftId: string) => {
+    if (!draftId) return;
+
+    try {
+      await apiDeleteAiStrategyDraft(draftId);
+
+      const nextSummaries = draftSummaries.filter((entry) => entry.draftId !== draftId);
+      setDraftSummaries(nextSummaries);
+
+      const wasActive = activeDraft?.draftId === draftId;
+      if (wasActive) {
+        const nextDraftId = nextSummaries[0]?.draftId;
+        if (nextDraftId) {
+          await handleLoadDraft(nextDraftId);
+        } else {
+          handleNewChat();
+        }
+      }
+
+      if (window.localStorage.getItem(LAST_CHAT_DRAFT_STORAGE_KEY) === draftId) {
+        window.localStorage.removeItem(LAST_CHAT_DRAFT_STORAGE_KEY);
+      }
+
+      toast.success("Conversation deleted");
+    } catch (e: any) {
+      const message = e?.response?.data?.message ?? e?.message ?? "Failed to delete conversation.";
+      toast.error(message);
+    } finally {
+      setPendingDeleteDraftId(null);
+    }
+  };
+
+  const handleDeleteDraft = (draftId: string) => {
+    setPendingDeleteDraftId(draftId);
+  };
+
   const handleSend = async () => {
     if (composer.trim().length < 4 || !selectedModel) return;
 
@@ -383,6 +431,7 @@ export function AiStrategyChatBuilder() {
           filteredDrafts={filteredDrafts}
           activeDraftId={activeDraft?.draftId}
           onLoadDraft={handleLoadDraft}
+          onDeleteDraft={handleDeleteDraft}
           onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
           onNewChat={handleNewChat}
         />
@@ -494,6 +543,32 @@ export function AiStrategyChatBuilder() {
         onMetadataOverridesChange={setMetadataOverrides}
         onContinue={openInBuilder}
       />
+
+      <Dialog open={Boolean(pendingDeleteDraftId)} onOpenChange={(open) => !open && setPendingDeleteDraftId(null)}>
+        <DialogContent className="max-w-md border-neutral-800 bg-neutral-950 text-neutral-100">
+          <DialogHeader>
+            <DialogTitle className="text-base">Delete conversation?</DialogTitle>
+            <DialogDescription className="text-neutral-400">
+              This will permanently delete the selected AI-builder chat.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="border-neutral-700 bg-neutral-900 text-neutral-200 cursor-pointer"
+              onClick={() => setPendingDeleteDraftId(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 text-white hover:bg-red-500 cursor-pointer"
+              onClick={() => void performDeleteDraft(pendingDeleteDraftId || "")}
+            >
+              Delete chat
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

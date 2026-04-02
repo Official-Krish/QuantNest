@@ -444,3 +444,12 @@ export async function apiSaveAiStrategyDraftSetup(
   );
   return res.data.data.draft;
 }
+
+export async function apiDeleteAiStrategyDraft(
+  draftId: string,
+): Promise<{ draftId: string }> {
+  const res = await api.delete<{ success: boolean; data: { draftId: string } }>(
+    `/ai/strategy/drafts/${draftId}`,
+  );
+  return res.data.data;
+}

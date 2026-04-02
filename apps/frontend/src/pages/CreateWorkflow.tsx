@@ -5,6 +5,14 @@ import { type EdgeType, type NodeType } from "@quantnest-trading/types";
 import { WorkflowCanvas } from "../components/workflow/WorkflowCanvas";
 import { WorkflowNameDialog } from "../components/workflow/WorkflowNameDialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   apiCreateWorkflow,
   apiGetWorkflow,
   apiVerifyBrokerCredentials,
@@ -76,6 +84,7 @@ export const CreateWorkflow = () => {
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
   const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(null);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const [nodeMenu, setNodeMenu] = useState<{
     node: NodeType;
     x: number;
@@ -446,6 +455,28 @@ export const CreateWorkflow = () => {
     setEditingNode((current) => (current?.nodeId === nodeId ? null : current));
   }, [nodeMenu]);
 
+  const confirmResetWorkflowBuilder = useCallback(() => {
+    setNodes([]);
+    setEdges([]);
+    setWorkflowId(null);
+    setWorkflowName("");
+    setSaveError(null);
+    setMarketType(null);
+    setSelectedAction(null);
+    setEditingNode(null);
+    setNodeMenu(null);
+    setLastSavedSnapshot(null);
+    setShowTriggerSheet(false);
+    setShowTriggerSheetEdit(false);
+    setShowActionSheetEdit(false);
+    setShowResetDialog(false);
+    setShowNameDialog(true);
+  }, []);
+
+  const resetWorkflowBuilder = useCallback(() => {
+    setShowResetDialog(true);
+  }, []);
+
   return (
     <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-8 pt-28 text-white md:px-10">
       <AppBackground />
@@ -534,6 +565,7 @@ export const CreateWorkflow = () => {
           canSave={canSave}
           saving={saving}
           onSave={onSave}
+          onResetWorkflow={resetWorkflowBuilder}
           showTriggerSheet={showTriggerSheet}
           setShowTriggerSheet={setShowTriggerSheet}
           onTriggerSelect={(type, metadata) => {
@@ -643,6 +675,32 @@ export const CreateWorkflow = () => {
           onChangeName={setWorkflowName}
           onSubmit={handleNameDialogSubmit}
         />
+
+        <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+          <DialogContent className="max-w-md border-neutral-800 bg-neutral-950 text-neutral-100">
+            <DialogHeader>
+              <DialogTitle className="text-base">Reset workflow?</DialogTitle>
+              <DialogDescription className="text-neutral-400">
+                This will remove all nodes and edges from the canvas.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                className="border-neutral-700 bg-neutral-900 text-neutral-200 cursor-pointer"
+                onClick={() => setShowResetDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-red-600 text-white hover:bg-red-500 cursor-pointer"
+                onClick={confirmResetWorkflowBuilder}
+              >
+                Reset workflow
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
