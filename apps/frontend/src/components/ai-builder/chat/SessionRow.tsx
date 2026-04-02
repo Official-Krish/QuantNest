@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SessionRowProps } from "./shared";
 import { cx } from "./shared";
-import { EllipsisVertical, Pencil, Trash2 } from "lucide-react";
+import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -181,7 +181,7 @@ export function SessionRow({ item, active, theme, onClick, onRename, onDelete }:
                 aria-label="Open chat actions"
                 title="Actions"
               >
-                <EllipsisVertical className="h-3.5 w-3.5" />
+                <Ellipsis className="h-3.5 w-3.5" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
