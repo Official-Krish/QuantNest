@@ -444,15 +444,15 @@ function validateWorkflowNodes(
                 });
             }
 
-            if (!["market-open", "market-close", "at-time"].includes(event)) {
+            if (!["market-open", "market-close", "at-time", "pause-at-time"].includes(event)) {
                 ctx.addIssue({
                     code: "custom",
                     path: [...path, "event"],
-                    message: "Market session event must be market-open, market-close, or at-time.",
+                    message: "Market session event must be market-open, market-close, at-time, or pause-at-time.",
                 });
             }
 
-            if (event === "at-time") {
+            if (event === "at-time" || event === "pause-at-time") {
                 if (!triggerTime || !/^\d{1,2}:\d{2}$/.test(triggerTime)) {
                     ctx.addIssue({
                         code: "custom",

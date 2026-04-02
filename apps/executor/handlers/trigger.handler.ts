@@ -165,7 +165,7 @@ export async function evaluateConditionalMetadata(metadata?: ConditionalTriggerM
 }
 
 export async function handleMarketSessionTrigger(
-    event: "market-open" | "market-close" | "at-time",
+    event: "market-open" | "market-close" | "at-time" | "pause-at-time",
     lastTriggeredAt: Date | null | undefined,
     lastEvaluatedAt: Date | null | undefined,
     triggerTime?: string, // HH:MM format for at-time events
@@ -199,7 +199,7 @@ export async function handleMarketSessionTrigger(
         return wasNotTriggeredToday && isNowAfterClose && isWithinGraceWindow;
     }
 
-    if (event === "at-time" && triggerTime) {
+    if ((event === "at-time" || event === "pause-at-time") && triggerTime) {
         const triggerParts = triggerTime.split(":");
         if (triggerParts.length !== 2) {
             return false;

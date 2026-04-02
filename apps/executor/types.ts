@@ -39,7 +39,7 @@ export type WorkflowType = {
         timeWindowMinutes?: number;
         startTime?: string | Date;
         expression?: IndicatorConditionGroup;
-        event?: "market-open" | "market-close" | "at-time";
+        event?: "market-open" | "market-close" | "at-time" | "pause-at-time";
         triggerTime?: string;
         [key: string]: unknown;
     };

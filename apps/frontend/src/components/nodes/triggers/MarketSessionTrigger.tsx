@@ -23,6 +23,9 @@ export const MarketSessionTrigger = ({
   } else if (event === "at-time" && triggerTime) {
     eventLabel = `At ${triggerTime}`;
     timeText = triggerTime;
+  } else if (event === "pause-at-time" && triggerTime) {
+    eventLabel = `Pause at ${triggerTime}`;
+    timeText = triggerTime;
   }
 
   return (
@@ -42,6 +45,7 @@ export const MarketSessionTrigger = ({
         {event === "market-open" && `Executes when market opens at ${timeText}`}
         {event === "market-close" && `Executes when market closes at ${timeText}`}
         {event === "at-time" && `Executes every day at ${timeText}`}
+        {event === "pause-at-time" && `Pauses workflow every day at ${timeText}`}
       </div>
       <div className="mt-2 rounded-lg border border-neutral-800 bg-black/40 px-2.5 py-2">
         <div className="flex items-center justify-between gap-2">
@@ -54,6 +58,7 @@ export const MarketSessionTrigger = ({
           {event === "market-open" && "Waiting for market open"}
           {event === "market-close" && "Waiting for market close"}
           {event === "at-time" && `Waiting for ${triggerTime}`}
+          {event === "pause-at-time" && `Will pause at ${triggerTime}`}
         </div>
       </div>
 
@@ -61,13 +66,7 @@ export const MarketSessionTrigger = ({
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
-        style={{
-          background: "transparent",
-          border: "2px solid #10b981",
-          width: 10,
-          height: 10,
-          right: -5,
-        }}
+        className="h-2! w-2! bg-[#10b981] border-2 border-[#10b981]"
       />
     </div>
   );

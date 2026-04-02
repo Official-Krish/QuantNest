@@ -114,8 +114,8 @@ export interface PriceTriggerNodeMetadata {
 
 export interface MarketSessionTriggerNodeMetadata {
     marketType: "indian" | "web3";
-    event: "market-open" | "market-close" | "at-time";
-    triggerTime?: string; // HH:MM format, required for at-time event
+    event: "market-open" | "market-close" | "at-time" | "pause-at-time";
+    triggerTime?: string; // HH:MM format, required for at-time and pause-at-time events
 }
 
 export interface TradingMetadata {

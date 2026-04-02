@@ -170,11 +170,15 @@ export function PreviewMarketSession({ data }: any) {
   const marketLabel = String(marketType).toLowerCase() === "web3" ? "Crypto" : "Indian";
   const title = event === "market-close"
     ? "Market close"
+    : event === "pause-at-time"
+      ? `Pause at ${triggerTime || "--:--"}`
     : event === "at-time"
       ? `At ${triggerTime || "--:--"}`
       : "Market open";
 
-  const subtitle = event === "at-time"
+  const subtitle = event === "pause-at-time"
+    ? "Pauses workflow at selected time"
+    : event === "at-time"
     ? "Time-based session trigger"
     : "Session-based workflow trigger";
 

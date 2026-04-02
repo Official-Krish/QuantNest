@@ -409,26 +409,26 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           "marketType",
         );
       }
-      if (!["market-open", "market-close", "at-time"].includes(event)) {
+      if (!["market-open", "market-close", "at-time", "pause-at-time"].includes(event)) {
         pushIssue(
           issues,
           "error",
           "INVALID_GRAPH",
-          "Market-session node must include a valid event (market-open, market-close, or at-time).",
+          "Market-session node must include a valid event (market-open, market-close, at-time, or pause-at-time).",
           node.nodeId,
           "event",
         );
       }
-      if (event === "at-time" && !triggerTime) {
+      if ((event === "at-time" || event === "pause-at-time") && !triggerTime) {
         pushIssue(
           issues,
           "error",
           "INVALID_GRAPH",
-          "Market-session node with event='at-time' must include triggerTime in HH:MM format.",
+          "Market-session time-based event must include triggerTime in HH:MM format.",
           node.nodeId,
           "triggerTime",
         );
-      } else if (event === "at-time" && !isValidTime) {
+      } else if ((event === "at-time" || event === "pause-at-time") && !isValidTime) {
         pushIssue(
           issues,
           "error",
@@ -437,7 +437,7 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           node.nodeId,
           "triggerTime",
         );
-      } else if (event === "at-time" && isValidTime) {
+      } else if ((event === "at-time" || event === "pause-at-time") && isValidTime) {
         const timeParts = triggerTime.split(":");
         if (timeParts.length !== 2) {
           pushIssue(

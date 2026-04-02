@@ -268,13 +268,21 @@ async function processMarketSessionWorkflows(now: Date) {
                 continue;
             }
 
+            const event = String(trigger.data?.metadata?.event || "market-open").toLowerCase() as
+                | "market-open"
+                | "market-close"
+                | "at-time"
+                | "pause-at-time";
+
             const shouldExecute = await handleMarketSessionTrigger(
-                trigger.data?.metadata?.event || "market-open",
+                event,
                 workflow.lastTriggeredAt ?? null,
                 workflow.lastEvaluatedAt ?? null,
                 trigger.data?.metadata?.triggerTime,
                 trigger.data?.metadata?.marketType,
             );
+
+            const shouldPauseWorkflow = shouldExecute && event === "pause-at-time";
 
             await WorkflowModel.updateOne(
                 { _id: workflow._id },
@@ -282,11 +290,15 @@ async function processMarketSessionWorkflows(now: Date) {
                     $set: {
                         lastEvaluatedAt: now,
                         ...(shouldExecute ? { lastTriggeredAt: now } : {}),
+                        ...(shouldPauseWorkflow ? { status: "paused" } : {}),
                     },
                 },
             );
 
             if (shouldExecute) {
+                if (shouldPauseWorkflow) {
+                    continue;
+                }
                 await executeWorkflowSafe(workflow as unknown as WorkflowType);
             }
         } catch (err) {
