@@ -7,6 +7,7 @@ import {
     evaluateConditionalMetadata,
     handleConditionalTrigger,
     handlePriceTrigger,
+    handleMarketSessionTrigger,
 } from "../handlers/trigger.handler";
 import { indicatorEngine } from "../services/indicator.engine";
 import type { NodeType, WorkflowType } from "../types";
@@ -250,10 +251,69 @@ async function processConditionalWorkflows(now: Date) {
     }
 }
 
+async function processMarketSessionWorkflows(now: Date) {
+    const workflows = await WorkflowModel.find({
+        ...ACTIVE_WORKFLOW_QUERY,
+        triggerType: "market-session",
+    });
+
+    for (const workflow of workflows) {
+        try {
+            const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
+            if (!trigger) {
+                continue;
+            }
+
+            if (!(await canExecute(workflow._id.toString()))) {
+                continue;
+            }
+
+            const event = String(trigger.data?.metadata?.event || "market-open").toLowerCase() as
+                | "market-open"
+                | "market-close"
+                | "at-time"
+                | "pause-at-time"
+                | "session-window";
+
+            const shouldExecute = await handleMarketSessionTrigger(
+                event,
+                workflow.lastTriggeredAt ?? null,
+                workflow.lastEvaluatedAt ?? null,
+                trigger.data?.metadata?.triggerTime,
+                trigger.data?.metadata?.endTime,
+                trigger.data?.metadata?.marketType,
+            );
+
+            const shouldPauseWorkflow = shouldExecute && event === "pause-at-time";
+
+            await WorkflowModel.updateOne(
+                { _id: workflow._id },
+                {
+                    $set: {
+                        lastEvaluatedAt: now,
+                        ...(shouldExecute ? { lastTriggeredAt: now } : {}),
+                        ...(shouldPauseWorkflow ? { status: "paused" } : {}),
+                    },
+                },
+            );
+
+            if (shouldExecute) {
+                if (shouldPauseWorkflow) {
+                    continue;
+                }
+                await executeWorkflowSafe(workflow as unknown as WorkflowType);
+            }
+        } catch (err) {
+            console.error(`Market session workflow error (${workflow.workflowName})`, err);
+        }
+    }
+}
+
 const triggerProcessorMap: Record<ExecutorTriggerProcessorId, (now: Date) => Promise<void>> = {
     timer: processTimerWorkflows,
     "price-trigger": processPriceWorkflows,
     "conditional-trigger": processConditionalWorkflows,
+    "market-session": processMarketSessionWorkflows,
 };
 
 const registryTriggerProcessors = NODE_REGISTRY

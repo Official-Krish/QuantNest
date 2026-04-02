@@ -925,6 +925,117 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       { id: "e-zerodha-gs-1-sheets-1", source: "zerodha-gs-1", target: "sheets-1" },
     ],
   },
+  {
+    slug: "market-session-trading-window",
+    title: "Market Session Trading Window After Opening",
+    summary:
+      "Trade only after the first 15 minutes of market open when conditions are favorable, with conditional execution based on RSI.",
+    category: "Execution",
+    market: "Indian",
+    difficulty: "Starter",
+    setupMinutes: 8,
+    sortOrder: 10,
+    nodeFlow: ["Market Session", "If", "Zerodha", "Gmail"],
+    trigger: "Fires at 9:30 AM IST after opening range completes.",
+    logic:
+      "Market-session trigger at 09:30 starts the workflow. An IF node checks for favorable market conditions (RSI > 50). If true, Zerodha executes the trade and sends confirmation to Gmail. If false, the workflow skips and logs no action.",
+    actions: ["Trigger at market open + 15m", "Check RSI condition", "Execute trade if conditions met", "Send confirmation email"],
+    outcomes: [
+      "Avoid opening range volatility",
+      "Conditional execution with momentum confirmation",
+      "Cleaner trade documentation via email",
+    ],
+    nodes: [
+      {
+        nodeId: "market-session-1",
+        type: "market-session",
+        data: {
+          kind: "trigger",
+          metadata: {
+            marketType: "indian",
+            event: "at-time",
+            triggerTime: "09:30",
+          },
+        },
+        position: { x: 0, y: 95 },
+      },
+      {
+        nodeId: "if-market-1",
+        type: "if",
+        data: {
+          kind: "action",
+          metadata: {
+            marketType: "Indian",
+            expression: {
+              operator: "AND",
+              conditions: [
+                {
+                  type: "group",
+                  operator: "AND",
+                  conditions: [
+                    {
+                      left: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "rsi",
+                          symbol: "NIFTY 50",
+                          timeframe: "5m",
+                          params: { period: 14 },
+                        },
+                      },
+                      operator: ">",
+                      right: { type: "value", value: 50 },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        position: { x: 320, y: 20 },
+      },
+      {
+        nodeId: "zerodha-market-1",
+        type: "Zerodha",
+        data: {
+          kind: "action",
+          metadata: {
+            type: "buy",
+            qty: 1,
+            symbol: "NIFTY 50",
+            apiKey: "ZERODHA_API_KEY",
+            accessToken: "ZERODHA_ACCESS_TOKEN",
+            exchange: "NSE",
+            condition: true,
+          },
+        },
+        position: { x: 650, y: 20 },
+      },
+      {
+        nodeId: "gmail-market-1",
+        type: "gmail",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Trader inbox",
+            recipientEmail: "trader@quantnest.dev",
+            condition: true,
+          },
+        },
+        position: { x: 970, y: 20 },
+      },
+    ],
+    edges: [
+      { id: "e-market-if-market-1", source: "market-session-1", target: "if-market-1" },
+      {
+        id: "e-if-market-1-zerodha-market-1",
+        source: "if-market-1",
+        sourceHandle: "true",
+        target: "zerodha-market-1",
+      },
+      { id: "e-zerodha-gmail-market-1", source: "zerodha-market-1", target: "gmail-market-1" },
+    ],
+  },
 ];
 
 function assertWorkflowExampleSeeds(seeds: WorkflowExampleSeed[]) {

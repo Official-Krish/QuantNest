@@ -4,6 +4,7 @@ import {
   type NodeMetadata,
   type PriceTriggerNodeMetadata,
   type TimerNodeMetadata,
+  type MarketSessionTriggerNodeMetadata,
 } from "@quantnest-trading/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,10 +21,11 @@ import { TriggerTypeSelector } from "./sheets/TriggerTypeSelector";
 import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
+import { MarketSessionTriggerForm } from "./sheets/MarketSessionTriggerForm";
 
-type SupportedTriggerKind = "timer" | "price-trigger" | "conditional-trigger";
+type SupportedTriggerKind = "timer" | "price-trigger" | "conditional-trigger" | "market-session";
 
-const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = ["timer", "price-trigger", "conditional-trigger"];
+const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = ["timer", "price-trigger", "conditional-trigger", "market-session"];
 
 const isSupportedTriggerKind = (kind: string): kind is SupportedTriggerKind => {
   return SUPPORTED_TRIGGER_KINDS.includes(kind as SupportedTriggerKind);
@@ -51,8 +53,8 @@ export const TriggerSheet = ({
   setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
 }) => {
   const [metadata, setMetadata] = useState<
-    PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata
-  >(() => ({} as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata));
+    PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata
+  >(() => ({} as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata));
   const [selectedTrigger, setSelectedTrigger] = useState<SupportedTriggerKind | "">("");
 
   useEffect(() => {
@@ -66,8 +68,8 @@ export const TriggerSheet = ({
     setSelectedTrigger(nextSelectedTrigger);
     setMetadata(
       (initialMetadata
-        ? { ...(initialMetadata as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata) }
-        : {}) as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata,
+        ? { ...(initialMetadata as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata) }
+        : {}) as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata,
     );
 
     const nextMarketType = String((initialMetadata as any)?.marketType || "").toLowerCase();
@@ -123,6 +125,13 @@ export const TriggerSheet = ({
               marketType={marketType}
               setMarketType={setMarketType}
               metadata={metadata as ConditionalTriggerMetadata}
+              setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
+            />
+          ) : selectedTrigger === "market-session" ? (
+            <MarketSessionTriggerForm
+              marketType={marketType}
+              setMarketType={setMarketType}
+              metadata={metadata as MarketSessionTriggerNodeMetadata}
               setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
             />
           ) : null}

@@ -15,7 +15,7 @@ import {
 import { AiBuilderError } from "../errors";
 
 const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
-const TRIGGER_TYPES = new Set(["timer", "price", "conditional-trigger"]);
+const TRIGGER_TYPES = new Set(["timer", "price", "conditional-trigger", "market-session"]);
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
 
 function canonicalizeComparator(operator: string): string {
@@ -392,6 +392,109 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
         );
       }
     }
+
+    if (normalizedType === "market-session") {
+      const marketType = String(metadata.marketType || "").trim().toLowerCase();
+      const event = String(metadata.event || "").trim().toLowerCase();
+      const triggerTime = String(metadata.triggerTime || "").trim();
+      const isValidTime = /^\d{1,2}:\d{2}$/.test(triggerTime);
+
+      if (!["indian", "crypto", "web3"].includes(marketType)) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Market-session node must include a valid market type (indian, crypto, or web3).",
+          node.nodeId,
+          "marketType",
+        );
+      }
+      if (![
+        "market-open",
+        "market-close",
+        "at-time",
+        "pause-at-time",
+        "session-window",
+      ].includes(event)) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Market-session node must include a valid event (market-open, market-close, at-time, pause-at-time, or session-window).",
+          node.nodeId,
+          "event",
+        );
+      }
+      if ((event === "at-time" || event === "pause-at-time") && !triggerTime) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Market-session time-based event must include triggerTime in HH:MM format.",
+          node.nodeId,
+          "triggerTime",
+        );
+      } else if ((event === "at-time" || event === "pause-at-time") && !isValidTime) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Market-session triggerTime must be in HH:MM format.",
+          node.nodeId,
+          "triggerTime",
+        );
+      } else if ((event === "at-time" || event === "pause-at-time") && isValidTime) {
+        const timeParts = triggerTime.split(":");
+        if (timeParts.length !== 2) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Market-session triggerTime must include hours and minutes.",
+            node.nodeId,
+            "triggerTime",
+          );
+          continue;
+        }
+
+        const hours = Number(timeParts[0]);
+        const minutes = Number(timeParts[1]);
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Market-session triggerTime has invalid hour/minute values.",
+            node.nodeId,
+            "triggerTime",
+          );
+        }
+      } else if (event === "session-window") {
+        const endTime = String(metadata.endTime || "").trim();
+
+        if (!triggerTime || !/^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(triggerTime)) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Market-session session-window start time must be in HH:MM format.",
+            node.nodeId,
+            "triggerTime",
+          );
+        }
+
+        if (!endTime || !/^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(endTime)) {
+          pushIssue(
+            issues,
+            "error",
+            "INVALID_GRAPH",
+            "Market-session session-window end time must be in HH:MM format.",
+            node.nodeId,
+            "endTime",
+          );
+        }
+      }
+    }
   }
 }
 
@@ -401,6 +504,39 @@ function validatePromptAlignedSemantics(
   issues: AiStrategyValidationIssue[],
 ) {
   const prompt = request.prompt.toLowerCase();
+  const expectedMarketTypes = request.market === "Crypto"
+    ? new Set(["crypto", "web3"])
+    : new Set(["indian"]);
+
+  for (const node of plan.nodes) {
+    const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+    const normalizedType = String(node.type || "").toLowerCase();
+    const rawMarketType = String(metadata.marketType || "").trim().toLowerCase();
+
+    if (!rawMarketType) continue;
+
+    const shouldValidateMarketType =
+      normalizedType === "market-session" ||
+      normalizedType === "price" ||
+      normalizedType === "price-trigger" ||
+      normalizedType === "conditional-trigger" ||
+      normalizedType === "if" ||
+      normalizedType === "filter";
+
+    if (!shouldValidateMarketType) continue;
+
+    if (!expectedMarketTypes.has(rawMarketType)) {
+      pushIssue(
+        issues,
+        "error",
+        "PROMPT_MISMATCH",
+        `Node marketType '${rawMarketType}' does not match requested market '${request.market}'.`,
+        node.nodeId,
+        "marketType",
+      );
+    }
+  }
+
   const priceNode = plan.nodes.find((node) => String(node.type).toLowerCase() === "price");
   const priceMatch = prompt.match(/price(?:\s+\w+){0,8}?\s+(below|above)\s+(\d+(?:\.\d+)?)/i);
 
@@ -533,6 +669,15 @@ function buildValidationReport(
 
   if (triggerNodes.length === 0) {
     pushIssue(issues, "error", "INVALID_GRAPH", "Generated plan does not contain a trigger node.");
+  }
+
+  if (triggerNodes.length > 1) {
+    pushIssue(
+      issues,
+      "error",
+      "INVALID_GRAPH",
+      "Generated plan contains multiple trigger nodes. Use exactly one trigger node and move additional conditions into downstream filter/if nodes.",
+    );
   }
 
   if (nodeIds.size !== plan.nodes.length) {

@@ -2,6 +2,7 @@ import { getNodeRegistryEntry, type BuilderPanelGroup } from "@quantnest-trading
 import { PriceTrigger } from "@/components/nodes/triggers/PriceTrigger";
 import { Timer } from "@/components/nodes/triggers/timers";
 import { conditionTrigger } from "@/components/nodes/triggers/condtional";
+import { MarketSessionTrigger } from "@/components/nodes/triggers/MarketSessionTrigger";
 import { zerodhaAction } from "@/components/nodes/actions/zerodha";
 import { growwAction } from "@/components/nodes/actions/growwAction";
 import { lighterAction } from "@/components/nodes/actions/lighterAction";
@@ -20,6 +21,7 @@ import { googleSheetsReportAction } from "@/components/nodes/actions/googleSheet
 import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
+import { MarketSessionTriggerForm } from "./sheets/MarketSessionTriggerForm";
 import { TradingForm } from "./sheets/TradingForm";
 import { GmailForm } from "./sheets/GmailForm";
 import { SlackForm } from "./sheets/SlackForm";
@@ -47,6 +49,7 @@ export const builderNodeRenderers = {
   timer: Timer,
   "price-trigger": PriceTrigger,
   "conditional-trigger": conditionTrigger,
+  "market-session": MarketSessionTrigger,
   zerodha: zerodhaAction,
   groww: growwAction,
   lighter: lighterAction,
@@ -68,6 +71,7 @@ export const builderFormRegistry = {
   timer: TimerForm,
   "price-trigger": PriceTriggerForm,
   conditional: ConditionalTriggerForm,
+  "market-session": MarketSessionTriggerForm,
   trading: TradingForm,
   gmail: GmailForm,
   slack: SlackForm,
@@ -126,6 +130,15 @@ export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProp
     case "conditional":
       return (
         <ConditionalTriggerForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+          setMarketType={props.setMarketType!}
+          marketType={props.marketType ?? null}
+        />
+      );
+    case "market-session":
+      return (
+        <MarketSessionTriggerForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
           setMarketType={props.setMarketType!}

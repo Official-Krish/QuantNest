@@ -4,6 +4,7 @@ export type NodeKind =
     | "price"
     | "timer"
     | "conditional-trigger"
+    | "market-session"
     | "if"
     | "filter"
     | "delay"
@@ -41,6 +42,7 @@ export type NodeMetadata =
     | TradingMetadata
     | TimerNodeMetadata
     | PriceTriggerNodeMetadata
+    | MarketSessionTriggerNodeMetadata
     | NotificationMetadata
     | DelayNodeMetadata
     | MergeNodeMetadata
@@ -108,6 +110,13 @@ export interface PriceTriggerNodeMetadata {
     changeDirection?: "increase" | "decrease";
     changeValue?: number;
     changeWindowMinutes?: number;
+}
+
+export interface MarketSessionTriggerNodeMetadata {
+    marketType: "indian" | "web3";
+    event: "market-open" | "market-close" | "at-time" | "pause-at-time" | "session-window";
+    triggerTime?: string; // HH:MM format, required for time-based events
+    endTime?: string; // HH:MM format, required for session-window events
 }
 
 export interface TradingMetadata {

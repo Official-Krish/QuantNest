@@ -430,6 +430,84 @@ function validateWorkflowNodes(
                 });
             }
         }
+
+        if (type === "market-session") {
+            const marketType = String((metadata as any).marketType || "").trim().toLowerCase();
+            const event = String((metadata as any).event || "").trim().toLowerCase();
+            const triggerTime = String((metadata as any).triggerTime || "").trim();
+
+            if (!["indian", "crypto", "web3"].includes(marketType)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "marketType"],
+                    message: "Market session marketType must be Indian or Crypto/Web3.",
+                });
+            }
+
+            if (![
+                "market-open",
+                "market-close",
+                "at-time",
+                "pause-at-time",
+                "session-window",
+            ].includes(event)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "event"],
+                    message: "Market session event must be market-open, market-close, at-time, pause-at-time, or session-window.",
+                });
+            }
+
+            if (event === "at-time" || event === "pause-at-time") {
+                if (!triggerTime || !/^\d{1,2}:\d{2}$/.test(triggerTime)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "triggerTime"],
+                        message: "Trigger time must be in HH:MM format (e.g., 14:30 for 2:30 PM).",
+                    });
+                } else {
+                    const timeParts = triggerTime.split(":");
+                    if (timeParts.length !== 2) {
+                        ctx.addIssue({
+                            code: "custom",
+                            path: [...path, "triggerTime"],
+                            message: "Trigger time must include hours and minutes.",
+                        });
+                        return;
+                    }
+
+                    const hours = Number(timeParts[0]);
+                    const minutes = Number(timeParts[1]);
+                    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+                        ctx.addIssue({
+                            code: "custom",
+                            path: [...path, "triggerTime"],
+                            message: "Invalid time: hours must be 0-23, minutes must be 0-59.",
+                        });
+                    }
+                }
+            }
+
+            if (event === "session-window") {
+                const endTime = String((metadata as any).endTime || "").trim();
+
+                if (!triggerTime || !/^\d{1,2}:\d{2}$/.test(triggerTime)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "triggerTime"],
+                        message: "Session-window start time must be in HH:MM format.",
+                    });
+                }
+
+                if (!endTime || !/^\d{1,2}:\d{2}$/.test(endTime)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "endTime"],
+                        message: "Session-window end time must be in HH:MM format.",
+                    });
+                }
+            }
+        }
     });
 }
 
