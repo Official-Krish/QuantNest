@@ -62,6 +62,15 @@ const MARKET_SESSION_PRESETS: MarketSessionPreset[] = [
     triggerTime: "15:20",
   },
   {
+    id: "indian-session-window",
+    label: "Indian: Session window",
+    description: "Trade between 09:20 IST and 15:20 IST.",
+    marketType: "Indian",
+    event: "session-window",
+    triggerTime: "09:20",
+    endTime: "15:20",
+  },
+  {
     id: "crypto-us-session",
     label: "Crypto: US session window",
     description: "Starts at 19:00 IST and stops at 02:00 IST.",
@@ -200,7 +209,9 @@ export const MarketSessionTriggerForm = ({
       : event === "market-close"
         ? "Market close"
         : event === "session-window"
-          ? "US session window"
+          ? marketType === "Crypto"
+            ? "US session window"
+            : "Indian session window"
         : event === "pause-at-time"
           ? "Pause workflow"
           : "Run at a time";
@@ -211,7 +222,9 @@ export const MarketSessionTriggerForm = ({
       : event === "market-close"
         ? "Fire when the market closes each trading day."
         : event === "session-window"
-          ? "Keep the workflow active throughout the crypto session window."
+          ? marketType === "Crypto"
+            ? "Keep the workflow active throughout the crypto session window."
+            : "Keep the workflow active for an Indian session window."
         : event === "pause-at-time"
           ? "Pause the workflow at a fixed time each day."
           : "Run the workflow at a specific IST time.";
@@ -358,6 +371,19 @@ export const MarketSessionTriggerForm = ({
                 <div className="text-sm font-medium text-neutral-100">Pause workflow</div>
                 <div className="mt-1 text-[11px] text-neutral-400">Stop execution at a fixed time.</div>
               </button>
+
+              <button
+                type="button"
+                onClick={() => handleEventChange("session-window")}
+                className={`rounded-xl border px-3 py-3 text-left transition sm:col-span-2 ${
+                  event === "session-window"
+                    ? "border-emerald-500/50 bg-emerald-500/10"
+                    : "border-neutral-800 bg-neutral-900/60 hover:border-neutral-700 hover:bg-neutral-900"
+                }`}
+              >
+                <div className="text-sm font-medium text-neutral-100">Indian session window</div>
+                <div className="mt-1 text-[11px] text-neutral-400">Set a start and stop time for the session.</div>
+              </button>
             </>
           )}
         </div>
@@ -365,7 +391,7 @@ export const MarketSessionTriggerForm = ({
         {needsTime && (
           <div className="rounded-xl border border-neutral-800 bg-black/30 p-3">
             <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-              {marketType === "Crypto" && event === "session-window" ? "Session start" : "Time"}
+              {event === "session-window" ? "Session start" : "Time"}
             </label>
             <div className="mt-2 flex items-center gap-3">
               <input
@@ -387,7 +413,7 @@ export const MarketSessionTriggerForm = ({
         {needsEndTime && (
           <div className="rounded-xl border border-neutral-800 bg-black/30 p-3">
             <label className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-              Session stop
+              {marketType === "Crypto" ? "Session stop" : "Session end"}
             </label>
             <div className="mt-2 flex items-center gap-3">
               <input
