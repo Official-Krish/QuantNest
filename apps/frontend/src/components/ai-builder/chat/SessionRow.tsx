@@ -62,6 +62,13 @@ export function SessionRow({ item, active, theme, onClick, onRename, onDelete }:
         ? "text-amber-500"
         : "text-[#f17463]";
 
+  const statusLabel =
+    item.status === "needs-inputs"
+      ? "Needs input"
+      : item.status === "ready"
+        ? "Ready"
+        : "Draft";
+
   const updatedLabel = new Date(item.updatedAt).toLocaleDateString([], {
     month: "short",
     day: "numeric",
@@ -221,14 +228,18 @@ export function SessionRow({ item, active, theme, onClick, onRename, onDelete }:
         <span
           className={cx(
             "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em]",
-            active
-              ? "bg-[#f17463]/12 text-[#f17463]"
-              : theme === "dark"
-                ? "bg-neutral-800 text-neutral-400"
-                : "bg-neutral-100 text-neutral-500",
+            item.status === "needs-inputs"
+              ? theme === "dark"
+                ? "bg-[#f17463]/15 text-[#f7b2a7]"
+                : "bg-[#fff2ed] text-[#d95f4f]"
+              : active
+                ? "bg-[#f17463]/12 text-[#f17463]"
+                : theme === "dark"
+                  ? "bg-neutral-800 text-neutral-400"
+                  : "bg-neutral-100 text-neutral-500",
           )}
         >
-          {item.status}
+          {statusLabel}
         </span>
       </div>
     </div>

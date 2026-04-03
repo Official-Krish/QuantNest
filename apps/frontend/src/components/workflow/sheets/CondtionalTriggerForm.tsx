@@ -499,7 +499,7 @@ export const ConditionalTriggerForm = ({
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Select Market</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Select Market</p>
         <Select
           onValueChange={(value) => setMarketType(value as "Indian" | "Crypto")}
           value={marketType || (metadata.marketType as "Indian" | "Crypto" | undefined) || undefined}
@@ -511,7 +511,7 @@ export const ConditionalTriggerForm = ({
             <SelectGroup>
               <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">Select market</SelectLabel>
               {SUPPORTED_MARKETS.map((market) => (
-                <SelectItem key={market} value={market} className="cursor-pointer text-sm text-neutral-100 focus:bg-neutral-800">
+                <SelectItem key={market} value={market} className="cursor-pointer text-sm text-neutral-100">
                   {market}
                 </SelectItem>
               ))}
@@ -521,55 +521,59 @@ export const ConditionalTriggerForm = ({
       </div>
 
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Template</p>
-        <p className="text-xs text-neutral-400">Use a quick setup or switch to full custom condition builder.</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Template</p>
+        <p className="text-sm text-neutral-300">Use a quick setup or switch to full custom condition builder.</p>
         <Select value={templateMode} onValueChange={(value) => setTemplateMode(value as TriggerTemplateMode)}>
           <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
             <SelectValue placeholder="Select template" />
           </SelectTrigger>
           <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            <SelectItem value="volume-spike" className="text-sm">Volume Spike (Simple)</SelectItem>
-            <SelectItem value="custom" className="text-sm">Custom (Advanced)</SelectItem>
+            <SelectItem value="volume-spike" className="text-sm cursor-pointer">Volume Spike (Simple)</SelectItem>
+            <SelectItem value="custom" className="text-sm cursor-pointer">Custom (Advanced)</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {templateMode === "volume-spike" ? (
         <div className="space-y-3 rounded-2xl border border-neutral-800 p-3 bg-neutral-950/50">
-          <p className="text-xs text-neutral-400">
+          <p className="text-sm text-neutral-300">
             Triggers when volume is greater than your threshold.
           </p>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Asset</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Asset</p>
             <Select value={volumeSpikeSymbol} onValueChange={setVolumeSpikeSymbol}>
               <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
                 <SelectValue placeholder="Select asset" />
               </SelectTrigger>
               <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
                 {marketAssets.map((asset) => (
-                  <SelectItem key={asset} value={asset} className="text-sm">{asset}</SelectItem>
+                  <SelectItem key={asset} value={asset} className="text-sm cursor-pointer">
+                    {asset}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Timeframe</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Timeframe</p>
             <Select value={volumeSpikeTimeframe} onValueChange={(value) => setVolumeSpikeTimeframe(value as IndicatorTimeframe)}>
               <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
                 <SelectValue placeholder="Select timeframe" />
               </SelectTrigger>
               <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
                 {TIMEFRAMES.map((timeframe) => (
-                  <SelectItem key={timeframe} value={timeframe} className="text-sm">{timeframe}</SelectItem>
+                  <SelectItem key={timeframe} value={timeframe} className="text-sm cursor-pointer">
+                    {timeframe}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Volume Threshold</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Volume Threshold</p>
             <Input
               type="number"
               min={1}
@@ -585,15 +589,15 @@ export const ConditionalTriggerForm = ({
       {templateMode === "custom" ? (
         <>
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Condition Set Joiner</p>
-        <p className="text-xs text-neutral-400">Join all groups using a root operator.</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Condition Set Joiner</p>
+        <p className="text-sm text-neutral-300">Join all groups using a root operator.</p>
         <Select value={rootOperator} onValueChange={(value) => setRootOperator(value as "AND" | "OR")}>
           <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
             <SelectValue placeholder="Root operator" />
           </SelectTrigger>
           <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            <SelectItem value="AND" className="text-sm">AND</SelectItem>
-            <SelectItem value="OR" className="text-sm">OR</SelectItem>
+            <SelectItem value="AND" className="text-sm cursor-pointer">AND</SelectItem>
+            <SelectItem value="OR" className="text-sm cursor-pointer">OR</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -608,7 +612,7 @@ export const ConditionalTriggerForm = ({
             </div>
           )}
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
               Group {groupIndex + 1}
             </p>
             <Button
@@ -633,8 +637,8 @@ export const ConditionalTriggerForm = ({
               <SelectValue placeholder="Operator inside group" />
             </SelectTrigger>
             <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-              <SelectItem value="AND" className="text-xs">AND (all clauses)</SelectItem>
-              <SelectItem value="OR" className="text-xs">OR (any clause)</SelectItem>
+              <SelectItem value="AND" className="text-xs cursor-pointer">AND (all clauses)</SelectItem>
+              <SelectItem value="OR" className="text-xs cursor-pointer">OR (any clause)</SelectItem>
             </SelectContent>
           </Select>
 
@@ -686,7 +690,7 @@ export const ConditionalTriggerForm = ({
                     </SelectTrigger>
                     <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
                       {OPERATOR_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value} className="text-xs">
+                        <SelectItem key={option.value} value={option.value} className="text-xs cursor-pointer">
                           {option.label}
                         </SelectItem>
                       ))}
@@ -711,8 +715,8 @@ export const ConditionalTriggerForm = ({
                       <SelectValue placeholder="Right operand type" />
                     </SelectTrigger>
                     <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-                      <SelectItem value="value" className="text-xs">Numeric Value</SelectItem>
-                      <SelectItem value="indicator" className="text-xs">Indicator</SelectItem>
+                      <SelectItem value="value" className="text-xs cursor-pointer">Numeric Value</SelectItem>
+                      <SelectItem value="indicator" className="text-xs cursor-pointer">Indicator</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -744,7 +748,7 @@ export const ConditionalTriggerForm = ({
 
                 {clauseIndex < group.clauses.length - 1 && (
                   <div className="flex items-center justify-center py-1">
-                    <span className="rounded-full border border-neutral-700 bg-neutral-900 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                    <span className="rounded-full border border-[#f17463]/45 bg-[#f17463]/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ffb8ad]">
                       {group.operator}
                     </span>
                   </div>
@@ -756,7 +760,7 @@ export const ConditionalTriggerForm = ({
           <Button
             type="button"
             variant="outline"
-            className="w-full border-neutral-800 bg-neutral-900 text-xs"
+            className="w-full border-neutral-800 bg-neutral-900 text-xs cursor-pointer"
             onClick={() =>
               updateGroup(groupIndex, {
                 ...group,
@@ -772,7 +776,7 @@ export const ConditionalTriggerForm = ({
       <Button
         type="button"
         variant="outline"
-        className="w-full border-neutral-800 bg-neutral-900 text-xs"
+        className="w-full border-neutral-800 bg-neutral-900 text-xs cursor-pointer"
         onClick={() => setGroups((prev) => [...prev, defaultGroup(marketType)])}
       >
         + Add Group
@@ -781,8 +785,8 @@ export const ConditionalTriggerForm = ({
       ) : null}
 
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Time Window (minutes)</p>
-        <p className="text-xs text-neutral-400">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Time Window (minutes)</p>
+        <p className="text-sm text-neutral-300">
           Optional. If set, condition is evaluated only within this window from start time.
         </p>
         <Input

@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CircleHelp } from "lucide-react";
 import { toast } from "sonner";
 import { ChatBubble } from "./ChatBubble";
 import { WorkflowCanvasCard } from "./WorkflowCanvasCard";
@@ -52,80 +53,6 @@ type ChatMessagesPaneProps = {
   onExampleClick?: (example: string) => void;
 };
 
-function AssistantResponseCard({
-  version,
-  theme,
-}: {
-  version: AiStrategyDraftSession["workflowVersions"][number];
-  theme: LocalTheme;
-}) {
-  const validation = version.response.validation;
-  const missingCount = getRequiredMissingInputsCount(version.response);
-  const topWarnings = version.response.validation.issues.filter((issue) => issue.severity === "warning").slice(0, 2);
-  const topErrors = version.response.validation.issues.filter((issue) => issue.severity === "error").slice(0, 2);
-
-  return (
-    <div
-      className={cx(
-        "rounded-2xl border px-4 py-3.5",
-        theme === "dark" ? "border-neutral-800 bg-[#0d0d0d]" : "border-neutral-200 bg-white",
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-[#f17463]/12 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-[#f17463]">
-          {validation.canOpenInBuilder ? "Ready to use" : "Needs review"}
-        </span>
-        <span className={cx("rounded-full px-2.5 py-1 text-[10px]", theme === "dark" ? "bg-neutral-900 text-neutral-300" : "bg-neutral-100 text-neutral-600")}>
-          {version.response.plan.nodes.length} nodes
-        </span>
-        <span className={cx("rounded-full px-2.5 py-1 text-[10px]", theme === "dark" ? "bg-neutral-900 text-neutral-300" : "bg-neutral-100 text-neutral-600")}>
-          {validation.branchCount} branches
-        </span>
-        {missingCount > 0 ? (
-          <span className="rounded-full bg-amber-500/12 px-2.5 py-1 text-[10px] text-amber-400">
-            {missingCount} inputs needed
-          </span>
-        ) : null}
-      </div>
-
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <div>
-          <div className={cx("text-[10px] font-medium uppercase tracking-[0.16em]", theme === "dark" ? "text-neutral-500" : "text-neutral-400")}>
-            Workflow
-          </div>
-          <div className={cx("mt-1 text-sm font-medium", theme === "dark" ? "text-neutral-100" : "text-neutral-900")}>
-            {version.response.plan.workflowName}
-          </div>
-          <div className={cx("mt-2 text-xs leading-6", theme === "dark" ? "text-neutral-400" : "text-neutral-500")}>
-            {version.response.plan.summary}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className={cx("text-[10px] font-medium uppercase tracking-[0.16em]", theme === "dark" ? "text-neutral-500" : "text-neutral-400")}>
-            Attention
-          </div>
-          {topErrors.length > 0 ? topErrors.map((issue) => (
-            <div key={`${issue.code}-${issue.message}`} className={cx("rounded-xl px-3 py-2 text-xs leading-5", theme === "dark" ? "bg-rose-500/10 text-rose-200" : "bg-rose-50 text-rose-700")}>
-              {issue.message}
-            </div>
-          )) : null}
-          {topWarnings.length > 0 ? topWarnings.map((issue) => (
-            <div key={`${issue.code}-${issue.message}`} className={cx("rounded-xl px-3 py-2 text-xs leading-5", theme === "dark" ? "bg-amber-500/10 text-amber-200" : "bg-amber-50 text-amber-700")}>
-              {issue.message}
-            </div>
-          )) : null}
-          {topErrors.length === 0 && topWarnings.length === 0 ? (
-            <div className={cx("rounded-xl px-3 py-2 text-xs leading-5", theme === "dark" ? "bg-emerald-500/10 text-emerald-200" : "bg-emerald-50 text-emerald-700")}>
-              Validation looks clean. You can keep refining or open this version in the builder.
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function InlineMissingInputsCard({
   activeDraft,
   metadataOverrides,
@@ -137,6 +64,20 @@ function InlineMissingInputsCard({
   onMetadataOverridesChange: (value: AiMetadataOverrides) => void;
   theme: LocalTheme;
 }) {
+  const secretHelperTextByService: Record<string, string> = {
+    slack: "Your Slack Bot token",
+    discord: "Your Discord webhook credential",
+    telegram: "Your Telegram bot credential",
+    whatsapp: "Your WhatsApp API credential",
+    gmail: "Your Gmail app credential",
+    zerodha: "Your Zerodha broker credential",
+    groww: "Your Groww broker credential",
+    lighter: "Your Lighter broker credential",
+    "notion-daily-report": "Your Notion integration credential",
+    "google-drive-daily-csv": "Your Google Drive credential",
+    "google-sheets-report": "Your Google Sheets credential",
+  };
+
   const groupedInputs = groupMissingInputs(activeDraft);
   const entries = Object.entries(groupedInputs);
   const [secretsByService, setSecretsByService] = useState<Partial<Record<ReusableSecretService, ReusableSecretSummary[]>>>({});
@@ -361,15 +302,17 @@ function InlineMissingInputsCard({
 
   return (
     <div className={cx("rounded-2xl border p-4", theme === "dark" ? "border-neutral-800 bg-[#0d0d0d]" : "border-neutral-200 bg-white")}>
-      <div className="flex items-center justify-between gap-3">
+      <div>
         <div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#f17463]">Setup needed</div>
+          <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-[#f17463]">
+            <span>Setup needed</span>
+            <span className={cx("rounded-full px-2 py-0.5 text-[10px] normal-case tracking-normal", theme === "dark" ? "bg-[#f17463]/15 text-[#f7b2a7]" : "bg-[#fff2ed] text-[#d95f4f]")}>
+              {getRequiredMissingInputsCount(activeDraft)} required
+            </span>
+          </div>
           <div className={cx("mt-1 text-sm", theme === "dark" ? "text-neutral-200" : "text-neutral-800")}>
             Fill these required values inline and they will be saved to this draft automatically.
           </div>
-        </div>
-        <div className="rounded-full bg-amber-500/12 px-2.5 py-1 text-[10px] text-amber-400">
-          {getRequiredMissingInputsCount(activeDraft)} required
         </div>
       </div>
 
@@ -391,6 +334,7 @@ function InlineMissingInputsCard({
           const suggestedSecret = suggestedSecretId
             ? availableSecrets.find((secret) => secret.id === suggestedSecretId)
             : null;
+          const secretHelperText = service ? secretHelperTextByService[service] : null;
           const googleSheetsServiceEmail = String(
             overrideMetadata.serviceAccountEmail ??
             baseMetadata.serviceAccountEmail ??
@@ -407,14 +351,24 @@ function InlineMissingInputsCard({
 
               {service ? (
                 <div className="mb-3 space-y-2">
-                  <div className={cx("text-[11px]", theme === "dark" ? "text-neutral-400" : "text-neutral-500")}>
-                    Reusable secret
-                  </div>
+                  {secretHelperText ? (
+                    <div className={cx("inline-flex items-center gap-1.5 text-[11px]", theme === "dark" ? "text-neutral-500" : "text-neutral-500")}>
+                      <CircleHelp className="h-3.5 w-3.5" />
+                      <span>{secretHelperText}</span>
+                    </div>
+                  ) : null}
                   <Select
                     value={hasValidSecretId ? currentSecretId : "manual"}
                     onValueChange={(value) => setSecretId(nodeId, value === "manual" ? "" : value)}
                   >
-                    <SelectTrigger className="h-9 border-neutral-800 bg-[#111111] text-xs text-neutral-100">
+                    <SelectTrigger
+                      className={cx(
+                        "h-9 text-xs font-medium",
+                        theme === "dark"
+                          ? "border-neutral-700 bg-transparent text-neutral-300 hover:border-neutral-600"
+                          : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400",
+                      )}
+                    >
                       <SelectValue placeholder="Use one-time values" />
                     </SelectTrigger>
                     <SelectContent className="border-neutral-800 bg-[#0f0f0f] text-neutral-100">
@@ -681,7 +635,6 @@ export function ChatMessagesPane({
                 ) : null}
                 {versionForMessage ? (
                   <div className="pl-8 space-y-0">
-                    <AssistantResponseCard version={versionForMessage} theme={theme} />
                     <WorkflowCanvasCard
                       version={versionForMessage}
                       theme={theme}

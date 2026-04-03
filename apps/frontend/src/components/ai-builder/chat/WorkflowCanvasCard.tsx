@@ -22,27 +22,23 @@ export function WorkflowCanvasCard({
   const edges = useMemo(() => {
     if (!version) return [];
 
-    const nodeMap = new Map(nodes.map((node) => [node.nodeId, node]));
     return (version.response.plan.edges as EdgeType[]).map((edge) => {
-      const sourceNode = nodeMap.get(edge.source);
-      const normalizedType = String(sourceNode?.type || "").toLowerCase();
-      const isTrigger = ["price", "timer", "conditional-trigger"].includes(normalizedType);
       const stroke =
         edge.sourceHandle === "true"
-          ? "#34d399"
+          ? "#ff9f91"
           : edge.sourceHandle === "false"
-            ? "#f87171"
-            : isTrigger
-              ? "#60a5fa"
-              : "#f17463";
+            ? "#ff7f72"
+            : "#f17463";
 
       return {
         ...edge,
         type: "smoothstep",
-        animated: !compact,
+        animated: true,
         style: {
           stroke,
-          strokeWidth: 2.4,
+          strokeWidth: 3,
+          strokeDasharray: "8 6",
+          strokeLinecap: "round" as const,
         },
       };
     });
@@ -85,16 +81,13 @@ export function WorkflowCanvasCard({
         <span className={cx("rounded-full px-2 py-1", theme === "dark" ? "bg-neutral-900 text-neutral-300" : "bg-neutral-100 text-neutral-600")}>
           {version.response.plan.nodes.length} nodes
         </span>
-        <span className={cx("rounded-full px-2 py-1", theme === "dark" ? "bg-neutral-900 text-neutral-300" : "bg-neutral-100 text-neutral-600")}>
-          {version.response.validation.branchCount} branches
-        </span>
         <span className={cx("rounded-full px-2 py-1", version.response.validation.canOpenInBuilder ? "bg-emerald-500/12 text-emerald-400" : "bg-amber-500/12 text-amber-400")}>
           {version.response.validation.canOpenInBuilder ? "Builder ready" : "Needs review"}
         </span>
       </div>
       <div
         className={cx(
-          compact ? "h-37 overflow-hidden rounded-2xl border" : "h-56 overflow-hidden rounded-2xl border",
+          compact ? "h-34 overflow-hidden rounded-2xl border" : "h-48 overflow-hidden rounded-2xl border",
           theme === "dark" ? "border-neutral-800 bg-[#121212]" : "border-neutral-200 bg-[#f5f7fa]",
         )}
       >
@@ -120,9 +113,6 @@ export function WorkflowCanvasCard({
             variant={BackgroundVariant.Dots}
           />
         </ReactFlow>
-      </div>
-      <div className={cx("mt-3 text-xs leading-6", theme === "dark" ? "text-neutral-400" : "text-neutral-500")}>
-        {version.response.plan.summary}
       </div>
       <div className={cx("mt-2 text-[11px]", theme === "dark" ? "text-neutral-500" : "text-neutral-500")}>
         {new Date(version.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
@@ -172,7 +162,7 @@ export function WorkflowCanvasCard({
                 </button>
               </div>
 
-              <div className={cx("h-[72vh] overflow-hidden rounded-[24px] border", theme === "dark" ? "border-neutral-800 bg-[#111111]" : "border-neutral-200 bg-[#f5f7fa]")}>
+              <div className={cx("h-[72vh] overflow-hidden rounded-3xl border", theme === "dark" ? "border-neutral-800 bg-[#111111]" : "border-neutral-200 bg-[#f5f7fa]")}>
                 <ReactFlow
                   nodeTypes={aiPreviewNodeTypes as any}
                   nodes={previewNodes.map((node) => ({ ...node, id: node.nodeId }))}

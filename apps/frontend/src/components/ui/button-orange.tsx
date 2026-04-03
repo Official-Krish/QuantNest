@@ -18,7 +18,7 @@ export const OrangeButton = forwardRef<HTMLButtonElement, OrangeButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "rounded-lg bg-[#f17463] text-white font-medium transition hover:bg-[#f17463]/90 cursor-pointer",
+          "rounded-lg bg-[#f17463] text-white font-medium transition hover:bg-[#f17463]/90 cursor-pointer disabled:cursor-not-allowed disabled:border disabled:border-[#f17463]/20 disabled:bg-[#f17463]/35 disabled:text-white/70 disabled:hover:bg-[#f17463]/35",
           sizeClasses[size],
           fullWidth && "w-full",
           className

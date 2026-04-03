@@ -9,6 +9,7 @@ function PreviewShell({
   badge,
   title,
   subtitle,
+  titleClassName,
   iconService,
   sourceHandle,
   showTarget = true,
@@ -20,22 +21,23 @@ function PreviewShell({
   badge?: string;
   title: string;
   subtitle?: string;
+  titleClassName?: string;
   iconService?: string;
   sourceHandle?: string;
   showTarget?: boolean;
 }) {
   return (
     <div
-      className={`min-w-40 rounded-2xl border px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] ${
+      className={`min-w-34 rounded-2xl border px-3 py-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.03)] ${
         tone === "trigger"
-          ? "border-sky-500/35 bg-sky-500/8"
-          : "border-[#f17463]/35 bg-[#f17463]/10"
+          ? "border-[#f17463]/35 bg-[#f17463]/7"
+          : "border-[#f17463]/45 bg-[#f17463]/13"
       }`}
     >
       <div className="mb-2 flex items-center gap-2">
         <span
           className={`rounded-full px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] ${
-            tone === "trigger" ? "bg-sky-500/14 text-sky-300" : "bg-[#f17463]/16 text-[#f59a8d]"
+            tone === "trigger" ? "bg-[#f17463]/16 text-[#ffbaa8]" : "bg-[#f17463]/20 text-[#ffd1c8]"
           }`}
         >
           {kindBadge}
@@ -52,7 +54,7 @@ function PreviewShell({
           </span>
         ) : null}
       </div>
-      <div className="mt-1.5 text-[12px] font-semibold leading-4 text-neutral-100">{title}</div>
+      <div className={"mt-1.5 text-[12px] font-semibold leading-4.5 text-neutral-100 " + (titleClassName || "")}>{title}</div>
       {subtitle ? <div className="mt-1 text-[10px] leading-4 text-neutral-300/80">{subtitle}</div> : null}
       {showTarget ? (
         <Handle
@@ -91,13 +93,14 @@ export function PreviewPriceTrigger({ data }: any) {
     : `Trigger on ${asset}`;
   return (
     <PreviewShell
-      accent="#60a5fa"
+      accent="#f17463"
       tone="trigger"
       kindBadge="Trigger"
       label="Price"
       badge={asset}
       title={title}
       subtitle={subtitle}
+      titleClassName="text-[16px] leading-6"
       showTarget={false}
     />
   );
@@ -107,7 +110,7 @@ export function PreviewTimer({ data }: any) {
   const { time = 1 } = data.metadata || {};
   return (
     <PreviewShell
-      accent="#60a5fa"
+      accent="#f17463"
       tone="trigger"
       kindBadge="Trigger"
       label="Timer"
@@ -141,17 +144,17 @@ export function PreviewConditional({ data }: any) {
     : "True / false outputs";
 
   return (
-    <div className="min-w-42.5 rounded-2xl border border-sky-500/35 bg-sky-500/8 px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+    <div className="min-w-34 rounded-2xl border border-[#f17463]/35 bg-[#f17463]/7 px-3 py-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
       <div className="mb-2">
-        <span className="rounded-full bg-sky-500/14 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+        <span className="rounded-full bg-[#f17463]/16 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-[#ffbaa8]">
           Trigger
         </span>
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-sky-300">Condition</span>
+        <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#ffbaa8]">Condition</span>
         <span className="rounded-full bg-black/50 px-1.5 py-0.5 text-[8px] font-mono text-neutral-200">{groups}G</span>
       </div>
-      <div className="mt-1.5 text-[12px] font-semibold leading-4 text-neutral-100">Branch workflow</div>
+      <div className="mt-1.5 text-[12px] font-semibold leading-4.5 text-neutral-100">Branch workflow</div>
       <div className="mt-1 text-[10px] leading-4 text-neutral-300/80">{subtitle}</div>
       <Handle type="target" position={Position.Left} className="h-2! w-2! border! border-neutral-900! bg-neutral-300!" />
       <Handle type="source" id="true" position={Position.Right} className="h-2! w-2! border! border-neutral-900! bg-emerald-400!" style={{ top: "40%" }} />
@@ -189,7 +192,7 @@ export function PreviewMarketSession({ data }: any) {
 
   return (
     <PreviewShell
-      accent="#10b981"
+      accent="#f17463"
       tone="trigger"
       kindBadge="Trigger"
       label="Market Session"
@@ -204,7 +207,7 @@ export function PreviewMarketSession({ data }: any) {
 export function PreviewIf({ data }: any) {
   const groups = data.metadata?.expression?.conditions?.length || 1;
   return (
-    <div className="min-w-42.5 rounded-2xl border border-[#f17463]/35 bg-[#f17463]/10 px-3.5 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+    <div className="min-w-34 rounded-2xl border border-[#f17463]/45 bg-[#f17463]/13 px-3 py-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
       <div className="mb-2">
         <span className="rounded-full bg-[#f17463]/16 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-[#f59a8d]">
           Action
@@ -214,7 +217,7 @@ export function PreviewIf({ data }: any) {
         <span className="text-[8px] font-semibold uppercase tracking-[0.18em] text-[#f59a8d]">If</span>
         <span className="rounded-full bg-black/50 px-1.5 py-0.5 text-[8px] font-mono text-neutral-200">{groups}G</span>
       </div>
-      <div className="mt-1.5 text-[12px] font-semibold leading-4 text-neutral-100">Branch downstream</div>
+      <div className="mt-1.5 text-[12px] font-semibold leading-4.5 text-neutral-100">Branch downstream</div>
       <div className="mt-1 text-[10px] leading-4 text-neutral-300/80">True / false outputs</div>
       <Handle type="target" position={Position.Left} className="h-2! w-2! border! border-neutral-900! bg-neutral-300!" />
       <Handle type="source" id="true" position={Position.Right} className="h-2! w-2! border! border-neutral-900! bg-emerald-400!" style={{ top: "40%" }} />

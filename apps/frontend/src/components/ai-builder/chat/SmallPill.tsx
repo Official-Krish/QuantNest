@@ -5,9 +5,10 @@ type SmallPillProps = {
   active?: boolean;
   theme: LocalTheme;
   title?: string;
+  className?: string;
 };
 
-export function SmallPill({ label, active = false, theme, title }: SmallPillProps) {
+export function SmallPill({ label, active = false, theme, title, className }: SmallPillProps) {
   return (
     <span
       title={title}
@@ -20,6 +21,7 @@ export function SmallPill({ label, active = false, theme, title }: SmallPillProp
           : theme === "dark"
             ? "border-neutral-800 bg-[#151515] text-neutral-300"
             : "border-neutral-200 bg-[#eef1f4] text-neutral-600",
+        className,
       )}
     >
       {label}

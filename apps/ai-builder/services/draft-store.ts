@@ -65,13 +65,70 @@ function deriveTitle(request: AiStrategyBuilderRequest, response: AiStrategyBuil
   );
 }
 
-function buildAssistantMessages(response: AiStrategyBuilderResponse, now: string): AiStrategyConversationMessage[] {
+function pickVariant(seed: string, values: string[]): string {
+  if (!values.length) return "";
+  const normalized = seed || "quantnest";
+  let hash = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash = (hash * 31 + normalized.charCodeAt(index)) >>> 0;
+  }
+  return values[hash % values.length] || values[0] || "";
+}
+
+function sentenceCase(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const first = trimmed.charAt(0);
+  return first.toUpperCase() + trimmed.slice(1);
+}
+
+function sanitizeSummary(value: string): string {
+  return value.trim().replace(/\s+/g, " ").replace(/\.+$/g, "");
+}
+
+function buildConversationalResultContent(
+  response: AiStrategyBuilderResponse,
+  options: {
+    promptSeed?: string;
+    instruction?: string;
+  } = {},
+): string {
+  const baseSummary = sanitizeSummary(response.plan.summary || "Workflow draft prepared.");
+  const seed = `${options.promptSeed || ""}|${options.instruction || ""}|${response.plan.workflowName || ""}`;
+
+  const intros = options.instruction
+    ? [
+        "Done. I applied your change.",
+        "Updated. I made that adjustment.",
+        "Got it. I updated the workflow.",
+      ]
+    : [
+        "Great, I put this together for you.",
+        "Done, here is the workflow draft.",
+        "I built a draft based on your request.",
+      ];
+
+  const outro = response.validation.missingInputsCount > 0
+    ? `You still need ${response.validation.missingInputsCount} input${response.validation.missingInputsCount === 1 ? "" : "s"} before running it.`
+    : "You can keep refining this or open it in the builder.";
+
+  return `${pickVariant(seed, intros)} ${sentenceCase(baseSummary)}. ${outro}`.trim();
+}
+
+function buildAssistantMessages(
+  response: AiStrategyBuilderResponse,
+  now: string,
+  options: {
+    promptSeed?: string;
+    instruction?: string;
+  } = {},
+): AiStrategyConversationMessage[] {
   const messages: AiStrategyConversationMessage[] = [
     {
       id: createId("msg"),
       role: "assistant",
       kind: "result",
-      content: response.plan.summary,
+      content: buildConversationalResultContent(response, options),
       createdAt: now,
       metadata: {
         workflowName: response.plan.workflowName,
@@ -155,7 +212,9 @@ function buildDraftSession(
             goal: normalizedRequest.goal,
           },
         },
-        ...buildAssistantMessages(response, createdAt),
+        ...buildAssistantMessages(response, createdAt, {
+          promptSeed: normalizedRequest.prompt,
+        }),
       ],
     workflowVersions:
       input.workflowVersions || [buildWorkflowVersion(response, normalizedRequest, createdAt)],
@@ -341,7 +400,10 @@ class AiDraftStore {
       });
     }
 
-    nextMessages.push(...buildAssistantMessages(response, updatedAt));
+    nextMessages.push(...buildAssistantMessages(response, updatedAt, {
+      promptSeed: request.prompt,
+      instruction,
+    }));
     nextWorkflowVersions.push(
       buildWorkflowVersion(
         response,
