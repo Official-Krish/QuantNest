@@ -256,6 +256,27 @@ function normalizeExpression(expression: unknown): unknown {
 
   const asCondition = normalizeExpressionCondition(expression);
   if (asCondition?.type === "group") {
+    const conditions = Array.isArray(asCondition.conditions)
+      ? asCondition.conditions.filter((entry): entry is Record<string, unknown> => isRecord(entry))
+      : [];
+
+    if (
+      conditions.length > 1
+      && conditions.every((entry) => String(entry.type || "").toLowerCase() === "clause")
+    ) {
+      return {
+        type: "group",
+        operator: "AND",
+        conditions: [
+          {
+            type: "group",
+            operator: String(asCondition.operator || "AND").toUpperCase() === "OR" ? "OR" : "AND",
+            conditions,
+          },
+        ],
+      };
+    }
+
     return asCondition;
   }
 

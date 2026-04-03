@@ -223,7 +223,7 @@ function parseLooseIndicatorOperand(operand: unknown): UIIndicator {
   return defaultIndicator(null);
 }
 
-function parseLooseClause(condition: unknown, marketType: "Indian" | "Crypto" | null): UIGroup | null {
+function parseLooseClause(condition: unknown, marketType: "Indian" | "Crypto" | null): UIClause | null {
   if (!isRecord(condition)) {
     return null;
   }
@@ -236,14 +236,11 @@ function parseLooseClause(condition: unknown, marketType: "Indian" | "Crypto" | 
     const rightIndicator = right && (right.type === "indicator" || isRecord(right.indicator));
 
     return {
-      operator: "AND",
-      clauses: [{
-        left,
-        operator: String(looseCondition.operator || ">") as IndicatorComparator,
-        rightMode: rightIndicator ? "indicator" : "value",
-        rightValue: !rightIndicator ? Number(right?.value) : undefined,
-        rightIndicator: rightIndicator ? parseLooseIndicatorOperand(right) : defaultIndicator(marketType),
-      }],
+      left,
+      operator: String(looseCondition.operator || ">") as IndicatorComparator,
+      rightMode: rightIndicator ? "indicator" : "value",
+      rightValue: !rightIndicator ? Number(right?.value) : undefined,
+      rightIndicator: rightIndicator ? parseLooseIndicatorOperand(right) : defaultIndicator(marketType),
     };
   }
 
@@ -254,20 +251,53 @@ function fromExpression(
   expression: IndicatorConditionGroup | undefined,
   marketType: "Indian" | "Crypto" | null,
 ): { rootOperator: "AND" | "OR"; groups: UIGroup[] } {
-  const conditions = Array.isArray((expression as any)?.conditions) ? (expression as any).conditions : [];
+  const conditions: unknown[] = Array.isArray((expression as any)?.conditions) ? (expression as any).conditions : [];
 
   if (!expression || !conditions.length) {
+    const firstClause = defaultClause(marketType);
+    const secondClause = {
+      ...defaultClause(marketType),
+      operator: "crosses_above" as IndicatorComparator,
+      rightMode: "indicator" as OperandMode,
+      rightIndicator: {
+        symbol: firstClause.left.symbol,
+        timeframe: firstClause.left.timeframe,
+        indicator: "ema" as IndicatorKind,
+        period: 20,
+      },
+    };
+
     return {
-      rootOperator: "OR",
-      groups: [defaultGroup(marketType), defaultGroup(marketType)],
+      rootOperator: "AND",
+      groups: [{
+        operator: "AND",
+        clauses: [firstClause, secondClause],
+      }],
+    };
+  }
+
+  const rootClauses = conditions
+    .map((condition: unknown) => parseLooseClause(condition, marketType))
+    .filter((entry: UIClause | null): entry is UIClause => Boolean(entry));
+
+  if (rootClauses.length === conditions.length) {
+    return {
+      rootOperator: "AND",
+      groups: [{
+        operator: expression?.operator === "OR" ? "OR" : "AND",
+        clauses: rootClauses,
+      }],
     };
   }
 
   const groups: UIGroup[] = [];
   for (const condition of conditions) {
-    const looseGroup = parseLooseClause(condition, marketType);
-    if (looseGroup) {
-      groups.push(looseGroup);
+    const looseClause = parseLooseClause(condition, marketType);
+    if (looseClause) {
+      groups.push({
+        operator: "AND",
+        clauses: [looseClause],
+      });
       continue;
     }
 
@@ -277,9 +307,8 @@ function fromExpression(
         .map((entry) => {
           if ((entry as any).type === "clause" || ((entry as any).left && (entry as any).right)) {
             const looseEntry = parseLooseClause(entry, marketType);
-            const firstClause = looseEntry?.clauses[0];
-            if (firstClause) {
-              return firstClause;
+            if (looseEntry) {
+              return looseEntry;
             }
           }
 

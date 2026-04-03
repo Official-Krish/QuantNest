@@ -112,6 +112,11 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "- Never return an empty conditional-trigger expression; include at least one clause inside expression.conditions.",
     "- If prompt asks for crossover, expression must include a clause with operator crosses_above or crosses_below.",
     "- For conditional-trigger with multiple conditions, use single expression with AND/OR operators, not separate filter nodes.",
+    "- For multi-condition conditional-trigger, use ONE inner group containing multiple clause entries (not one group per clause).",
+    "- Canonical shape for two clauses: expression={type:'group', operator:'AND', conditions:[{type:'group', operator:'AND', conditions:[clause1, clause2]}]}.",
+    "- Use MULTIPLE inner groups only when logic is truly grouped (parentheses logic), e.g., (A AND B) OR (C AND D).",
+    "- If user gives a flat condition list like 'A AND B AND C' or 'A OR B', keep it as ONE inner group with multiple clauses.",
+    "- For root group operator: use 'AND' only when joining multiple inner groups where all groups must match; use 'OR' when any group can match.",
     "- For market-session: if single time point (e.g., 'at 3:20'), use event='at-time'. If range (e.g., '7 PM to 2 AM'), use event='session-window'.",
     "- market-session trigger metadata must include: marketType ('indian' or 'web3'), event, triggerTime (HH:MM), and endTime (if session-window).",
     "- Always align marketType: use 'indian' for Indian requests, 'web3' for Crypto/Bitcoin requests.",
@@ -266,9 +271,9 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
       2,
     ),
     "",
-    "Example 3 - Expanded branching with merge and reporting:",
-    "User prompt: If EMA20 crosses above EMA50 on HDFC 5m, on true branch send Telegram and place Zerodha BUY. On false branch send Discord warning. Then merge both branches and write a Google Sheets report.",
-    "Expected structure: one conditional-trigger (with crosses_above) -> true and false branches -> merge -> google-sheets-report.",
+    "Example 3 - Multi-group trigger (parentheses logic) with branching and merge:",
+    "User prompt: If (EMA20 crosses above EMA50 on HDFC 5m AND RSI(14) < 60) OR (price crosses above EMA20 on HDFC 5m AND volume > 2000000), on true branch send Telegram and place Zerodha BUY. On false branch send Discord warning. Then merge both branches and write a Google Sheets report.",
+    "Expected structure: one conditional-trigger with TWO inner groups joined by OR -> true and false branches -> merge -> google-sheets-report.",
     JSON.stringify(
       {
         workflowName: "EMA Crossover Branch and Audit",
@@ -284,7 +289,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
                 asset: "HDFC",
                 expression: {
                   type: "group",
-                  operator: "AND",
+                  operator: "OR",
                   conditions: [
                     {
                       type: "group",
@@ -301,6 +306,42 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
                             type: "indicator",
                             indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "ema", params: { period: 50 } },
                           },
+                        },
+                        {
+                          type: "clause",
+                          left: {
+                            type: "indicator",
+                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "rsi", params: { period: 14 } },
+                          },
+                          operator: "<",
+                          right: { type: "value", value: 60 },
+                        },
+                      ],
+                    },
+                    {
+                      type: "group",
+                      operator: "AND",
+                      conditions: [
+                        {
+                          type: "clause",
+                          left: {
+                            type: "indicator",
+                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "price" },
+                          },
+                          operator: "crosses_above",
+                          right: {
+                            type: "indicator",
+                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "ema", params: { period: 20 } },
+                          },
+                        },
+                        {
+                          type: "clause",
+                          left: {
+                            type: "indicator",
+                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "volume" },
+                          },
+                          operator: ">",
+                          right: { type: "value", value: 2000000 },
                         },
                       ],
                     },
@@ -331,7 +372,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "",
     "Example 4 - Multi-condition trigger with pre-execution volume gate:",
     "User prompt: Trigger when RSI(14) on 5m is below 30 AND price crosses above EMA(20) on 5m. Then place Zerodha BUY qty 10. Before execution, verify volume is above 2,000,000 else skip. After buy, send Slack entry alert, wait 5 minutes, then place Zerodha SELL to close.",
-    "Expected structure: one conditional-trigger for RSI+EMA conditions -> filter(volume > 2000000) -> zerodha(BUY) -> slack -> delay(300s) -> zerodha(SELL).",
+    "Expected structure: one conditional-trigger with ONE group containing BOTH RSI+EMA clauses -> filter(volume > 2000000) -> zerodha(BUY) -> slack -> delay(300s) -> zerodha(SELL).",
     JSON.stringify(
       {
         workflowName: "RSI EMA Reversal with Volume Guard",

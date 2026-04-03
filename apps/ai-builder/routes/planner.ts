@@ -41,9 +41,10 @@ async function generatePlanWithRetry(
 
 Important correction for crossover requests:
 - Add a conditional-trigger node with metadata.expression.
-- metadata.expression.conditions must include at least one clause.
+- metadata.expression.conditions must include a single inner group for related clauses.
 - Use operator exactly "crosses_above" or "crosses_below".
 - For crossover clause, both left and right must be indicator operands.
+- Canonical shape: {"type":"group","operator":"AND","conditions":[{"type":"group","operator":"AND","conditions":[<clause>, ...]}]}
 - Example clause shape:
   {"type":"clause","left":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"ema","params":{"period":20}}},"operator":"crosses_below","right":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"ema","params":{"period":50}}}}
 `
@@ -53,12 +54,20 @@ Important correction for crossover requests:
 
 Important correction for volume spike requests:
 - Add a conditional-trigger node with metadata.expression.
-- metadata.expression.conditions must include at least one volume clause.
+- metadata.expression.conditions must include one group whose conditions include at least one volume clause.
 - Use indicator "volume" as left or right operand in at least one clause.
 - Example clause shape:
   {"type":"clause","left":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"volume"}},"operator":">","right":{"type":"value","value":1000000}}
 `
     : "";
+  const conditionalGroupingHint = `
+
+Conditional grouping DO/DON'T:
+- DO use one inner group for flat lists like A AND B AND C, or A OR B.
+- DO use multiple inner groups only for parenthesized logic like (A AND B) OR (C AND D).
+- DON'T create one inner group per clause for flat conditions.
+- Preferred canonical shape: {"type":"group","operator":"AND|OR","conditions":[{"type":"group","operator":"AND|OR","conditions":[<clause>, ...]}]}
+`;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -75,7 +84,7 @@ Important correction for volume spike requests:
 
 Previous output was invalid for this reason: ${error.message}
 
-Correct the structure and regenerate a valid full workflow JSON.${crossoverHint}${volumeSpikeHint}
+Correct the structure and regenerate a valid full workflow JSON.${crossoverHint}${volumeSpikeHint}${conditionalGroupingHint}
 
 Regenerate the workflow plan. Return only corrected JSON.`;
         continue;
@@ -112,7 +121,7 @@ router.post("/strategy/plan", serviceAuthMiddleware, async (req, res) => {
         success: false,
         code: "INVALID_REQUEST",
         message: "Invalid planner request.",
-        errors: error.flatten(),
+        errors: error,
       });
       return;
     }
