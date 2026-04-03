@@ -90,6 +90,11 @@ export type StrategyBuilderActionType =
   | "google-drive-daily-csv"
   | "google-sheets-report";
 
+export interface ConversationTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface AiStrategyBuilderRequest {
   prompt: string;
   market: StrategyBuilderMarket;
@@ -101,6 +106,7 @@ export interface AiStrategyBuilderRequest {
   constraints?: string[];
   model?: AiModelRequestOptions;
   allowedNodeTypes?: Array<NodeKind | Lowercase<NodeKind>>;
+  conversationHistory?: ConversationTurn[];
 }
 
 export interface AiWorkflowDraftNode {
@@ -284,6 +290,14 @@ export const strategyBuilderRequestSchema = z.object({
   constraints: z.array(z.string().trim().min(1)).optional(),
   model: aiModelRequestOptionsSchema.optional(),
   allowedNodeTypes: z.array(strategyAllowedNodeTypeSchema).optional(),
+  conversationHistory: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().trim().min(1),
+      }),
+    )
+    .optional(),
 }) satisfies z.ZodType<AiStrategyBuilderRequest>;
 
 export const aiWorkflowDraftNodeSchema = z.object({

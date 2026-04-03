@@ -207,6 +207,69 @@ export function groupMissingInputs(
   }, {});
 }
 
+export function propagateActionCredentialsToAllNodes(
+  result: AiStrategyBuilderResponse | AiStrategyDraftSession | null,
+  metadataOverrides: AiMetadataOverrides,
+): AiMetadataOverrides {
+  const response = getResponse(result);
+  if (!response) return metadataOverrides;
+
+  const nextOverrides = { ...metadataOverrides };
+  const nodesByService = new Map<string, string[]>(); // service -> [nodeIds]
+
+  // Group action nodes by their reusableSecretService
+  for (const node of response.plan.nodes) {
+    if (String(node.data.kind).toLowerCase() !== "action") continue;
+    
+    const nodeType = String(node.type).toLowerCase();
+    const service = getReusableSecretServiceForNodeType(nodeType);
+    
+    // Only propagate for actions with a reusable secret service
+    if (!service) continue;
+
+    if (!nodesByService.has(service)) {
+      nodesByService.set(service, []);
+    }
+    nodesByService.get(service)!.push(node.nodeId);
+  }
+
+  // For each service with multiple nodes, propagate credentials from first to all others
+  for (const [_service, nodeIds] of nodesByService.entries()) {
+    if (nodeIds.length <= 1) continue; // No need to propagate if only one node
+
+    const firstNodeId = nodeIds[0];
+    const firstNodeType = response.plan.nodes.find((n) => n.nodeId === firstNodeId)?.type;
+    if (!firstNodeType) continue;
+
+    const firstNodeOverrides = nextOverrides[firstNodeId] || {};
+    
+    // Get the fields that should be propagated (secret fields for this service)
+    const secretFields = getSecretBackedFieldsForNodeType(String(firstNodeType));
+    
+    // Apply first node's credentials to all other nodes of the same service
+    for (let i = 1; i < nodeIds.length; i++) {
+      const targetNodeId = nodeIds[i];
+      nextOverrides[targetNodeId] = {
+        ...(nextOverrides[targetNodeId] || {}),
+      };
+
+      // Copy all secret fields from first node
+      for (const field of secretFields) {
+        if (Object.prototype.hasOwnProperty.call(firstNodeOverrides, field)) {
+          nextOverrides[targetNodeId][field] = firstNodeOverrides[field];
+        }
+      }
+
+      // Copy secret ID if present
+      if (Object.prototype.hasOwnProperty.call(firstNodeOverrides, "secretId")) {
+        nextOverrides[targetNodeId].secretId = firstNodeOverrides.secretId;
+      }
+    }
+  }
+
+  return nextOverrides;
+}
+
 export function getReusableSecretServiceForNodeType(nodeType: string): ReusableSecretService | null {
   return (getNodeRegistryEntry(nodeType)?.reusableSecretService as ReusableSecretService | undefined) || null;
 }

@@ -57,6 +57,7 @@ export interface NodeRegistryEntry {
 export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
     apiKey: "API key",
     accessToken: "Access token",
+    recipientName: "Recipient name",
     recipientEmail: "Recipient email",
     recipientPhone: "Recipient phone",
     slackBotToken: "Slack bot token",
@@ -183,6 +184,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderFormId: "trading",
         builderRendererId: "lighter",
         executorActionHandlerId: "lighter",
+        aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["type", "qty", "symbol", "apiKey", "accountIndex", "apiKeyIndex"],
         reusableSecretService: "lighter",

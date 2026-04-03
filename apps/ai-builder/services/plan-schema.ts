@@ -12,11 +12,27 @@ import {
   aiStrategyWorkflowPlanSchema,
   strategyBuilderRequestSchema,
 } from "@quantnest-trading/types/ai";
+import { getNodeRegistryEntry, NODE_METADATA_FIELD_LABELS } from "@quantnest-trading/node-registry";
 import { AiBuilderError } from "../errors";
 
 const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
 const TRIGGER_TYPES = new Set(["timer", "price", "conditional-trigger", "market-session"]);
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
+const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter"]);
+const CRITICAL_ACTION_FIELDS = new Set([
+  "apiKey",
+  "accessToken",
+  "accountIndex",
+  "apiKeyIndex",
+  "slackBotToken",
+  "slackUserId",
+  "telegramBotToken",
+  "telegramChatId",
+  "webhookUrl",
+  "recipientPhone",
+  "recipientName",
+  "recipientEmail",
+]);
 
 function canonicalizeComparator(operator: string): string {
   const normalized = String(operator || "")
@@ -61,9 +77,9 @@ function getAllClauses(expression: unknown): Array<Record<string, unknown>> {
 }
 
 function normalizeCrossoverOperatorsInPlan(plan: AiStrategyWorkflowPlan, prompt: string): void {
-  const wantsCrossover = /(cross(?:es|ed)?[_\s-]?(above|below)|crossover)/i.test(prompt);
-  const wantsBelow = /cross(?:es|ed)?[_\s-]?below|crossover[^\n]*below/i.test(prompt);
-  const wantsAbove = /cross(?:es|ed)?[_\s-]?above|crossover[^\n]*above/i.test(prompt);
+  const wantsCrossover = /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(prompt);
+  const wantsBelow = /cross(?:es|ed|ing)?[_\s-]?below|crossover[^\n]*below/i.test(prompt);
+  const wantsAbove = /cross(?:es|ed|ing)?[_\s-]?above|crossover[^\n]*above/i.test(prompt);
 
   for (const node of plan.nodes) {
     if (String(node.type).toLowerCase() !== "conditional-trigger") continue;
@@ -135,6 +151,229 @@ function extractJsonBlock(raw: string): string {
 
   const withoutFenceStart = trimmed.replace(/^```(?:json)?\s*/i, "");
   return withoutFenceStart.replace(/\s*```$/, "").trim();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeOperand(operand: unknown): Record<string, unknown> {
+  if (!isRecord(operand)) {
+    return { type: "value", value: 0 };
+  }
+
+  if (operand.type === "indicator" && isRecord(operand.indicator)) {
+    return {
+      type: "indicator",
+      indicator: {
+        symbol: String(operand.indicator.symbol || ""),
+        timeframe: String(operand.indicator.timeframe || "5m"),
+        indicator: String(operand.indicator.indicator || "rsi"),
+        marketType: operand.indicator.marketType,
+        params: isRecord(operand.indicator.params) ? operand.indicator.params : undefined,
+      },
+    };
+  }
+
+  if (isRecord(operand.indicator)) {
+    return {
+      type: "indicator",
+      indicator: {
+        symbol: String(operand.indicator.symbol || ""),
+        timeframe: String(operand.indicator.timeframe || "5m"),
+        indicator: String(operand.indicator.indicator || "rsi"),
+        marketType: operand.indicator.marketType,
+        params: isRecord(operand.indicator.params) ? operand.indicator.params : undefined,
+      },
+    };
+  }
+
+  if (Object.prototype.hasOwnProperty.call(operand, "value")) {
+    return {
+      type: "value",
+      value: Number(operand.value),
+    };
+  }
+
+  return { type: "value", value: 0 };
+}
+
+function normalizeExpressionCondition(condition: unknown): Record<string, unknown> | null {
+  if (!isRecord(condition)) {
+    return null;
+  }
+
+  const type = String(condition.type || "").toLowerCase();
+
+  if (type === "group" || Array.isArray(condition.conditions)) {
+    const conditions = Array.isArray(condition.conditions)
+      ? condition.conditions
+          .map((entry) => normalizeExpressionCondition(entry))
+          .filter((entry): entry is Record<string, unknown> => Boolean(entry))
+      : [];
+
+    return {
+      type: "group",
+      operator: String(condition.operator || "AND").toUpperCase() === "OR" ? "OR" : "AND",
+      conditions,
+    };
+  }
+
+  if (type === "clause") {
+    return {
+      type: "clause",
+      left: normalizeOperand(condition.left),
+      operator: String(condition.operator || ">"),
+      right: normalizeOperand(condition.right),
+    };
+  }
+
+  if (isRecord(condition.indicator) && Object.prototype.hasOwnProperty.call(condition, "value")) {
+    return {
+      type: "clause",
+      left: normalizeOperand({ type: "indicator", indicator: condition.indicator }),
+      operator: String(condition.operator || ">"),
+      right: normalizeOperand({ type: "value", value: condition.value }),
+    };
+  }
+
+  if ((condition.left || condition.right) && condition.operator) {
+    return {
+      type: "clause",
+      left: normalizeOperand(condition.left),
+      operator: String(condition.operator),
+      right: normalizeOperand(condition.right),
+    };
+  }
+
+  return null;
+}
+
+function normalizeExpression(expression: unknown): unknown {
+  if (!isRecord(expression)) {
+    return expression;
+  }
+
+  const asCondition = normalizeExpressionCondition(expression);
+  if (asCondition?.type === "group") {
+    return asCondition;
+  }
+
+  if (asCondition?.type === "clause") {
+    return {
+      type: "group",
+      operator: "AND",
+      conditions: [asCondition],
+    };
+  }
+
+  return expression;
+}
+
+function normalizeIndicatorExpressionsInPlan(plan: AiStrategyWorkflowPlan): void {
+  for (const node of plan.nodes) {
+    const nodeType = String(node.type).toLowerCase();
+    if (!CONDITION_NODE_TYPES.has(nodeType)) {
+      continue;
+    }
+
+    const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+    if (!metadata.expression) continue;
+    metadata.expression = normalizeExpression(metadata.expression);
+  }
+}
+
+function hasMeaningfulValue(value: unknown): boolean {
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+
+  if (typeof value === "boolean") {
+    return true;
+  }
+
+  if (value == null) {
+    return false;
+  }
+
+  return String(value).trim().length > 0;
+}
+
+function mergeCriticalActionMissingInputs(plan: AiStrategyWorkflowPlan): void {
+  const existing = new Set(plan.missingInputs.map((input) => `${input.nodeId}:${input.field}`));
+
+  for (const node of plan.nodes) {
+    if (String(node.data.kind).toLowerCase() !== "action") continue;
+
+    const entry = getNodeRegistryEntry(node.type);
+    if (!entry) continue;
+
+    const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+    const hasSecret = Boolean(String(metadata.secretId || "").trim());
+    const editableFields = new Set([...(entry.metadataFields || []), ...(entry.secretFieldKeys || [])]);
+
+    for (const field of CRITICAL_ACTION_FIELDS) {
+      if (!editableFields.has(field)) continue;
+
+      if (hasSecret && (entry.secretFieldKeys || []).includes(field)) {
+        continue;
+      }
+
+      if (hasMeaningfulValue(metadata[field])) {
+        continue;
+      }
+
+      const key = `${node.nodeId}:${field}`;
+      if (existing.has(key)) {
+        continue;
+      }
+
+      existing.add(key);
+      plan.missingInputs.push({
+        nodeId: node.nodeId,
+        nodeType: String(node.type),
+        field,
+        label: NODE_METADATA_FIELD_LABELS[field] || field,
+        reason: `${NODE_METADATA_FIELD_LABELS[field] || field} is required for ${entry.title}.`,
+        required: true,
+        secret: (entry.secretFieldKeys || []).includes(field),
+      });
+    }
+  }
+}
+
+function deduplicateActionCredentialMissingInputs(plan: AiStrategyWorkflowPlan): void {
+  const serviceFieldSeen = new Map<string, boolean>();
+  const indicesToRemove = new Set<number>();
+
+  for (let i = 0; i < plan.missingInputs.length; i++) {
+    const input = plan.missingInputs[i];
+    if (!input) continue;
+    
+    const nodeType = String(input.nodeType).toLowerCase();
+    const entry = getNodeRegistryEntry(nodeType);
+    
+    // Only deduplicate for actions with reusableSecretService
+    const service = entry?.reusableSecretService;
+    if (!service) continue;
+
+    const key = `${service}:${input.field}`;
+    
+    if (serviceFieldSeen.has(key)) {
+      // This is a duplicate - mark for removal
+      indicesToRemove.add(i);
+    } else {
+      // First occurrence - track it
+      serviceFieldSeen.set(key, true);
+    }
+  }
+
+  // Remove duplicates in reverse order to maintain indices
+  for (let i = plan.missingInputs.length - 1; i >= 0; i--) {
+    if (indicesToRemove.has(i)) {
+      plan.missingInputs.splice(i, 1);
+    }
+  }
 }
 
 function pushIssue(
@@ -580,7 +819,7 @@ function validatePromptAlignedSemantics(
     }
   }
 
-  const asksForCrossover = /(cross(?:es|ed)?[_\s-]?(above|below)|crossover)/i.test(prompt);
+  const asksForCrossover = /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(prompt);
   if (asksForCrossover) {
     const conditionalNodes = plan.nodes.filter((node) => String(node.type).toLowerCase() === "conditional-trigger");
 
@@ -825,6 +1064,9 @@ export function normalizeStrategyPlanResponse(
   }
 
   const plan = aiStrategyWorkflowPlanSchema.parse(parsed);
+  normalizeIndicatorExpressionsInPlan(plan);
+  mergeCriticalActionMissingInputs(plan);
+  deduplicateActionCredentialMissingInputs(plan);
   normalizeCrossoverOperatorsInPlan(plan, request.prompt || "");
   const validation = buildValidationReport(plan, request);
 

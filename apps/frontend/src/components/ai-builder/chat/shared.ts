@@ -27,6 +27,7 @@ export function toRequestPayload(input: {
   constraints: string;
   selectedProvider: string;
   selectedModel: string;
+  conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
 }): AiStrategyBuilderRequest {
   return {
     prompt: input.prompt.trim(),
@@ -45,6 +46,7 @@ export function toRequestPayload(input: {
       model: input.selectedModel,
     },
     allowedNodeTypes: AI_ALLOWED_NODE_TYPES,
+    conversationHistory: input.conversationHistory,
   };
 }
 

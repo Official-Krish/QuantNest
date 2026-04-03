@@ -190,11 +190,73 @@ function parseIndicatorOperand(operand: IndicatorOperand): UIIndicator {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseLooseIndicatorOperand(operand: unknown): UIIndicator {
+  if (!isRecord(operand)) {
+    return defaultIndicator(null);
+  }
+
+  const indicator = operand.indicator as Record<string, unknown> | undefined;
+  const params = indicator?.params as Record<string, unknown> | undefined;
+
+  if (operand.type === "indicator" && indicator) {
+    return {
+      symbol: String(indicator.symbol || defaultSymbolForMarket(null)),
+      timeframe: String(indicator.timeframe || "5m") as IndicatorTimeframe,
+      indicator: String(indicator.indicator || "rsi") as IndicatorKind,
+      period: typeof params?.period === "number" ? (params.period as number) : undefined,
+    };
+  }
+
+  if (indicator) {
+    return {
+      symbol: String(indicator.symbol || defaultSymbolForMarket(null)),
+      timeframe: String(indicator.timeframe || "5m") as IndicatorTimeframe,
+      indicator: String(indicator.indicator || "rsi") as IndicatorKind,
+      period: typeof params?.period === "number" ? (params.period as number) : undefined,
+    };
+  }
+
+  return defaultIndicator(null);
+}
+
+function parseLooseClause(condition: unknown, marketType: "Indian" | "Crypto" | null): UIGroup | null {
+  if (!isRecord(condition)) {
+    return null;
+  }
+
+  const conditionType = String(condition.type || "").toLowerCase();
+  if (conditionType === "clause" || (condition.left && condition.right)) {
+    const looseCondition = condition as Record<string, any>;
+    const left = parseLooseIndicatorOperand(looseCondition.left);
+    const right = looseCondition.right as Record<string, unknown> | undefined;
+    const rightIndicator = right && (right.type === "indicator" || isRecord(right.indicator));
+
+    return {
+      operator: "AND",
+      clauses: [{
+        left,
+        operator: String(looseCondition.operator || ">") as IndicatorComparator,
+        rightMode: rightIndicator ? "indicator" : "value",
+        rightValue: !rightIndicator ? Number(right?.value) : undefined,
+        rightIndicator: rightIndicator ? parseLooseIndicatorOperand(right) : defaultIndicator(marketType),
+      }],
+    };
+  }
+
+  return null;
+}
+
 function fromExpression(
   expression: IndicatorConditionGroup | undefined,
   marketType: "Indian" | "Crypto" | null,
 ): { rootOperator: "AND" | "OR"; groups: UIGroup[] } {
-  if (!expression || !expression.conditions?.length) {
+  const conditions = Array.isArray((expression as any)?.conditions) ? (expression as any).conditions : [];
+
+  if (!expression || !conditions.length) {
     return {
       rootOperator: "OR",
       groups: [defaultGroup(marketType), defaultGroup(marketType)],
@@ -202,43 +264,57 @@ function fromExpression(
   }
 
   const groups: UIGroup[] = [];
-  for (const condition of expression.conditions) {
-    if (condition.type === "clause") {
-      const left = condition.left.type === "indicator"
-        ? parseIndicatorOperand(condition.left)
-        : defaultIndicator(marketType);
-      const rightMode: OperandMode = condition.right.type === "indicator" ? "indicator" : "value";
+  for (const condition of conditions) {
+    const looseGroup = parseLooseClause(condition, marketType);
+    if (looseGroup) {
+      groups.push(looseGroup);
+      continue;
+    }
+
+    if (isRecord(condition) && condition.type === "group" && Array.isArray(condition.conditions)) {
+      const clauses: UIClause[] = condition.conditions
+        .filter((entry): entry is IndicatorConditionClause | Record<string, unknown> => isRecord(entry))
+        .map((entry) => {
+          if ((entry as any).type === "clause" || ((entry as any).left && (entry as any).right)) {
+            const looseEntry = parseLooseClause(entry, marketType);
+            const firstClause = looseEntry?.clauses[0];
+            if (firstClause) {
+              return firstClause;
+            }
+          }
+
+          return defaultClause(marketType);
+        });
+
       groups.push({
-        operator: "AND",
-        clauses: [{
-          left,
-          operator: condition.operator,
-          rightMode,
-          rightValue: condition.right.type === "value" ? condition.right.value : undefined,
-          rightIndicator: condition.right.type === "indicator" ? parseIndicatorOperand(condition.right) : defaultIndicator(marketType),
-        }],
+        operator: condition.operator === "OR" ? "OR" : "AND",
+        clauses: clauses.length ? clauses : [defaultClause(marketType)],
       });
       continue;
     }
 
-    const clauses: UIClause[] = condition.conditions
-      .filter((entry): entry is IndicatorConditionClause => entry.type === "clause")
-      .map((clause) => ({
-        left: clause.left.type === "indicator" ? parseIndicatorOperand(clause.left) : defaultIndicator(marketType),
-        operator: clause.operator,
-        rightMode: clause.right.type === "indicator" ? "indicator" : "value",
-        rightValue: clause.right.type === "value" ? clause.right.value : undefined,
-        rightIndicator: clause.right.type === "indicator" ? parseIndicatorOperand(clause.right) : defaultIndicator(marketType),
-      }));
-
-    groups.push({
-      operator: condition.operator,
-      clauses: clauses.length ? clauses : [defaultClause(marketType)],
-    });
+    if (isRecord(condition) && condition.type === "clause") {
+      const typedCondition = condition as Record<string, any>;
+      const left = typedCondition.left?.type === "indicator"
+        ? parseIndicatorOperand(typedCondition.left)
+        : defaultIndicator(marketType);
+      const rightMode: OperandMode = typedCondition.right?.type === "indicator" ? "indicator" : "value";
+      groups.push({
+        operator: "AND",
+        clauses: [{
+          left,
+          operator: typedCondition.operator as IndicatorComparator,
+          rightMode,
+          rightValue: typedCondition.right?.type === "value" ? typedCondition.right.value : undefined,
+          rightIndicator: typedCondition.right?.type === "indicator" ? parseIndicatorOperand(typedCondition.right) : defaultIndicator(marketType),
+        }],
+      });
+      continue;
+    }
   }
 
   return {
-    rootOperator: expression.operator,
+    rootOperator: expression?.operator === "AND" ? "AND" : "OR",
     groups: groups.length ? groups : [defaultGroup(marketType)],
   };
 }

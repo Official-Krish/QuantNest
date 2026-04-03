@@ -36,7 +36,7 @@ async function generatePlanWithRetry(
   prompt: string,
 ) {
   let attemptPrompt = prompt;
-  const crossoverHint = /(cross(?:es|ed)?[_\s-]?(above|below)|crossover)/i.test(input.prompt)
+  const crossoverHint = /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(input.prompt)
     ? `
 
 Important correction for crossover requests:
@@ -184,9 +184,18 @@ router.post("/strategy/drafts/:draftId/edit", serviceAuthMiddleware, async (req,
     const userId = requireUserId(req.userId);
     const edit = parseStrategyDraftEditRequest(req.body);
     const existing = await aiDraftStore.get(userId, String(req.params.draftId));
+    
+    const conversationHistory = existing.messages
+      .filter((msg) => (msg.role === "user" || msg.role === "assistant") && (msg.kind === "prompt" || msg.kind === "edit" || msg.kind === "result"))
+      .map((msg) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      }));
+    
     const input = {
       ...existing.request,
       model: edit.model ?? existing.request.model,
+      conversationHistory, 
     };
     const { provider } = resolvePlannerProvider(providers, input.model);
     const prompt = buildStrategyEditPrompt(input, existing.response.plan, edit.instruction);

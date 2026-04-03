@@ -283,6 +283,12 @@ export const ActionSheet = ({
       setMetadata({});
     }
     setSelectedAction(actionId);
+    
+    // Auto-set market type for filter/if actions to match trigger context
+    if ((actionId === "filter" || actionId === "if") && !marketType) {
+      setMarketType("Indian");
+    }
+    
     setActiveStep(3);
   };
 

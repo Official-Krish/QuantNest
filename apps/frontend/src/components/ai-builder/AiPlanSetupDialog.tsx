@@ -27,6 +27,7 @@ import {
   getReusableSecretServiceForNodeType,
   groupMissingInputs,
   isGoogleSheetsReportNodeType,
+  propagateActionCredentialsToAllNodes,
   shouldHideInputWhenSecretSelected,
   suggestReusableSecretId,
 } from "./setupDialog.utils";
@@ -168,13 +169,17 @@ export function AiPlanSetupDialog({
       });
     }
 
-    onMetadataOverridesChange({
+    const nextOverrides = {
       ...metadataOverrides,
       [nodeId]: {
         ...(metadataOverrides[nodeId] || {}),
         [key]: nextValue,
       },
-    });
+    };
+
+    // Propagate credentials to all nodes of the same service type
+    const propagatedOverrides = propagateActionCredentialsToAllNodes(result, nextOverrides);
+    onMetadataOverridesChange(propagatedOverrides);
   };
 
   const verifyGoogleSheetNode = async (
@@ -268,10 +273,14 @@ export function AiPlanSetupDialog({
       delete nextNodeOverrides.secretId;
     }
 
-    onMetadataOverridesChange({
+    const nextOverrides = {
       ...metadataOverrides,
       [nodeId]: nextNodeOverrides,
-    });
+    };
+
+    // Propagate credentials to all nodes of the same service type
+    const propagatedOverrides = propagateActionCredentialsToAllNodes(result, nextOverrides);
+    onMetadataOverridesChange(propagatedOverrides);
   };
 
   return (
