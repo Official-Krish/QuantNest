@@ -23,41 +23,13 @@ import { OrangeButton } from "@/components/ui/button-orange";
 import { workflowNodeTypes } from "@/components/workflow/nodeTypes";
 import { AppBackground } from "@/components/background";
 import { toast } from "sonner";
+import {
+  buildWorkflowSnapshot,
+  collectBrokerVerificationPayloads,
+  normalizeWorkflowForBuilder,
+} from "@/components/workflow/workflow-builder.utils";
 
 const POSITION_OFFSET = 50;
-
-function normalizeNodeForCompare(node: NodeType) {
-  return {
-    nodeId: node.nodeId,
-    type: String(node.type || ""),
-    data: {
-      kind: String(node.data?.kind || ""),
-      metadata: node.data?.metadata || {},
-    },
-  };
-}
-
-function normalizeEdgeForCompare(edge: EdgeType) {
-  return {
-    id: edge.id,
-    source: edge.source,
-    target: edge.target,
-    sourceHandle: edge.sourceHandle ?? undefined,
-    targetHandle: edge.targetHandle ?? undefined,
-  };
-}
-
-function buildWorkflowSnapshot(params: {
-  workflowName: string;
-  nodes: NodeType[];
-  edges: EdgeType[];
-}) {
-  return JSON.stringify({
-    workflowName: params.workflowName.trim(),
-    nodes: params.nodes.map(normalizeNodeForCompare),
-    edges: params.edges.map(normalizeEdgeForCompare),
-  });
-}
 
 export const CreateWorkflow = () => {
   const navigate = useNavigate();
@@ -114,95 +86,17 @@ export const CreateWorkflow = () => {
       setSaveError(null);
       try {
         const workflow = await apiGetWorkflow(routeWorkflowId);
-        const normalizedNodes = workflow.nodes.map((node: any) => {
-          const nodeId = node.nodeId || node.id;
-          let nodeType = node.type;
-          if (nodeType) {
-            nodeType = nodeType.toLowerCase();
-            if (nodeType === "price") nodeType = "price-trigger";
-            if (nodeType === "breakout-retest") nodeType = "breakout-retest-trigger";
-            if (nodeType === "conditional") nodeType = "conditional-trigger";
-          }
-          if (!nodeType) {
-            const metadata = node.data?.metadata || {};
-            const kind = node.data?.kind?.toLowerCase();
-            if (metadata.time !== undefined) {
-              nodeType = "timer";
-            } else if (metadata.breakoutLevel !== undefined && metadata.direction !== undefined) {
-              nodeType = "breakout-retest-trigger";
-            } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined && metadata.condition !== undefined) {
-              nodeType = kind === "trigger"
-                ? "conditional-trigger"
-                : "price-trigger";
-            } else if (metadata.recipientEmail !== undefined) {
-              nodeType = "gmail";
-            } else if (metadata.durationSeconds !== undefined) {
-              nodeType = "delay";
-            } else if (
-              metadata.expression !== undefined ||
-              (metadata.targetPrice !== undefined && metadata.condition !== undefined && metadata.asset !== undefined)
-            ) {
-              nodeType = kind === "trigger" ? "conditional-trigger" : "if";
-            } else if (metadata.slackUserId !== undefined || metadata.slackBotToken !== undefined) {
-              nodeType = "slack";
-            } else if (metadata.webhookUrl !== undefined) {
-              nodeType = "discord";
-            } else if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {
-              nodeType = "zerodha";
-            } else if (metadata.notionApiKey !== undefined || metadata.parentPageId !== undefined || metadata.aiConsent !== undefined) {
-              nodeType = "notion-daily-report";
-            } else if (metadata.sheetUrl !== undefined || metadata.sheetId !== undefined || metadata.sheetName !== undefined) {
-              nodeType = "google-sheets-report";
-            } else if (metadata.googleClientEmail !== undefined || metadata.googlePrivateKey !== undefined || metadata.googleDriveFolderId !== undefined) {
-              nodeType = "google-drive-daily-csv";
-            } else if (metadata.recipientPhone !== undefined) {
-              nodeType = "whatsapp";
-            } else {
-              nodeType = kind === "action" ? "zerodha" : "timer";
-            }
-          }
-          
-          return {
-            nodeId,
-            type: nodeType,
-            data: {
-              kind: (node.data?.kind?.toLowerCase() || node.data?.kind || "trigger") as "action" | "trigger",
-              metadata: node.data?.metadata || {},
-            },
-            position: node.position || { x: 0, y: 0 },
-          };
-        });
-        const nodeById = new Map<string, any>(
-          normalizedNodes.map((node: any) => [node.nodeId, node] as const),
-        );
-        const normalizedEdges = (workflow.edges || []).map((edge: any) => {
-          if (edge.sourceHandle) {
-            return edge;
-          }
-          const sourceNode = nodeById.get(edge.source);
-          const targetNode = nodeById.get(edge.target);
-          if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if") {
-            return edge;
-          }
-          const targetCondition = targetNode?.data?.metadata?.condition;
-          if (typeof targetCondition === "boolean") {
-            return {
-              ...edge,
-              sourceHandle: targetCondition ? "true" : "false",
-            };
-          }
-          return edge;
-        });
-        setNodes(normalizedNodes as NodeType[]);
-        setEdges(normalizedEdges as EdgeType[]);
-        setWorkflowId(workflow._id);
-        setWorkflowName(workflow.workflowName || "");
-        setMarketType(workflow.marketType || "Indian");
+        const normalizedWorkflow = normalizeWorkflowForBuilder(workflow as any);
+        setNodes(normalizedWorkflow.nodes);
+        setEdges(normalizedWorkflow.edges);
+        setWorkflowId(normalizedWorkflow.workflowId);
+        setWorkflowName(normalizedWorkflow.workflowName);
+        setMarketType(normalizedWorkflow.marketType);
         setLastSavedSnapshot(
           buildWorkflowSnapshot({
-            workflowName: workflow.workflowName || "",
-            nodes: normalizedNodes as NodeType[],
-            edges: normalizedEdges as EdgeType[],
+            workflowName: normalizedWorkflow.workflowName,
+            nodes: normalizedWorkflow.nodes,
+            edges: normalizedWorkflow.edges,
           }),
         );
       } catch (e: any) {
@@ -308,66 +202,7 @@ export const CreateWorkflow = () => {
     setSaveError(null);
     setSaving(true);
     try {
-      const verificationPayloads = new Map<
-        string,
-        {
-          brokerType: "zerodha" | "groww" | "lighter";
-          apiKey?: string;
-          accessToken?: string;
-          accountIndex?: number;
-          apiKeyIndex?: number;
-          secretId?: string;
-        }
-      >();
-
-      for (const node of nodes) {
-        if (String(node.data?.kind || "").toLowerCase() !== "action") continue;
-        const nodeType = String(node.type || "").toLowerCase();
-        const metadata: any = node.data?.metadata || {};
-
-        if (nodeType === "zerodha") {
-          const payload = {
-            brokerType: "zerodha" as const,
-            apiKey: String(metadata.apiKey || "").trim(),
-            accessToken: String(metadata.accessToken || "").trim(),
-            secretId: String(metadata.secretId || "").trim() || undefined,
-          };
-          verificationPayloads.set(
-            `zerodha:${payload.secretId || `${payload.apiKey}:${payload.accessToken}`}`,
-            payload
-          );
-          continue;
-        }
-
-        if (nodeType === "groww") {
-          const payload = {
-            brokerType: "groww" as const,
-            accessToken: String(metadata.accessToken || "").trim(),
-            secretId: String(metadata.secretId || "").trim() || undefined,
-          };
-          verificationPayloads.set(
-            `groww:${payload.secretId || payload.accessToken}`,
-            payload
-          );
-          continue;
-        }
-
-        if (nodeType === "lighter") {
-          const payload = {
-            brokerType: "lighter" as const,
-            apiKey: String(metadata.apiKey || "").trim(),
-            accountIndex: Number(metadata.accountIndex),
-            apiKeyIndex: Number(metadata.apiKeyIndex),
-            secretId: String(metadata.secretId || "").trim() || undefined,
-          };
-          verificationPayloads.set(
-            `lighter:${payload.secretId || `${payload.apiKey}:${payload.accountIndex}:${payload.apiKeyIndex}`}`,
-            payload
-          );
-        }
-      }
-
-      for (const payload of verificationPayloads.values()) {
+      for (const payload of collectBrokerVerificationPayloads(nodes).values()) {
         await apiVerifyBrokerCredentials(payload);
       }
 

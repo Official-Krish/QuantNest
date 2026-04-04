@@ -1,11 +1,6 @@
 import {
-  type ConditionalTriggerMetadata,
   type NodeKind,
   type NodeMetadata,
-  type PriceTriggerNodeMetadata,
-  type BreakoutRetestTriggerMetadata,
-  type TimerNodeMetadata,
-  type MarketSessionTriggerNodeMetadata,
 } from "@quantnest-trading/types";
 import {
   Sheet,
@@ -22,11 +17,7 @@ import { OrangeButton } from "@/components/ui/button-orange";
 import { ArrowLeft } from "lucide-react";
 import { SUPPORTED_TRIGGERS } from "./sheets/constants";
 import { TriggerTypeSelector } from "./sheets/TriggerTypeSelector";
-import { TimerForm } from "./sheets/TimerForm";
-import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
-import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
-import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
-import { MarketSessionTriggerForm } from "./sheets/MarketSessionTriggerForm";
+import { renderBuilderForm } from "./builderRegistry";
 
 type SupportedTriggerKind = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
 
@@ -59,9 +50,7 @@ export const TriggerSheet = ({
   setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
   onPreviewTriggerChange?: (kind: SupportedTriggerKind | null) => void;
 }) => {
-  const [metadata, setMetadata] = useState<
-    PriceTriggerNodeMetadata | BreakoutRetestTriggerMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata
-  >(() => ({} as PriceTriggerNodeMetadata | BreakoutRetestTriggerMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata));
+  const [metadata, setMetadata] = useState<NodeMetadata | {}>({});
   const [selectedTrigger, setSelectedTrigger] = useState<SupportedTriggerKind | "">("");
   const [activeStep, setActiveStep] = useState<1 | 2>(1);
   const [transitionDirection, setTransitionDirection] = useState<1 | -1>(1);
@@ -81,9 +70,7 @@ export const TriggerSheet = ({
     setActiveStep(nextSelectedTrigger ? 2 : 1);
     setTransitionDirection(1);
     setMetadata(
-      (initialMetadata
-        ? { ...(initialMetadata as PriceTriggerNodeMetadata | BreakoutRetestTriggerMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata) }
-        : {}) as PriceTriggerNodeMetadata | BreakoutRetestTriggerMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata,
+      (initialMetadata ? { ...(initialMetadata as NodeMetadata | {}) } : {}) as NodeMetadata | {},
     );
 
     const nextMarketType = String((initialMetadata as any)?.marketType || "").toLowerCase();
@@ -117,65 +104,6 @@ export const TriggerSheet = ({
   const handleBack = () => {
     setTransitionDirection(-1);
     setActiveStep(1);
-  };
-
-  const renderSelectedTriggerForm = () => {
-    if (selectedTrigger === "timer") {
-      return (
-        <TimerForm
-          marketType={marketType}
-          setMarketType={setMarketType}
-          metadata={metadata as TimerNodeMetadata}
-          setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
-        />
-      );
-    }
-
-    if (selectedTrigger === "price-trigger") {
-      return (
-        <PriceTriggerForm
-          marketType={marketType}
-          setMarketType={setMarketType}
-          metadata={metadata as PriceTriggerNodeMetadata}
-          setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
-        />
-      );
-    }
-
-    if (selectedTrigger === "breakout-retest-trigger") {
-      return (
-        <BreakoutRetestTriggerForm
-          marketType={marketType}
-          setMarketType={setMarketType}
-          metadata={metadata as BreakoutRetestTriggerMetadata}
-          setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
-        />
-      );
-    }
-
-    if (selectedTrigger === "conditional-trigger") {
-      return (
-        <ConditionalTriggerForm
-          marketType={marketType}
-          setMarketType={setMarketType}
-          metadata={metadata as ConditionalTriggerMetadata}
-          setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
-        />
-      );
-    }
-
-    if (selectedTrigger === "market-session") {
-      return (
-        <MarketSessionTriggerForm
-          marketType={marketType}
-          setMarketType={setMarketType}
-          metadata={metadata as MarketSessionTriggerNodeMetadata}
-          setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
-        />
-      );
-    }
-
-    return null;
   };
 
   return (
@@ -272,7 +200,14 @@ export const TriggerSheet = ({
 
                     <div className="h-px w-full bg-linear-to-r from-transparent via-[#f17463]/70 to-transparent" />
 
-                    {renderSelectedTriggerForm()}
+                    {selectedTrigger
+                      ? renderBuilderForm(selectedTrigger, {
+                          metadata,
+                          setMetadata,
+                          setMarketType,
+                          marketType,
+                        })
+                      : null}
                   </motion.div>
                 )}
               </AnimatePresence>

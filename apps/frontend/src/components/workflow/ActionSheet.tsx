@@ -1,8 +1,6 @@
 import {
-  type LighterMetadata,
   type NodeKind,
   type NodeMetadata,
-  type TradingMetadata,
 } from "@quantnest-trading/types";
 import {
   getBuilderPanelActions,
@@ -11,7 +9,6 @@ import {
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { OrangeButton } from "@/components/ui/button-orange";
-import { getActionValidationErrors, getTradingValidationErrors } from "@/lib/validation";
 import {
   Sheet,
   SheetContent,
@@ -22,89 +19,16 @@ import {
 } from "@/components/ui/sheet";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Bell, Clock3, FileText, Filter, GitBranch, GitFork, GitMerge, Lock, PlayCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, GitFork, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getServiceBrand, ServiceLogo } from "./service-branding";
 import { getBuilderPanelGroupForNodeType, renderBuilderForm } from "./builderRegistry";
-
-const ACTION_GROUP_OPTIONS: Array<{
-  id: BuilderPanelGroup;
-  title: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  toneClassName: string;
-}> = [
-  {
-    id: "Order Execution" as BuilderPanelGroup,
-    title: "Order Execution",
-    description: "Execute live orders through your broker integrations.",
-    icon: PlayCircle,
-    toneClassName: "text-[#ff9b8e]",
-  },
-  {
-    id: "Order Notification" as BuilderPanelGroup,
-    title: "Order Notification",
-    description: "Send trade and workflow updates to chat or email.",
-    icon: Bell,
-    toneClassName: "text-[#f6b36a]",
-  },
-  {
-    id: "Flow Control" as BuilderPanelGroup,
-    title: "Flow Control",
-    description: "Add branching, delays, and logic to your graph.",
-    icon: GitBranch,
-    toneClassName: "text-[#f17463]",
-  },
-  {
-    id: "Reporting" as BuilderPanelGroup,
-    title: "Reporting",
-    description: "Generate reports and documentation artifacts.",
-    icon: FileText,
-    toneClassName: "text-neutral-200",
-  },
-];
-
-const ACTION_STEP_TITLES: Record<BuilderPanelGroup, string> = {
-  "Order Execution": "Select broker",
-  "Order Notification": "Select service",
-  "Flow Control": "Select logic step",
-  Reporting: "Select reporting action",
-};
-
-const FLOW_CONTROL_STEP_OPTIONS: Record<
-  string,
-  {
-    icon: React.ComponentType<{ className?: string }>;
-    subtitle: string;
-    toneClassName: string;
-  }
-> = {
-  if: {
-    icon: GitFork,
-    subtitle: "Branch on condition",
-    toneClassName: "text-[#ff9b8e]",
-  },
-  filter: {
-    icon: Filter,
-    subtitle: "Skip if false",
-    toneClassName: "text-[#f6b36a]",
-  },
-  delay: {
-    icon: Clock3,
-    subtitle: "Wait before next",
-    toneClassName: "text-[#ffb8ad]",
-  },
-  merge: {
-    icon: GitMerge,
-    subtitle: "Rejoin branches",
-    toneClassName: "text-neutral-200",
-  },
-};
-
-const getSelectedCardTitle = (group?: BuilderPanelGroup) => {
-  if (!group) return "Select service";
-  return ACTION_STEP_TITLES[group];
-};
+import {
+  ACTION_GROUP_OPTIONS,
+  FLOW_CONTROL_STEP_OPTIONS,
+  getSelectedCardTitle,
+} from "./action-sheet/config";
+import { getBuilderActionValidationState } from "./action-sheet/utils";
 
 export const ActionSheet = ({
   onSelect,
@@ -129,7 +53,7 @@ export const ActionSheet = ({
   setMarketType: Dispatch<SetStateAction<"Indian" | "Crypto" | null>>;
   hasZerodhaAction: boolean;
 }) => {
-  const [metadata, setMetadata] = useState<TradingMetadata | LighterMetadata | {}>({});
+  const [metadata, setMetadata] = useState<NodeMetadata | {}>({});
   const [selectedAction, setSelectedAction] = useState("");
   const [initialAction, setInitialAction] = useState<BuilderPanelGroup | undefined>(undefined);
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
@@ -146,7 +70,7 @@ export const ActionSheet = ({
       return;
     }
 
-    setMetadata({ ...((initialMetadata || {}) as TradingMetadata | LighterMetadata | {}) });
+    setMetadata({ ...((initialMetadata || {}) as NodeMetadata | {}) });
     setSelectedAction(initialKind);
     setActiveStep(3);
     setTransitionDirection(1);
@@ -194,75 +118,10 @@ export const ActionSheet = ({
     setMetadata({});
   }, [availableActions, open, selectedAction]);
 
-  const tradingValidationErrors = useMemo(() => {
-    if (
-      selectedAction === "zerodha" ||
-      selectedAction === "groww" ||
-      selectedAction === "lighter"
-    ) {
-      return getTradingValidationErrors(
-        selectedAction as "zerodha" | "groww" | "lighter",
-        metadata
-      );
-    }
-    return [];
-  }, [metadata, selectedAction]);
-  const actionValidationErrors = useMemo(
-    () => getActionValidationErrors(selectedAction, metadata as Record<string, unknown>),
+  const { tradingValidationErrors, actionValidationErrors, canCreateAction } = useMemo(
+    () => getBuilderActionValidationState(selectedAction, metadata),
     [metadata, selectedAction],
   );
-  const hasReusableSecret = Boolean(String((metadata as any)?.secretId || "").trim());
-  const hasRecipientName = Boolean(String((metadata as any)?.recipientName || "").trim());
-
-  const canCreateAction =
-    !!selectedAction &&
-    tradingValidationErrors.length === 0 &&
-    actionValidationErrors.length === 0 &&
-    (
-      selectedAction !== "delay" ||
-      Number((metadata as any)?.durationSeconds) > 0
-    ) &&
-    (
-      selectedAction !== "gmail" ||
-      (hasRecipientName && Boolean((metadata as any)?.recipientEmail))
-    ) &&
-    (
-      selectedAction !== "slack" ||
-      (hasRecipientName && (hasReusableSecret || (Boolean((metadata as any)?.slackBotToken) && Boolean((metadata as any)?.slackUserId))))
-    ) &&
-    (
-      selectedAction !== "telegram" ||
-      (hasRecipientName && (hasReusableSecret || (Boolean((metadata as any)?.telegramBotToken) && Boolean((metadata as any)?.telegramChatId))))
-    ) &&
-    (
-      selectedAction !== "discord" ||
-      (hasRecipientName && (hasReusableSecret || Boolean((metadata as any)?.webhookUrl)))
-    ) &&
-    (
-      selectedAction !== "whatsapp" ||
-      (hasRecipientName && (hasReusableSecret || Boolean((metadata as any)?.recipientPhone)))
-    ) &&
-    (
-      selectedAction !== "notion-daily-report" ||
-      ((hasReusableSecret || Boolean((metadata as any)?.notionApiKey)) && Boolean((metadata as any)?.aiConsent))
-    ) &&
-    (
-      selectedAction !== "google-drive-daily-csv" ||
-      ((hasReusableSecret || (Boolean((metadata as any)?.googleClientEmail) && Boolean((metadata as any)?.googlePrivateKey))) && Boolean((metadata as any)?.aiConsent))
-    ) &&
-    (
-      selectedAction !== "google-sheets-report" ||
-      Boolean((metadata as any)?.sheetUrl)
-    ) &&
-    (
-      selectedAction !== "filter" ||
-      Boolean((metadata as any)?.expression) ||
-      (
-        Boolean((metadata as any)?.asset) &&
-        ["above", "below"].includes(String((metadata as any)?.condition || "")) &&
-        Number((metadata as any)?.targetPrice) > 0
-      )
-    );
 
   const handleCreate = () => {
     if (!selectedAction) return;
