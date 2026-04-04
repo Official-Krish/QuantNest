@@ -3,6 +3,7 @@ import type { IndicatorConditionGroup, IndicatorMarket } from "./indicators";
 export type NodeKind =
     | "price"
     | "timer"
+    | "breakout-retest-trigger"
     | "conditional-trigger"
     | "market-session"
     | "if"
@@ -42,6 +43,7 @@ export type NodeMetadata =
     | TradingMetadata
     | TimerNodeMetadata
     | PriceTriggerNodeMetadata
+    | BreakoutRetestTriggerMetadata
     | MarketSessionTriggerNodeMetadata
     | NotificationMetadata
     | DelayNodeMetadata
@@ -110,6 +112,17 @@ export interface PriceTriggerNodeMetadata {
     changeDirection?: "increase" | "decrease";
     changeValue?: number;
     changeWindowMinutes?: number;
+}
+
+export interface BreakoutRetestTriggerMetadata {
+    asset: string;
+    marketType: "indian" | "web3";
+    direction: "bullish" | "bearish";
+    breakoutLevel: number;
+    retestTolerancePct: number;
+    confirmationMovePct: number;
+    retestWindowMinutes: number;
+    confirmationWindowMinutes: number;
 }
 
 export interface MarketSessionTriggerNodeMetadata {

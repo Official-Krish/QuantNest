@@ -19,6 +19,8 @@ export interface ExecutionContext {
             connectedSymbols?: string[];
             targetPrice?: number;
             condition?: "above" | "below";
+            direction?: "bullish" | "bearish";
+            breakoutLevel?: number;
             timerIntervalSeconds?: number;
             evaluatedCondition?: boolean;
             expression?: any;
@@ -77,6 +79,8 @@ export function initializeExecutionContext(params: {
             connectedSymbols,
             targetPrice: trigger.data?.metadata?.targetPrice,
             condition: trigger.data?.metadata?.condition,
+            direction: trigger.data?.metadata?.direction,
+            breakoutLevel: trigger.data?.metadata?.breakoutLevel,
             timerIntervalSeconds: trigger.type === "timer" ? trigger.data?.metadata?.time : undefined,
             expression: trigger.data?.metadata?.expression,
             evaluatedCondition: condition,
@@ -96,6 +100,22 @@ export function initializeExecutionContext(params: {
                 connectedSymbols,
                 targetPrice: trigger.data?.metadata?.targetPrice,
                 condition: trigger.data?.metadata?.condition,
+            },
+        };
+    }
+
+    if (trigger.type === "breakout-retest-trigger") {
+        context.eventType = "price_trigger";
+        context.details = {
+            symbol: trigger.data?.metadata?.asset,
+            targetPrice: trigger.data?.metadata?.breakoutLevel,
+            aiContext: {
+                triggerType: "breakout-retest-trigger",
+                marketType: trigger.data?.metadata?.marketType === "Crypto" ? "Crypto" : "Indian",
+                symbol: trigger.data?.metadata?.asset,
+                connectedSymbols,
+                breakoutLevel: trigger.data?.metadata?.breakoutLevel,
+                direction: trigger.data?.metadata?.direction,
             },
         };
     }

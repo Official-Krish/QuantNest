@@ -4,6 +4,7 @@ import { NODE_REGISTRY } from "@quantnest-trading/node-registry";
 import type { ExecutorTriggerProcessorId } from "@quantnest-trading/node-registry";
 import { canExecute, executeWorkflowSafe } from "../services/execution.service";
 import {
+    handleBreakoutRetestTrigger,
     evaluateConditionalMetadata,
     handleConditionalTrigger,
     handlePriceTrigger,
@@ -193,6 +194,51 @@ async function processPriceWorkflows(now: Date) {
     }
 }
 
+async function processBreakoutRetestWorkflows(now: Date) {
+    const workflows = await WorkflowModel.find({
+        ...ACTIVE_WORKFLOW_QUERY,
+        triggerType: "breakout-retest-trigger",
+    });
+
+    for (const workflow of workflows) {
+        try {
+            const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
+            if (!trigger) {
+                continue;
+            }
+
+            if (!(await canExecute(workflow._id.toString()))) {
+                continue;
+            }
+
+            const result = await handleBreakoutRetestTrigger(
+                workflow as unknown as WorkflowType,
+                trigger,
+            );
+
+            await WorkflowModel.updateOne(
+                { _id: workflow._id },
+                {
+                    $set: {
+                        lastEvaluatedAt: now,
+                        triggerConfig: {
+                            ...(workflow.triggerConfig || {}),
+                            runtime: result.runtime,
+                        },
+                        ...(result.shouldExecute ? { lastTriggeredAt: now } : {}),
+                    },
+                },
+            );
+
+            if (result.shouldExecute) {
+                await executeWorkflowSafe(workflow as unknown as WorkflowType);
+            }
+        } catch (err) {
+            console.error(`Breakout retest workflow error (${workflow.workflowName})`, err);
+        }
+    }
+}
+
 async function processConditionalWorkflows(now: Date) {
     const workflows = await WorkflowModel.find({
         ...ACTIVE_WORKFLOW_QUERY,
@@ -312,6 +358,7 @@ async function processMarketSessionWorkflows(now: Date) {
 const triggerProcessorMap: Record<ExecutorTriggerProcessorId, (now: Date) => Promise<void>> = {
     timer: processTimerWorkflows,
     "price-trigger": processPriceWorkflows,
+    "breakout-retest-trigger": processBreakoutRetestWorkflows,
     "conditional-trigger": processConditionalWorkflows,
     "market-session": processMarketSessionWorkflows,
 };

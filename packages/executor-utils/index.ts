@@ -11,7 +11,7 @@ export interface TokenStatus {
 }
 
 export interface DerivedWorkflowTriggerState {
-    triggerType?: "timer" | "price-trigger" | "conditional-trigger" | "market-session";
+    triggerType?: "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
     triggerNodeId?: string;
     triggerConfig?: Record<string, unknown>;
     nextRunAt?: Date;
@@ -292,6 +292,7 @@ export function deriveWorkflowTriggerState(
     const rawTriggerType = String(trigger.type || "").toLowerCase();
     const triggerType = (
         rawTriggerType === "price" ? "price-trigger" :
+        rawTriggerType === "breakout-retest" ? "breakout-retest-trigger" :
         rawTriggerType === "conditional" ? "conditional-trigger" :
         rawTriggerType
     ) as DerivedWorkflowTriggerState["triggerType"];
@@ -322,6 +323,23 @@ export function deriveWorkflowTriggerState(
             targetPrice: rawMetadata.targetPrice,
             marketType: rawMetadata.marketType,
             condition: rawMetadata.condition,
+        };
+        return nextState;
+    }
+
+    if (triggerType === "breakout-retest-trigger") {
+        nextState.triggerConfig = {
+            asset: rawMetadata.asset,
+            marketType: rawMetadata.marketType,
+            direction: rawMetadata.direction,
+            breakoutLevel: rawMetadata.breakoutLevel,
+            retestTolerancePct: rawMetadata.retestTolerancePct,
+            confirmationMovePct: rawMetadata.confirmationMovePct,
+            retestWindowMinutes: rawMetadata.retestWindowMinutes,
+            confirmationWindowMinutes: rawMetadata.confirmationWindowMinutes,
+            runtime: {
+                stage: "idle",
+            },
         };
         return nextState;
     }

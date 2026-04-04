@@ -9,6 +9,7 @@ function getNodeAccent(type: string) {
   switch (type) {
     case "timer":
     case "price-trigger":
+    case "breakout-retest-trigger":
     case "conditional-trigger":
     case "price":
       return "text-[#f17463]";
@@ -40,6 +41,8 @@ function getNodeBadge(type: string, metadata: Record<string, any>) {
     case "price-trigger":
     case "price":
       return metadata.asset || "PRICE";
+    case "breakout-retest-trigger":
+      return metadata.asset || "RETEST";
     case "conditional-trigger":
       return metadata.expression?.conditions?.length
         ? `${metadata.expression.conditions.length} Groups`
@@ -79,6 +82,8 @@ function getNodeTitle(type: string, metadata: Record<string, any>) {
     case "price-trigger":
     case "price":
       return `${metadata.asset || "-"} ${metadata.condition || "above"} ${metadata.targetPrice || 0}`;
+    case "breakout-retest-trigger":
+      return `${metadata.direction === "bearish" ? "Bearish" : "Bullish"} ${metadata.breakoutLevel || 0}`;
     case "conditional-trigger":
       return "Conditional branch";
     case "if":
@@ -112,6 +117,8 @@ function getNodeDescription(type: string, metadata: Record<string, any>) {
     case "price-trigger":
     case "price":
       return "Executes when price crosses this level.";
+    case "breakout-retest-trigger":
+      return "Waits for breakout, retest, then confirmation.";
     case "conditional-trigger":
       return "True and false paths branch from this node.";
     case "if":

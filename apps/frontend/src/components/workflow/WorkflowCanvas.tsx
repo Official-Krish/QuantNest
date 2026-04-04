@@ -129,6 +129,7 @@ export const WorkflowCanvas = ({
   const sourceNodeColor = (nodeType: string) => {
     const normalized = nodeType.toLowerCase();
     if (normalized === "price-trigger" || normalized === "timer") return "#f17463";
+    if (normalized === "breakout-retest-trigger") return "#38bdf8";
     if (normalized === "gmail" || normalized === "slack" || normalized === "telegram") return "#38bdf8";
     if (normalized === "zerodha" || normalized === "groww" || normalized === "lighter") return "#34d399";
     if (normalized === "conditional-trigger" || normalized === "if") return "#a78bfa";

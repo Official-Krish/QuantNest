@@ -73,6 +73,13 @@ export function WorkflowLivePreviewPanel({
 
       {preview ? (
         <>
+          {preview.triggerStageLabel ? (
+            <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-3">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Trigger stage</div>
+              <div className="mt-1 text-sm font-semibold text-neutral-100">{preview.triggerStageLabel}</div>
+            </div>
+          ) : null}
+
           {typeof preview.currentPrice === "number" ? (
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
               <div className="rounded-xl border border-neutral-800 bg-black/30 px-3 py-3">

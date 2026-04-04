@@ -3,6 +3,7 @@ import {
   type NodeKind,
   type NodeMetadata,
   type PriceTriggerNodeMetadata,
+  type BreakoutRetestTriggerMetadata,
   type TimerNodeMetadata,
   type MarketSessionTriggerNodeMetadata,
 } from "@quantnest-trading/types";
@@ -23,12 +24,13 @@ import { SUPPORTED_TRIGGERS } from "./sheets/constants";
 import { TriggerTypeSelector } from "./sheets/TriggerTypeSelector";
 import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
+import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
 import { MarketSessionTriggerForm } from "./sheets/MarketSessionTriggerForm";
 
-type SupportedTriggerKind = "timer" | "price-trigger" | "conditional-trigger" | "market-session";
+type SupportedTriggerKind = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
 
-const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = ["timer", "price-trigger", "conditional-trigger", "market-session"];
+const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = ["timer", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session"];
 
 const isSupportedTriggerKind = (kind: string): kind is SupportedTriggerKind => {
   return SUPPORTED_TRIGGER_KINDS.includes(kind as SupportedTriggerKind);
@@ -58,8 +60,8 @@ export const TriggerSheet = ({
   onPreviewTriggerChange?: (kind: SupportedTriggerKind | null) => void;
 }) => {
   const [metadata, setMetadata] = useState<
-    PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata
-  >(() => ({} as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata));
+    PriceTriggerNodeMetadata | BreakoutRetestTriggerMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata
+  >(() => ({} as PriceTriggerNodeMetadata | BreakoutRetestTriggerMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata));
   const [selectedTrigger, setSelectedTrigger] = useState<SupportedTriggerKind | "">("");
   const [activeStep, setActiveStep] = useState<1 | 2>(1);
   const [transitionDirection, setTransitionDirection] = useState<1 | -1>(1);
@@ -80,8 +82,8 @@ export const TriggerSheet = ({
     setTransitionDirection(1);
     setMetadata(
       (initialMetadata
-        ? { ...(initialMetadata as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata) }
-        : {}) as PriceTriggerNodeMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata,
+        ? { ...(initialMetadata as PriceTriggerNodeMetadata | BreakoutRetestTriggerMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata) }
+        : {}) as PriceTriggerNodeMetadata | BreakoutRetestTriggerMetadata | TimerNodeMetadata | ConditionalTriggerMetadata | MarketSessionTriggerNodeMetadata,
     );
 
     const nextMarketType = String((initialMetadata as any)?.marketType || "").toLowerCase();
@@ -135,6 +137,17 @@ export const TriggerSheet = ({
           marketType={marketType}
           setMarketType={setMarketType}
           metadata={metadata as PriceTriggerNodeMetadata}
+          setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
+        />
+      );
+    }
+
+    if (selectedTrigger === "breakout-retest-trigger") {
+      return (
+        <BreakoutRetestTriggerForm
+          marketType={marketType}
+          setMarketType={setMarketType}
+          metadata={metadata as BreakoutRetestTriggerMetadata}
           setMetadata={setMetadata as React.Dispatch<React.SetStateAction<any>>}
         />
       );

@@ -1036,6 +1036,137 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
       { id: "e-zerodha-gmail-market-1", source: "zerodha-market-1", target: "gmail-market-1" },
     ],
   },
+  {
+    slug: "bullish-breakout-retest-telegram",
+    title: "Bullish Breakout Retest Telegram Alert",
+    summary:
+      "Wait for a breakout, pullback retest, and confirmation before sending a Telegram alert.",
+    category: "Alerts",
+    market: "Indian",
+    difficulty: "Intermediate",
+    setupMinutes: 8,
+    sortOrder: 11,
+    nodeFlow: ["Breakout Retest", "Telegram"],
+    trigger: "Runs once after breakout, retest, and bullish confirmation.",
+    logic:
+      "HDFC must break above the level, revisit it within a tolerance band, and then confirm higher before the Telegram message is sent.",
+    actions: ["Watch breakout structure", "Wait for retest", "Send Telegram confirmation alert"],
+    outcomes: [
+      "Fewer fake breakout alerts",
+      "Cleaner confirmation-based entries",
+      "Simple template for price-action traders",
+    ],
+    nodes: [
+      {
+        nodeId: "brt-telegram-1",
+        type: "breakout-retest-trigger",
+        data: {
+          kind: "trigger",
+          metadata: {
+            asset: "HDFC",
+            marketType: "indian",
+            direction: "bullish",
+            breakoutLevel: 1750,
+            retestTolerancePct: 0.35,
+            confirmationMovePct: 0.2,
+            retestWindowMinutes: 45,
+            confirmationWindowMinutes: 20,
+          },
+        },
+        position: { x: 0, y: 90 },
+      },
+      {
+        nodeId: "telegram-brt-1",
+        type: "telegram",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Krish",
+            telegramBotToken: "123456789:telegram-demo-token",
+            telegramChatId: "859425297",
+          },
+        },
+        position: { x: 360, y: 90 },
+      },
+    ],
+    edges: [
+      { id: "e-brt-telegram-1", source: "brt-telegram-1", target: "telegram-brt-1" },
+    ],
+  },
+  {
+    slug: "bearish-breakout-retest-execution",
+    title: "Bearish Breakdown Retest To Zerodha Execution",
+    summary:
+      "Use a bearish breakdown retest structure to avoid weak breakdowns before short-side execution and reporting.",
+    category: "Execution",
+    market: "Indian",
+    difficulty: "Advanced",
+    setupMinutes: 14,
+    sortOrder: 12,
+    nodeFlow: ["Breakout Retest", "Zerodha", "Notion"],
+    trigger: "Runs once after bearish breakdown retest confirms lower.",
+    logic:
+      "CDSL must break below support, retest the level from underneath, then confirm lower before Zerodha executes and Notion logs the trade.",
+    actions: ["Wait for bearish confirmation", "Execute Zerodha sell", "Create Notion note"],
+    outcomes: [
+      "Better downside entry timing",
+      "Cleaner short setup confirmation",
+      "Trade capture with automatic reporting",
+    ],
+    nodes: [
+      {
+        nodeId: "brt-zerodha-1",
+        type: "breakout-retest-trigger",
+        data: {
+          kind: "trigger",
+          metadata: {
+            asset: "CDSL",
+            marketType: "indian",
+            direction: "bearish",
+            breakoutLevel: 1225,
+            retestTolerancePct: 0.4,
+            confirmationMovePct: 0.25,
+            retestWindowMinutes: 60,
+            confirmationWindowMinutes: 20,
+          },
+        },
+        position: { x: 0, y: 90 },
+      },
+      {
+        nodeId: "zerodha-brt-1",
+        type: "zerodha",
+        data: {
+          kind: "action",
+          metadata: {
+            type: "sell",
+            qty: 3,
+            symbol: "CDSL",
+            apiKey: "ZERODHA_API_KEY",
+            accessToken: "ZERODHA_ACCESS_TOKEN",
+            exchange: "NSE",
+          },
+        },
+        position: { x: 360, y: 90 },
+      },
+      {
+        nodeId: "notion-brt-1",
+        type: "notion-daily-report",
+        data: {
+          kind: "action",
+          metadata: {
+            notionApiKey: "secret_demo_key",
+            parentPageId: "demo-parent-page-id",
+            aiConsent: true,
+          },
+        },
+        position: { x: 680, y: 90 },
+      },
+    ],
+    edges: [
+      { id: "e-brt-zerodha-1", source: "brt-zerodha-1", target: "zerodha-brt-1" },
+      { id: "e-zerodha-brt-notion-1", source: "zerodha-brt-1", target: "notion-brt-1" },
+    ],
+  },
 ];
 
 function assertWorkflowExampleSeeds(seeds: WorkflowExampleSeed[]) {

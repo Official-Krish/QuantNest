@@ -325,6 +325,81 @@ function validateWorkflowNodes(
             }
         }
 
+        if (type === "breakout-retest-trigger" || type === "breakout-retest") {
+            const asset = String((metadata as any).asset || "").trim();
+            const marketType = String((metadata as any).marketType || "").trim().toLowerCase();
+            const direction = String((metadata as any).direction || "").trim().toLowerCase();
+            const breakoutLevel = Number((metadata as any).breakoutLevel);
+            const retestTolerancePct = Number((metadata as any).retestTolerancePct);
+            const confirmationMovePct = Number((metadata as any).confirmationMovePct);
+            const retestWindowMinutes = Number((metadata as any).retestWindowMinutes);
+            const confirmationWindowMinutes = Number((metadata as any).confirmationWindowMinutes);
+
+            if (!asset) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "asset"],
+                    message: "Breakout retest asset is required.",
+                });
+            }
+
+            if (!["indian", "crypto", "web3"].includes(marketType)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "marketType"],
+                    message: "Breakout retest marketType must be Indian or Crypto/Web3.",
+                });
+            }
+
+            if (!["bullish", "bearish"].includes(direction)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "direction"],
+                    message: "Breakout retest direction must be bullish or bearish.",
+                });
+            }
+
+            if (!Number.isFinite(breakoutLevel) || breakoutLevel <= 0) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "breakoutLevel"],
+                    message: "Breakout level must be greater than 0.",
+                });
+            }
+
+            if (!Number.isFinite(retestTolerancePct) || retestTolerancePct <= 0) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "retestTolerancePct"],
+                    message: "Retest tolerance must be greater than 0%.",
+                });
+            }
+
+            if (!Number.isFinite(confirmationMovePct) || confirmationMovePct <= 0) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "confirmationMovePct"],
+                    message: "Confirmation move must be greater than 0%.",
+                });
+            }
+
+            if (!Number.isFinite(retestWindowMinutes) || retestWindowMinutes <= 0) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "retestWindowMinutes"],
+                    message: "Retest window must be greater than 0 minutes.",
+                });
+            }
+
+            if (!Number.isFinite(confirmationWindowMinutes) || confirmationWindowMinutes <= 0) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "confirmationWindowMinutes"],
+                    message: "Confirmation window must be greater than 0 minutes.",
+                });
+            }
+        }
+
         if (type === "gmail") {
             const recipientEmail = String((metadata as any).recipientEmail || "").trim();
             if (!EMAIL_REGEX.test(recipientEmail)) {

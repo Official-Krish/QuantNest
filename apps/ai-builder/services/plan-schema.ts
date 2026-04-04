@@ -16,7 +16,7 @@ import { getNodeRegistryEntry, NODE_METADATA_FIELD_LABELS } from "@quantnest-tra
 import { AiBuilderError } from "../errors";
 
 const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
-const TRIGGER_TYPES = new Set(["timer", "price", "conditional-trigger", "market-session"]);
+const TRIGGER_TYPES = new Set(["timer", "price", "breakout-retest-trigger", "conditional-trigger", "market-session"]);
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
 const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter"]);
 const CRITICAL_ACTION_FIELDS = new Set([
@@ -525,6 +525,58 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           node.nodeId,
           "marketType",
         );
+      }
+    }
+
+    if (normalizedType === "breakout-retest-trigger") {
+      const asset = String(metadata.asset || "").trim();
+      const marketType = String(metadata.marketType || "").trim().toLowerCase();
+      const direction = String(metadata.direction || "").trim().toLowerCase();
+      const breakoutLevel = Number(metadata.breakoutLevel);
+      const retestTolerancePct = Number(metadata.retestTolerancePct);
+      const confirmationMovePct = Number(metadata.confirmationMovePct);
+      const retestWindowMinutes = Number(metadata.retestWindowMinutes);
+      const confirmationWindowMinutes = Number(metadata.confirmationWindowMinutes);
+
+      if (!asset) {
+        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger is missing asset.", node.nodeId, "asset");
+      } else if (!PRICE_TRIGGER_ASSETS.includes(asset)) {
+        pushIssue(
+          issues,
+          "warning",
+          "UNSUPPORTED_ASSET",
+          `Breakout retest trigger uses an asset outside the validated set: ${asset}.`,
+          node.nodeId,
+          "asset",
+        );
+      }
+
+      if (!["indian", "crypto", "web3"].includes(marketType)) {
+        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include a valid marketType.", node.nodeId, "marketType");
+      }
+
+      if (!["bullish", "bearish"].includes(direction)) {
+        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must use direction 'bullish' or 'bearish'.", node.nodeId, "direction");
+      }
+
+      if (!Number.isFinite(breakoutLevel) || breakoutLevel <= 0) {
+        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include breakoutLevel greater than 0.", node.nodeId, "breakoutLevel");
+      }
+
+      if (!Number.isFinite(retestTolerancePct) || retestTolerancePct <= 0) {
+        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include retestTolerancePct greater than 0.", node.nodeId, "retestTolerancePct");
+      }
+
+      if (!Number.isFinite(confirmationMovePct) || confirmationMovePct <= 0) {
+        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include confirmationMovePct greater than 0.", node.nodeId, "confirmationMovePct");
+      }
+
+      if (!Number.isFinite(retestWindowMinutes) || retestWindowMinutes <= 0) {
+        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include retestWindowMinutes greater than 0.", node.nodeId, "retestWindowMinutes");
+      }
+
+      if (!Number.isFinite(confirmationWindowMinutes) || confirmationWindowMinutes <= 0) {
+        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include confirmationWindowMinutes greater than 0.", node.nodeId, "confirmationWindowMinutes");
       }
     }
 

@@ -106,6 +106,28 @@ export function PreviewPriceTrigger({ data }: any) {
   );
 }
 
+export function PreviewBreakoutRetestTrigger({ data }: any) {
+  const {
+    asset = "-",
+    direction = "bullish",
+    breakoutLevel = 0,
+    retestTolerancePct = 0,
+  } = data.metadata || {};
+
+  return (
+    <PreviewShell
+      accent="#38bdf8"
+      tone="trigger"
+      kindBadge="Trigger"
+      label="Retest"
+      badge={asset}
+      title={`${direction === "bearish" ? "Bearish" : "Bullish"} ${breakoutLevel}`}
+      subtitle={`Retest within ${retestTolerancePct}% before confirm`}
+      showTarget={false}
+    />
+  );
+}
+
 export function PreviewTimer({ data }: any) {
   const { time = 1 } = data.metadata || {};
   return (
@@ -354,6 +376,7 @@ export function PreviewGoogleSheets({ data }: any) {
 
 export const aiPreviewNodeTypes = {
   "price-trigger": PreviewPriceTrigger,
+  "breakout-retest-trigger": PreviewBreakoutRetestTrigger,
   timer: PreviewTimer,
   "conditional-trigger": PreviewConditional,
   "market-session": PreviewMarketSession,

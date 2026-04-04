@@ -9,6 +9,7 @@ interface TriggerTypeSelectorProps {
 const TRIGGER_DESCRIPTIONS: Record<string, string> = {
   timer: "Runs on a fixed schedule",
   "price-trigger": "Fires when price crosses a threshold",
+  "breakout-retest-trigger": "Fires after breakout, pullback retest, and confirmation",
   "conditional-trigger": "Fires based on custom logic",
   "market-session": "Fires on market open or close",
 };

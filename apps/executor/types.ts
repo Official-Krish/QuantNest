@@ -1,5 +1,5 @@
 import type mongoose from "mongoose";
-import type { IndicatorConditionGroup } from "@quantnest-trading/types";
+import type { BreakoutRetestTriggerMetadata, IndicatorConditionGroup } from "@quantnest-trading/types";
 
 export interface EdgeType {
     id: string;
@@ -28,13 +28,26 @@ export type WorkflowType = {
     userId: mongoose.Types.ObjectId;
     workflowName: string;
     status?: "active" | "paused";
-    triggerType?: "timer" | "price-trigger" | "conditional-trigger" | "market-session";
+    triggerType?: "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
     triggerNodeId?: string;
     triggerConfig?: {
         intervalSeconds?: number;
         asset?: string;
         marketType?: string;
         condition?: "above" | "below";
+        direction?: BreakoutRetestTriggerMetadata["direction"];
+        breakoutLevel?: number;
+        retestTolerancePct?: number;
+        confirmationMovePct?: number;
+        retestWindowMinutes?: number;
+        confirmationWindowMinutes?: number;
+        runtime?: {
+            stage?: "idle" | "broken-out" | "retested" | "confirmed";
+            breakoutDetectedAt?: string | Date;
+            retestDetectedAt?: string | Date;
+            breakoutPrice?: number;
+            retestPrice?: number;
+        };
         targetPrice?: number;
         timeWindowMinutes?: number;
         startTime?: string | Date;
@@ -74,11 +87,13 @@ export type EventType = "buy" | "sell" | "price_trigger" | "trade_failed"| "Long
 export interface NotificationAiContext {
     triggerType?: string;
     marketType?: "Indian" | "Crypto";
-    symbol?: string;
-    connectedSymbols?: string[];
-    targetPrice?: number;
-    condition?: "above" | "below";
-    timerIntervalSeconds?: number;
+            symbol?: string;
+            connectedSymbols?: string[];
+            targetPrice?: number;
+            condition?: "above" | "below";
+            direction?: BreakoutRetestTriggerMetadata["direction"];
+            breakoutLevel?: number;
+            timerIntervalSeconds?: number;
     evaluatedCondition?: boolean;
     expression?: IndicatorConditionGroup;
 }
