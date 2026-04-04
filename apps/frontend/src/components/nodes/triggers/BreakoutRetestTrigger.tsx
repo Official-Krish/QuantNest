@@ -12,6 +12,8 @@ export function BreakoutRetestTrigger({
   };
   isConnectable: boolean;
 }) {
+  const breakoutAccent = "#f472b6";
+
   const {
     asset = "-",
     direction = "bullish",
@@ -50,9 +52,12 @@ export function BreakoutRetestTrigger({
   const stageLabel = preview?.triggerStageLabel || "Waiting for breakout";
 
   return (
-    <div className="min-w-[245px] rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#38bdf8] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
+    <div
+      className="min-w-[245px] rounded-2xl border border-neutral-700/80 bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]"
+      style={{ borderLeft: `5px solid ${breakoutAccent}` }}
+    >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7dd3fc]">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: breakoutAccent }}>
           Breakout retest
         </span>
         <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
@@ -96,7 +101,8 @@ export function BreakoutRetestTrigger({
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
-        className="!h-2 !w-2 !bg-[#38bdf8] border border-neutral-900"
+        className="!h-2 !w-2 border border-neutral-900"
+        style={{ backgroundColor: breakoutAccent }}
       />
     </div>
   );

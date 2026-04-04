@@ -149,7 +149,7 @@ export function BreakoutRetestTriggerForm({
             <SelectGroup>
               <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">Select market</SelectLabel>
               {SUPPORTED_MARKETS.map((market) => (
-                <SelectItem key={market} value={market} className="cursor-pointer text-sm text-neutral-100 focus:bg-neutral-800">
+                <SelectItem key={market} value={market} className="cursor-pointer text-sm text-neutral-100">
                   {market}
                 </SelectItem>
               ))}
@@ -176,7 +176,7 @@ export function BreakoutRetestTriggerForm({
             <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
               <SelectGroup>
                 {(marketType === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS).map((asset) => (
-                  <SelectItem key={asset} value={asset}>
+                  <SelectItem key={asset} value={asset} className="cursor-pointer">
                     {asset}
                   </SelectItem>
                 ))}

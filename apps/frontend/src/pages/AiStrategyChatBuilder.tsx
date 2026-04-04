@@ -112,7 +112,15 @@ export function AiStrategyChatBuilder() {
         setDraftSummaries(drafts);
 
         const lastDraftId = window.localStorage.getItem(LAST_CHAT_DRAFT_STORAGE_KEY);
-        const draftToLoad = lastDraftId || drafts[0]?.draftId;
+        const hasKnownLastDraft = Boolean(
+          lastDraftId && drafts.some((draft) => draft.draftId === lastDraftId),
+        );
+
+        if (lastDraftId && !hasKnownLastDraft) {
+          window.localStorage.removeItem(LAST_CHAT_DRAFT_STORAGE_KEY);
+        }
+
+        const draftToLoad = hasKnownLastDraft ? lastDraftId : drafts[0]?.draftId;
         if (draftToLoad) {
           const draft = await apiGetAiStrategyDraft(draftToLoad);
           syncActiveDraft(draft);
@@ -276,6 +284,15 @@ export function AiStrategyChatBuilder() {
       setAnimatedMessageId(null);
       syncActiveDraft(draft);
     } catch (e: any) {
+      if (e?.response?.status === 404) {
+        if (window.localStorage.getItem(LAST_CHAT_DRAFT_STORAGE_KEY) === draftId) {
+          window.localStorage.removeItem(LAST_CHAT_DRAFT_STORAGE_KEY);
+        }
+        setDraftSummaries((current) => current.filter((entry) => entry.draftId !== draftId));
+        handleNewChat();
+        return;
+      }
+
       setError(e?.response?.data?.message ?? e?.message ?? "Failed to load AI conversation.");
     } finally {
       setLoading(false);
