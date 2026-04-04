@@ -238,7 +238,7 @@ const WorkflowSchema = new Schema({
     },
     triggerType: {
         type: String,
-        enum: ["timer", "price-trigger", "conditional-trigger"],
+        enum: ["timer", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session"],
         required: false,
         index: true,
     },

@@ -50,7 +50,7 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | conditional-trigger | if | filter | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report",
+            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | if | filter | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -107,6 +107,8 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "",
     "TRIGGER NODES:",
     "- For a price node, metadata must include asset and marketType. Use either threshold mode (condition + targetPrice) or change mode (changeDirection + changeType + changeValue + changeWindowMinutes).",
+    "- For breakout-retest-trigger, metadata must include asset, marketType, direction (bullish/bearish), breakoutLevel, retestTolerancePct, confirmationMovePct, retestWindowMinutes, and confirmationWindowMinutes.",
+    "- Use breakout-retest-trigger when the user explicitly describes breakout -> pullback/retest -> confirmation logic, not for plain 'above/below' price alerts.",
     "- For conditional-trigger expressions, supported comparators are: >, >=, <, <=, ==, !=, crosses_above, crosses_below.",
     "- Use crosses_above/crosses_below only when both left and right operands are indicators (for crossover events like EMA20 crossing EMA50).",
     "- Never return an empty conditional-trigger expression; include at least one clause inside expression.conditions.",
@@ -168,6 +170,9 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     "- Keep action nodes reachable from at least one trigger path (no orphaned nodes).",
     "",
     "Few-shot examples (follow these patterns):",
+    "Example 0 - Breakout retest trigger with confirmation alert:",
+    "User prompt: Alert me when HDFC breaks above 1750, retests that level within 45 minutes, and confirms higher. Send a Telegram message after confirmation.",
+    "Expected structure: one breakout-retest-trigger node -> telegram. Do not replace this with a plain price trigger plus extra filters.",
     "Example 1 - Crypto session with RSI gate and linear actions:",
     "User prompt: Bitcoin US session 7 PM to 2 AM IST: if RSI(14) on 1h timeframe is above 70, send Slack 'Bitcoin overbought detected'. Then execute Lighter SHORT 0.5 BTC with 10% stop loss. Wait 2 minutes, then send WhatsApp 'SHORT position opened'.",
     "Expected structure: one market-session trigger + one downstream filter (or if) with full expression + slack -> lighter -> delay -> whatsapp. Do not add a second trigger.",

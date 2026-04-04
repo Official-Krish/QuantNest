@@ -1,5 +1,6 @@
 import { getNodeRegistryEntry, type BuilderPanelGroup } from "@quantnest-trading/node-registry";
 import { PriceTrigger } from "@/components/nodes/triggers/PriceTrigger";
+import { BreakoutRetestTrigger } from "@/components/nodes/triggers/BreakoutRetestTrigger";
 import { Timer } from "@/components/nodes/triggers/timers";
 import { conditionTrigger } from "@/components/nodes/triggers/condtional";
 import { MarketSessionTrigger } from "@/components/nodes/triggers/MarketSessionTrigger";
@@ -20,6 +21,7 @@ import { googleDriveDailyCsvAction } from "@/components/nodes/actions/googleDriv
 import { googleSheetsReportAction } from "@/components/nodes/actions/googleSheetsReportAction";
 import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
+import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
 import { MarketSessionTriggerForm } from "./sheets/MarketSessionTriggerForm";
 import { TradingForm } from "./sheets/TradingForm";
@@ -48,6 +50,7 @@ export interface BuilderFormRenderProps {
 export const builderNodeRenderers = {
   timer: Timer,
   "price-trigger": PriceTrigger,
+  "breakout-retest-trigger": BreakoutRetestTrigger,
   "conditional-trigger": conditionTrigger,
   "market-session": MarketSessionTrigger,
   zerodha: zerodhaAction,
@@ -70,6 +73,7 @@ export const builderNodeRenderers = {
 export const builderFormRegistry = {
   timer: TimerForm,
   "price-trigger": PriceTriggerForm,
+  "breakout-retest-trigger": BreakoutRetestTriggerForm,
   conditional: ConditionalTriggerForm,
   "market-session": MarketSessionTriggerForm,
   trading: TradingForm,
@@ -121,6 +125,15 @@ export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProp
     case "price-trigger":
       return (
         <PriceTriggerForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+          setMarketType={props.setMarketType!}
+          marketType={props.marketType ?? null}
+        />
+      );
+    case "breakout-retest-trigger":
+      return (
+        <BreakoutRetestTriggerForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
           setMarketType={props.setMarketType!}

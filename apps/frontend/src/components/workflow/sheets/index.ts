@@ -3,6 +3,7 @@ export { TriggerTypeSelector } from "./TriggerTypeSelector";
 export { TradingForm } from "./TradingForm";
 export { TimerForm } from "./TimerForm";
 export { PriceTriggerForm } from "./PriceTriggerForm";
+export { BreakoutRetestTriggerForm } from "./BreakoutRetestTriggerForm";
 export { GmailForm } from "./GmailForm";
 export { DiscordForm } from "./DiscordForm";
 export { NotionDailyReportForm } from "./NotionDailyReportForm";

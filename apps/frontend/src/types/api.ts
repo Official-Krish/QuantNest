@@ -125,10 +125,15 @@ export interface WorkflowPreviewSnapshotEntry {
 export interface WorkflowLivePreview {
   currentPrice?: number;
   conditionMet?: boolean;
+  triggerStage?: "waiting-breakout" | "breakout-detected" | "retest-zone" | "confirmed";
+  triggerStageLabel?: string;
   distanceToTarget?: number | null;
   baselinePrice?: number | null;
   priceChange?: number | null;
   priceChangePercent?: number | null;
+  breakoutLevel?: number | null;
+  lowerRetestBand?: number | null;
+  upperRetestBand?: number | null;
   indicatorSnapshot: WorkflowPreviewSnapshotEntry[];
   evaluatedAt: string;
 }
@@ -136,13 +141,19 @@ export interface WorkflowLivePreview {
 export interface WorkflowPreviewRequest {
   marketType?: "Indian" | "Crypto" | "indian" | "web3";
   asset?: string;
-  mode?: "threshold" | "change";
+  mode?: "threshold" | "change" | "breakout-retest";
   targetPrice?: number;
   condition?: "above" | "below";
   changeType?: "absolute" | "percent";
   changeDirection?: "increase" | "decrease";
   changeValue?: number;
   changeWindowMinutes?: number;
+  direction?: "bullish" | "bearish";
+  breakoutLevel?: number;
+  retestTolerancePct?: number;
+  confirmationMovePct?: number;
+  retestWindowMinutes?: number;
+  confirmationWindowMinutes?: number;
   expression?: IndicatorConditionGroup;
 }
 

@@ -125,7 +125,7 @@ export function getGoogleSheetsVerificationErrorDetails(error: unknown): {
 }
 
 export function getFieldType(field: string, secret?: boolean): "text" | "password" | "number" {
-  if (field === "accountIndex" || field === "apiKeyIndex") return "number";
+  if (["accountIndex", "apiKeyIndex", "targetPrice", "breakoutLevel", "retestTolerancePct", "confirmationMovePct", "retestWindowMinutes", "confirmationWindowMinutes", "durationSeconds"].includes(field)) return "number";
   if (field === "slackBotToken" || field === "telegramBotToken") return "password";
   if (secret) return "password";
   return "text";

@@ -4,6 +4,7 @@ export type BuilderPanelGroup = "Order Execution" | "Order Notification" | "Flow
 export type BuilderFormId =
     | "timer"
     | "price-trigger"
+    | "breakout-retest-trigger"
     | "conditional"
     | "market-session"
     | "trading"
@@ -17,7 +18,7 @@ export type BuilderFormId =
     | "google-drive-daily-csv"
     | "google-sheets-report"
     | "none";
-export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "conditional-trigger" | "market-session";
+export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
 export type ExecutorActionHandlerId =
     | "noop"
     | "delay"
@@ -55,6 +56,12 @@ export interface NodeRegistryEntry {
 }
 
 export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
+    direction: "Direction",
+    breakoutLevel: "Breakout level",
+    retestTolerancePct: "Retest tolerance (%)",
+    confirmationMovePct: "Confirmation move (%)",
+    retestWindowMinutes: "Retest window (minutes)",
+    confirmationWindowMinutes: "Confirmation window (minutes)",
     apiKey: "API key",
     accessToken: "Access token",
     recipientName: "Recipient name",
@@ -107,6 +114,29 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         aiPromptNodeType: "price",
         aliases: ["price"],
         metadataFields: ["asset", "targetPrice", "marketType", "condition"],
+    },
+    {
+        id: "breakout-retest-trigger",
+        title: "Breakout Retest",
+        description: "Wait for breakout, pullback retest, then confirmation before firing",
+        kind: "trigger",
+        builderFormId: "breakout-retest-trigger",
+        builderRendererId: "breakout-retest-trigger",
+        executorTriggerProcessorId: "breakout-retest-trigger",
+        aiAllowed: true,
+        aiNodeType: "breakout-retest-trigger",
+        aiPromptNodeType: "breakout-retest-trigger",
+        aliases: ["breakout-retest"],
+        metadataFields: [
+            "asset",
+            "marketType",
+            "direction",
+            "breakoutLevel",
+            "retestTolerancePct",
+            "confirmationMovePct",
+            "retestWindowMinutes",
+            "confirmationWindowMinutes",
+        ],
     },
     {
         id: "conditional-trigger",

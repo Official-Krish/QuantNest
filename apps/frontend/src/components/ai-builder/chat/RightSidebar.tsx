@@ -19,6 +19,7 @@ function formatNodeTypeLabel(type: string) {
   const value = String(type || "").toLowerCase();
   const known: Record<string, string> = {
     "price-trigger": "Price",
+    "breakout-retest-trigger": "Retest",
     timer: "Timer",
     "conditional-trigger": "Condition",
     "market-session": "Session",

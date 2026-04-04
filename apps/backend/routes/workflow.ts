@@ -44,6 +44,14 @@ workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
         const changeWindowMinutes = typeof req.body?.changeWindowMinutes === "number"
             ? req.body.changeWindowMinutes
             : Number(req.body?.changeWindowMinutes);
+        const direction = String(req.body?.direction || "").toLowerCase();
+        const breakoutLevel = typeof req.body?.breakoutLevel === "number" ? req.body.breakoutLevel : Number(req.body?.breakoutLevel);
+        const retestTolerancePct = typeof req.body?.retestTolerancePct === "number"
+            ? req.body.retestTolerancePct
+            : Number(req.body?.retestTolerancePct);
+        const confirmationMovePct = typeof req.body?.confirmationMovePct === "number"
+            ? req.body.confirmationMovePct
+            : Number(req.body?.confirmationMovePct);
         const expression = req.body?.expression as IndicatorConditionGroup | undefined;
         const historicalCache = new Map<string, MarketCandle[]>();
         const valueCache = new Map<string, number | null>();
@@ -54,6 +62,10 @@ workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
         let baselinePrice: number | null | undefined;
         let priceChange: number | null | undefined;
         let priceChangePercent: number | null | undefined;
+        let triggerStage: "waiting-breakout" | "breakout-detected" | "retest-zone" | "confirmed" | undefined;
+        let triggerStageLabel: string | undefined;
+        let lowerRetestBand: number | null | undefined;
+        let upperRetestBand: number | null | undefined;
 
         if (asset) {
             currentPrice = await getCurrentPrice(asset, marketType);
@@ -61,6 +73,52 @@ workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
 
         if (typeof currentPrice === "number") {
             if (
+                mode === "breakout-retest" &&
+                Number.isFinite(breakoutLevel) &&
+                breakoutLevel > 0 &&
+                Number.isFinite(retestTolerancePct) &&
+                retestTolerancePct > 0 &&
+                Number.isFinite(confirmationMovePct) &&
+                confirmationMovePct > 0
+            ) {
+                const toleranceValue = (Math.abs(breakoutLevel) * retestTolerancePct) / 100;
+                const confirmationMoveValue = (Math.abs(breakoutLevel) * confirmationMovePct) / 100;
+                lowerRetestBand = breakoutLevel - toleranceValue;
+                upperRetestBand = breakoutLevel + toleranceValue;
+
+                const isBullish = direction === "bullish";
+                const isConfirmed = isBullish
+                    ? currentPrice >= breakoutLevel + confirmationMoveValue
+                    : currentPrice <= breakoutLevel - confirmationMoveValue;
+                const isInRetestZone =
+                    lowerRetestBand != null &&
+                    upperRetestBand != null &&
+                    currentPrice >= lowerRetestBand &&
+                    currentPrice <= upperRetestBand;
+                const hasBrokenOut = isBullish
+                    ? currentPrice > breakoutLevel
+                    : currentPrice < breakoutLevel;
+
+                if (isConfirmed) {
+                    triggerStage = "confirmed";
+                    triggerStageLabel = isBullish ? "Confirmation fired" : "Bearish confirmation fired";
+                    conditionMet = true;
+                } else if (isInRetestZone) {
+                    triggerStage = "retest-zone";
+                    triggerStageLabel = "Price is in the retest zone";
+                    conditionMet = false;
+                } else if (hasBrokenOut) {
+                    triggerStage = "breakout-detected";
+                    triggerStageLabel = "Breakout detected, waiting for retest";
+                    conditionMet = false;
+                } else {
+                    triggerStage = "waiting-breakout";
+                    triggerStageLabel = "Waiting for initial breakout";
+                    conditionMet = false;
+                }
+
+                distanceToTarget = currentPrice - breakoutLevel;
+            } else if (
                 mode === "change" &&
                 Number.isFinite(changeWindowMinutes) &&
                 changeWindowMinutes > 0
@@ -140,6 +198,11 @@ workFlowRouter.post('/preview-metrics', authMiddleware, async (req, res) => {
             baselinePrice,
             priceChange,
             priceChangePercent,
+            triggerStage,
+            triggerStageLabel,
+            breakoutLevel: Number.isFinite(breakoutLevel) ? breakoutLevel : null,
+            lowerRetestBand,
+            upperRetestBand,
             indicatorSnapshot,
             evaluatedAt: new Date().toISOString(),
         };

@@ -120,6 +120,7 @@ export const CreateWorkflow = () => {
           if (nodeType) {
             nodeType = nodeType.toLowerCase();
             if (nodeType === "price") nodeType = "price-trigger";
+            if (nodeType === "breakout-retest") nodeType = "breakout-retest-trigger";
             if (nodeType === "conditional") nodeType = "conditional-trigger";
           }
           if (!nodeType) {
@@ -127,6 +128,8 @@ export const CreateWorkflow = () => {
             const kind = node.data?.kind?.toLowerCase();
             if (metadata.time !== undefined) {
               nodeType = "timer";
+            } else if (metadata.breakoutLevel !== undefined && metadata.direction !== undefined) {
+              nodeType = "breakout-retest-trigger";
             } else if (metadata.asset !== undefined && metadata.targetPrice !== undefined && metadata.condition !== undefined) {
               nodeType = kind === "trigger"
                 ? "conditional-trigger"
