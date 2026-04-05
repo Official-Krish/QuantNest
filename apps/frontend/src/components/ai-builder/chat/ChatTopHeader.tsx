@@ -39,6 +39,30 @@ export function ChatTopHeader({
           >
             <Home className="h-3.5 w-3.5" />
           </button>
+
+          <div
+            className={cx(
+              "hidden items-center gap-2 rounded-xl border px-2 py-1 sm:flex",
+              theme === "dark"
+                ? "border-neutral-800 bg-[#0f0f0f]"
+                : "border-neutral-200 bg-white",
+            )}
+          >
+            <img
+              src="/Logo.png"
+              alt="QuantNest"
+              className="h-7 w-7 object-cover rounded-full"
+            />
+            <span
+              className={cx(
+                "text-[12px] font-semibold tracking-[0.02em]",
+                theme === "dark" ? "text-neutral-100" : "text-neutral-800",
+              )}
+            >
+              QuantNest
+            </span>
+          </div>
+
           <div className="min-w-0">
             <div className={cx("flex items-center gap-2 text-[14px] font-semibold", heading)}>
               <span className="truncate">{title}</span>

@@ -37,13 +37,23 @@ export function LeftSidebar({
   onNewChat,
 }: LeftSidebarProps) {
   const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
   const groupedDrafts = filteredDrafts.reduce<Record<string, AiStrategyDraftSummary[]>>((acc, draft) => {
     const updatedAt = new Date(draft.updatedAt);
-    const sameDay = updatedAt.toDateString() === now.toDateString();
-    const bucket = sameDay ? "Today" : "Earlier";
+    const updatedDay = updatedAt.toDateString();
+    const bucket =
+      updatedDay === now.toDateString()
+        ? "Today"
+        : updatedDay === yesterday.toDateString()
+          ? "Yesterday"
+          : "Earlier";
     acc[bucket] = [...(acc[bucket] || []), draft];
     return acc;
   }, {});
+
+  const orderedSections = ["Today", "Yesterday", "Earlier"];
 
   return (
     <aside className={cx("flex h-full min-h-0 flex-col border-r", panel)}>
@@ -92,23 +102,44 @@ export function LeftSidebar({
             No conversations yet. Start a new workflow chat to see saved drafts here.
           </div>
         ) : (
-          Object.entries(groupedDrafts).map(([label, drafts]) => (
-            <div key={label} className="space-y-2">
-              <div className={cx("px-1 text-[10px] font-medium uppercase tracking-[0.18em]", muted)}>{label}</div>
-              {drafts.map((item) => (
-                <SessionRow
-                  key={item.draftId}
-                  item={item}
-                  active={activeDraftId === item.draftId}
-                  theme={theme}
-                  onClick={() => onLoadDraft(item.draftId)}
-                  onRename={(nextTitle) => onRenameDraft(item.draftId, nextTitle)}
-                  onDelete={() => onDeleteDraft(item.draftId)}
-                />
-              ))}
-            </div>
-          ))
+          orderedSections.map((label) => {
+            const drafts = groupedDrafts[label] || [];
+            if (drafts.length === 0) return null;
+
+            return (
+              <div key={label} className="space-y-2">
+                <div className={cx("px-1 text-[10px] font-medium uppercase tracking-[0.18em]", muted)}>{label}</div>
+                {drafts.map((item) => (
+                  <SessionRow
+                    key={item.draftId}
+                    item={item}
+                    active={activeDraftId === item.draftId}
+                    theme={theme}
+                    onClick={() => onLoadDraft(item.draftId)}
+                    onRename={(nextTitle) => onRenameDraft(item.draftId, nextTitle)}
+                    onDelete={() => onDeleteDraft(item.draftId)}
+                  />
+                ))}
+              </div>
+            );
+          })
         )}
+      </div>
+
+      <div className={cx("border-t px-3.5 py-3", border)}>
+        <button
+          type="button"
+          onClick={onNewChat}
+          className={cx(
+            "flex w-full items-center justify-center gap-2 rounded-2xl px-3 py-2 text-base font-normal transition cursor-pointer",
+            theme === "dark"
+              ? "bg-[#f17463] text-white hover:bg-[#de6151]"
+              : "bg-[#f17463] text-white hover:bg-[#de6151]",
+          )}
+        >
+          <span className="text-xl leading-none">+</span>
+          New workflow
+        </button>
       </div>
     </aside>
   );
