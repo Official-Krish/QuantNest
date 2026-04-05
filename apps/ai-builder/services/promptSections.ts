@@ -32,7 +32,7 @@ export function buildPlannerPromptSections({
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | if | filter | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report",
+            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | if | filter | recheck | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -115,6 +115,8 @@ export function buildPlannerPromptSections({
     "",
     "ACTION SEQUENCE RULES:",
     "- Use 'delay' when the user explicitly asks to wait (e.g., 'wait 2 minutes', 'wait 5 minutes before next').",
+    "- Use 'recheck' for this pattern: trigger fires -> wait X -> validate condition again -> continue only if still valid.",
+    "- Recheck metadata: durationSeconds + recheckMode ('trigger' by default, or 'custom' with expression/threshold condition).",
     "- Use 'merge' to rejoin parallel branches after if-node branching.",
     "- Sequential actions (Slack -> Order -> WhatsApp) should create a linear chain with edges source -> target.",
     "- Parallel actions (send both Slack AND Gmail at same time) should connect from same parent to multiple children without merge.",
@@ -359,7 +361,7 @@ export function buildPlannerPromptSections({
     "",
     "Example 4 - Multi-condition trigger with pre-execution volume gate:",
     "User prompt: Trigger when RSI(14) on 5m is below 30 AND price crosses above EMA(20) on 5m. Then place Zerodha BUY qty 10. Before execution, verify volume is above 2,000,000 else skip. After buy, send Slack entry alert, wait 5 minutes, then place Zerodha SELL to close.",
-    "Expected structure: one conditional-trigger with ONE group containing BOTH RSI+EMA clauses -> filter(volume > 2000000) -> zerodha(BUY) -> slack -> delay(300s) -> zerodha(SELL).",
+    "Expected structure: one conditional-trigger with ONE group containing BOTH RSI+EMA clauses -> recheck(custom volume > 2000000) -> zerodha(BUY) -> slack -> delay(300s) -> zerodha(SELL).",
     JSON.stringify(
       {
         workflowName: "RSI EMA Reversal with Volume Guard",
@@ -429,10 +431,12 @@ export function buildPlannerPromptSections({
           },
           {
             nodeId: "n2",
-            type: "filter",
+            type: "recheck",
             data: {
               kind: "action",
               metadata: {
+                durationSeconds: 60,
+                recheckMode: "custom",
                 marketType: "Indian",
                 asset: "HDFC",
                 expression: {

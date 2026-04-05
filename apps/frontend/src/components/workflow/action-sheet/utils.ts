@@ -76,6 +76,21 @@ export function getBuilderActionValidationState(
         ["above", "below"].includes(String(actionMetadata.condition || "")) &&
         Number(actionMetadata.targetPrice) > 0
       )
+    ) &&
+    (
+      selectedAction !== "recheck" ||
+      (
+        Number(actionMetadata.durationSeconds) > 0 &&
+        (
+          String(actionMetadata.recheckMode || "trigger") !== "custom" ||
+          Boolean(actionMetadata.expression) ||
+          (
+            hasValue(actionMetadata.asset) &&
+            ["above", "below"].includes(String(actionMetadata.condition || "")) &&
+            Number(actionMetadata.targetPrice) > 0
+          )
+        )
+      )
     );
 
   return {

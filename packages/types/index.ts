@@ -8,6 +8,7 @@ export type NodeKind =
     | "market-session"
     | "if"
     | "filter"
+    | "recheck"
     | "delay"
     | "merge"
     | "Zerodha"
@@ -51,6 +52,7 @@ export type NodeMetadata =
     | LighterMetadata
     | IfNodeMetadata
     | FilterNodeMetadata
+    | RecheckNodeMetadata
     | ConditionalTriggerMetadata
     | NotionDailyReportMetadata
     | GoogleDriveDailyCsvMetadata
@@ -77,6 +79,18 @@ export interface IfNodeMetadata {
 }
 
 export interface FilterNodeMetadata {
+    condition?: "above" | "below";
+    targetPrice?: number;
+    marketType?: "indian" | "web3" | IndicatorMarket;
+    asset?: typeof SUPPORTED_INDIAN_MARKET_ASSETS[number] | typeof SUPPORTED_WEB3_ASSETS[number] | string;
+    timeWindowMinutes?: number;
+    startTime?: Date;
+    expression?: IndicatorConditionGroup;
+}
+
+export interface RecheckNodeMetadata {
+    durationSeconds: number;
+    recheckMode?: "trigger" | "custom";
     condition?: "above" | "below";
     targetPrice?: number;
     marketType?: "indian" | "web3" | IndicatorMarket;

@@ -58,6 +58,7 @@ function inferNodeTypeFromMetadata(node: any): string {
     return kind === "trigger" ? "conditional-trigger" : "price-trigger";
   }
   if (metadata.recipientEmail !== undefined) return "gmail";
+  if (metadata.recheckMode !== undefined) return "recheck";
   if (metadata.durationSeconds !== undefined) return "delay";
   if (
     metadata.expression !== undefined ||

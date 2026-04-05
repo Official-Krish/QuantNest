@@ -18,7 +18,7 @@ import { AiBuilderError } from "../errors";
 const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
 const TRIGGER_TYPES = new Set(["timer", "price", "breakout-retest-trigger", "conditional-trigger", "market-session"]);
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
-const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter"]);
+const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter", "recheck"]);
 const CRITICAL_ACTION_FIELDS = new Set([
   "apiKey",
   "accessToken",
@@ -622,6 +622,74 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       }
     }
 
+    if (normalizedType === "recheck") {
+      const durationSeconds = Number(metadata.durationSeconds);
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Recheck node must include durationSeconds greater than 0.",
+          node.nodeId,
+          "durationSeconds",
+        );
+      }
+
+      const recheckMode = String(metadata.recheckMode || "trigger").trim().toLowerCase();
+      if (!["trigger", "custom"].includes(recheckMode)) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Recheck node recheckMode must be 'trigger' or 'custom'.",
+          node.nodeId,
+          "recheckMode",
+        );
+      }
+
+      if (recheckMode === "custom") {
+        const hasExpression = Boolean((metadata as Record<string, unknown>).expression);
+        const asset = String(metadata.asset || "").trim();
+        const condition = String(metadata.condition || "").trim().toLowerCase();
+        const targetPrice = Number(metadata.targetPrice);
+
+        if (!hasExpression) {
+          if (!asset) {
+            pushIssue(
+              issues,
+              "error",
+              "INVALID_GRAPH",
+              "Recheck node with custom mode must include an asset or expression.",
+              node.nodeId,
+              "asset",
+            );
+          }
+
+          if (!["above", "below"].includes(condition)) {
+            pushIssue(
+              issues,
+              "error",
+              "INVALID_GRAPH",
+              "Recheck node with custom mode must use condition 'above' or 'below' when no expression is provided.",
+              node.nodeId,
+              "condition",
+            );
+          }
+
+          if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+            pushIssue(
+              issues,
+              "error",
+              "INVALID_GRAPH",
+              "Recheck node with custom mode must include targetPrice greater than 0 when no expression is provided.",
+              node.nodeId,
+              "targetPrice",
+            );
+          }
+        }
+      }
+    }
+
     if (normalizedType === "merge") {
       // Merge is a flow-control node with no required metadata.
     }
@@ -833,7 +901,8 @@ function validatePromptAlignedSemantics(
       normalizedType === "price-trigger" ||
       normalizedType === "conditional-trigger" ||
       normalizedType === "if" ||
-      normalizedType === "filter";
+      normalizedType === "filter" ||
+      normalizedType === "recheck";
 
     if (!shouldValidateMarketType) continue;
 

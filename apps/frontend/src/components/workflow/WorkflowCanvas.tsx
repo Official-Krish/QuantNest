@@ -133,6 +133,7 @@ export const WorkflowCanvas = ({
     if (normalized === "gmail" || normalized === "slack" || normalized === "telegram") return "#38bdf8";
     if (normalized === "zerodha" || normalized === "groww" || normalized === "lighter") return "#34d399";
     if (normalized === "conditional-trigger" || normalized === "if") return "#a78bfa";
+    if (normalized === "recheck") return "#60a5fa";
     if (normalized === "filter") return "#14b8a6";
     return "#a3a3a3";
   };

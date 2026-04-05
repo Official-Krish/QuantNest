@@ -33,6 +33,7 @@ interface ConditionalTriggerFormProps {
   setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
   metadata: ConditionalTriggerMetadata;
   setMetadata: React.Dispatch<React.SetStateAction<any>>;
+  hideTimeWindow?: boolean;
 }
 
 type OperandMode = "indicator" | "value";
@@ -498,6 +499,7 @@ export const ConditionalTriggerForm = ({
   setMarketType,
   metadata,
   setMetadata,
+  hideTimeWindow = false,
 }: ConditionalTriggerFormProps) => {
   const extractedVolumePreset = useMemo(
     () => tryExtractVolumeSpikePreset(metadata.expression),
@@ -889,25 +891,27 @@ export const ConditionalTriggerForm = ({
         </>
       ) : null}
 
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Time Window (minutes)</p>
-        <p className="text-sm text-neutral-300">
-          Optional. If set, condition is evaluated only within this window from start time.
-        </p>
-        <Input
-          type="number"
-          value={metadata.timeWindowMinutes || ""}
-          onChange={(e) =>
-            setMetadata((current: ConditionalTriggerMetadata) => ({
-              ...current,
-              timeWindowMinutes: Number(e.target.value),
-              startTime: new Date(),
-            }))
-          }
-          className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder="Enter minutes (e.g., 15)"
-        />
-      </div>
+      {!hideTimeWindow ? (
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Time Window (minutes)</p>
+          <p className="text-sm text-neutral-300">
+            Optional. If set, condition is evaluated only within this window from start time.
+          </p>
+          <Input
+            type="number"
+            value={metadata.timeWindowMinutes || ""}
+            onChange={(e) =>
+              setMetadata((current: ConditionalTriggerMetadata) => ({
+                ...current,
+                timeWindowMinutes: Number(e.target.value),
+                startTime: new Date(),
+              }))
+            }
+            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+            placeholder="Enter minutes (e.g., 15)"
+          />
+        </div>
+      ) : null}
 
       <WorkflowLivePreviewPanel
         preview={preview}

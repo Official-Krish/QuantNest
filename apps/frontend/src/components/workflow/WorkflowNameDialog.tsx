@@ -38,6 +38,8 @@ export const WorkflowNameDialog = ({
             className="bg-neutral-800 text-neutral-200 placeholder-neutral-500"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
                 handleSubmit();
               }
             }}

@@ -78,6 +78,7 @@ export type StrategyBuilderActionType =
   | "groww"
   | "lighter"
   | "delay"
+  | "recheck"
   | "if"
   | "filter"
   | "merge"

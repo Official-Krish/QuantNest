@@ -268,6 +268,22 @@ export function PreviewDelay({ data }: any) {
   return <PreviewShell accent="#f17463" tone="action" kindBadge="Action" label="Delay" badge="WAIT" title={`${seconds || 0}s pause`} subtitle="Wait before next step" />;
 }
 
+export function PreviewRecheck({ data }: any) {
+  const seconds = Number(data.metadata?.durationSeconds || 0);
+  const mode = String(data.metadata?.recheckMode || "trigger").toLowerCase() === "custom" ? "Custom" : "Trigger";
+  return (
+    <PreviewShell
+      accent="#60a5fa"
+      tone="action"
+      kindBadge="Action"
+      label="Re-check"
+      badge={mode}
+      title={`${seconds || 0}s then validate`}
+      subtitle="Continue only if condition still holds"
+    />
+  );
+}
+
 export function PreviewMerge() {
   return (
     <PreviewShell
@@ -383,6 +399,7 @@ export const aiPreviewNodeTypes = {
   if: PreviewIf,
   filter: PreviewFilter,
   delay: PreviewDelay,
+  recheck: PreviewRecheck,
   merge: PreviewMerge,
   zerodha: PreviewZerodha,
   groww: PreviewGroww,

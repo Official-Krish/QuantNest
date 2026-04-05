@@ -13,6 +13,7 @@ export const DEFAULT_AI_CONSTRAINTS =
 
 export const AI_EMPTY_STATE_EXAMPLES = [
   "Buy HDFC when price goes below 1000, then notify me on Gmail and log to Notion.",
+  "When HDFC RSI(14) drops below 30, wait 1 minute and re-check the same condition before placing a BUY order.",
   "Send me a Slack DM when RELIANCE breaks above a target with the price and reason.",
   "Send me a Telegram message when BTC crosses a threshold with the reason.",
   "Alert me on Discord when BTC breaks above a key level with confirmation logic.",

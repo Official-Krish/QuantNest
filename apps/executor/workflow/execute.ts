@@ -10,6 +10,27 @@ import {
 } from "./execute.context";
 import type { EdgeType, NodeType } from "../types";
 
+function buildRecheckEvaluationMetadata(sourceNode: NodeType, nodes: NodeType[]) {
+    const metadata = (sourceNode.data?.metadata || {}) as Record<string, unknown>;
+    const mode = String(metadata.recheckMode || "trigger").toLowerCase();
+
+    if (mode === "custom") {
+        return metadata;
+    }
+
+    const triggerNode = nodes.find((node) => String(node?.data?.kind || "").toLowerCase() === "trigger");
+    if (!triggerNode?.data?.metadata) {
+        return metadata;
+    }
+
+    const triggerType = String(triggerNode.type || "").toLowerCase();
+    if (triggerType === "conditional-trigger" || triggerType === "price-trigger") {
+        return triggerNode.data.metadata as Record<string, unknown>;
+    }
+
+    return null;
+}
+
 export async function executeWorkflow(
     nodes: NodeType[],
     edges: EdgeType[],
@@ -87,32 +108,37 @@ export async function executeRecursive(
     let nextCondition = condition;
     let targetEdges = outgoingEdges;
 
-    if (sourceNode?.type === "conditional-trigger" || sourceNode?.type === "if" || sourceNode?.type === "filter") {
+    if (sourceNode?.type === "conditional-trigger" || sourceNode?.type === "if" || sourceNode?.type === "filter" || sourceNode?.type === "recheck") {
         const isRootTriggerNode =
             String(sourceNode.data?.kind || "").toLowerCase() === "trigger" &&
             sourceNode?.type === "conditional-trigger";
+        const evaluationMetadata = sourceNode?.type === "recheck"
+            ? buildRecheckEvaluationMetadata(sourceNode, nodes)
+            : sourceNode.data?.metadata;
         const evaluatedCondition =
             typeof condition === "boolean" && isRootTriggerNode
                 ? condition
-                : await evaluateConditionalMetadata(sourceNode.data?.metadata);
+                : evaluationMetadata
+                    ? await evaluateConditionalMetadata(evaluationMetadata as any)
+                    : true;
 
         nextCondition = evaluatedCondition;
         context.details = {
             ...(context.details || {}),
             aiContext: {
-                triggerType: sourceNode?.type === "filter" ? "filter" : "conditional-trigger",
-                marketType: sourceNode.data?.metadata?.marketType === "Crypto" ? "Crypto" : "Indian",
-                symbol: sourceNode.data?.metadata?.asset || context.details?.symbol,
+                triggerType: sourceNode?.type === "filter" ? "filter" : sourceNode?.type === "recheck" ? "recheck" : "conditional-trigger",
+                marketType: (evaluationMetadata as any)?.marketType === "Crypto" ? "Crypto" : "Indian",
+                symbol: (evaluationMetadata as any)?.asset || context.details?.symbol,
                 connectedSymbols: context.details?.aiContext?.connectedSymbols,
-                targetPrice: sourceNode.data?.metadata?.targetPrice,
-                condition: sourceNode.data?.metadata?.condition,
+                targetPrice: (evaluationMetadata as any)?.targetPrice,
+                condition: (evaluationMetadata as any)?.condition,
                 timerIntervalSeconds: context.details?.aiContext?.timerIntervalSeconds,
-                expression: sourceNode.data?.metadata?.expression,
+                expression: (evaluationMetadata as any)?.expression,
                 evaluatedCondition,
             },
         };
 
-        targetEdges = sourceNode?.type === "filter"
+        targetEdges = sourceNode?.type === "filter" || sourceNode?.type === "recheck"
             ? (evaluatedCondition ? outgoingEdges : [])
             : resolveConditionalEdges({
                 sourceNode,
@@ -121,7 +147,7 @@ export async function executeRecursive(
                 evaluatedCondition,
               });
 
-        if (!targetEdges.length && sourceNode?.type === "filter" && evaluatedCondition === false) {
+        if (!targetEdges.length && (sourceNode?.type === "filter" || sourceNode?.type === "recheck") && evaluatedCondition === false) {
             return { status: "Success", steps: localSteps };
         }
 
@@ -131,17 +157,17 @@ export async function executeRecursive(
                 workflowId: context.workflowId,
                 type: "conditional_no_downstream_branch",
                 severity: "warning",
-                title: sourceNode?.type === "filter"
+                title: sourceNode?.type === "filter" || sourceNode?.type === "recheck"
                     ? "Filter blocked downstream execution"
                     : "Conditional has no downstream branch",
-                message: sourceNode?.type === "filter"
-                    ? "A filter node blocked execution because its condition did not pass."
+                message: sourceNode?.type === "filter" || sourceNode?.type === "recheck"
+                    ? "A gated node blocked execution because its condition did not pass."
                     : "A conditional node evaluated, but there was no valid true/false branch connected to continue execution.",
                 metadata: {
                     nodeId: sourceNode.nodeId || sourceNode.id,
                     evaluatedCondition,
                 },
-                dedupeKey: `${sourceNode?.type === "filter" ? "filter-blocked" : "conditional-no-branch"}:${context.workflowId}:${sourceNode.nodeId || sourceNode.id}:${evaluatedCondition}`,
+                dedupeKey: `${sourceNode?.type === "filter" || sourceNode?.type === "recheck" ? "filter-blocked" : "conditional-no-branch"}:${context.workflowId}:${sourceNode.nodeId || sourceNode.id}:${evaluatedCondition}`,
                 dedupeWindowHours: 12,
             });
         }
