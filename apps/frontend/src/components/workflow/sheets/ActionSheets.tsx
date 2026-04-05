@@ -71,7 +71,7 @@ export const ActionSheets = ({
               <SelectItem
                 key={action.id}
                 value={action.id}
-                className="cursor-pointer text-sm text-neutral-100 focus:text-neutral-100 focus:bg-neutral-800 data-[highlighted]:bg-neutral-800 py-3"
+                className="cursor-pointer text-sm text-neutral-100 focus:text-neutral-100 focus:bg-neutral-800 data-highlighted:bg-neutral-800 py-3"
               >
                 <div className="flex w-64 items-start gap-3">
                   <div

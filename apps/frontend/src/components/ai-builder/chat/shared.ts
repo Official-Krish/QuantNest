@@ -116,4 +116,5 @@ export type WorkflowCanvasCardProps = {
   compact?: boolean;
   title?: string;
   attached?: boolean;
+  onOpenInBuilder?: () => void;
 };

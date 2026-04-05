@@ -5,6 +5,7 @@ import { Expand, X } from "lucide-react";
 import type { EdgeType, NodeType } from "@quantnest-trading/types";
 import { normalizeGeneratedNodes } from "@/components/ai-builder/utils";
 import { aiPreviewNodeTypes } from "@/components/ai-builder/previewNodeTypes";
+import { Button } from "@/components/ui/button";
 import { buildPreviewLayout, cx, type WorkflowCanvasCardProps } from "./shared";
 
 export function WorkflowCanvasCard({
@@ -13,6 +14,7 @@ export function WorkflowCanvasCard({
   compact = false,
   title = "Workflow Preview",
   attached = false,
+  onOpenInBuilder,
 }: WorkflowCanvasCardProps) {
   const [expanded, setExpanded] = useState(false);
   const nodes = useMemo(
@@ -63,19 +65,31 @@ export function WorkflowCanvasCard({
         >
           {title}
         </div>
-        <button
-          type="button"
-          onClick={() => setExpanded((current) => !current)}
-          className={cx(
-            "flex h-7 w-7 items-center justify-center rounded-lg border transition",
-            theme === "dark"
-              ? "border-neutral-800 bg-[#101010] text-neutral-300 hover:border-neutral-700"
-              : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300",
-          )}
-          aria-label="Expand workflow preview"
-        >
-          <Expand className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenInBuilder ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-7 rounded-md bg-[#f17463] px-2.5 text-[11px] font-medium text-white hover:bg-[#dd5f4f] cursor-pointer"
+              onClick={onOpenInBuilder}
+            >
+              Open in Builder
+            </Button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            className={cx(
+              "flex h-7 w-7 items-center justify-center rounded-lg border transition",
+              theme === "dark"
+                ? "border-neutral-800 bg-[#101010] text-neutral-300 hover:border-neutral-700"
+                : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300",
+            )}
+            aria-label="Expand workflow preview"
+          >
+            <Expand className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
       <div className="mb-2 flex flex-wrap gap-2 text-[10px]">
         <span className={cx("rounded-full px-2 py-1", theme === "dark" ? "bg-neutral-900 text-neutral-300" : "bg-neutral-100 text-neutral-600")}>

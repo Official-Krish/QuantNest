@@ -73,8 +73,8 @@ export function ChatBubble({
                 { text: "thinking..." },
               ]}
               className={cx(
-                "!my-0 !flex !items-center !text-left !text-[13px] !font-medium !leading-6",
-                theme === "dark" ? "!text-neutral-100" : "!text-neutral-700",
+                "my-0! flex! items-center! text-left! text-[13px]! font-medium! leading-6!",
+                theme === "dark" ? "text-neutral-100!" : "text-neutral-700!",
               )}
               cursorClassName="!h-4 !w-[3px] !bg-[#f17463]"
             />
@@ -82,8 +82,8 @@ export function ChatBubble({
             <TypewriterEffect
               words={content.split(/\s+/).filter(Boolean).map((word) => ({ text: word }))}
               className={cx(
-                "!my-0 !block !text-left !text-[13px] !font-normal !leading-6",
-                theme === "dark" ? "!text-neutral-100" : "!text-neutral-700",
+                "my-0! block! text-left! text-[13px]! font-normal! leading-6!",
+                theme === "dark" ? "text-neutral-100!" : "text-neutral-700!",
               )}
               cursorClassName="!h-4 !w-[3px] !bg-[#f17463]"
             />

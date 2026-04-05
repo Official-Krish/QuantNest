@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { normalizeGeneratedNodes } from "@/components/ai-builder/utils";
 import { AiPlanSetupDialog } from "@/components/ai-builder/AiPlanSetupDialog";
 import { cx, type LocalTheme } from "@/components/ai-builder/chat/shared";
 import { LeftSidebar } from "@/components/ai-builder/chat/LeftSidebar";
 import { ChatTopHeader } from "@/components/ai-builder/chat/ChatTopHeader";
-import { ChatMessagesPane } from "@/components/ai-builder/chat/ChatMessagesPane";
+import { ChatMessagesPane } from "../components/ai-builder/chat/ChatMessagesPane";
 import { ChatComposerSection } from "@/components/ai-builder/chat/ChatComposerSection";
-import { RightSidebar } from "@/components/ai-builder/chat/RightSidebar";
 import { useAiChatComposer } from "@/components/ai-builder/chat/useAiChatComposer";
 import { useAiChatDrafts } from "@/components/ai-builder/chat/useAiChatDrafts";
 import { useAiDraftRestore } from "@/components/ai-builder/chat/useAiDraftRestore";
@@ -24,10 +22,12 @@ import { Button } from "@/components/ui/button";
 
 export function AiStrategyChatBuilder() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [theme, setTheme] = useState<LocalTheme>("dark");
   const [search, setSearch] = useState("");
   const [setupOpen, setSetupOpen] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const didHandleRouteRef = useRef(false);
 
   const drafts = useAiChatDrafts();
 
@@ -83,9 +83,6 @@ export function AiStrategyChatBuilder() {
     drafts.loading,
   ]);
 
-  const hasGeneratedWorkflow = (drafts.activeDraft?.workflowVersions.length || 0) > 0;
-  const isRightPreviewVisible = hasGeneratedWorkflow && drafts.showRightSidebar;
-
   const selectedVersion = useMemo(() => {
     if (!drafts.activeDraft?.workflowVersions.length) return null;
     return (
@@ -113,21 +110,56 @@ export function AiStrategyChatBuilder() {
   const openInBuilder = () => {
     if (!selectedVersion) return;
 
+    openVersionInBuilder(selectedVersion.id);
+  };
+
+  const openVersionInBuilder = (versionId: string) => {
+    const version = drafts.activeDraft?.workflowVersions.find(
+      (entry) => entry.id === versionId,
+    );
+    if (!version) return;
+
     navigate("/create/builder", {
       state: {
         generatedPlan: {
           workflowName:
-            drafts.workflowName || selectedVersion.response.plan.workflowName,
-          marketType: selectedVersion.response.plan.marketType,
+            drafts.workflowName || version.response.plan.workflowName,
+          marketType: version.response.plan.marketType,
           nodes: normalizeGeneratedNodes(
-            selectedVersion.response.plan,
+            version.response.plan,
             drafts.metadataOverrides,
           ),
-          edges: selectedVersion.response.plan.edges,
+          edges: version.response.plan.edges,
+        },
+        aiBuilderContext: {
+          draftId: drafts.activeDraft?.draftId,
+          activeVersionId: version.id,
+          versions: drafts.activeDraft?.workflowVersions || [],
         },
       },
     });
   };
+
+  useEffect(() => {
+    if (didHandleRouteRef.current) return;
+    const state = (location.state || {}) as {
+      draftId?: string;
+      versionId?: string;
+    };
+    if (!state.draftId) return;
+
+    didHandleRouteRef.current = true;
+
+    const load = async () => {
+      await drafts.handleLoadDraft(state.draftId || "", composerState.resetConversationUi);
+      if (state.versionId) {
+        drafts.setActiveVersionId(state.versionId);
+      }
+      navigate(location.pathname, { replace: true, state: null });
+    };
+
+    void load();
+  }, [composerState.resetConversationUi, drafts, location.pathname, location.state, navigate]);
 
   const shell =
     theme === "dark" ? "bg-[#050505] text-white" : "bg-[#f6f7fb] text-neutral-900";
@@ -177,14 +209,8 @@ export function AiStrategyChatBuilder() {
               muted={muted}
               heading={heading}
               theme={theme}
-              compact={isRightPreviewVisible}
               title={drafts.activeDraft?.title || "New workflow conversation"}
               canOpenBuilder={Boolean(selectedVersion)}
-              canTogglePreview={hasGeneratedWorkflow}
-              showPreview={drafts.showRightSidebar}
-              onTogglePreview={() =>
-                drafts.setShowRightSidebar((current) => !current)
-              }
               onGoHome={() => navigate("/create/onboarding")}
               onOpenSetup={() => setSetupOpen(true)}
             />
@@ -201,15 +227,14 @@ export function AiStrategyChatBuilder() {
               panel={panel}
               muted={muted}
               theme={theme}
-              compact={isRightPreviewVisible}
-              onExampleClick={(example) => composerState.setComposer(example)}
+              onExampleClick={(example: string) => composerState.setComposer(example)}
+              onOpenVersionInBuilder={openVersionInBuilder}
             />
 
             <ChatComposerSection
               border={border}
               muted={muted}
               theme={theme}
-              compact={isRightPreviewVisible}
               market={drafts.market}
               onMarketChange={drafts.setMarket}
               goal={drafts.goal}
@@ -244,34 +269,6 @@ export function AiStrategyChatBuilder() {
               error={drafts.error}
             />
           </main>
-
-          <AnimatePresence initial={false}>
-            {isRightPreviewVisible ? (
-              <motion.div
-                key="workflow-preview-sidebar"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.22 }}
-                className={cx(
-                  "hidden h-full min-h-0 w-95 shrink-0 overflow-hidden border-l xl:block",
-                  border,
-                )}
-              >
-                <RightSidebar
-                  panel={panel}
-                  border={border}
-                  muted={muted}
-                  heading={heading}
-                  theme={theme}
-                  selectedVersion={selectedVersion}
-                  activeDraft={drafts.activeDraft}
-                  activeVersionId={selectedVersion?.id || drafts.activeVersionId}
-                  onSelectVersion={drafts.setActiveVersionId}
-                />
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
         </div>
       </div>
 
