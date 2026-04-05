@@ -138,7 +138,7 @@ export async function executeRecursive(
             },
         };
 
-        targetEdges = sourceNode?.type === "filter" || sourceNode?.type === "recheck"
+        targetEdges = sourceNode?.type === "filter"
             ? (evaluatedCondition ? outgoingEdges : [])
             : resolveConditionalEdges({
                 sourceNode,
@@ -147,27 +147,28 @@ export async function executeRecursive(
                 evaluatedCondition,
               });
 
-        if (!targetEdges.length && (sourceNode?.type === "filter" || sourceNode?.type === "recheck") && evaluatedCondition === false) {
+        if (!targetEdges.length && sourceNode?.type === "filter" && evaluatedCondition === false) {
             return { status: "Success", steps: localSteps };
         }
 
         if (!targetEdges.length && context.userId && context.workflowId) {
+            const isGateOnlyNode = sourceNode?.type === "filter";
             await createUserNotification({
                 userId: context.userId,
                 workflowId: context.workflowId,
                 type: "conditional_no_downstream_branch",
                 severity: "warning",
-                title: sourceNode?.type === "filter" || sourceNode?.type === "recheck"
+                title: isGateOnlyNode
                     ? "Filter blocked downstream execution"
                     : "Conditional has no downstream branch",
-                message: sourceNode?.type === "filter" || sourceNode?.type === "recheck"
+                message: isGateOnlyNode
                     ? "A gated node blocked execution because its condition did not pass."
                     : "A conditional node evaluated, but there was no valid true/false branch connected to continue execution.",
                 metadata: {
                     nodeId: sourceNode.nodeId || sourceNode.id,
                     evaluatedCondition,
                 },
-                dedupeKey: `${sourceNode?.type === "filter" || sourceNode?.type === "recheck" ? "filter-blocked" : "conditional-no-branch"}:${context.workflowId}:${sourceNode.nodeId || sourceNode.id}:${evaluatedCondition}`,
+                dedupeKey: `${isGateOnlyNode ? "filter-blocked" : "conditional-no-branch"}:${context.workflowId}:${sourceNode.nodeId || sourceNode.id}:${evaluatedCondition}`,
                 dedupeWindowHours: 12,
             });
         }

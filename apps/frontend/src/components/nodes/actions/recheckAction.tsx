@@ -110,9 +110,28 @@ export const recheckAction = ({
       />
       <Handle
         type="source"
+        id="true"
         position={Position.Right}
-        className="h-2! w-2! bg-sky-300! border border-neutral-900"
+        style={{ top: "35%" }}
+        className="h-2! w-2! bg-emerald-400! border border-neutral-900"
       />
+      <Handle
+        type="source"
+        id="false"
+        position={Position.Right}
+        style={{ top: "65%" }}
+        className="h-2! w-2! bg-red-400! border border-neutral-900"
+      />
+      <div className="mt-2 flex items-center justify-end gap-3 text-[10px] text-neutral-400">
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          True
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-red-400" />
+          False
+        </span>
+      </div>
     </div>
   );
 };

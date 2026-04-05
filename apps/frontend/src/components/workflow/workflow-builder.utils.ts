@@ -137,7 +137,7 @@ export function normalizeWorkflowForBuilder(workflow: Workflow) {
 
     const sourceNode = nodeById.get(edge.source);
     const targetNode = nodeById.get(edge.target);
-    if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if") {
+    if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if" && sourceNode?.type !== "recheck") {
       return edge;
     }
 
