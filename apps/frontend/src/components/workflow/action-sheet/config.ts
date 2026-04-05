@@ -9,6 +9,7 @@ import {
   GitFork,
   GitMerge,
   PlayCircle,
+  RotateCcw,
 } from "lucide-react";
 
 export const ACTION_GROUP_OPTIONS: Array<{
@@ -77,6 +78,11 @@ export const FLOW_CONTROL_STEP_OPTIONS: Record<
     icon: Clock3,
     subtitle: "Wait before next",
     toneClassName: "text-[#ffb8ad]",
+  },
+  recheck: {
+    icon: RotateCcw,
+    subtitle: "Delay + validate again",
+    toneClassName: "text-[#93c5fd]",
   },
   merge: {
     icon: GitMerge,

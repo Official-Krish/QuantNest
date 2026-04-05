@@ -13,6 +13,7 @@ export type BuilderFormId =
     | "telegram"
     | "discord"
     | "whatsapp"
+    | "recheck"
     | "delay"
     | "notion-daily-report"
     | "google-drive-daily-csv"
@@ -22,6 +23,7 @@ export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "breakout-r
 export type ExecutorActionHandlerId =
     | "noop"
     | "delay"
+    | "recheck"
     | "zerodha"
     | "groww"
     | "lighter"
@@ -84,6 +86,7 @@ export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
     accountIndex: "Account index",
     apiKeyIndex: "API key index",
     durationSeconds: "Delay duration (seconds)",
+    recheckMode: "Re-check mode",
     aiConsent: "AI consent",
 };
 
@@ -247,6 +250,31 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         aiAllowed: true,
         aiPreferredAction: true,
         metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
+    },
+    {
+        id: "recheck",
+        title: "Re-check",
+        description: "Wait, re-evaluate trigger or custom condition, then continue only if still valid",
+        kind: "action",
+        builderCategory: "Flow",
+        builderPanelGroup: "Flow Control",
+        builderFormId: "recheck",
+        builderRendererId: "recheck",
+        executorActionHandlerId: "recheck",
+        aiAllowed: true,
+        aiPreferredAction: true,
+        aiNodeType: "recheck",
+        aiPromptNodeType: "recheck",
+        metadataFields: [
+            "durationSeconds",
+            "recheckMode",
+            "asset",
+            "marketType",
+            "condition",
+            "targetPrice",
+            "timeWindowMinutes",
+            "expression",
+        ],
     },
     {
         id: "delay",

@@ -216,6 +216,122 @@ export const flowControlExampleSeeds: WorkflowExampleSeed[] = [
     ],
   },
   {
+    slug: "rsi-recheck-before-entry",
+    title: "RSI Re-check Before Entry",
+    summary:
+      "Fire on RSI oversold, wait one minute, then re-check the same trigger condition before continuing to execution and confirmation.",
+    category: "Execution",
+    market: "Indian",
+    difficulty: "Intermediate",
+    setupMinutes: 9,
+    sortOrder: 11,
+    nodeFlow: ["Conditional Trigger", "Re-check", "Zerodha", "WhatsApp"],
+    trigger: "Conditional trigger fires when RSI(14) on 5m drops below 30 for HDFC.",
+    logic:
+      "After trigger match, recheck waits 60 seconds and validates the same trigger condition again. If still valid, the buy order executes and a WhatsApp confirmation is sent. If condition fails, downstream steps are skipped.",
+    actions: ["Trigger on RSI oversold", "Delay and re-check trigger condition", "Execute Zerodha buy", "Send WhatsApp confirmation"],
+    outcomes: [
+      "Reduces false entries caused by short-lived spikes",
+      "Demonstrates delayed validation without branch clutter",
+      "Shows clean stop behavior when re-check fails",
+    ],
+    nodes: [
+      {
+        nodeId: "conditional-trigger-recheck-1",
+        type: "conditional-trigger",
+        data: {
+          kind: "trigger",
+          metadata: {
+            marketType: "Indian",
+            asset: "HDFC",
+            expression: {
+              operator: "AND",
+              conditions: [
+                {
+                  type: "group",
+                  operator: "AND",
+                  conditions: [
+                    {
+                      left: {
+                        type: "indicator",
+                        indicator: {
+                          indicator: "rsi",
+                          symbol: "HDFC",
+                          timeframe: "5m",
+                          params: { period: 14 },
+                        },
+                      },
+                      operator: "<",
+                      right: { type: "value", value: 30 },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        position: { x: 0, y: 120 },
+      },
+      {
+        nodeId: "recheck-1",
+        type: "recheck",
+        data: {
+          kind: "action",
+          metadata: {
+            durationSeconds: 60,
+            recheckMode: "trigger",
+          },
+        },
+        position: { x: 300, y: 120 },
+      },
+      {
+        nodeId: "zerodha-recheck-1",
+        type: "Zerodha",
+        data: {
+          kind: "action",
+          metadata: {
+            type: "buy",
+            qty: 10,
+            symbol: "HDFC",
+            apiKey: "ZERODHA_API_KEY",
+            accessToken: "ZERODHA_ACCESS_TOKEN",
+            exchange: "NSE",
+          },
+        },
+        position: { x: 620, y: 120 },
+      },
+      {
+        nodeId: "whatsapp-recheck-1",
+        type: "whatsapp",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Trader",
+            recipientPhone: "+919999999999",
+          },
+        },
+        position: { x: 930, y: 120 },
+      },
+    ],
+    edges: [
+      {
+        id: "e-conditional-trigger-recheck-1",
+        source: "conditional-trigger-recheck-1",
+        target: "recheck-1",
+      },
+      {
+        id: "e-recheck-1-zerodha-recheck-1",
+        source: "recheck-1",
+        target: "zerodha-recheck-1",
+      },
+      {
+        id: "e-zerodha-recheck-1-whatsapp-recheck-1",
+        source: "zerodha-recheck-1",
+        target: "whatsapp-recheck-1",
+      },
+    ],
+  },
+  {
     slug: "market-session-trading-window",
     title: "Market Session Trading Window After Opening",
     summary:

@@ -25,6 +25,7 @@ function formatNodeTypeLabel(type: string) {
     "market-session": "Session",
     if: "If",
     filter: "Filter",
+    recheck: "Re-check",
     delay: "Delay",
     merge: "Merge",
     zerodha: "Zerodha",

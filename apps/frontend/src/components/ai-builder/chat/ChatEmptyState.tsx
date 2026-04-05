@@ -2,6 +2,7 @@ import { cx, type LocalTheme } from "./shared";
 
 const EXAMPLE_PROMPTS = [
   "For HDFC, trigger a Gmail alert when price drops below 1000 and include current price, day low, and volume in the message.",
+  "For HDFC, if RSI(14) on 5m is below 30, wait 1 minute and re-check. Continue only if it is still below 30, then place Zerodha BUY.",
   "Monitor RELIANCE on 15m timeframe and send a Discord alert when RSI crosses below 30 with symbol, RSI value, and timestamp.",
   "Every day at 9:15 PM, send a WhatsApp summary of NIFTY 50 top gainers and losers with percentage change and closing price.",
   "For BTCUSDT, execute a sell signal when price breaks below the 20 EMA and also send a fallback Gmail alert if execution fails.",

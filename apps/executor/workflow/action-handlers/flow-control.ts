@@ -40,3 +40,42 @@ export const delayActionHandler: ActionHandler = async ({
     });
   }
 };
+
+export const recheckActionHandler: ActionHandler = async ({
+  node,
+  nextCondition,
+  steps,
+  resolvedMetadata,
+}) => {
+  try {
+    if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+      return;
+    }
+
+    const durationSeconds = Number((resolvedMetadata as any)?.durationSeconds || 0);
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+      pushStep(steps, {
+        nodeId: node.nodeId,
+        nodeType: "Recheck Action",
+        status: "Failed",
+        message: "Recheck duration is missing or invalid",
+      });
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, durationSeconds * 1000));
+    pushStep(steps, {
+      nodeId: node.nodeId,
+      nodeType: "Recheck Action",
+      status: "Success",
+      message: `Waited ${durationSeconds} second${durationSeconds === 1 ? "" : "s"} before re-check`,
+    });
+  } catch (error: any) {
+    pushStep(steps, {
+      nodeId: node.nodeId,
+      nodeType: "Recheck Action",
+      status: "Failed",
+      message: error?.message || "Recheck step failed",
+    });
+  }
+};

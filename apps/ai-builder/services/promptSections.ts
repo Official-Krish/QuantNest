@@ -32,7 +32,7 @@ export function buildPlannerPromptSections({
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | if | filter | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report",
+            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | if | filter | recheck | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -94,7 +94,8 @@ export function buildPlannerPromptSections({
     "- For conditional-trigger expressions, supported comparators are: >, >=, <, <=, ==, !=, crosses_above, crosses_below.",
     "- Use crosses_above/crosses_below only when both left and right operands are indicators (for crossover events like EMA20 crossing EMA50).",
     "- Never return an empty conditional-trigger expression; include at least one clause inside expression.conditions.",
-    "- If prompt asks for crossover, expression must include a clause with operator crosses_above or crosses_below.",
+    "- If prompt asks for indicator crossover (e.g., EMA20 crosses EMA50), use conditional-trigger expression with crosses_above/crosses_below.",
+    "- If prompt asks for numeric level crossover (e.g., BTC crosses above 65000), prefer price trigger with condition='crosses_above' or 'crosses_below' and targetPrice.",
     "- For conditional-trigger with multiple conditions, use single expression with AND/OR operators, not separate filter nodes.",
     "- For multi-condition conditional-trigger, use ONE inner group containing multiple clause entries (not one group per clause).",
     "- Canonical shape for two clauses: expression={type:'group', operator:'AND', conditions:[{type:'group', operator:'AND', conditions:[clause1, clause2]}]}.",
@@ -106,7 +107,7 @@ export function buildPlannerPromptSections({
     "- Always align marketType: use 'indian' for Indian requests, 'web3' for Crypto/Bitcoin requests.",
     "",
     "BRANCHING LOGIC:",
-    "- Use 'if' node ONLY for true/false branching with two distinct downstream paths (sourceHandle='true' and sourceHandle='false').",
+    "- Use 'if' or 'recheck' node for true/false branching with two distinct downstream paths (sourceHandle='true' and sourceHandle='false').",
     "- Use 'filter' node for single-path gating (pass/block execution without branching).",
     "- Do NOT use filter nodes to replace conditional-trigger conditions when the trigger itself is conditional-trigger.",
     "- If market-session is the trigger and extra indicator checks are needed, model those checks in downstream if/filter action nodes (not a second trigger).",
@@ -115,6 +116,9 @@ export function buildPlannerPromptSections({
     "",
     "ACTION SEQUENCE RULES:",
     "- Use 'delay' when the user explicitly asks to wait (e.g., 'wait 2 minutes', 'wait 5 minutes before next').",
+    "- Use 'recheck' for this pattern: trigger fires -> wait X -> validate condition again -> route via true/false branches.",
+    "- Recheck metadata: durationSeconds + recheckMode ('trigger' by default, or 'custom' with expression/threshold condition).",
+    "- Recheck branching: true branch continues the strategy; false branch should stop, notify, or run fallback actions depending on user intent.",
     "- Use 'merge' to rejoin parallel branches after if-node branching.",
     "- Sequential actions (Slack -> Order -> WhatsApp) should create a linear chain with edges source -> target.",
     "- Parallel actions (send both Slack AND Gmail at same time) should connect from same parent to multiple children without merge.",
@@ -139,7 +143,7 @@ export function buildPlannerPromptSections({
     "EDGE CASES:",
     "- If prompt has both timing and condition (e.g., 'at 14:30 if RSI > 70'): use market-session as the only trigger, then apply condition logic with downstream if/filter action nodes.",
     "- If user asks to close position after profit/loss: add explicit 'exit' or broker SELL order, not just condition.",
-    "- Use sourceHandle='true' and sourceHandle='false' ONLY for if-node branches.",
+    "- Use sourceHandle='true' and sourceHandle='false' for if-node and recheck-node branches.",
     "",
     "CREDENTIALS & MISSING INPUTS:",
     "- For notification/reporting actions needing credentials (Slack token, Gmail email, etc.), add to missingInputs array.",
@@ -359,7 +363,7 @@ export function buildPlannerPromptSections({
     "",
     "Example 4 - Multi-condition trigger with pre-execution volume gate:",
     "User prompt: Trigger when RSI(14) on 5m is below 30 AND price crosses above EMA(20) on 5m. Then place Zerodha BUY qty 10. Before execution, verify volume is above 2,000,000 else skip. After buy, send Slack entry alert, wait 5 minutes, then place Zerodha SELL to close.",
-    "Expected structure: one conditional-trigger with ONE group containing BOTH RSI+EMA clauses -> filter(volume > 2000000) -> zerodha(BUY) -> slack -> delay(300s) -> zerodha(SELL).",
+    "Expected structure: one conditional-trigger with ONE group containing BOTH RSI+EMA clauses -> recheck(custom volume > 2000000) -> zerodha(BUY) -> slack -> delay(300s) -> zerodha(SELL).",
     JSON.stringify(
       {
         workflowName: "RSI EMA Reversal with Volume Guard",
@@ -429,10 +433,12 @@ export function buildPlannerPromptSections({
           },
           {
             nodeId: "n2",
-            type: "filter",
+            type: "recheck",
             data: {
               kind: "action",
               metadata: {
+                durationSeconds: 60,
+                recheckMode: "custom",
                 marketType: "Indian",
                 asset: "HDFC",
                 expression: {
@@ -476,6 +482,171 @@ export function buildPlannerPromptSections({
           { id: "e3", source: "n3", target: "n4" },
           { id: "e4", source: "n4", target: "n5" },
           { id: "e5", source: "n5", target: "n6" },
+        ],
+      },
+      null,
+      2,
+    ),
+    "",
+    "Example 5 - Price trigger with recheck true/false branching (exact expected response):",
+    "User prompt: Trigger when price of BTC is above 65000. Recheck after 180 seconds with custom condition: price(5m) > ema(20, 5m) AND rsi(14, 5m) < 70. If true, execute Lighter BUY. If false, send Telegram warning and stop.",
+    "Expected structure: one price trigger -> one recheck with custom expression -> true branch to lighter buy, false branch to telegram alert.",
+    "Expected response (exact shape and practical metadata):",
+    JSON.stringify(
+      {
+        workflowName: "BTC Breakout Recheck Buy",
+        summary: "This workflow starts when BTC price crosses above 65000, waits 180 seconds, and re-validates momentum with price above EMA(20) and RSI(14) below 70. On true recheck it executes a Lighter buy, while false sends a Telegram warning and stops trade execution.",
+        marketType: "Crypto",
+        nodes: [
+          {
+            nodeId: "n1",
+            type: "price",
+            data: {
+              kind: "trigger",
+              metadata: {
+                asset: "BTC",
+                marketType: "Crypto",
+                condition: "above",
+                targetPrice: 65000,
+              },
+            },
+            position: { x: 0, y: 0 },
+          },
+          {
+            nodeId: "n2",
+            type: "recheck",
+            data: {
+              kind: "action",
+              metadata: {
+                durationSeconds: 180,
+                recheckMode: "custom",
+                marketType: "Crypto",
+                asset: "BTC",
+                expression: {
+                  type: "group",
+                  operator: "AND",
+                  conditions: [
+                    {
+                      type: "group",
+                      operator: "AND",
+                      conditions: [
+                        {
+                          type: "clause",
+                          left: {
+                            type: "indicator",
+                            indicator: {
+                              symbol: "BTC",
+                              timeframe: "5m",
+                              marketType: "Crypto",
+                              indicator: "price",
+                            },
+                          },
+                          operator: ">",
+                          right: {
+                            type: "indicator",
+                            indicator: {
+                              symbol: "BTC",
+                              timeframe: "5m",
+                              marketType: "Crypto",
+                              indicator: "ema",
+                              params: { period: 20 },
+                            },
+                          },
+                        },
+                        {
+                          type: "clause",
+                          left: {
+                            type: "indicator",
+                            indicator: {
+                              symbol: "BTC",
+                              timeframe: "5m",
+                              marketType: "Crypto",
+                              indicator: "rsi",
+                              params: { period: 14 },
+                            },
+                          },
+                          operator: "<",
+                          right: { type: "value", value: 70 },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            position: { x: 220, y: 0 },
+          },
+          {
+            nodeId: "n3",
+            type: "lighter",
+            data: {
+              kind: "action",
+              metadata: {
+                type: "buy",
+                qty: 0.001,
+                symbol: "BTC",
+              },
+            },
+            position: { x: 460, y: -90 },
+          },
+          {
+            nodeId: "n4",
+            type: "telegram",
+            data: {
+              kind: "action",
+              metadata: {
+                recipientName: "Risk Desk",
+              },
+            },
+            position: { x: 460, y: 90 },
+          },
+        ],
+        edges: [
+          { id: "e1", source: "n1", target: "n2" },
+          { id: "e2", source: "n2", target: "n3", sourceHandle: "true" },
+          { id: "e3", source: "n2", target: "n4", sourceHandle: "false" },
+        ],
+        assumptions: [
+          "Used qty 0.001 BTC as a practical default because quantity was not explicitly provided.",
+        ],
+        warnings: [],
+        missingInputs: [
+          {
+            nodeId: "n3",
+            nodeType: "lighter",
+            field: "apiKey",
+            label: "Lighter API Key",
+            reason: "API key for Lighter broker is required for executing trades.",
+            required: true,
+            secret: true,
+          },
+          {
+            nodeId: "n3",
+            nodeType: "lighter",
+            field: "apiSecret",
+            label: "Lighter API Secret",
+            reason: "API secret for Lighter broker is required for executing trades.",
+            required: true,
+            secret: true,
+          },
+          {
+            nodeId: "n4",
+            nodeType: "telegram",
+            field: "telegramBotToken",
+            label: "Telegram Bot Token",
+            reason: "Telegram bot token is required to send Telegram alerts.",
+            required: true,
+            secret: true,
+          },
+          {
+            nodeId: "n4",
+            nodeType: "telegram",
+            field: "telegramChatId",
+            label: "Telegram Chat ID",
+            reason: "Telegram chat ID is required to send Telegram alerts.",
+            required: true,
+            secret: true,
+          },
         ],
       },
       null,

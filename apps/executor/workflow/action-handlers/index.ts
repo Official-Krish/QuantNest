@@ -1,5 +1,5 @@
 import type { ExecutorActionHandlerId } from "@quantnest-trading/node-registry";
-import { delayActionHandler, noopActionHandler } from "./flow-control";
+import { delayActionHandler, noopActionHandler, recheckActionHandler } from "./flow-control";
 import {
   discordActionHandler,
   gmailActionHandler,
@@ -21,6 +21,7 @@ import {
 export const actionHandlerMap: Record<ExecutorActionHandlerId, any> = {
   noop: noopActionHandler,
   delay: delayActionHandler,
+  recheck: recheckActionHandler,
   zerodha: zerodhaActionHandler,
   groww: growwActionHandler,
   lighter: lighterActionHandler,

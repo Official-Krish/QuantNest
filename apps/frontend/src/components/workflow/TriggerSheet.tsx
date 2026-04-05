@@ -10,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { OrangeButton } from "@/components/ui/button-orange";
@@ -54,6 +54,7 @@ export const TriggerSheet = ({
   const [selectedTrigger, setSelectedTrigger] = useState<SupportedTriggerKind | "">("");
   const [activeStep, setActiveStep] = useState<1 | 2>(1);
   const [transitionDirection, setTransitionDirection] = useState<1 | -1>(1);
+  const focusAnchorRef = useRef<HTMLDivElement | null>(null);
 
   const selectedTriggerConfig = SUPPORTED_TRIGGERS.find((trigger) => trigger.id === selectedTrigger);
 
@@ -111,8 +112,12 @@ export const TriggerSheet = ({
       <SheetContent
         className="border-l border-neutral-800 bg-black text-neutral-50 overflow-auto"
         style={{ width: "min(480px, calc(100vw - 1rem))", maxWidth: "min(480px, calc(100vw - 1rem))" }}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          focusAnchorRef.current?.focus();
+        }}
       >
-        <div className="flex h-full min-h-0 flex-col">
+        <div className="flex h-full min-h-0 flex-col" ref={focusAnchorRef} tabIndex={-1}>
           <SheetHeader className="gap-4 p-5 pb-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">

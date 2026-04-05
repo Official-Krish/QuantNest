@@ -16,9 +16,9 @@ import { getNodeRegistryEntry, NODE_METADATA_FIELD_LABELS } from "@quantnest-tra
 import { AiBuilderError } from "../errors";
 
 const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
-const TRIGGER_TYPES = new Set(["timer", "price", "breakout-retest-trigger", "conditional-trigger", "market-session"]);
+const TRIGGER_TYPES = new Set(["timer", "price", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session"]);
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
-const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter"]);
+const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter", "recheck"]);
 const CRITICAL_ACTION_FIELDS = new Set([
   "apiKey",
   "accessToken",
@@ -33,6 +33,49 @@ const CRITICAL_ACTION_FIELDS = new Set([
   "recipientName",
   "recipientEmail",
 ]);
+
+function normalizeNodeType(type: unknown): string {
+  return String(type || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-");
+}
+
+function isPriceTriggerType(type: unknown): boolean {
+  const normalizedType = normalizeNodeType(type);
+  return normalizedType === "price" || normalizedType === "price-trigger";
+}
+
+function normalizePriceThresholdCondition(condition: unknown): "above" | "below" | "" {
+  const normalized = String(condition || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (normalized === "above" || normalized === "crosses_above" || normalized === "cross_above") {
+    return "above";
+  }
+
+  if (normalized === "below" || normalized === "crosses_below" || normalized === "cross_below") {
+    return "below";
+  }
+
+  return "";
+}
+
+function isCrossoverPriceCondition(condition: unknown): boolean {
+  const normalized = String(condition || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  return (
+    normalized === "crosses_above" ||
+    normalized === "cross_above" ||
+    normalized === "crosses_below" ||
+    normalized === "cross_below"
+  );
+}
 
 function canonicalizeComparator(operator: string): string {
   const normalized = String(operator || "")
@@ -82,7 +125,7 @@ function normalizeCrossoverOperatorsInPlan(plan: AiStrategyWorkflowPlan, prompt:
   const wantsAbove = /cross(?:es|ed|ing)?[_\s-]?above|crossover[^\n]*above/i.test(prompt);
 
   for (const node of plan.nodes) {
-    if (String(node.type).toLowerCase() !== "conditional-trigger") continue;
+    if (normalizeNodeType(node.type) !== "conditional-trigger") continue;
 
     const metadata = (node.data.metadata || {}) as Record<string, unknown>;
     const clauses = getAllClauses(metadata.expression);
@@ -411,7 +454,7 @@ function pushIssue(
 function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyValidationIssue[]) {
   for (const node of plan.nodes) {
     const metadata = (node.data.metadata || {}) as Record<string, unknown>;
-    const normalizedType = String(node.type).toLowerCase();
+    const normalizedType = normalizeNodeType(node.type);
     const normalizedKind = String(node.data.kind).toLowerCase();
 
     if (TRIGGER_TYPES.has(normalizedType) && normalizedKind !== "trigger") {
@@ -422,7 +465,7 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       pushIssue(issues, "error", "INVALID_NODE_KIND", `${node.type} must be an action node.`, node.nodeId);
     }
 
-    if (normalizedType === "price") {
+    if (isPriceTriggerType(normalizedType)) {
       const asset = String(metadata.asset || "").trim();
       const marketType = String(metadata.marketType || "").trim().toLowerCase();
       const mode = String(metadata.mode || "threshold").trim().toLowerCase();
@@ -491,7 +534,7 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
         }
       } else {
         const targetPrice = Number(metadata.targetPrice);
-        const condition = String(metadata.condition || "").trim().toLowerCase();
+        const normalizedCondition = normalizePriceThresholdCondition(metadata.condition);
 
         if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
           pushIssue(
@@ -504,12 +547,12 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           );
         }
 
-        if (!["above", "below"].includes(condition)) {
+        if (!normalizedCondition) {
           pushIssue(
             issues,
             "error",
             "INVALID_GRAPH",
-            "Price trigger must use condition 'above' or 'below'.",
+            "Price trigger must use condition 'above'/'below' (or crosses_above/crosses_below).",
             node.nodeId,
             "condition",
           );
@@ -619,6 +662,74 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           node.nodeId,
           "durationSeconds",
         );
+      }
+    }
+
+    if (normalizedType === "recheck") {
+      const durationSeconds = Number(metadata.durationSeconds);
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Recheck node must include durationSeconds greater than 0.",
+          node.nodeId,
+          "durationSeconds",
+        );
+      }
+
+      const recheckMode = String(metadata.recheckMode || "trigger").trim().toLowerCase();
+      if (!["trigger", "custom"].includes(recheckMode)) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Recheck node recheckMode must be 'trigger' or 'custom'.",
+          node.nodeId,
+          "recheckMode",
+        );
+      }
+
+      if (recheckMode === "custom") {
+        const hasExpression = Boolean((metadata as Record<string, unknown>).expression);
+        const asset = String(metadata.asset || "").trim();
+        const condition = String(metadata.condition || "").trim().toLowerCase();
+        const targetPrice = Number(metadata.targetPrice);
+
+        if (!hasExpression) {
+          if (!asset) {
+            pushIssue(
+              issues,
+              "error",
+              "INVALID_GRAPH",
+              "Recheck node with custom mode must include an asset or expression.",
+              node.nodeId,
+              "asset",
+            );
+          }
+
+          if (!["above", "below"].includes(condition)) {
+            pushIssue(
+              issues,
+              "error",
+              "INVALID_GRAPH",
+              "Recheck node with custom mode must use condition 'above' or 'below' when no expression is provided.",
+              node.nodeId,
+              "condition",
+            );
+          }
+
+          if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+            pushIssue(
+              issues,
+              "error",
+              "INVALID_GRAPH",
+              "Recheck node with custom mode must include targetPrice greater than 0 when no expression is provided.",
+              node.nodeId,
+              "targetPrice",
+            );
+          }
+        }
       }
     }
 
@@ -822,7 +933,7 @@ function validatePromptAlignedSemantics(
 
   for (const node of plan.nodes) {
     const metadata = (node.data.metadata || {}) as Record<string, unknown>;
-    const normalizedType = String(node.type || "").toLowerCase();
+    const normalizedType = normalizeNodeType(node.type || "");
     const rawMarketType = String(metadata.marketType || "").trim().toLowerCase();
 
     if (!rawMarketType) continue;
@@ -833,7 +944,8 @@ function validatePromptAlignedSemantics(
       normalizedType === "price-trigger" ||
       normalizedType === "conditional-trigger" ||
       normalizedType === "if" ||
-      normalizedType === "filter";
+      normalizedType === "filter" ||
+      normalizedType === "recheck";
 
     if (!shouldValidateMarketType) continue;
 
@@ -849,7 +961,7 @@ function validatePromptAlignedSemantics(
     }
   }
 
-  const priceNode = plan.nodes.find((node) => String(node.type).toLowerCase() === "price");
+  const priceNode = plan.nodes.find((node) => isPriceTriggerType(node.type));
   const priceMatch = prompt.match(/price(?:\s+\w+){0,8}?\s+(below|above)\s+(\d+(?:\.\d+)?)/i);
 
   if (priceMatch) {
@@ -866,7 +978,7 @@ function validatePromptAlignedSemantics(
     const expectedCondition = priceMatch[1]?.toLowerCase();
     const expectedTarget = Number(priceMatch[2]);
     const metadata = (priceNode.data.metadata || {}) as Record<string, unknown>;
-    const actualCondition = String(metadata.condition || "").toLowerCase();
+    const actualCondition = normalizePriceThresholdCondition(metadata.condition);
     const actualTarget = Number(metadata.targetPrice);
 
     if (actualCondition !== expectedCondition) {
@@ -894,14 +1006,19 @@ function validatePromptAlignedSemantics(
 
   const asksForCrossover = /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(prompt);
   if (asksForCrossover) {
-    const conditionalNodes = plan.nodes.filter((node) => String(node.type).toLowerCase() === "conditional-trigger");
+    const conditionalNodes = plan.nodes.filter((node) => normalizeNodeType(node.type) === "conditional-trigger");
+    const hasCrossoverPriceTrigger = plan.nodes.some((node) => {
+      if (!isPriceTriggerType(node.type)) return false;
+      const metadata = (node.data.metadata || {}) as Record<string, unknown>;
+      return isCrossoverPriceCondition(metadata.condition);
+    });
 
-    if (!conditionalNodes.length) {
+    if (!conditionalNodes.length && !hasCrossoverPriceTrigger) {
       pushIssue(
         issues,
         "error",
         "PROMPT_MISMATCH",
-        "Prompt requested a crossover trigger, but the generated plan does not contain a conditional trigger.",
+        "Prompt requested a crossover trigger, but the generated plan does not contain a conditional trigger or a price trigger using crosses_above/crosses_below.",
       );
       return;
     }
@@ -915,12 +1032,12 @@ function validatePromptAlignedSemantics(
       });
     });
 
-    if (!hasCrossoverClause) {
+    if (!hasCrossoverClause && !hasCrossoverPriceTrigger) {
       pushIssue(
         issues,
         "error",
         "PROMPT_MISMATCH",
-        "Prompt requested a crossover condition, but the generated expression does not include crosses_above/crosses_below.",
+        "Prompt requested a crossover condition, but the generated plan does not include crosses_above/crosses_below in either conditional expression or price trigger condition.",
       );
     }
   }
@@ -1037,14 +1154,17 @@ function buildValidationReport(
       );
     }
 
-    if (String(node.type).toLowerCase() === "conditional-trigger" || String(node.type).toLowerCase() === "if") {
+    const normalizedType = normalizeNodeType(node.type);
+    if (normalizedType === "conditional-trigger" || normalizedType === "if" || normalizedType === "recheck") {
       const handles = new Set(edges.map((edge) => edge.sourceHandle).filter(Boolean));
       if (!handles.has("true") || !handles.has("false")) {
         pushIssue(
           issues,
           "warning",
           "INCOMPLETE_BRANCHING",
-          "Conditional trigger should usually define both true and false branches.",
+          normalizedType === "recheck"
+            ? "Recheck node should usually define both true and false branches."
+            : "Conditional trigger should usually define both true and false branches.",
           node.nodeId,
         );
       }

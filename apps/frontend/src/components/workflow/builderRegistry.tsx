@@ -13,6 +13,7 @@ import { telegramAction } from "@/components/nodes/actions/telegramAction";
 import { discordAction } from "@/components/nodes/actions/discordAction";
 import { whatsappAction } from "@/components/nodes/actions/whatsappAction";
 import { delayAction } from "@/components/nodes/actions/delayAction";
+import { recheckAction } from "@/components/nodes/actions/recheckAction";
 import { filterAction } from "@/components/nodes/actions/filterAction";
 import { ifAction } from "@/components/nodes/actions/ifAction";
 import { mergeAction } from "@/components/nodes/actions/mergeAction";
@@ -31,6 +32,7 @@ import { TelegramForm } from "./sheets/TelegramForm";
 import { DiscordForm } from "./sheets/DiscordForm";
 import { WhatsappForm } from "./sheets/WhatsappForm";
 import { DelayForm } from "./sheets/DelayForm";
+import { RecheckForm } from "./sheets/RecheckForm";
 import { NotionDailyReportForm } from "./sheets/NotionDailyReportForm";
 import { GoogleDriveDailyCsvForm } from "./sheets/GoogleDriveDailyCsvForm";
 import { GoogleSheetsReportForm } from "./sheets/GoogleSheetsReportForm";
@@ -62,6 +64,7 @@ export const builderNodeRenderers = {
   discord: discordAction,
   whatsapp: whatsappAction,
   delay: delayAction,
+  recheck: recheckAction,
   filter: filterAction,
   if: ifAction,
   merge: mergeAction,
@@ -83,6 +86,7 @@ export const builderFormRegistry = {
   discord: DiscordForm,
   whatsapp: WhatsappForm,
   delay: DelayForm,
+  recheck: RecheckForm,
   "notion-daily-report": NotionDailyReportForm,
   "google-drive-daily-csv": GoogleDriveDailyCsvForm,
   "google-sheets-report": GoogleSheetsReportForm,
@@ -170,6 +174,15 @@ export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProp
       return <WhatsappForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
     case "delay":
       return <DelayForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+    case "recheck":
+      return (
+        <RecheckForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+          setMarketType={props.setMarketType!}
+          marketType={props.marketType ?? null}
+        />
+      );
     case "notion-daily-report":
       return <NotionDailyReportForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
     case "google-drive-daily-csv":

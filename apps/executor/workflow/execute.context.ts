@@ -177,7 +177,7 @@ export function resolveConditionalEdges(params: {
     evaluatedCondition: boolean;
 }): EdgeType[] {
     const { sourceNode, nodes, outgoingEdges, evaluatedCondition } = params;
-    if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if") {
+    if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if" && sourceNode?.type !== "recheck") {
         return outgoingEdges;
     }
 

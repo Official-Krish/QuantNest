@@ -58,6 +58,7 @@ function inferNodeTypeFromMetadata(node: any): string {
     return kind === "trigger" ? "conditional-trigger" : "price-trigger";
   }
   if (metadata.recipientEmail !== undefined) return "gmail";
+  if (metadata.recheckMode !== undefined) return "recheck";
   if (metadata.durationSeconds !== undefined) return "delay";
   if (
     metadata.expression !== undefined ||
@@ -136,7 +137,7 @@ export function normalizeWorkflowForBuilder(workflow: Workflow) {
 
     const sourceNode = nodeById.get(edge.source);
     const targetNode = nodeById.get(edge.target);
-    if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if") {
+    if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if" && sourceNode?.type !== "recheck") {
       return edge;
     }
 
