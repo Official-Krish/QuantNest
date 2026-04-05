@@ -21,7 +21,6 @@ import type { AiPlanSetupDialogProps } from "./types";
 import {
   collectSetupErrors,
   getFieldLabel,
-  getFieldType,
   getGoogleSheetsVerificationErrorDetails,
   getNodeLabel,
   getReusableSecretServiceForNodeType,
@@ -31,6 +30,7 @@ import {
   shouldHideInputWhenSecretSelected,
   suggestReusableSecretId,
 } from "./setupDialog.utils";
+import { getAiSetupFieldType } from "./aiSetupFieldRegistry";
 import { toast } from "sonner";
 import { TelegramChatLookup } from "@/components/workflow/sheets/TelegramChatLookup";
 
@@ -416,7 +416,7 @@ export function AiPlanSetupDialog({
                       );
                     }
 
-                    const type = getFieldType(input.field, input.secret);
+                    const type = getAiSetupFieldType(input.field, input.secret);
                     const value = overrideMetadata[input.field] ?? baseMetadata[input.field] ?? "";
 
                     return (

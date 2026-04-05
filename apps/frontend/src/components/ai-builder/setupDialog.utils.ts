@@ -10,6 +10,7 @@ import {
   NODE_METADATA_FIELD_LABELS,
 } from "@quantnest-trading/node-registry";
 import type { AiMetadataOverrides } from "./types";
+import { getAiSetupFieldType } from "./aiSetupFieldRegistry";
 
 function getResponse(result: AiStrategyBuilderResponse | AiStrategyDraftSession | null) {
   if (!result) return null;
@@ -124,12 +125,7 @@ export function getGoogleSheetsVerificationErrorDetails(error: unknown): {
   };
 }
 
-export function getFieldType(field: string, secret?: boolean): "text" | "password" | "number" {
-  if (["accountIndex", "apiKeyIndex", "targetPrice", "breakoutLevel", "retestTolerancePct", "confirmationMovePct", "retestWindowMinutes", "confirmationWindowMinutes", "durationSeconds"].includes(field)) return "number";
-  if (field === "slackBotToken" || field === "telegramBotToken") return "password";
-  if (secret) return "password";
-  return "text";
-}
+export const getFieldType = getAiSetupFieldType;
 
 export function collectSetupErrors(
   result: AiStrategyBuilderResponse | AiStrategyDraftSession | null,

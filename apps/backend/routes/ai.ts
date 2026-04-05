@@ -1,12 +1,10 @@
 import axios from "axios";
 import { Router } from "express";
 import { AiStrategyDraftVersionModel, AiStrategySessionModel } from "@quantnest-trading/db/client";
-import {
-  aiStrategyDraftSessionSchema,
-  aiStrategyDraftSummarySchema,
-} from "@quantnest-trading/types/ai";
+import { aiStrategyDraftSessionSchema } from "@quantnest-trading/types/ai";
 import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware";
+import { getUserAiDraft, listUserAiDraftSummaries } from "../services/aiDrafts";
 
 const aiRouter = Router();
 
@@ -126,44 +124,7 @@ aiRouter.get("/strategy/drafts", authMiddleware, async (req, res) => {
       return;
     }
 
-    const docs = await AiStrategySessionModel.find({ userId })
-      .sort({ updatedAt: -1 })
-      .limit(50)
-      .lean();
-    
-
-    const drafts = docs.flatMap((doc) => {
-      const parsedDraft = aiStrategyDraftSessionSchema.safeParse(doc.sessionData);
-      if (!parsedDraft.success) {
-        const issueDetails = parsedDraft.error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          code: issue.code,
-          message: issue.message,
-          expected: "expected" in issue ? issue.expected : undefined,
-          received: "received" in issue ? issue.received : undefined,
-        }));
-
-        console.error("Failed to parse draft session data for summary", {
-          userId,
-          draftId: doc._id,
-          issues: issueDetails,
-          issuesJson: JSON.stringify(issueDetails),
-        });
-        return [];
-      }
-
-      const draft = parsedDraft.data;
-      const lastMessage = [...draft.messages].reverse().find((message) => message.role === "user")?.content;
-      return [aiStrategyDraftSummarySchema.parse({
-        draftId: draft.draftId,
-        title: draft.title,
-        status: draft.status,
-        updatedAt: draft.updatedAt,
-        createdAt: draft.createdAt,
-        workflowId: draft.workflowId,
-        lastMessage,
-      })];
-    });
+    const drafts = await listUserAiDraftSummaries(userId);
 
     res.status(200).json({
       success: true,
@@ -190,12 +151,8 @@ aiRouter.get("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
       return;
     }
 
-    const doc = await AiStrategySessionModel.findOne({
-      _id: req.params.draftId,
-      userId,
-    }).lean();
-
-    if (!doc) {
+    const draftResult = await getUserAiDraft(userId, String(req.params.draftId));
+    if (draftResult.status === "not_found") {
       res.status(404).json({
         success: false,
         code: "DRAFT_NOT_FOUND",
@@ -203,38 +160,19 @@ aiRouter.get("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
       });
       return;
     }
-
-    const parsedDraft = aiStrategyDraftSessionSchema.safeParse(doc.sessionData);
-    if (!parsedDraft.success) {
-      const issueDetails = parsedDraft.error.issues.map((issue) => ({
-        path: issue.path.join("."),
-        code: issue.code,
-        message: issue.message,
-        expected: "expected" in issue ? issue.expected : undefined,
-        received: "received" in issue ? issue.received : undefined,
-      }));
-
-      console.error("Failed to parse draft session data", {
-        userId,
-        draftId: req.params.draftId,
-        issues: issueDetails,
-        issuesJson: JSON.stringify(issueDetails),
-      });
-
+    if (draftResult.status === "invalid") {
       res.status(500).json({
         success: false,
         code: "INVALID_DRAFT_DATA",
         message: "Stored draft session data is invalid.",
-        details: issueDetails,
+        details: draftResult.issues,
       });
       return;
     }
 
-    const draft = parsedDraft.data;
-
     res.status(200).json({
       success: true,
-      data: { draft },
+      data: { draft: draftResult.draft },
     });
   } catch (error) {
     res.status(500).json({
@@ -285,8 +223,9 @@ aiRouter.get("/strategy/drafts/:draftId/versions/:versionId", authMiddleware, as
 
 aiRouter.put("/strategy/drafts/:draftId/setup", authMiddleware, async (req, res) => {
   try {
-    const setupPath = typeof req.query.versionId === "string" && req.query.versionId.trim()
-      ? `/api/v1/strategy/drafts/${req.params.draftId}/setup?versionId=${encodeURIComponent(req.query.versionId.trim())}`
+    const versionId = typeof req.query.versionId === "string" ? req.query.versionId.trim() : "";
+    const setupPath = versionId
+      ? `/api/v1/strategy/drafts/${req.params.draftId}/setup?versionId=${encodeURIComponent(versionId)}`
       : `/api/v1/strategy/drafts/${req.params.draftId}/setup`;
     const result = await proxyAiBuilder(setupPath, {
       method: "PUT",
