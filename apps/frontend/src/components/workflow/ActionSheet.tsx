@@ -182,7 +182,7 @@ export const ActionSheet = ({
           : activeGroup === "Data"
             ? "Persist execution records to external data systems."
           : activeGroup === "Reporting"
-            ? "Reporting actions stay locked until Zerodha is connected."
+            ? "Reporting actions stay locked until Zerodha, Groww, or Lighter is connected."
             : "";
 
   const canShowConfig = activeStep === 3 && Boolean(selectedAction);
@@ -290,7 +290,7 @@ export const ActionSheet = ({
                       <div className="flex items-start gap-3 rounded-2xl border border-[#f17463]/40 border-l-4 border-l-[#f17463] bg-[#f17463]/8 px-3 py-3 text-sm text-neutral-300">
                         <Lock className="mt-0.5 size-4 shrink-0 text-[#ff9b8e]" />
                         <span>
-                          Add a Zerodha action node to unlock Reporting actions.
+                          Add a Zerodha, Groww, or Lighter action node to unlock Reporting actions.
                         </span>
                       </div>
                     ) : null}
@@ -473,7 +473,7 @@ export const ActionSheet = ({
                               );
                             })}
                             <div className="rounded-2xl border border-[#f17463]/35 bg-[#f17463]/8 px-3 py-2 text-xs text-neutral-300">
-                              {selectedActionCountHint || "Reporting actions stay locked until Zerodha is connected."}
+                              {selectedActionCountHint || "Reporting actions stay locked until Zerodha, Groww, or Lighter is connected."}
                             </div>
                           </div>
                         ) : activeGroup === "Data" ? (
