@@ -39,6 +39,7 @@ function formatNodeTypeLabel(type: string) {
     "notion-daily-report": "Notion",
     "google-drive-daily-csv": "Drive",
     "google-sheets-report": "Sheets",
+    postgres: "Postgres",
   };
 
   if (known[value]) return known[value];

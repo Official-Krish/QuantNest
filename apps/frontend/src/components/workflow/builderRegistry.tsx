@@ -20,6 +20,7 @@ import { mergeAction } from "@/components/nodes/actions/mergeAction";
 import { notionDailyReportAction } from "@/components/nodes/actions/notionDailyReportAction";
 import { googleDriveDailyCsvAction } from "@/components/nodes/actions/googleDriveDailyCsvAction";
 import { googleSheetsReportAction } from "@/components/nodes/actions/googleSheetsReportAction";
+import { postgresAction } from "@/components/nodes/actions/postgresAction";
 import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
@@ -36,6 +37,7 @@ import { RecheckForm } from "./sheets/RecheckForm";
 import { NotionDailyReportForm } from "./sheets/NotionDailyReportForm";
 import { GoogleDriveDailyCsvForm } from "./sheets/GoogleDriveDailyCsvForm";
 import { GoogleSheetsReportForm } from "./sheets/GoogleSheetsReportForm";
+import { PostgresForm } from "./sheets/PostgresForm";
 import type { NodeMetadata } from "@quantnest-trading/types";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
@@ -71,6 +73,7 @@ export const builderNodeRenderers = {
   "notion-daily-report": notionDailyReportAction,
   "google-drive-daily-csv": googleDriveDailyCsvAction,
   "google-sheets-report": googleSheetsReportAction,
+  postgres: postgresAction,
 } as const;
 
 export const builderFormRegistry = {
@@ -90,6 +93,7 @@ export const builderFormRegistry = {
   "notion-daily-report": NotionDailyReportForm,
   "google-drive-daily-csv": GoogleDriveDailyCsvForm,
   "google-sheets-report": GoogleSheetsReportForm,
+  postgres: PostgresForm,
 } as const;
 
 export function getBuilderFormComponent(nodeType: string) {
@@ -189,6 +193,8 @@ export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProp
       return <GoogleDriveDailyCsvForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
     case "google-sheets-report":
       return <GoogleSheetsReportForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+    case "postgres":
+      return <PostgresForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
     default:
       return null;
   }

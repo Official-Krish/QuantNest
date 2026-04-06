@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import {
   Bell,
   Clock3,
+  Database,
   FileText,
   Filter,
   GitBranch,
@@ -41,6 +42,13 @@ export const ACTION_GROUP_OPTIONS: Array<{
     toneClassName: "text-[#f17463]",
   },
   {
+    id: "Data" as BuilderPanelGroup,
+    title: "Data",
+    description: "Store workflow results in databases and data services.",
+    icon: Database,
+    toneClassName: "text-emerald-400",
+  },
+  {
     id: "Reporting" as BuilderPanelGroup,
     title: "Reporting",
     description: "Generate reports and documentation artifacts.",
@@ -53,6 +61,7 @@ export const ACTION_STEP_TITLES: Record<BuilderPanelGroup, string> = {
   "Order Execution": "Select broker",
   "Order Notification": "Select service",
   "Flow Control": "Select logic step",
+  Data: "Select data action",
   Reporting: "Select reporting action",
 };
 

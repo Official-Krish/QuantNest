@@ -1,5 +1,6 @@
 import type { IconType } from "react-icons";
 import { HiOutlineBolt } from "react-icons/hi2";
+import { BiLogoPostgresql } from "react-icons/bi";
 import { SiDiscord, SiGmail, SiGoogledrive, SiGooglesheets, SiNotion, SiSlack, SiTelegram, SiWhatsapp, SiZerodha } from "react-icons/si";
 import { TbChartCandleFilled, TbPlugConnected } from "react-icons/tb";
 
@@ -76,6 +77,12 @@ const SERVICE_BRANDS: Record<string, ServiceBrand> = {
     colorClassName: "text-[#34A853]",
     tintClassName: "bg-[#34A853]/12",
     borderClassName: "border-[#34A853]/25",
+  },
+  postgres: {
+    icon: BiLogoPostgresql,
+    colorClassName: "text-emerald-300",
+    tintClassName: "bg-emerald-400/12",
+    borderClassName: "border-emerald-400/25",
   },
 };
 

@@ -100,12 +100,12 @@ export function ChatBubble({
         >
           <span>
             {typing
-              ? "QuantNest AI"
+              ? "QuantNest"
               : kind === "validation"
                 ? "Validation"
                 : role === "user"
                   ? "You"
-                  : "QuantNest AI"}
+                  : "QuantNest"}
           </span>
           <span>•</span>
           <span>{new Date(timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>

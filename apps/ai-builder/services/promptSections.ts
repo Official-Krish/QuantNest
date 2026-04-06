@@ -32,7 +32,7 @@ export function buildPlannerPromptSections({
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | if | filter | recheck | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report",
+            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | if | filter | recheck | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report | postgres",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -147,6 +147,7 @@ export function buildPlannerPromptSections({
     "",
     "CREDENTIALS & MISSING INPUTS:",
     "- For notification/reporting actions needing credentials (Slack token, Gmail email, etc.), add to missingInputs array.",
+    "- For postgres action, if connectionString or tableName is not provided, add both fields to missingInputs (required=true; connectionString is secret=true).",
     "- Do not fabricate credentials; use placeholder metadata and document what's needed.",
     "- For Lighter broker execution, add to missingInputs: api_key, api_secret fields if not provided.",
     "",

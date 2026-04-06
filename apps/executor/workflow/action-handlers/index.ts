@@ -17,6 +17,7 @@ import {
   lighterActionHandler,
   zerodhaActionHandler,
 } from "./trading";
+import { postgresActionHandler } from "./database";
 
 export const actionHandlerMap: Record<ExecutorActionHandlerId, any> = {
   noop: noopActionHandler,
@@ -33,6 +34,7 @@ export const actionHandlerMap: Record<ExecutorActionHandlerId, any> = {
   "notion-daily-report": notionActionHandler,
   "google-drive-daily-csv": googleDriveActionHandler,
   "google-sheets-report": googleSheetsActionHandler,
+  postgres: postgresActionHandler,
 };
 
 export type { ActionHandler, ActionHandlerParams, ExecuteActionNodeParams } from "./shared";

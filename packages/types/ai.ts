@@ -89,7 +89,8 @@ export type StrategyBuilderActionType =
   | "whatsapp"
   | "notion-daily-report"
   | "google-drive-daily-csv"
-  | "google-sheets-report";
+  | "google-sheets-report"
+  | "postgres";
 
 export interface ConversationTurn {
   role: "user" | "assistant";
