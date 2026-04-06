@@ -397,6 +397,18 @@ export function PreviewGoogleSheets({ data }: any) {
   return <PreviewShell accent="#34A853" tone="action" kindBadge="Action" label="Sheets" badge="REPORT" title="Execution report" subtitle={subtitle} iconService="google-sheets-report" />;
 }
 
+export function PreviewPostgres({ data }: any) {
+  const { tableName, connectionString } = data.metadata || {};
+  const host = String(connectionString || "")
+    .replace(/^postgres(?:ql)?:\/\//i, "")
+    .split("/")[0]
+    .split("@")[1] || "No host";
+  const subtitle = tableName
+    ? `Table: ${tableName}`
+    : "Missing table";
+  return <PreviewShell accent="#34d399" tone="action" kindBadge="Action" label="Postgres" badge="DB" title={host} subtitle={subtitle} iconService="postgres" />;
+}
+
 export const aiPreviewNodeTypes = {
   "price-trigger": PreviewPriceTrigger,
   "breakout-retest-trigger": PreviewBreakoutRetestTrigger,
@@ -419,4 +431,5 @@ export const aiPreviewNodeTypes = {
   "notion-daily-report": PreviewNotion,
   "google-drive-daily-csv": PreviewGoogleDrive,
   "google-sheets-report": PreviewGoogleSheets,
+  postgres: PreviewPostgres,
 };

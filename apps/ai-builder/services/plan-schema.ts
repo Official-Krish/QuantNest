@@ -20,6 +20,8 @@ const TRIGGER_TYPES = new Set(["timer", "price", "price-trigger", "breakout-rete
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
 const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter", "recheck"]);
 const CRITICAL_ACTION_FIELDS = new Set([
+  "connectionString",
+  "tableName",
   "apiKey",
   "accessToken",
   "accountIndex",

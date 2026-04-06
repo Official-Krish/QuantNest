@@ -15,6 +15,8 @@ export const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{
 export const NOTION_PAGE_ID_REGEX = /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
 export const GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX = /^[A-Za-z0-9-]+@[A-Za-z0-9-]+\.iam\.gserviceaccount\.com$/;
 export const GOOGLE_SHEET_URL_REGEX = /^https?:\/\/(?:docs\.google\.com\/spreadsheets\/d\/)[A-Za-z0-9-_]+(?:\/[^\s]*)?(?:\?[^\s]*)?$/i;
+export const POSTGRES_CONNECTION_STRING_REGEX = /^(postgres|postgresql):\/\/.+/i;
+export const SQL_IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_$.]*$/;
 
 export function validateEmail(email: string): boolean {
   return EMAIL_REGEX.test(email.trim());
@@ -85,6 +87,31 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   if (action === "google-sheets-report") {
     if (!GOOGLE_SHEET_URL_REGEX.test(String(metadata.sheetUrl || "").trim())) {
       errors.push("Enter a valid Google Sheet URL.");
+    }
+  }
+
+  if (action === "postgres") {
+    const connectionString = String(metadata.connectionString || "").trim();
+    const tableName = String(metadata.tableName || "").trim();
+    const jsonPayload = String(metadata.jsonPayload || "").trim();
+
+    if (!POSTGRES_CONNECTION_STRING_REGEX.test(connectionString)) {
+      errors.push("Connection string must start with postgres:// or postgresql://.");
+    }
+
+    if (!SQL_IDENTIFIER_REGEX.test(tableName)) {
+      errors.push("Table name must be a valid SQL identifier (letters, numbers, _, $, .).");
+    }
+
+    if (jsonPayload) {
+      try {
+        const parsed = JSON.parse(jsonPayload);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          errors.push("JSON payload must be a valid JSON object.");
+        }
+      } catch {
+        errors.push("JSON payload must be valid JSON.");
+      }
     }
   }
 

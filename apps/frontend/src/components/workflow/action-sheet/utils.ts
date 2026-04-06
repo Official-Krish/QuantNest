@@ -69,6 +69,10 @@ export function getBuilderActionValidationState(
     ) &&
     (selectedAction !== "google-sheets-report" || hasValue(actionMetadata.sheetUrl)) &&
     (
+      selectedAction !== "postgres" ||
+      (hasValue(actionMetadata.connectionString) && hasValue(actionMetadata.tableName))
+    ) &&
+    (
       selectedAction !== "filter" ||
       Boolean(actionMetadata.expression) ||
       (

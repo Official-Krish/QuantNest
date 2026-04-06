@@ -179,6 +179,8 @@ export const ActionSheet = ({
         ? "Notifications stay grouped on a single dark surface."
         : activeGroup === "Flow Control"
           ? "Different logic shapes help you scan options faster."
+          : activeGroup === "Data"
+            ? "Persist execution records to external data systems."
           : activeGroup === "Reporting"
             ? "Reporting actions stay locked until Zerodha is connected."
             : "";
@@ -472,6 +474,40 @@ export const ActionSheet = ({
                             })}
                             <div className="rounded-2xl border border-[#f17463]/35 bg-[#f17463]/8 px-3 py-2 text-xs text-neutral-300">
                               {selectedActionCountHint || "Reporting actions stay locked until Zerodha is connected."}
+                            </div>
+                          </div>
+                        ) : activeGroup === "Data" ? (
+                          <div className="space-y-2">
+                            {availableActions.map((action) => {
+                              const selected = selectedAction === action.id;
+                              return (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  onClick={() => handleSelectAction(action.id)}
+                                  className={cn(
+                                    "flex w-full cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-all",
+                                    selected
+                                      ? "border-l-2 border-l-[#f17463] border-[#f17463]/60 bg-[#f17463]/10"
+                                      : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900",
+                                  )}
+                                >
+                                  <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-950">
+                                    <ServiceLogo service={action.id} size={18} />
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block text-sm font-semibold text-neutral-100">
+                                      {action.title}
+                                    </span>
+                                    <span className="mt-1 block text-sm leading-5 text-neutral-300">
+                                      {action.description}
+                                    </span>
+                                  </span>
+                                </button>
+                              );
+                            })}
+                            <div className="rounded-2xl border border-[#f17463]/35 bg-[#f17463]/8 px-3 py-2 text-xs text-neutral-300">
+                              {selectedActionCountHint || "Data actions are available for logging and storage workflows."}
                             </div>
                           </div>
                         ) : (

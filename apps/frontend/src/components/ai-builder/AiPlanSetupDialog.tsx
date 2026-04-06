@@ -30,7 +30,7 @@ import {
   shouldHideInputWhenSecretSelected,
   suggestReusableSecretId,
 } from "./setupDialog.utils";
-import { getAiSetupFieldType } from "./aiSetupFieldRegistry";
+import { getAiSetupFieldHelperText, getAiSetupFieldType } from "./aiSetupFieldRegistry";
 import { toast } from "sonner";
 import { TelegramChatLookup } from "@/components/workflow/sheets/TelegramChatLookup";
 
@@ -418,12 +418,18 @@ export function AiPlanSetupDialog({
 
                     const type = getAiSetupFieldType(input.field, input.secret);
                     const value = overrideMetadata[input.field] ?? baseMetadata[input.field] ?? "";
+                    const helperText = getAiSetupFieldHelperText(input.field, nodeType);
 
                     return (
                       <div key={`${nodeId}-${input.field}`} className="space-y-2">
                         <p className="text-xs text-neutral-300">
                           {input.label || getFieldLabel(input.field)}
                         </p>
+                        {helperText ? (
+                          <p className="text-[11px] text-neutral-500">
+                            {helperText}
+                          </p>
+                        ) : null}
                         <Input
                           type={type}
                           value={String(value)}

@@ -22,6 +22,7 @@ import {
   suggestReusableSecretId,
 } from "@/components/ai-builder/setupDialog.utils";
 import {
+  getAiSetupFieldHelperText,
   getAiSetupFieldType,
   getSecretHelperText,
 } from "@/components/ai-builder/aiSetupFieldRegistry";
@@ -477,6 +478,7 @@ export function InlineMissingInputsCard({
                   )
                   .map((input) => {
                     const type = getAiSetupFieldType(input.field, input.secret);
+                    const helperText = getAiSetupFieldHelperText(input.field, nodeType);
                     const value =
                       overrideMetadata[input.field] ?? baseMetadata[input.field] ?? "";
                     return (
@@ -489,6 +491,16 @@ export function InlineMissingInputsCard({
                         >
                           {input.label || getFieldLabel(input.field)}
                         </span>
+                        {helperText ? (
+                          <p
+                            className={cx(
+                              "text-[11px]",
+                              theme === "dark" ? "text-neutral-500" : "text-neutral-500",
+                            )}
+                          >
+                            {helperText}
+                          </p>
+                        ) : null}
                         <input
                           type={type}
                           value={String(value)}

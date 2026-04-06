@@ -26,6 +26,13 @@ const SECRET_HELPER_TEXT_BY_SERVICE: Partial<Record<string, string>> = {
   "notion-daily-report": "Your Notion integration credential",
   "google-drive-daily-csv": "Your Google Drive credential",
   "google-sheets-report": "Your Google Sheets credential",
+  postgres: "Your Postgres connection credential",
+};
+
+const FIELD_HELPER_TEXT_BY_KEY: Partial<Record<string, string>> = {
+  "postgres:connectionString": "Paste a full Postgres URL, for example postgres://user:password@host:5432/database.",
+  "postgres:tableName": "Enter the destination table name where workflow rows should be inserted.",
+  "postgres:jsonPayload": "Optional JSON object merged into each inserted row, for example {\"strategy\":\"mean-reversion\"}.",
 };
 
 export function getAiSetupFieldType(
@@ -43,4 +50,12 @@ export function getSecretHelperText(
 ): string | null {
   if (!service) return null;
   return SECRET_HELPER_TEXT_BY_SERVICE[service] || null;
+}
+
+export function getAiSetupFieldHelperText(
+  field: string,
+  nodeType?: string,
+): string | null {
+  const key = `${String(nodeType || "").toLowerCase()}:${field}`;
+  return FIELD_HELPER_TEXT_BY_KEY[key] || null;
 }

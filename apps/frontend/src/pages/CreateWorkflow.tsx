@@ -14,14 +14,24 @@ import {
 } from "@/components/ui/dialog";
 import {
   apiCreateWorkflow,
+  apiGetAiStrategyDraftVersion,
   apiGetWorkflow,
   apiVerifyBrokerCredentials,
   apiUpdateWorkflow,
 } from "@/http";
 import { Button } from "@/components/ui/button";
 import { OrangeButton } from "@/components/ui/button-orange";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { normalizeGeneratedNodes } from "@/components/ai-builder/utils";
 import { workflowNodeTypes } from "@/components/workflow/nodeTypes";
 import { AppBackground } from "@/components/background";
+import type { AiStrategyWorkflowVersion } from "@/types/api";
 import { toast } from "sonner";
 import {
   buildWorkflowSnapshot,
@@ -57,6 +67,12 @@ export const CreateWorkflow = () => {
   const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(null);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [aiBuilderContext, setAiBuilderContext] = useState<{
+    draftId: string;
+    versions: AiStrategyWorkflowVersion[];
+  } | null>(null);
+  const [activeAiVersionId, setActiveAiVersionId] = useState<string>("");
+  const [switchingAiVersion, setSwitchingAiVersion] = useState(false);
   const [nodeMenu, setNodeMenu] = useState<{
     node: NodeType;
     x: number;
@@ -66,20 +82,81 @@ export const CreateWorkflow = () => {
   useEffect(() => {
     if (routeWorkflowId) return;
 
-    const generatedPlan = (location.state as any)?.generatedPlan;
+    const state = (location.state || {}) as {
+      generatedPlan?: {
+        nodes?: NodeType[];
+        edges?: EdgeType[];
+        workflowName?: string;
+        marketType?: "Indian" | "Crypto";
+      };
+      aiBuilderContext?: {
+        draftId?: string;
+        activeVersionId?: string;
+        versions?: AiStrategyWorkflowVersion[];
+      };
+    };
+
+    const generatedPlan = state.generatedPlan;
     if (!generatedPlan) return;
 
     setNodes((generatedPlan.nodes || []) as NodeType[]);
     setEdges((generatedPlan.edges || []) as EdgeType[]);
     setWorkflowName(String(generatedPlan.workflowName || ""));
     setMarketType((generatedPlan.marketType || "Indian") as "Indian" | "Crypto");
+
+    if (state.aiBuilderContext?.draftId && Array.isArray(state.aiBuilderContext.versions)) {
+      setAiBuilderContext({
+        draftId: state.aiBuilderContext.draftId,
+        versions: state.aiBuilderContext.versions,
+      });
+      setActiveAiVersionId(
+        String(
+          state.aiBuilderContext.activeVersionId ||
+            state.aiBuilderContext.versions[state.aiBuilderContext.versions.length - 1]?.id ||
+            "",
+        ),
+      );
+    }
+
     setLastSavedSnapshot(null);
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate, routeWorkflowId]);
 
+  const handleLoadAiVersion = useCallback(
+    async (versionId: string) => {
+      if (!aiBuilderContext?.draftId || !versionId || versionId === activeAiVersionId) return;
+
+      setSwitchingAiVersion(true);
+      setSaveError(null);
+      try {
+        const payload = await apiGetAiStrategyDraftVersion(aiBuilderContext.draftId, versionId);
+        const setupOverrides = payload.setupState?.metadataOverrides || {};
+        const normalizedNodes = normalizeGeneratedNodes(payload.version.response.plan, setupOverrides);
+        setNodes((normalizedNodes || []) as NodeType[]);
+        setEdges((payload.version.response.plan.edges || []) as EdgeType[]);
+        setWorkflowName(
+          String(
+            payload.setupState?.workflowName || payload.version.response.plan.workflowName || "",
+          ),
+        );
+        setMarketType((payload.version.response.plan.marketType || "Indian") as "Indian" | "Crypto");
+        setActiveAiVersionId(versionId);
+        setLastSavedSnapshot(null);
+      } catch (e: any) {
+        setSaveError(e?.response?.data?.message ?? e?.message ?? "Failed to load AI version");
+      } finally {
+        setSwitchingAiVersion(false);
+      }
+    },
+    [activeAiVersionId, aiBuilderContext?.draftId],
+  );
+
   // Load an existing workflow when opened from /workflow/:workflowId
   useEffect(() => {
     if (!routeWorkflowId) return;
+
+    setAiBuilderContext(null);
+    setActiveAiVersionId("");
 
     const load = async () => {
       setLoading(true);
@@ -309,6 +386,8 @@ export const CreateWorkflow = () => {
     setShowActionSheetEdit(false);
     setShowResetDialog(false);
     setShowNameDialog(true);
+    setAiBuilderContext(null);
+    setActiveAiVersionId("");
   }, []);
 
   const resetWorkflowBuilder = useCallback(() => {
@@ -326,9 +405,30 @@ export const CreateWorkflow = () => {
                 <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#f17463]">
                   {workflowId ? "Edit workflow" : "Create workflow"}
                 </p>
-                <h1 className="mt-2 text-2xl font-medium tracking-tight text-neutral-50 md:text-3xl">
-                  Visual workflow builder
-                </h1>
+                <div className="mt-2 flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+                  {aiBuilderContext?.draftId ? (
+                    <Button
+                      variant="outline"
+                      className="w-fit border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs text-neutral-200 cursor-pointer"
+                      onClick={() =>
+                        navigate("/create/ai-chat", {
+                          state: {
+                            draftId: aiBuilderContext.draftId,
+                            versionId: activeAiVersionId || undefined,
+                          },
+                        })
+                      }
+                    >
+                      ← Back to chat
+                    </Button>
+                  ) : null}
+                  <input
+                    value={workflowName}
+                    onChange={(event) => setWorkflowName(event.target.value)}
+                    placeholder="Untitled workflow"
+                    className="h-10 w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-950 px-3 text-lg font-medium tracking-tight text-neutral-50 outline-none transition focus:border-[#f17463]/70"
+                  />
+                </div>
                 <p className="mt-1 max-w-xl text-sm text-neutral-400">
                   Chain together triggers and broker actions to automate your
                   trading strategies.
@@ -357,12 +457,32 @@ export const CreateWorkflow = () => {
                   </div>
                 )}
                 <div className="flex gap-2">
+                  {aiBuilderContext?.versions?.length ? (
+                    <Select
+                      value={activeAiVersionId || ""}
+                      onValueChange={(value) => void handleLoadAiVersion(value)}
+                      disabled={switchingAiVersion}
+                    >
+                      <SelectTrigger className="mt-1 h-9 min-w-47.5 rounded-xl border-neutral-800 bg-neutral-950 px-3 text-xs font-medium text-neutral-200">
+                        <SelectValue placeholder="Select version" />
+                      </SelectTrigger>
+                      <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                        {aiBuilderContext.versions.map((version, index) => (
+                          <SelectItem key={version.id} value={version.id} className="text-xs cursor-pointer">
+                            v{index + 1} - {version.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
                   <OrangeButton
                     onClick={onSave}
                     disabled={!canSave || saving}
                     className="mt-1 px-5 py-2 text-xs md:text-sm"
                   >
-                    {saving
+                    {switchingAiVersion
+                      ? "Loading version..."
+                      : saving
                       ? "Saving..."
                       : workflowId
                         ? "Update workflow"
@@ -377,6 +497,8 @@ export const CreateWorkflow = () => {
                         setEdges([]);
                         setWorkflowId(null);
                         setWorkflowName("");
+                        setAiBuilderContext(null);
+                        setActiveAiVersionId("");
                         navigate("/create/builder");
                         setShowNameDialog(true);
                       }}

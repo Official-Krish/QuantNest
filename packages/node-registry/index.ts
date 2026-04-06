@@ -1,6 +1,6 @@
 export type NodeRegistryKind = "trigger" | "action";
-export type BuilderActionCategory = "Indian" | "Crypto" | "Notification" | "Reporting" | "Flow";
-export type BuilderPanelGroup = "Order Execution" | "Order Notification" | "Flow Control" | "Reporting";
+export type BuilderActionCategory = "Indian" | "Crypto" | "Notification" | "Reporting" | "Flow" | "Data";
+export type BuilderPanelGroup = "Order Execution" | "Order Notification" | "Flow Control" | "Reporting" | "Data";
 export type BuilderFormId =
     | "timer"
     | "price-trigger"
@@ -18,6 +18,7 @@ export type BuilderFormId =
     | "notion-daily-report"
     | "google-drive-daily-csv"
     | "google-sheets-report"
+    | "postgres"
     | "none";
 export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
 export type ExecutorActionHandlerId =
@@ -34,7 +35,8 @@ export type ExecutorActionHandlerId =
     | "whatsapp"
     | "notion-daily-report"
     | "google-drive-daily-csv"
-    | "google-sheets-report";
+    | "google-sheets-report"
+    | "postgres";
 
 export interface NodeRegistryEntry {
     id: string;
@@ -88,6 +90,9 @@ export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
     durationSeconds: "Delay duration (seconds)",
     recheckMode: "Re-check mode",
     aiConsent: "AI consent",
+    connectionString: "Connection String",
+    tableName: "Table Name",
+    jsonPayload: "JSON Payload",
 };
 
 export const NODE_REGISTRY: NodeRegistryEntry[] = [
@@ -429,6 +434,21 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         aliases: ["Google Sheets Report", "google sheets report", "google-sheets"],
         metadataFields: ["sheetUrl", "sheetName"],
     },
+    {
+        id: "postgres",
+        title: "Postgres",
+        description: "Insert workflow execution data into a PostgreSQL database",
+        kind: "action",
+        builderCategory: "Data",
+        builderPanelGroup: "Data",
+        builderFormId: "postgres",
+        builderRendererId: "postgres",
+        executorActionHandlerId: "postgres",
+        aiAllowed: true,
+        aiPreferredAction: true,
+        metadataFields: ["connectionString", "tableName", "jsonPayload"],
+        secretFieldKeys: ["connectionString"],
+    },
 ];
 
 export function getNodeRegistryEntry(nodeType: string) {
@@ -448,6 +468,7 @@ export function getBuilderActionGroups() {
         Notification: [],
         Reporting: [],
         Flow: [],
+        Data: [],
     };
 
     for (const entry of NODE_REGISTRY) {
