@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import { GoogleAuth } from "google-auth-library";
 import { generateDailyPerformanceAnalysis } from "../ai-models";
 import type { NodeType } from "../types";
-import { getZerodhaTradeSummary, getZerodhaTradesForCsv } from "./reporting/zerodhaReportData";
+import { getWorkflowTradeSummary, getWorkflowTradesForCsv } from "./reporting/workflowReportData";
 
 interface GoogleDriveDailyCsvMetadata {
     googleClientEmail?: string;
@@ -47,12 +47,12 @@ export async function createGoogleDriveDailyTradesCsv(input: CreateGoogleDriveDa
     }
     const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
 
-    const allTrades = await getZerodhaTradesForCsv({
+    const allTrades = await getWorkflowTradesForCsv({
         workflowId: input.workflowId,
         userId: input.userId,
         nodes: input.nodes,
     });
-    const summary = await getZerodhaTradeSummary({
+    const summary = await getWorkflowTradeSummary({
         workflowId: input.workflowId,
         userId: input.userId,
         nodes: input.nodes,

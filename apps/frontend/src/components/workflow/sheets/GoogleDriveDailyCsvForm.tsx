@@ -125,13 +125,13 @@ export const GoogleDriveDailyCsvForm = ({
           className="mt-0.5 h-4 w-4 cursor-pointer accent-[#8ab4f8]"
         />
         <span className="text-xs leading-relaxed text-neutral-300">
-          I consent to QuantNest using Zerodha trade data for AI-generated daily insights included in the CSV export.
+          I consent to QuantNest using broker trade data for AI-generated daily insights included in the CSV export.
         </span>
       </label>
 
       <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3">
         <p className="text-xs text-neutral-400">
-          Runs once per day after 3:30 PM IST, exports Zerodha trades with AI insights, then uploads CSV to Google Drive.
+          Runs once per day after 3:30 PM IST, exports broker trades with AI insights, then uploads CSV to Google Drive.
           Share the target folder with this service account email before enabling.
         </p>
       </div>

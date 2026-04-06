@@ -270,7 +270,7 @@ export const CreateWorkflow = () => {
       nodes.some(
         (node) =>
           String(node.data?.kind || "").toLowerCase() === "action" &&
-          String(node.type || "").toLowerCase() === "zerodha",
+          ["zerodha", "groww", "lighter"].includes(String(node.type || "").toLowerCase()),
       ),
     [nodes],
   );

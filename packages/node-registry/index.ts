@@ -390,7 +390,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
     {
         id: "notion-daily-report",
         title: "Notion Daily Report",
-        description: "Create a daily AI performance report page in Notion (Zerodha only)",
+        description: "Create a daily AI performance report page in Notion (Zerodha, Groww, or Lighter)",
         kind: "action",
         builderCategory: "Reporting",
         builderPanelGroup: "Reporting",
@@ -406,7 +406,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
     {
         id: "google-drive-daily-csv",
         title: "Google Drive Daily CSV",
-        description: "After 3:30 PM IST, export Zerodha trades + AI insights to Google Drive once per day",
+        description: "After 3:30 PM IST, export broker trades + AI insights to Google Drive once per day",
         kind: "action",
         builderCategory: "Reporting",
         builderPanelGroup: "Reporting",

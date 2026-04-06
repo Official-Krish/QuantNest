@@ -9,7 +9,21 @@ import {
 } from './nonce_manager';
 import { StrOrErr, SignResult, type CreateOrderParams, TxResponse } from './types';
 import { ValidationError, SignerError } from './errors';
-import { TransactionApi, AccountApi, ServerConfiguration, IsomorphicFetchHttpLibrary, ApiKeyAuthentication, OrderApi, RespSendTx } from './generated';
+import {
+    TransactionApi,
+    AccountApi,
+    ServerConfiguration,
+    IsomorphicFetchHttpLibrary,
+    ApiKeyAuthentication,
+    OrderApi,
+    RespSendTx,
+    DetailedAccount,
+    Order,
+    Orders,
+    Trade,
+    Trades,
+    AccountPosition,
+} from './generated';
 import { Configuration } from './generated/configuration';
 
 export const CODE_OK = 200;
@@ -107,6 +121,32 @@ export interface SignerClientOptions {
     nonceManagementType?: NonceManagerType;
 }
 
+export interface GetInactiveOrdersOptions {
+    limit?: number;
+    marketId?: number;
+    askFilter?: number;
+    betweenTimestamps?: string;
+    cursor?: string;
+}
+
+export interface GetTradesOptions {
+    sortBy?: 'block_height' | 'timestamp' | 'trade_id';
+    limit?: number;
+    marketId?: number;
+    accountIndex?: number;
+    orderIndex?: number;
+    sortDir?: 'desc';
+    cursor?: string;
+    from?: number;
+    askFilter?: number;
+}
+
+export interface GetOrdersOptions {
+    marketIds?: number[];
+    includeInactive?: boolean;
+    inactiveLimit?: number;
+}
+
 export class SignerClient {
     // Constants
     static readonly USDC_TICKER_SCALE = 1e6;
@@ -165,6 +205,7 @@ export class SignerClient {
     private accountIndex: number;
     private signer: SignerLibrary;
     private txApi: TransactionApi;
+    private accountApi: AccountApi;
     private nonceManager: NonceManager;
     private orderApi: OrderApi;
 
@@ -193,6 +234,14 @@ export class SignerClient {
             }
         });
         this.orderApi = new OrderApi({
+            baseServer:  new ServerConfiguration<{  }>(this.url, {  }),
+            httpApi: new IsomorphicFetchHttpLibrary(),
+            middleware: [],
+            authMethods: {
+                apiKey: new ApiKeyAuthentication(this.apiKeyDict[this.apiKeyIndex] ?? '')
+            }
+        });
+        this.accountApi = new AccountApi({
             baseServer:  new ServerConfiguration<{  }>(this.url, {  }),
             httpApi: new IsomorphicFetchHttpLibrary(),
             middleware: [],
@@ -383,6 +432,109 @@ export class SignerClient {
     async sendTx(tx_type: number, tx_info: string): Promise<RespSendTx> {
         const response = await this.txApi.sendTx(tx_type, tx_info, true);
         return response;
+    }
+
+    async getProfile(accountIndex: number = this.accountIndex): Promise<DetailedAccount | null> {
+        const response = await this.accountApi.account('index', String(accountIndex));
+        return response.accounts?.[0] || null;
+    }
+
+    async getPositions(accountIndex: number = this.accountIndex): Promise<AccountPosition[]> {
+        const profile = await this.getProfile(accountIndex);
+        return profile?.positions || [];
+    }
+
+    async getActiveOrders(marketId: number, accountIndex: number = this.accountIndex): Promise<Order[]> {
+        const response = await this.orderApi.accountActiveOrders(accountIndex, marketId);
+        return response.orders || [];
+    }
+
+    async getInactiveOrders(options: GetInactiveOrdersOptions = {}, accountIndex: number = this.accountIndex): Promise<Orders> {
+        const {
+            limit = 200,
+            marketId,
+            askFilter,
+            betweenTimestamps,
+            cursor,
+        } = options;
+
+        return this.orderApi.accountInactiveOrders(
+            accountIndex,
+            limit,
+            undefined,
+            undefined,
+            marketId,
+            askFilter,
+            betweenTimestamps,
+            cursor,
+        );
+    }
+
+    async getTrades(options: GetTradesOptions = {}): Promise<Trades> {
+        const {
+            sortBy = 'timestamp',
+            limit = 300,
+            marketId,
+            accountIndex,
+            orderIndex,
+            sortDir = 'desc',
+            cursor,
+            from,
+            askFilter,
+        } = options;
+
+        return this.orderApi.trades(
+            sortBy,
+            limit,
+            undefined,
+            undefined,
+            marketId,
+            accountIndex,
+            orderIndex,
+            sortDir,
+            cursor,
+            from,
+            askFilter,
+        );
+    }
+
+    async getOrders(options: GetOrdersOptions = {}, accountIndex: number = this.accountIndex): Promise<Order[]> {
+        const {
+            marketIds = [],
+            includeInactive = true,
+            inactiveLimit = 200,
+        } = options;
+
+        const marketIdsToFetch = marketIds.length
+            ? marketIds
+            : [0, 1, 2];
+
+        const activeResults = await Promise.allSettled(
+            marketIdsToFetch.map((marketId) => this.getActiveOrders(marketId, accountIndex)),
+        );
+
+        const activeOrders = activeResults.flatMap((result) =>
+            result.status === 'fulfilled' ? result.value : [],
+        );
+
+        let inactiveOrders: Order[] = [];
+        if (includeInactive) {
+            const inactive = await this.getInactiveOrders({ limit: inactiveLimit }, accountIndex);
+            inactiveOrders = inactive.orders || [];
+        }
+
+        const deduped = new Map<string, Order>();
+        for (const order of [...activeOrders, ...inactiveOrders]) {
+            const key = String(order.orderId || order.orderIndex || '');
+            if (!key) {
+                continue;
+            }
+            if (!deduped.has(key)) {
+                deduped.set(key, order);
+            }
+        }
+
+        return [...deduped.values()];
     }
 
     signCreateOrder(

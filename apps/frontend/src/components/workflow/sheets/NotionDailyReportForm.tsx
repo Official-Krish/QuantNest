@@ -91,15 +91,15 @@ export const NotionDailyReportForm = ({
           className="mt-0.5 h-4 w-4 cursor-pointer accent-[#7ecb89]"
         />
         <span className="text-xs leading-relaxed text-neutral-300">
-          I consent to QuantNest fetching Zerodha order/trade/position/holding data and sending
+          I consent to QuantNest fetching broker order/trade/position/holding data and sending
           relevant historical trade context to AI for analysis and Notion report generation.
         </span>
       </label>
 
       <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3">
         <p className="text-xs text-neutral-400">
-          This action creates a structured Notion report from Zerodha account data and AI analysis.
-          It runs only when a Zerodha action exists in the workflow and consent is enabled.
+          This action creates a structured Notion report from supported broker account data and AI analysis.
+          It runs only when a Zerodha, Groww, or Lighter action exists in the workflow and consent is enabled.
         </p>
       </div>
     </div>

@@ -9,7 +9,7 @@ import {
     toDateLabel,
     wasNotionReportCreatedToday,
 } from "./reporting/helpers";
-import { getZerodhaTradeSummary } from "./reporting/zerodhaReportData";
+import { getWorkflowTradeSummary } from "./reporting/workflowReportData";
 
 interface NotionDailyReportMetadata {
     notionApiKey?: string;
@@ -40,7 +40,7 @@ export async function createNotionDailyReport(input: CreateNotionReportInput): P
         notionVersion: NOTION_VERSION,
     });
 
-    const summary = await getZerodhaTradeSummary({
+    const summary = await getWorkflowTradeSummary({
         workflowId: input.workflowId,
         userId: input.userId,
         nodes: input.nodes,
@@ -137,7 +137,7 @@ export async function createNotionDailyReport(input: CreateNotionReportInput): P
         children.push({
             object: "block",
             type: "paragraph",
-            paragraph: { rich_text: [asNotionText("No recent trade symbols available from Zerodha account.")] },
+            paragraph: { rich_text: [asNotionText("No recent trade symbols available from the configured broker account.")] },
         });
     } else {
         summary.topSymbols.forEach((item) => {
