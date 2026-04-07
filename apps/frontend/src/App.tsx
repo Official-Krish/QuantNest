@@ -15,6 +15,7 @@ import { About } from "./pages/About";
 import { Notifications } from "./pages/Notifications";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { Examples } from "./pages/Examples";
+import { Algorithms } from "./pages/Algorithms";
 import { AiStrategyChatBuilder } from "./pages/AiStrategyChatBuilder";
 
 export function App() {
@@ -36,6 +37,14 @@ export function App() {
       <Route path="/terms-of-service" element={<StaticContentPage pageKey="terms" />} />
       <Route path="/cookie-policy" element={<StaticContentPage pageKey="cookie" />} />
       <Route path="/examples" element={<Examples />} />
+      <Route
+        path="/algorithms"
+        element={
+          <ProtectedRoute>
+            <Algorithms />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={

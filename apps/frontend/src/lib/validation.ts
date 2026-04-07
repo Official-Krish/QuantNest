@@ -18,6 +18,26 @@ export const GOOGLE_SHEET_URL_REGEX = /^https?:\/\/(?:docs\.google\.com\/spreads
 export const POSTGRES_CONNECTION_STRING_REGEX = /^(postgres|postgresql):\/\/.+/i;
 export const SQL_IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_$.]*$/;
 
+function isPlaceholderCredential(value: unknown): boolean {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return false;
+
+  return [
+    "demo",
+    "placeholder",
+    "sample",
+    "changeme",
+    "replace_me",
+    "replace-me",
+    "your_",
+    "your-",
+    "fake",
+    "mock",
+    "dummy",
+    "testtoken",
+  ].some((token) => normalized.includes(token));
+}
+
 export function validateEmail(email: string): boolean {
   return EMAIL_REGEX.test(email.trim());
 }
@@ -68,6 +88,8 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   if (action === "slack") {
     if (!hasSecret && !SLACK_BOT_TOKEN_REGEX.test(String(metadata.slackBotToken || "").trim())) {
       errors.push("Slack bot token must start with xoxb-.");
+    } else if (!hasSecret && isPlaceholderCredential(metadata.slackBotToken)) {
+      errors.push("Replace Slack bot token placeholder with a real token.");
     }
     if (!hasSecret && !SLACK_USER_ID_REGEX.test(String(metadata.slackUserId || "").trim())) {
       errors.push("Slack user ID format is invalid.");
@@ -77,6 +99,8 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   if (action === "telegram") {
     if (!hasSecret && !TELEGRAM_BOT_TOKEN_REGEX.test(String(metadata.telegramBotToken || "").trim())) {
       errors.push("Telegram bot token format is invalid.");
+    } else if (!hasSecret && isPlaceholderCredential(metadata.telegramBotToken)) {
+      errors.push("Replace Telegram bot token placeholder with your real bot token.");
     }
     if (!hasSecret && !TELEGRAM_CHAT_ID_REGEX.test(String(metadata.telegramChatId || "").trim())) {
       errors.push("Telegram chat ID format is invalid.");
@@ -90,6 +114,8 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   if (action === "notion-daily-report") {
     if (!hasSecret && !NOTION_TOKEN_REGEX.test(String(metadata.notionApiKey || "").trim())) {
       errors.push("Notion API key format is invalid.");
+    } else if (!hasSecret && isPlaceholderCredential(metadata.notionApiKey)) {
+      errors.push("Replace Notion API key placeholder with a real token.");
     }
     if (!NOTION_PAGE_ID_REGEX.test(String(metadata.parentPageId || "").trim())) {
       errors.push("Notion parent page ID format is invalid.");
@@ -102,9 +128,13 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   if (action === "google-drive-daily-csv") {
     if (!hasSecret && !GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(String(metadata.googleClientEmail || "").trim())) {
       errors.push("Google service account email format is invalid.");
+    } else if (!hasSecret && isPlaceholderCredential(metadata.googleClientEmail)) {
+      errors.push("Replace Google service account email placeholder with a real value.");
     }
     if (!hasSecret && !String(metadata.googlePrivateKey || "").includes("BEGIN PRIVATE KEY")) {
       errors.push("Google private key format is invalid.");
+    } else if (!hasSecret && isPlaceholderCredential(metadata.googlePrivateKey)) {
+      errors.push("Replace Google private key placeholder with a real private key.");
     }
     if (metadata.aiConsent !== true) {
       errors.push("AI consent is required for Google Drive insights.");
@@ -198,24 +228,32 @@ export function getTradingValidationErrors(
   if (action === "zerodha") {
     if (!hasSecret && !ZERODHA_API_KEY_REGEX.test(String(data.apiKey || "").trim())) {
       errors.push("Zerodha API key must be 8-32 alphanumeric characters.");
+    } else if (!hasSecret && isPlaceholderCredential(data.apiKey)) {
+      errors.push("Replace Zerodha API key placeholder with a real API key.");
     }
     const accessToken = String(data.accessToken || "").trim();
     if (!hasSecret && !accessToken) {
       errors.push("Zerodha access token is required.");
     } else if (!hasSecret && !ACCESS_TOKEN_REGEX.test(accessToken)) {
       errors.push("Zerodha access token format is invalid.");
+    } else if (!hasSecret && isPlaceholderCredential(data.accessToken)) {
+      errors.push("Replace Zerodha access token placeholder with a real token.");
     }
   }
 
   if (action === "groww") {
     if (!hasSecret && !ACCESS_TOKEN_REGEX.test(String(data.accessToken || "").trim())) {
       errors.push("Groww access token format is invalid.");
+    } else if (!hasSecret && isPlaceholderCredential(data.accessToken)) {
+      errors.push("Replace Groww access token placeholder with a real token.");
     }
   }
 
   if (action === "lighter") {
     if (!hasSecret && !LIGHTER_PRIVATE_KEY_REGEX.test(String(data.apiKey || "").trim())) {
       errors.push("Lighter API key must be a valid 64-char hex private key.");
+    } else if (!hasSecret && isPlaceholderCredential(data.apiKey)) {
+      errors.push("Replace Lighter API key placeholder with a real private key.");
     }
     const accountIndex = toNumber(data.accountIndex);
     const apiKeyIndex = toNumber(data.apiKeyIndex);

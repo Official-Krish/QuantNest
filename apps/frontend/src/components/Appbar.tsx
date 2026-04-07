@@ -19,6 +19,7 @@ const NAV_PUBLIC: NavItem[] = [
 
 const NAV_AUTH: NavItem[] = [
   { name: "Dashboard",       link: "/dashboard"         },
+  { name: "Algorithms",      link: "/algorithms"        },
   { name: "Profile",         link: "/profile"           },
   { name: "Create Workflow", link: "/create/onboarding" },
 ];

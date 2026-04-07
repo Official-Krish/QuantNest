@@ -6,6 +6,9 @@ const EXAMPLE_PROMPTS = [
   "Monitor RELIANCE on 15m timeframe and send a Discord alert when RSI crosses below 30 with symbol, RSI value, and timestamp.",
   "Every day at 9:15 PM, send a WhatsApp summary of NIFTY 50 top gainers and losers with percentage change and closing price.",
   "For BTCUSDT, execute a sell signal when price breaks below the 20 EMA and also send a fallback Gmail alert if execution fails.",
+  "BUP alert on HDFC above 1750 — when price breaks above that level, send me a Telegram message.",
+  "BUPS confirmed breakout on NIFTY at 21500 — breakout, retest, then confirmation. Execute Zerodha BUY when confirmed.",
+  "Daily loss cap of 5000 rupees — if my Zerodha account loses more than 5K today, send a Telegram alert immediately.",
 ];
 
 type ChatEmptyStateProps = {

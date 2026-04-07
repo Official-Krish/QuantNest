@@ -177,7 +177,7 @@ export interface WorkflowExample {
   slug: string;
   title: string;
   summary: string;
-  category: "Execution" | "Reporting" | "Alerts" | "AI";
+  category: "Execution" | "Reporting" | "Alerts" | "AI" | "Practical-Algos";
   market: "Indian" | "Crypto" | "Cross-market";
   difficulty: "Starter" | "Intermediate" | "Advanced";
   setupMinutes: number;

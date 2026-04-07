@@ -367,13 +367,20 @@ export async function apiGetExamples(): Promise<{ examples: WorkflowExample[] }>
   return { examples: res.data.examples };
 }
 
+export async function apiGetPracticalAlgos(): Promise<{ examples: WorkflowExample[] }> {
+  const res = await api.get<{ message: string; examples: WorkflowExample[] }>("/examples/practical-algos");
+  return { examples: res.data.examples };
+}
+
 export async function apiCreateWorkflowFromExample(
   slug: string,
   workflowName: string,
+  executionMode: "live" | "dry-run",
   metadataOverrides: Record<string, Record<string, unknown>>,
 ): Promise<IdResponse> {
   const res = await api.post<IdResponse>(`/examples/${slug}/create`, {
     workflowName,
+    executionMode,
     metadataOverrides,
   });
   return res.data;
