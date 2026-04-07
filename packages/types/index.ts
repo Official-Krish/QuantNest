@@ -20,7 +20,8 @@ export type NodeKind =
     | "discord"
     | "notion-daily-report"
     | "google-drive-daily-csv"
-    | "google-sheets-report";
+    | "google-sheets-report"
+    | "postgres";
 
 export interface NodeType {
     type: NodeKind;
@@ -57,6 +58,7 @@ export type NodeMetadata =
     | NotionDailyReportMetadata
     | GoogleDriveDailyCsvMetadata
     | GoogleSheetsReportMetadata
+    | PostgresMetadata
     | {};
 
 export interface DelayNodeMetadata {
@@ -155,6 +157,7 @@ export interface TradingMetadata {
     secretId?: string;
     exchange: "NSE" | "BSE";
     condition?: boolean;
+    retryPolicy?: RetryPolicyMetadata;
 }
 
 export interface NotificationMetadata {
@@ -168,6 +171,7 @@ export interface NotificationMetadata {
     telegramChatId?: string;
     secretId?: string;
     condition?: boolean;
+    retryPolicy?: RetryPolicyMetadata;
 }
 
 export interface NotionDailyReportMetadata {
@@ -176,6 +180,7 @@ export interface NotionDailyReportMetadata {
     secretId?: string;
     aiConsent: boolean;
     condition?: boolean;
+    retryPolicy?: RetryPolicyMetadata;
 }
 
 export interface GoogleDriveDailyCsvMetadata {
@@ -186,6 +191,7 @@ export interface GoogleDriveDailyCsvMetadata {
     secretId?: string;
     aiConsent?: boolean;
     condition?: boolean;
+    retryPolicy?: RetryPolicyMetadata;
 }
 
 export interface GoogleSheetsReportMetadata {
@@ -194,6 +200,7 @@ export interface GoogleSheetsReportMetadata {
     sheetName?: string;
     serviceAccountEmail?: string;
     condition?: boolean;
+    retryPolicy?: RetryPolicyMetadata;
 }
 
 export interface LighterMetadata {
@@ -205,6 +212,22 @@ export interface LighterMetadata {
     apiKeyIndex: number;
     secretId?: string;
     condition?: boolean;
+    retryPolicy?: RetryPolicyMetadata;
+}
+
+export interface PostgresMetadata {
+    connectionString: string;
+    tableName: string;
+    jsonPayload?: string;
+    retryPolicy?: RetryPolicyMetadata;
+}
+
+export interface RetryPolicyMetadata {
+    enabled?: boolean;
+    maxAttempts?: number;
+    backoffType?: "fixed" | "exponential";
+    delaySeconds?: number;
+    onFinalFailure?: "fail-workflow" | "continue";
 }
 
 export const SUPPORTED_MARKETS = ["Indian", "Crypto"];
@@ -233,6 +256,12 @@ export interface ExecutionStep {
     nodeType: string;
     status: "Success" | "Failed";
     message: string;
+    attempt?: number;
+    maxAttempts?: number;
+    retryPolicy?: RetryPolicyMetadata;
+    backoffType?: "fixed" | "exponential";
+    backoffSeconds?: number;
+    terminalFailure?: boolean;
 }
 
 export interface ExecutionResponseType {

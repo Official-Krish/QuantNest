@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { WorkflowExample } from "@/types/api";
 import {
@@ -245,21 +246,21 @@ export function ExampleCreateDialog({
 
                   {["notion-daily-report", "google-drive-daily-csv"].includes(nodeType) ? (
                     <label className="mt-4 flex items-center gap-2 text-sm text-neutral-300">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={Boolean(
                           metadataOverrides[node.nodeId]?.aiConsent ??
                           (baseMetadata.aiConsent as boolean | undefined),
                         )}
-                        onChange={(e) =>
+                        onCheckedChange={(value) =>
                           onMetadataOverridesChange({
                             ...metadataOverrides,
                             [node.nodeId]: {
                               ...(metadataOverrides[node.nodeId] || {}),
-                              aiConsent: e.target.checked,
+                              aiConsent: value === true,
                             },
                           })
                         }
+                        className="border-neutral-600 data-[state=checked]:border-[#f17463] data-[state=checked]:bg-[#f17463]"
                       />
                       <span>AI consent provided for this action</span>
                     </label>

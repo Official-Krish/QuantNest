@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface PostgresFormProps {
   metadata: any;
@@ -68,6 +69,8 @@ export const PostgresForm = ({ metadata, setMetadata }: PostgresFormProps) => {
           placeholder='{"custom_field": "value"}'
         />
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };

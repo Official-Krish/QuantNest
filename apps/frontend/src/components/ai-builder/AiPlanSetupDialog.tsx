@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -398,18 +399,18 @@ export function AiPlanSetupDialog({
                           key={`${nodeId}-${input.field}`}
                           className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-black px-3 py-3 text-sm text-neutral-300"
                         >
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={checked}
-                            onChange={(e) =>
+                            onCheckedChange={(value) =>
                               onMetadataOverridesChange({
                                 ...metadataOverrides,
                                 [nodeId]: {
                                   ...(metadataOverrides[nodeId] || {}),
-                                  aiConsent: e.target.checked,
+                                  aiConsent: value === true,
                                 },
                               })
                             }
+                            className="border-neutral-600 data-[state=checked]:border-[#f17463] data-[state=checked]:bg-[#f17463]"
                           />
                           <span>{input.label || getFieldLabel(input.field)}</span>
                         </label>

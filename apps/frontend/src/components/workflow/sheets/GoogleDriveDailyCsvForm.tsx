@@ -1,5 +1,7 @@
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface GoogleDriveDailyCsvFormProps {
   metadata: any;
@@ -113,16 +115,15 @@ export const GoogleDriveDailyCsvForm = ({
       </div>
 
       <label className="flex items-start gap-2 rounded-lg border border-neutral-700/60 bg-neutral-900/40 p-3">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={Boolean(metadata.aiConsent)}
-          onChange={(e) =>
+          onCheckedChange={(value) =>
             setMetadata((current: any) => ({
               ...current,
-              aiConsent: e.target.checked,
+              aiConsent: value === true,
             }))
           }
-          className="mt-0.5 h-4 w-4 cursor-pointer accent-[#8ab4f8]"
+          className="mt-0.5 border-neutral-600 data-[state=checked]:border-[#f17463] data-[state=checked]:bg-[#f17463]"
         />
         <span className="text-xs leading-relaxed text-neutral-300">
           I consent to QuantNest using broker trade data for AI-generated daily insights included in the CSV export.
@@ -135,6 +136,8 @@ export const GoogleDriveDailyCsvForm = ({
           Share the target folder with this service account email before enabling.
         </p>
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };

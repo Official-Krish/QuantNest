@@ -202,7 +202,7 @@ export async function executeRecursive(
     const childSteps = childResults.flatMap((result) => result.steps);
     const allSteps = [...localSteps, ...steps, ...childSteps];
 
-    if (allSteps.some((step) => step.status === "Failed")) {
+    if (allSteps.some((step) => step.status === "Failed" && step.terminalFailure !== false)) {
         return { status: "Failed", steps: allSteps };
     }
     return { status: "Success", steps: allSteps };

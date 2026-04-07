@@ -130,9 +130,9 @@ export const ExecutionHistory = ({
     setExpandedRuns((prev) => ({ ...prev, [id]: !prev[id] }));
 
   return (
-    <section className="rounded-2xl border border-white/[0.06] bg-[#0d0f13]">
+    <section className="rounded-2xl border border-white/6 bg-[#0d0f13]">
       {/* Header */}
-      <div className="flex flex-col gap-4 border-b border-white/[0.06] px-5 py-4 md:px-6">
+      <div className="flex flex-col gap-4 border-b border-white/6 px-5 py-4 md:px-6">
         <div>
           <h2 className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-400">
             Execution History
@@ -167,7 +167,7 @@ export const ExecutionHistory = ({
               <button
                 type="button"
                 onClick={() => setDatePresetOpen(!datePresetOpen)}
-                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-zinc-400 transition-colors hover:border-white/15 hover:text-zinc-200"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/3 px-2.5 py-1.5 text-[11px] text-zinc-400 transition-colors hover:border-white/15 hover:text-zinc-200"
               >
                 <Clock3 className="h-3.5 w-3.5" />
                 <span>{getDatePresetLabel()}</span>
@@ -185,7 +185,7 @@ export const ExecutionHistory = ({
                       key={p.value}
                       type="button"
                       onClick={() => handlePreset(p.value)}
-                      className="block w-full px-3 py-2 text-left text-xs text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-zinc-100 first:rounded-t-xl last:rounded-b-xl"
+                      className="block w-full px-3 py-2 text-left text-xs text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 first:rounded-t-xl last:rounded-b-xl"
                     >
                       {p.label}
                     </button>
@@ -194,7 +194,7 @@ export const ExecutionHistory = ({
               )}
             </div>
 
-            <div className="inline-flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-1.5">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/3 px-2.5 py-1.5">
               <Search className="h-3.5 w-3.5 text-zinc-600" />
               <input
                 value={searchTerm}
@@ -218,7 +218,7 @@ export const ExecutionHistory = ({
       ) : executions.length === 0 ? (
         <div className="flex min-h-80 items-center justify-center px-6 py-10">
           <div className="max-w-sm text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-orange-400/20 bg-orange-500/[0.08]">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-orange-400/20 bg-orange-500/8">
               <Zap className="h-5 w-5 text-[#f17463]" />
             </div>
             <p className="mt-4 text-base font-semibold text-white">No executions yet</p>
@@ -238,8 +238,9 @@ export const ExecutionHistory = ({
         <div className="space-y-3 px-4 py-4 md:px-5">
           {executions.map((execution) => {
             const steps = execution.steps || [];
-            const successSteps = steps.filter((s) => s.status === "Success").length;
-            const completion = steps.length === 0 ? 0 : Math.round((successSteps / steps.length) * 100);
+            const terminalSteps = steps.filter((s) => s.terminalFailure !== false);
+            const successSteps = terminalSteps.filter((s) => s.status === "Success").length;
+            const completion = terminalSteps.length === 0 ? 0 : Math.round((successSteps / terminalSteps.length) * 100);
             const isExpanded = !!expandedRuns[execution._id];
             const runNum = runsById[execution._id];
 
@@ -252,12 +253,12 @@ export const ExecutionHistory = ({
                 <button
                   type="button"
                   onClick={() => toggleRun(execution._id)}
-                  className="w-full px-4 py-3.5 text-left transition-colors duration-200 hover:bg-white/[0.03] md:px-5"
+                  className="w-full px-4 py-3.5 text-left transition-colors duration-200 hover:bg-white/3 md:px-5"
                 >
                   <div className="flex items-center justify-between gap-4">
                     {/* Left: play icon + run info */}
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-orange-500/30 bg-orange-500/10">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-orange-500/30 bg-orange-500/10">
                         <Play className="h-3.5 w-3.5 fill-[#f17463] text-[#f17463]" />
                       </div>
                       <div>
@@ -286,11 +287,11 @@ export const ExecutionHistory = ({
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-300 border-t border-white/[0.06] bg-black/30">
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-300 border-t border-white/6 bg-black/30">
                     {/* Timeline line with node cards */}
                     <div className="relative px-4 py-4 md:px-5">
                       {/* Left accent line - orange */}
-                      <div className="absolute left-[18px] top-4 bottom-4 w-0.5 bg-[#d66758] md:left-[22px]" />
+                      <div className="absolute left-4.5 top-4 bottom-4 w-0.5 bg-[#d66758] md:left-5.5" />
 
                       <div className="space-y-4">
                         {steps.length > 0 ? (
@@ -308,7 +309,7 @@ export const ExecutionHistory = ({
                               {/* Node card */}
                               <div className="flex-1 overflow-hidden rounded-xl border border-white/[0.07] bg-[#0a0b0d] transition-all duration-200">
                                 {/* Card header */}
-                                <div className="flex items-center justify-between border-b border-white/[0.05] px-4 py-3">
+                                <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
                                   <div className="flex items-center gap-2">
                                     <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${
                                       step.nodeType.toLowerCase().includes("trigger")
@@ -317,6 +318,11 @@ export const ExecutionHistory = ({
                                     }`}>
                                       {step.nodeType.replaceAll("_", " ")}
                                     </span>
+                                    {typeof step.attempt === "number" ? (
+                                      <span className="rounded-full border border-white/8 bg-white/3 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
+                                        Attempt {step.attempt}/{step.maxAttempts || step.attempt}
+                                      </span>
+                                    ) : null}
                                   </div>
                                   <span className="text-[11px] text-zinc-500">
                                     {new Date(execution.startTime).toLocaleTimeString("en-US", {
@@ -335,8 +341,8 @@ export const ExecutionHistory = ({
 
                                   {/* Metric tiles — STATUS + RESPONSE TIME */}
                                   <div className="mt-3 grid grid-cols-2 gap-2">
-                                    <div className="rounded-lg border border-white/[0.06] bg-[#080a0c] px-3 py-2.5 transition-all duration-200 hover:bg-[#0a0c0e] hover:border-white/10">
-                                      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-600">Status</p>
+                                    <div className="rounded-lg border border-white/6 bg-[#080a0c] px-3 py-2.5 transition-all duration-200 hover:bg-[#0a0c0e] hover:border-white/10">
+                                      <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Status</p>
                                       <div className="mt-1 flex items-center gap-1.5">
                                         {getStatusIcon(step.status)}
                                         <p className="text-sm font-medium text-white">
@@ -344,13 +350,23 @@ export const ExecutionHistory = ({
                                         </p>
                                       </div>
                                     </div>
-                                    <div className="rounded-lg border border-white/[0.06] bg-[#080a0c] px-3 py-2.5 transition-all duration-200 hover:bg-[#0a0c0e] hover:border-white/10">
-                                      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-600">Response Time</p>
+                                    <div className="rounded-lg border border-white/6 bg-[#080a0c] px-3 py-2.5 transition-all duration-200 hover:bg-[#0a0c0e] hover:border-white/10">
+                                      <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Response Time</p>
                                       <p className="mt-1 text-sm font-medium text-white">
                                         {extractDurationFromMessage(step.message)}
                                       </p>
                                     </div>
                                   </div>
+
+                                  {step.attempt ? (
+                                    <div className="mt-2 rounded-lg border border-white/6 bg-[#080a0c] px-3 py-2 text-xs text-zinc-400">
+                                      {step.terminalFailure === false
+                                        ? "Non-terminal attempt logged. Workflow continues after this step."
+                                        : step.status === "Success"
+                                          ? "Final outcome recorded after retries."
+                                          : "Final failure recorded for this action."}
+                                    </div>
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
@@ -362,12 +378,12 @@ export const ExecutionHistory = ({
                     </div>
 
                     {/* Footer — finalized message + progress */}
-                    <div className="flex items-center justify-between border-t border-white/[0.05] px-4 py-3 md:px-5">
+                    <div className="flex items-center justify-between border-t border-white/5 px-4 py-3 md:px-5">
                       <p className="text-[11px] italic text-zinc-600">
                         Execution finalized. All signals dispatched.
                       </p>
                       <div className="flex items-center gap-2">
-                        <div className="h-1 w-24 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div className="h-1 w-24 overflow-hidden rounded-full bg-white/6">
                           <div
                             className="h-full bg-emerald-500/60 transition-all"
                             style={{ width: `${completion}%` }}

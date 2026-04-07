@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface GmailFormProps {
   metadata: any;
@@ -58,6 +59,8 @@ export const GmailForm = ({ metadata, setMetadata }: GmailFormProps) => {
           💡 <span className="font-medium text-neutral-300">Auto-notification:</span> Emails are sent automatically based on workflow events (trade executions, price triggers, failures).
         </p>
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };

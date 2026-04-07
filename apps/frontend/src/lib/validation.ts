@@ -1,4 +1,4 @@
-import type { LighterMetadata, TradingMetadata } from "@quantnest-trading/types";
+import type { LighterMetadata, RetryPolicyMetadata, TradingMetadata } from "@quantnest-trading/types";
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const SLACK_BOT_TOKEN_REGEX = /^xoxb-[A-Za-z0-9-]+$/;
@@ -29,6 +29,33 @@ export function validateStrongPassword(password: string): boolean {
 export function getActionValidationErrors(action: string, metadata: Record<string, unknown>): string[] {
   const errors: string[] = [];
   const hasSecret = Boolean(String(metadata.secretId || "").trim());
+
+  const retryPolicy = metadata.retryPolicy as RetryPolicyMetadata | undefined;
+  if (retryPolicy?.enabled) {
+    const maxAttempts = Number(retryPolicy.maxAttempts);
+    const delaySeconds = Number(retryPolicy.delaySeconds);
+    const backoffType = String(retryPolicy.backoffType || "").trim().toLowerCase();
+    const onFinalFailure = String(retryPolicy.onFinalFailure || "").trim().toLowerCase();
+
+    if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
+      errors.push("Retry max attempts must be at least 1.");
+    }
+
+    if (!Number.isFinite(delaySeconds) || delaySeconds < 0) {
+      errors.push("Retry delay must be 0 or greater.");
+    }
+
+    if (!["fixed", "exponential"].includes(backoffType)) {
+      errors.push("Retry backoff must be fixed or exponential.");
+    }
+
+    if (![
+      "fail-workflow",
+      "continue",
+    ].includes(onFinalFailure)) {
+      errors.push("Retry final failure must be fail-workflow or continue.");
+    }
+  }
 
   if (action === "gmail" && !validateEmail(String(metadata.recipientEmail || "").trim())) {
     errors.push("Enter a valid recipient email.");

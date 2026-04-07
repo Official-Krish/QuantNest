@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { TelegramChatLookup } from "./TelegramChatLookup";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface TelegramFormProps {
   metadata: any;
@@ -119,6 +120,8 @@ export const TelegramForm = ({ metadata, setMetadata }: TelegramFormProps) => {
           This version sends outbound bot messages. Later we can reuse the same bot to listen for commands like “stop this workflow”.
         </p>
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };
