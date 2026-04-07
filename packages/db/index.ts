@@ -459,7 +459,7 @@ const WorkflowExampleSchema = new Schema({
     },
     category: {
         type: String,
-        enum: ["Execution", "Reporting", "Alerts", "AI"],
+        enum: ["Execution", "Reporting", "Alerts", "AI", "Practical-Algos"],
         required: true,
     },
     market: {

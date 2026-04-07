@@ -4,6 +4,7 @@ import { alertExampleSeeds } from "./seed/examples/alerts";
 import { flowControlExampleSeeds } from "./seed/examples/flow-control";
 import { reportingExampleSeeds } from "./seed/examples/reporting";
 import { tradingExampleSeeds } from "./seed/examples/trading";
+import { practicalAlgoSeeds } from "./seed/examples/practical-algos";
 import { assertWorkflowExampleSeeds } from "./seed/validators";
 
 type WorkflowExampleNode = {
@@ -28,7 +29,7 @@ export type WorkflowExampleSeed = {
   slug: string;
   title: string;
   summary: string;
-  category: "Execution" | "Reporting" | "Alerts" | "AI";
+  category: "Execution" | "Reporting" | "Alerts" | "AI" | "Practical-Algos";
   market: "Indian" | "Crypto" | "Cross-market";
   difficulty: "Starter" | "Intermediate" | "Advanced";
   setupMinutes: number;
@@ -47,6 +48,7 @@ export const WORKFLOW_EXAMPLE_SEEDS: WorkflowExampleSeed[] = [
   ...alertExampleSeeds,
   ...reportingExampleSeeds,
   ...flowControlExampleSeeds,
+  ...practicalAlgoSeeds,
 ];
 
 assertWorkflowExampleSeeds(WORKFLOW_EXAMPLE_SEEDS);
