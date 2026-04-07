@@ -10,7 +10,6 @@ import {
   NODE_METADATA_FIELD_LABELS,
 } from "@quantnest-trading/node-registry";
 import type { AiMetadataOverrides } from "./types";
-import { getAiSetupFieldType } from "./aiSetupFieldRegistry";
 
 function getResponse(result: AiStrategyBuilderResponse | AiStrategyDraftSession | null) {
   if (!result) return null;
@@ -36,6 +35,9 @@ function getUserEditableMissingInputs(
       ...entry.metadataFields,
       ...(entry.secretFieldKeys || []),
     ]);
+    if (input.field === "secretId" && (entry.secretFieldKeys || []).length > 0) {
+      return false;
+    }
     return editableFields.has(input.field);
   });
 }
@@ -125,7 +127,12 @@ export function getGoogleSheetsVerificationErrorDetails(error: unknown): {
   };
 }
 
-export const getFieldType = getAiSetupFieldType;
+export function getFieldType(field: string, secret?: boolean): "text" | "password" | "number" {
+  if (["accountIndex", "apiKeyIndex", "targetPrice", "breakoutLevel", "retestTolerancePct", "confirmationMovePct", "retestWindowMinutes", "confirmationWindowMinutes", "durationSeconds"].includes(field)) return "number";
+  if (field === "slackBotToken" || field === "telegramBotToken") return "password";
+  if (secret) return "password";
+  return "text";
+}
 
 export function collectSetupErrors(
   result: AiStrategyBuilderResponse | AiStrategyDraftSession | null,
@@ -267,7 +274,30 @@ export function propagateActionCredentialsToAllNodes(
 }
 
 export function getReusableSecretServiceForNodeType(nodeType: string): ReusableSecretService | null {
-  return (getNodeRegistryEntry(nodeType)?.reusableSecretService as ReusableSecretService | undefined) || null;
+  const normalizedNodeType = String(nodeType).trim().toLowerCase();
+  const entry = getNodeRegistryEntry(normalizedNodeType);
+
+  if (normalizedNodeType === "portfolio-pnl-drawdown-trigger") {
+    return null;
+  }
+
+  return (entry?.reusableSecretService as ReusableSecretService | undefined) || null;
+}
+
+export function getReusableSecretServiceForNode(
+  nodeType: string,
+  metadata?: Record<string, unknown>,
+): ReusableSecretService | null {
+  const normalizedNodeType = String(nodeType).trim().toLowerCase();
+  if (normalizedNodeType === "portfolio-pnl-drawdown-trigger") {
+    const broker = String(metadata?.broker || "").trim().toLowerCase();
+    if (broker === "zerodha" || broker === "groww" || broker === "lighter") {
+      return broker as ReusableSecretService;
+    }
+    return null;
+  }
+
+  return getReusableSecretServiceForNodeType(normalizedNodeType);
 }
 
 export function getSecretBackedFieldsForNodeType(nodeType: string): string[] {

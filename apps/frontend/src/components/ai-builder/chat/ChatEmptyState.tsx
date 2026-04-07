@@ -26,7 +26,7 @@ export function ChatEmptyState({
       <div className={cx("rounded-2xl border px-5 py-5", panel)}>
         <div className="text-sm font-medium text-[#f17463]">Start a new workflow</div>
         <div className={cx("mt-2 text-sm leading-7", muted)}>
-          Describe the workflow, then keep refining it in chat. Every edit creates a version in the right-side history.
+          Describe the workflow, then keep refining it in chat. Every edit creates a version you can open in the Builder.
         </div>
       </div>
 

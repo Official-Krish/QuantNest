@@ -405,7 +405,11 @@ function mergeCriticalActionMissingInputs(plan: AiStrategyWorkflowPlan): void {
   const existing = new Set(plan.missingInputs.map((input) => `${input.nodeId}:${input.field}`));
 
   for (const node of plan.nodes) {
-    if (String(node.data.kind).toLowerCase() !== "action") continue;
+    const nodeType = String(node.type || "").toLowerCase();
+    const nodeKind = String(node.data.kind || "").toLowerCase();
+    const isPortfolioRiskTrigger = nodeType === "portfolio-pnl-drawdown-trigger";
+
+    if (nodeKind !== "action" && !isPortfolioRiskTrigger) continue;
 
     const entry = getNodeRegistryEntry(node.type);
     if (!entry) continue;
@@ -414,7 +418,21 @@ function mergeCriticalActionMissingInputs(plan: AiStrategyWorkflowPlan): void {
     const hasSecret = Boolean(String(metadata.secretId || "").trim());
     const editableFields = new Set([...(entry.metadataFields || []), ...(entry.secretFieldKeys || [])]);
 
-    for (const field of CRITICAL_ACTION_FIELDS) {
+    const fieldsToValidate = isPortfolioRiskTrigger
+      ? new Set([
+          "broker",
+          "mode",
+          "thresholdValue",
+          "thresholdUnit",
+          ...(String(metadata.broker || "").trim().toLowerCase() === "lighter"
+            ? ["apiKey", "accountIndex", "apiKeyIndex"]
+            : String(metadata.broker || "").trim().toLowerCase() === "zerodha"
+              ? ["apiKey", "accessToken"]
+              : ["accessToken"]),
+        ])
+      : CRITICAL_ACTION_FIELDS;
+
+    for (const field of fieldsToValidate) {
       if (!editableFields.has(field)) continue;
 
       if (hasSecret && (entry.secretFieldKeys || []).includes(field)) {

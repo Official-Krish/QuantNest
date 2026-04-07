@@ -138,15 +138,17 @@ function buildAssistantMessages(
     },
   ];
 
-  if (response.validation.issues.length > 0) {
+  const blockingIssues = response.validation.issues.filter((issue) => issue.severity === "error");
+
+  if (blockingIssues.length > 0) {
     messages.push({
       id: createId("msg"),
       role: "assistant",
       kind: "validation",
-      content: response.validation.issues.map((issue) => `${issue.code}: ${issue.message}`).join("\n"),
+      content: blockingIssues.map((issue) => `${issue.code}: ${issue.message}`).join("\n"),
       createdAt: now,
       metadata: {
-        issueCount: response.validation.issues.length,
+        issueCount: blockingIssues.length,
       },
     });
   }

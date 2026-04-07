@@ -24,7 +24,7 @@ import {
   getFieldLabel,
   getGoogleSheetsVerificationErrorDetails,
   getNodeLabel,
-  getReusableSecretServiceForNodeType,
+  getReusableSecretServiceForNode,
   groupMissingInputs,
   isGoogleSheetsReportNodeType,
   propagateActionCredentialsToAllNodes,
@@ -64,7 +64,12 @@ export function AiPlanSetupDialog({
         Object.keys(groupedInputs)
           .map((nodeId) => {
             const node = response.plan.nodes.find((entry) => entry.nodeId === nodeId);
-            return node ? getReusableSecretServiceForNodeType(String(node.type)) : null;
+            if (!node) return null;
+            const mergedMetadata = {
+              ...(node.data.metadata || {}),
+              ...(metadataOverrides[nodeId] || {}),
+            } as Record<string, unknown>;
+            return getReusableSecretServiceForNode(String(node.type), mergedMetadata);
           })
           .filter((service): service is ReusableSecretService => Boolean(service)),
       ),
@@ -95,7 +100,7 @@ export function AiPlanSetupDialog({
     return () => {
       cancelled = true;
     };
-  }, [response, groupedInputs, secretsByService]);
+  }, [response, groupedInputs, metadataOverrides, secretsByService]);
 
   useEffect(() => {
     if (!response || googleSheetsServiceAccountEmail) return;
@@ -135,7 +140,11 @@ export function AiPlanSetupDialog({
       const node = response.plan.nodes.find((entry) => entry.nodeId === nodeId);
       if (!node) continue;
 
-      const service = getReusableSecretServiceForNodeType(String(node.type));
+      const mergedMetadata = {
+        ...(node.data.metadata || {}),
+        ...(metadataOverrides[nodeId] || {}),
+      } as Record<string, unknown>;
+      const service = getReusableSecretServiceForNode(String(node.type), mergedMetadata);
       if (!service || !(service in secretsByService)) continue;
 
       const baseMetadata = node.data.metadata || {};
@@ -339,9 +348,13 @@ export function AiPlanSetupDialog({
             const overrideMetadata = metadataOverrides[nodeId] || {};
             const nodeType = String(node.type);
             const normalizedNodeType = nodeType.toLowerCase();
+            const mergedMetadata = {
+              ...baseMetadata,
+              ...overrideMetadata,
+            } as Record<string, unknown>;
             const isGoogleSheetsNode = isGoogleSheetsReportNodeType(nodeType);
             const isTelegramNode = normalizedNodeType === "telegram";
-            const service = getReusableSecretServiceForNodeType(nodeType);
+            const service = getReusableSecretServiceForNode(nodeType, mergedMetadata);
             const availableSecrets = service ? (secretsByService[service] || []) : [];
             const currentSecretId = Object.prototype.hasOwnProperty.call(overrideMetadata, "secretId")
               ? String(overrideMetadata.secretId || "").trim()
