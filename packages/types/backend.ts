@@ -453,6 +453,103 @@ function validateWorkflowNodes(
             }
         }
 
+        if (type === "portfolio-pnl-drawdown-trigger") {
+            const broker = String((metadata as any).broker || "").trim().toLowerCase();
+            const mode = String((metadata as any).mode || "").trim().toLowerCase();
+            const thresholdUnit = String((metadata as any).thresholdUnit || "").trim().toLowerCase();
+            const thresholdValue = Number((metadata as any).thresholdValue);
+            const secretId = String((metadata as any).secretId || "").trim();
+
+            if (!["zerodha", "groww", "lighter"].includes(broker)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "broker"],
+                    message: "Portfolio risk broker must be zerodha, groww, or lighter.",
+                });
+            }
+
+            if (!["daily-loss-cap", "profit-target", "drawdown-limit"].includes(mode)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "mode"],
+                    message: "Portfolio risk mode must be daily-loss-cap, profit-target, or drawdown-limit.",
+                });
+            }
+
+            if (!["absolute", "percent"].includes(thresholdUnit)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "thresholdUnit"],
+                    message: "Portfolio risk threshold unit must be absolute or percent.",
+                });
+            }
+
+            if (!Number.isFinite(thresholdValue) || thresholdValue <= 0) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "thresholdValue"],
+                    message: "Portfolio risk threshold must be greater than 0.",
+                });
+            }
+
+            if (!secretId && broker === "zerodha") {
+                const apiKey = String((metadata as any).apiKey || "").trim();
+                const accessToken = String((metadata as any).accessToken || "").trim();
+                if (!ZERODHA_API_KEY_REGEX.test(apiKey)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "apiKey"],
+                        message: "Invalid Zerodha API key format.",
+                    });
+                }
+                if (!accessToken || !ACCESS_TOKEN_REGEX.test(accessToken)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "accessToken"],
+                        message: "Invalid Zerodha access token format.",
+                    });
+                }
+            }
+
+            if (!secretId && broker === "groww") {
+                const accessToken = String((metadata as any).accessToken || "").trim();
+                if (!ACCESS_TOKEN_REGEX.test(accessToken)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "accessToken"],
+                        message: "Invalid Groww access token format.",
+                    });
+                }
+            }
+
+            if (!secretId && broker === "lighter") {
+                const apiKey = String((metadata as any).apiKey || "").trim();
+                const accountIndex = Number((metadata as any).accountIndex);
+                const apiKeyIndex = Number((metadata as any).apiKeyIndex);
+                if (!LIGHTER_PRIVATE_KEY_REGEX.test(apiKey)) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "apiKey"],
+                        message: "Invalid Lighter API key format.",
+                    });
+                }
+                if (!Number.isInteger(accountIndex) || accountIndex < 0) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "accountIndex"],
+                        message: "Lighter accountIndex must be a non-negative integer.",
+                    });
+                }
+                if (!Number.isInteger(apiKeyIndex) || apiKeyIndex < 0) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "apiKeyIndex"],
+                        message: "Lighter apiKeyIndex must be a non-negative integer.",
+                    });
+                }
+            }
+        }
+
         if (type === "gmail") {
             const recipientEmail = String((metadata as any).recipientEmail || "").trim();
             if (!EMAIL_REGEX.test(recipientEmail)) {

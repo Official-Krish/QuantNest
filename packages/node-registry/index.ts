@@ -7,6 +7,7 @@ export type BuilderFormId =
     | "breakout-retest-trigger"
     | "conditional"
     | "market-session"
+    | "portfolio-pnl-drawdown-trigger"
     | "trading"
     | "gmail"
     | "slack"
@@ -20,7 +21,7 @@ export type BuilderFormId =
     | "google-sheets-report"
     | "postgres"
     | "none";
-export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
+export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session" | "portfolio-pnl-drawdown-trigger";
 export type ExecutorActionHandlerId =
     | "noop"
     | "delay"
@@ -94,6 +95,10 @@ export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
     connectionString: "Connection String",
     tableName: "Table Name",
     jsonPayload: "JSON Payload",
+    broker: "Broker",
+    mode: "Risk mode",
+    thresholdValue: "Threshold value",
+    thresholdUnit: "Threshold unit",
 };
 
 export const NODE_REGISTRY: NodeRegistryEntry[] = [
@@ -174,6 +179,22 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         aiNodeType: "market-session",
         aiPromptNodeType: "market-session",
         metadataFields: ["marketType", "event", "triggerTime"],
+    },
+
+    {
+        id: "portfolio-pnl-drawdown-trigger",
+        title: "Portfolio PnL / Drawdown",
+        description: "Run when an account-level daily loss, profit target, or drawdown threshold is breached",
+        kind: "trigger",
+        builderFormId: "portfolio-pnl-drawdown-trigger",
+        builderRendererId: "portfolio-pnl-drawdown-trigger",
+        executorTriggerProcessorId: "portfolio-pnl-drawdown-trigger",
+        aiAllowed: true,
+        aiNodeType: "portfolio-pnl-drawdown-trigger",
+        aiPromptNodeType: "portfolio-pnl-drawdown-trigger",
+        aliases: ["portfolio-risk", "portfolio-pnl", "drawdown-trigger", "loss-cap"],
+        metadataFields: ["broker", "mode", "thresholdValue", "thresholdUnit", "secretId", "apiKey", "accessToken", "accountIndex", "apiKeyIndex"],
+        secretFieldKeys: ["apiKey", "accessToken", "accountIndex", "apiKeyIndex"],
     },
     {
         id: "zerodha",

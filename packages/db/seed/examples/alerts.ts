@@ -231,4 +231,59 @@ export const alertExampleSeeds: WorkflowExampleSeed[] = [
       { id: "e-brt-telegram-1", source: "brt-telegram-1", target: "telegram-brt-1" },
     ],
   },
+  {
+    slug: "portfolio-daily-loss-cap-telegram",
+    title: "Portfolio Daily Loss Cap Telegram Alert",
+    summary:
+      "Monitor a single Zerodha account and send a Telegram alert once the daily loss cap is breached.",
+    category: "Alerts",
+    market: "Indian",
+    difficulty: "Intermediate",
+    setupMinutes: 10,
+    sortOrder: 12,
+    nodeFlow: ["Portfolio Risk", "Telegram"],
+    trigger: "Runs once when account-level daily PnL drops beyond the configured loss cap.",
+    logic:
+      "The Portfolio PnL / Drawdown trigger reads broker account metrics, checks whether total daily PnL is below -₹5,000, and then fires the alert path.",
+    actions: ["Monitor broker account PnL", "Send Telegram risk alert", "Auto-pause after success"],
+    outcomes: [
+      "Stronger risk control for live workflows",
+      "Clear daily loss-cap automation template",
+      "Reusable base for drawdown or profit-target workflows",
+    ],
+    nodes: [
+      {
+        nodeId: "portfolio-risk-1",
+        type: "portfolio-pnl-drawdown-trigger",
+        data: {
+          kind: "trigger",
+          metadata: {
+            broker: "zerodha",
+            mode: "daily-loss-cap",
+            thresholdValue: 5000,
+            thresholdUnit: "absolute",
+            apiKey: "DEMO123456",
+            accessToken: "demo-access-token-123",
+          },
+        },
+        position: { x: 0, y: 90 },
+      },
+      {
+        nodeId: "telegram-risk-1",
+        type: "telegram",
+        data: {
+          kind: "action",
+          metadata: {
+            recipientName: "Risk desk",
+            telegramBotToken: "123456789:telegram-demo-token",
+            telegramChatId: "859425297",
+          },
+        },
+        position: { x: 390, y: 90 },
+      },
+    ],
+    edges: [
+      { id: "e-portfolio-risk-telegram-1", source: "portfolio-risk-1", target: "telegram-risk-1" },
+    ],
+  },
 ];

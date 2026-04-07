@@ -5,6 +5,7 @@ import {
   handleBreakoutRetestTrigger,
   handleConditionalTrigger,
   handleMarketSessionTrigger,
+  handlePortfolioPnlDrawdownTrigger,
   handlePriceTrigger,
 } from "../handlers/trigger.handler";
 import type { WorkflowType } from "../types";
@@ -224,6 +225,52 @@ export async function processMarketSessionWorkflows(now: Date) {
       }
     } catch (err) {
       console.error(`Market session workflow error (${workflow.workflowName})`, err);
+    }
+  }
+}
+
+export async function processPortfolioPnlDrawdownWorkflows(now: Date) {
+  const workflows = await WorkflowModel.find({
+    ...ACTIVE_WORKFLOW_QUERY,
+    triggerType: "portfolio-pnl-drawdown-trigger",
+  });
+
+  for (const workflow of workflows) {
+    try {
+      const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
+      if (!trigger) continue;
+      if (!(await canExecute(workflow._id.toString()))) continue;
+
+      const result = await handlePortfolioPnlDrawdownTrigger(
+        workflow as unknown as WorkflowType,
+        trigger,
+      );
+
+      await WorkflowModel.updateOne(
+        { _id: workflow._id },
+        {
+          $set: {
+            lastEvaluatedAt: now,
+            triggerConfig: {
+              ...(workflow.triggerConfig || {}),
+              runtime: result.runtime,
+              lastMeasurement: {
+                mode: result.mode,
+                measuredValue: result.measuredValue,
+                measuredUnit: result.measuredUnit,
+                metrics: result.metrics,
+              },
+            },
+            ...(result.shouldExecute ? { lastTriggeredAt: now } : {}),
+          },
+        },
+      );
+
+      if (result.shouldExecute) {
+        await executeWorkflowSafe(workflow as unknown as WorkflowType);
+      }
+    } catch (err) {
+      console.error(`Portfolio PnL / drawdown workflow error (${workflow.workflowName})`, err);
     }
   }
 }

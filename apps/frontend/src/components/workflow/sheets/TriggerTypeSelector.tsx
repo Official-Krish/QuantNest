@@ -12,6 +12,7 @@ const TRIGGER_DESCRIPTIONS: Record<string, string> = {
   "breakout-retest-trigger": "Fires after breakout, pullback retest, and confirmation",
   "conditional-trigger": "Fires based on custom logic",
   "market-session": "Fires on market open or close",
+  "portfolio-pnl-drawdown-trigger": "Fires when account PnL or drawdown breaches a limit",
 };
 
 export const TriggerTypeSelector = ({
