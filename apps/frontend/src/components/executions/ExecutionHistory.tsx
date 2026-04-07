@@ -11,7 +11,6 @@ import {
   Timer,
   Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { Execution, ExecutionStatusFilter } from "./types";
 
 interface ExecutionHistoryProps {
@@ -25,7 +24,6 @@ interface ExecutionHistoryProps {
   dateTo: string;
   onDateFromChange: (value: string) => void;
   onDateToChange: (value: string) => void;
-  onTriggerNow: () => void;
   formatDate: (dateString: string) => string;
   calculateDuration: (startTime: string, endTime?: string) => string;
 }
@@ -98,7 +96,6 @@ export const ExecutionHistory = ({
   dateTo,
   onDateFromChange,
   onDateToChange,
-  onTriggerNow,
   formatDate,
   calculateDuration,
 }: ExecutionHistoryProps) => {
@@ -223,15 +220,8 @@ export const ExecutionHistory = ({
             </div>
             <p className="mt-4 text-base font-semibold text-white">No executions yet</p>
             <p className="mt-1.5 text-xs text-zinc-500">
-              This workflow hasn't run yet. Trigger it manually or wait for the next scheduled run.
+              This workflow hasn't run yet. Once it does, you'll see a history of all executions here, along with details for each run.
             </p>
-            <Button
-              type="button"
-              onClick={onTriggerNow}
-              className="mt-5 bg-orange-500 text-black hover:bg-[#f17463]"
-            >
-              Trigger now
-            </Button>
           </div>
         </div>
       ) : (

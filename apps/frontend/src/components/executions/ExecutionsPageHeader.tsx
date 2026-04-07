@@ -16,7 +16,7 @@ export const ExecutionsPageHeader = ({
   onOpenWorkflow,
 }: ExecutionsPageHeaderProps) => {
   return (
-    <section className="relative rounded-2xl border border-white/10 bg-black/90 px-5 pt-4 pb-3 md:px-6 overflow-hidden">
+    <section className="relative rounded-2xl border border-white/6 bg-[#0d0f13] px-5 pt-4 pb-3 md:px-6 overflow-hidden">
       <div className="absolute inset-0 opacity-5 pointerevents-none" style={{
         backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)',
         backgroundSize: '24px 24px',
@@ -47,7 +47,7 @@ export const ExecutionsPageHeader = ({
           </Button>
           <OrangeButton
             size="md"
-            className="flex justify-center gap-3 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b2a1f] shadow-[0_10px_30px_rgba(241,116,99,0.25)] hover:bg-[#ff8852] hover:text-[#3a2017] "
+            className="flex items-center justify-center gap-2 rounded-xl border border-[#f17463]/45 bg-linear-to-r from-[#f7a893] via-[#f17463] to-[#dd5f4f] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#24130d] shadow-[0_12px_30px_rgba(241,116,99,0.32)] transition-transform duration-150 hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#f17463]/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0f13]"
             onClick={onOpenWorkflow}
           >
             <SquareArrowOutUpRight className="h-4 w-4" />

@@ -112,10 +112,10 @@ export function AiStrategyChatBuilder() {
   const openInBuilder = () => {
     if (!selectedVersion) return;
 
-    openVersionInBuilder(selectedVersion.id);
+    navigateVersionInBuilder(selectedVersion.id);
   };
 
-  const openVersionInBuilder = (versionId: string) => {
+  const navigateVersionInBuilder = (versionId: string) => {
     const draft = drafts.activeDraft;
     const version = draft?.workflowVersions.find(
       (entry) => entry.id === versionId,
@@ -146,6 +146,11 @@ export function AiStrategyChatBuilder() {
         },
       },
     });
+  };
+
+  const openVersionInBuilder = (versionId: string) => {
+    drafts.setActiveVersionId(versionId);
+    setSetupOpen(true);
   };
 
   useEffect(() => {

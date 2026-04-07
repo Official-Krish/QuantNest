@@ -169,7 +169,6 @@ export const Executions = () => {
               onSearchTermChange={setSearchTerm}
               onDateFromChange={setDateFrom}
               onDateToChange={setDateTo}
-              onTriggerNow={openWorkflow}
               formatDate={formatDate}
               calculateDuration={calculateDuration}
             />
