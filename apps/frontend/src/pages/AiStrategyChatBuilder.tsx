@@ -8,7 +8,7 @@ import { ChatTopHeader } from "@/components/ai-builder/chat/ChatTopHeader";
 import { ChatMessagesPane } from "../components/ai-builder/chat/ChatMessagesPane";
 import { ChatComposerSection } from "@/components/ai-builder/chat/ChatComposerSection";
 import { useAiChatComposer } from "@/components/ai-builder/chat/useAiChatComposer";
-import { useAiChatDrafts } from "@/components/ai-builder/chat/useAiChatDrafts";
+import { getVersionSetupState, useAiChatDrafts } from "@/components/ai-builder/chat/useAiChatDrafts";
 import { useAiDraftRestore } from "@/components/ai-builder/chat/useAiDraftRestore";
 import {
   Dialog,
@@ -60,8 +60,10 @@ export function AiStrategyChatBuilder() {
     activeDraft: drafts.activeDraft,
     activeVersionId: drafts.activeVersionId,
     workflowName: drafts.workflowName,
+    executionMode: drafts.executionMode,
     metadataOverrides: drafts.metadataOverrides,
     setWorkflowName: drafts.setWorkflowName,
+    setExecutionMode: drafts.setExecutionMode,
     setMetadataOverrides: drafts.setMetadataOverrides,
     setActiveDraft: drafts.setActiveDraft,
   });
@@ -110,14 +112,16 @@ export function AiStrategyChatBuilder() {
   const openInBuilder = () => {
     if (!selectedVersion) return;
 
-    openVersionInBuilder(selectedVersion.id);
+    navigateVersionInBuilder(selectedVersion.id);
   };
 
-  const openVersionInBuilder = (versionId: string) => {
-    const version = drafts.activeDraft?.workflowVersions.find(
+  const navigateVersionInBuilder = (versionId: string) => {
+    const draft = drafts.activeDraft;
+    const version = draft?.workflowVersions.find(
       (entry) => entry.id === versionId,
     );
     if (!version) return;
+    const versionSetupState = draft ? getVersionSetupState(draft, version.id) : undefined;
 
     navigate("/create/builder", {
       state: {
@@ -125,6 +129,10 @@ export function AiStrategyChatBuilder() {
           workflowName:
             drafts.workflowName || version.response.plan.workflowName,
           marketType: version.response.plan.marketType,
+          executionMode:
+            (versionSetupState?.executionMode || drafts.executionMode || "live") as
+              | "live"
+              | "dry-run",
           nodes: normalizeGeneratedNodes(
             version.response.plan,
             drafts.metadataOverrides,
@@ -138,6 +146,11 @@ export function AiStrategyChatBuilder() {
         },
       },
     });
+  };
+
+  const openVersionInBuilder = (versionId: string) => {
+    drafts.setActiveVersionId(versionId);
+    setSetupOpen(true);
   };
 
   useEffect(() => {
@@ -276,9 +289,11 @@ export function AiStrategyChatBuilder() {
         open={setupOpen}
         result={selectedVersion?.response || null}
         workflowName={drafts.workflowName}
+        executionMode={drafts.executionMode}
         metadataOverrides={drafts.metadataOverrides}
         onOpenChange={setSetupOpen}
         onWorkflowNameChange={drafts.setWorkflowName}
+        onExecutionModeChange={drafts.setExecutionMode}
         onMetadataOverridesChange={drafts.setMetadataOverrides}
         onContinue={openInBuilder}
       />

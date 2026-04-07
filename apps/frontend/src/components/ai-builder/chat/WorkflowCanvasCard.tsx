@@ -11,6 +11,7 @@ import { buildPreviewLayout, cx, type WorkflowCanvasCardProps } from "./shared";
 export function WorkflowCanvasCard({
   version,
   theme,
+  executionMode = "live",
   compact = false,
   title = "Workflow Preview",
   attached = false,
@@ -94,6 +95,16 @@ export function WorkflowCanvasCard({
       <div className="mb-2 flex flex-wrap gap-2 text-[10px]">
         <span className={cx("rounded-full px-2 py-1", theme === "dark" ? "bg-neutral-900 text-neutral-300" : "bg-neutral-100 text-neutral-600")}>
           {version.response.plan.nodes.length} nodes
+        </span>
+        <span className={cx(
+          "rounded-full px-2 py-1",
+          executionMode === "dry-run"
+            ? "bg-amber-500/12 text-amber-300"
+            : theme === "dark"
+              ? "bg-emerald-500/12 text-emerald-300"
+              : "bg-emerald-500/15 text-emerald-600",
+        )}>
+          {executionMode === "dry-run" ? "Dry Run" : "Live"}
         </span>
         <span className={cx("rounded-full px-2 py-1", version.response.validation.canOpenInBuilder ? "bg-emerald-500/12 text-emerald-400" : "bg-amber-500/12 text-amber-400")}>
           {version.response.validation.canOpenInBuilder ? "Builder ready" : "Needs review"}

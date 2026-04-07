@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface SlackFormProps {
   metadata: any;
@@ -108,6 +109,8 @@ export const SlackForm = ({ metadata, setMetadata }: SlackFormProps) => {
           Recommended scopes: `chat:write` and the scope needed to open DMs in your Slack app configuration.
         </p>
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };

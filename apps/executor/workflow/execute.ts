@@ -36,7 +36,8 @@ export async function executeWorkflow(
     edges: EdgeType[],
     userId?: string,
     workflowId?: string,
-    condition?: boolean
+    condition?: boolean,
+    executionMode?: "live" | "dry-run",
 ): Promise<ExecutionResponseType> {
     const trigger = nodes.find((node) => node?.data?.kind === "trigger" || node?.data?.kind === "TRIGGER");
     if (!trigger) {
@@ -58,6 +59,7 @@ export async function executeWorkflow(
         userId,
         workflowId,
         condition,
+        executionMode,
     });
 
     return executeRecursive(trigger.id, nodes, edges, context, condition);
@@ -202,7 +204,7 @@ export async function executeRecursive(
     const childSteps = childResults.flatMap((result) => result.steps);
     const allSteps = [...localSteps, ...steps, ...childSteps];
 
-    if (allSteps.some((step) => step.status === "Failed")) {
+    if (allSteps.some((step) => step.status === "Failed" && step.terminalFailure !== false)) {
         return { status: "Failed", steps: allSteps };
     }
     return { status: "Success", steps: allSteps };

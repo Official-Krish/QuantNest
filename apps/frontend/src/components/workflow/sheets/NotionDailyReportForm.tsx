@@ -1,5 +1,7 @@
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface NotionDailyReportFormProps {
   metadata: any;
@@ -79,16 +81,15 @@ export const NotionDailyReportForm = ({
       </div>
 
       <label className="flex items-start gap-2 rounded-lg border border-neutral-700/60 bg-neutral-900/40 p-3">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={Boolean(metadata.aiConsent)}
-          onChange={(e) =>
+          onCheckedChange={(value) =>
             setMetadata((current: any) => ({
               ...current,
-              aiConsent: e.target.checked,
+              aiConsent: value === true,
             }))
           }
-          className="mt-0.5 h-4 w-4 cursor-pointer accent-[#7ecb89]"
+          className="mt-0.5 border-neutral-600 data-[state=checked]:border-[#f17463] data-[state=checked]:bg-[#f17463]"
         />
         <span className="text-xs leading-relaxed text-neutral-300">
           I consent to QuantNest fetching broker order/trade/position/holding data and sending
@@ -102,6 +103,8 @@ export const NotionDailyReportForm = ({
           It runs only when a Zerodha, Groww, or Lighter action exists in the workflow and consent is enabled.
         </p>
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };

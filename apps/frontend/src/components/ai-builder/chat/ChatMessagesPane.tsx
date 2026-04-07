@@ -122,9 +122,16 @@ export function ChatMessagesPane({
                 ) : null}
                 {versionForMessage ? (
                   <div className="pl-8 space-y-2">
+                    {(() => {
+                      const latestVersionId = activeDraft?.workflowVersions[activeDraft.workflowVersions.length - 1]?.id;
+                      const versionSetupState = activeDraft?.setupStateByVersionId?.[versionForMessage.id]
+                        || (latestVersionId === versionForMessage.id ? activeDraft?.setupState : undefined);
+                      const executionMode = (versionSetupState?.executionMode || "live") as "live" | "dry-run";
+                      return (
                     <WorkflowCanvasCard
                       version={versionForMessage}
                       theme={theme}
+                      executionMode={executionMode}
                       title={
                         resultIndex === 0
                           ? "Generated Workflow"
@@ -135,6 +142,8 @@ export function ChatMessagesPane({
                         onOpenVersionInBuilder?.(versionForMessage.id)
                       }
                     />
+                      );
+                    })()}
                     {activeDraft &&
                     versionForMessage.id ===
                       activeDraft.workflowVersions[

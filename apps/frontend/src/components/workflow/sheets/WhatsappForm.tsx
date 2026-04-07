@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface WhatsappFormProps {
   metadata: any;
@@ -82,6 +83,8 @@ export const WhatsappForm = ({ metadata, setMetadata }: WhatsappFormProps) => {
           💡 <span className="font-medium text-neutral-300">Auto-notification:</span> WhatsApp messages are sent on workflow events.
         </p>
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };

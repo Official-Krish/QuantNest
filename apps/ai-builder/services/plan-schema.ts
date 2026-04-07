@@ -365,6 +365,42 @@ function hasMeaningfulValue(value: unknown): boolean {
   return String(value).trim().length > 0;
 }
 
+function validateRetryPolicyMetadata(
+  metadata: Record<string, unknown>,
+  issues: AiStrategyValidationIssue[],
+  nodeId: string,
+) {
+  const retryPolicy = metadata.retryPolicy as Record<string, unknown> | undefined;
+  if (!retryPolicy || typeof retryPolicy !== "object") {
+    return;
+  }
+
+  if (retryPolicy.enabled !== true) {
+    return;
+  }
+
+  const maxAttempts = Number(retryPolicy.maxAttempts);
+  const delaySeconds = Number(retryPolicy.delaySeconds);
+  const backoffType = String(retryPolicy.backoffType || "").trim().toLowerCase();
+  const onFinalFailure = String(retryPolicy.onFinalFailure || "").trim().toLowerCase();
+
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
+    pushIssue(issues, "error", "INVALID_GRAPH", "Retry policy maxAttempts must be at least 1.", nodeId, "retryPolicy.maxAttempts");
+  }
+
+  if (!Number.isFinite(delaySeconds) || delaySeconds < 0) {
+    pushIssue(issues, "error", "INVALID_GRAPH", "Retry policy delaySeconds must be 0 or greater.", nodeId, "retryPolicy.delaySeconds");
+  }
+
+  if (!["fixed", "exponential"].includes(backoffType)) {
+    pushIssue(issues, "error", "INVALID_GRAPH", "Retry policy backoffType must be fixed or exponential.", nodeId, "retryPolicy.backoffType");
+  }
+
+  if (!["fail-workflow", "continue"].includes(onFinalFailure)) {
+    pushIssue(issues, "error", "INVALID_GRAPH", "Retry policy onFinalFailure must be fail-workflow or continue.", nodeId, "retryPolicy.onFinalFailure");
+  }
+}
+
 function mergeCriticalActionMissingInputs(plan: AiStrategyWorkflowPlan): void {
   const existing = new Set(plan.missingInputs.map((input) => `${input.nodeId}:${input.field}`));
 
@@ -738,6 +774,8 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
     if (normalizedType === "merge") {
       // Merge is a flow-control node with no required metadata.
     }
+
+    validateRetryPolicyMetadata(metadata, issues, node.nodeId);
 
     if (normalizedType === "if" || normalizedType === "filter") {
       const hasExpression = Boolean((metadata as Record<string, unknown>).expression);

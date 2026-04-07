@@ -42,9 +42,11 @@ export type AiPlanSetupDialogProps = {
   open: boolean;
   result: AiStrategyBuilderResponse | AiStrategyDraftSession | null;
   workflowName: string;
+  executionMode: "live" | "dry-run";
   metadataOverrides: AiMetadataOverrides;
   onOpenChange: (open: boolean) => void;
   onWorkflowNameChange: (value: string) => void;
+  onExecutionModeChange: (value: "live" | "dry-run") => void;
   onMetadataOverridesChange: (value: AiMetadataOverrides) => void;
   onContinue: () => void;
 };

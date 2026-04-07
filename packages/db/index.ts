@@ -236,6 +236,11 @@ const WorkflowSchema = new Schema({
         enum: ["active", "paused"],
         default: "active",
     },
+    executionMode: {
+        type: String,
+        enum: ["live", "dry-run"],
+        default: "live",
+    },
     triggerType: {
         type: String,
         enum: ["timer", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session"],
@@ -316,6 +321,39 @@ const ExrcutionStepSchema = new Schema({
         type: String,
         required: true,
     },
+    attempt: {
+        type: Number,
+        required: false,
+    },
+    maxAttempts: {
+        type: Number,
+        required: false,
+    },
+    retryPolicy: {
+        type: Schema.Types.Mixed,
+        required: false,
+    },
+    backoffType: {
+        type: String,
+        enum: ["fixed", "exponential"],
+        required: false,
+    },
+    backoffSeconds: {
+        type: Number,
+        required: false,
+    },
+    terminalFailure: {
+        type: Boolean,
+        required: false,
+    },
+    simulated: {
+        type: Boolean,
+        required: false,
+    },
+    simulatedPayload: {
+        type: Schema.Types.Mixed,
+        required: false,
+    },
 }, {
     _id: false,
 });
@@ -335,6 +373,11 @@ const ExecutionSchema = new Schema({
         type: String,
         enum: ["Success", "Failed", "InProgress"],
         required: true,
+    },
+    executionMode: {
+        type: String,
+        enum: ["live", "dry-run"],
+        default: "live",
     },
     steps: [ExrcutionStepSchema],
     startTime: {

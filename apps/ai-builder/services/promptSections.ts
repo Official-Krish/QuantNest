@@ -17,6 +17,10 @@ export function buildPlannerPromptSections({
   actionMetadataGuide,
   triggerMetadataGuide,
 }: PlannerPromptSectionsParams): string[] {
+  const retryAwarePrompt = /(retry|retries|retrying|resilien(?:t|ce)|fault tolerance|fallback|tolerance|backoff|continue on failure|error handling)/i.test(
+    `${input.prompt} ${(input.constraints || []).join(" ")}`,
+  );
+
   return [
     "You are an AI workflow planner for QuantNest Trading.",
     "Return only valid JSON. Do not include markdown fences or extra commentary.",
@@ -145,6 +149,17 @@ export function buildPlannerPromptSections({
     "- If user asks to close position after profit/loss: add explicit 'exit' or broker SELL order, not just condition.",
     "- Use sourceHandle='true' and sourceHandle='false' for if-node and recheck-node branches.",
     "",
+    retryAwarePrompt
+      ? [
+          "RETRY / ERROR HANDLING:",
+          "- When the user asks for retries, retrying, resilience, tolerance, fallback behavior, or backoff, add retryPolicy to the relevant action nodes.",
+          "- retryPolicy shape: { enabled: true, maxAttempts: number, backoffType: 'fixed' | 'exponential', delaySeconds: number, onFinalFailure: 'fail-workflow' | 'continue' }.",
+          "- Only retry executable action failures. Do not retry validation or configuration errors.",
+          "- Use fixed backoff as a constant delay between attempts; use exponential backoff to double the wait after each retry attempt.",
+          "- If the user wants a fallback outcome, model it explicitly with downstream fallback actions or continue-on-final-failure behavior.",
+          "- If the user requests resilience without a separate fallback action, keep the main graph intact and set onFinalFailure based on the requested behavior.",
+        ].join("\n")
+      : "",
     "CREDENTIALS & MISSING INPUTS:",
     "- For notification/reporting actions needing credentials (Slack token, Gmail email, etc.), add to missingInputs array.",
     "- For postgres action, if connectionString or tableName is not provided, add both fields to missingInputs (required=true; connectionString is secret=true).",

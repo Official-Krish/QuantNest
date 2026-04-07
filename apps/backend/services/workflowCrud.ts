@@ -11,6 +11,7 @@ export async function createWorkflowForUser(params: {
   workflowName: string;
   nodes: WorkflowNodeInput;
   edges: WorkflowEdgeInput;
+  executionMode?: "live" | "dry-run";
 }) {
   await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);
 
@@ -19,6 +20,7 @@ export async function createWorkflowForUser(params: {
     userId: params.userId,
     nodes: params.nodes,
     edges: params.edges,
+    executionMode: params.executionMode || "live",
     status: "active",
     ...deriveWorkflowTriggerState(params.nodes as any),
   });
@@ -42,18 +44,25 @@ export async function updateWorkflowForUser(params: {
   workflowId: string;
   nodes: WorkflowNodeInput;
   edges: WorkflowEdgeInput;
+  executionMode?: "live" | "dry-run";
 }) {
   await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);
+
+  const nextSet: Record<string, unknown> = {
+    nodes: params.nodes,
+    edges: params.edges,
+    updatedAt: new Date(),
+    ...deriveWorkflowTriggerState(params.nodes as any),
+  };
+
+  if (params.executionMode) {
+    nextSet.executionMode = params.executionMode;
+  }
 
   return WorkflowModel.findOneAndUpdate(
     { _id: params.workflowId, userId: params.userId },
     {
-      $set: {
-        nodes: params.nodes,
-        edges: params.edges,
-        updatedAt: new Date(),
-        ...deriveWorkflowTriggerState(params.nodes as any),
-      },
+      $set: nextSet,
     },
     { new: true },
   );
@@ -85,6 +94,23 @@ export async function updateWorkflowStatusForUser(params: {
   );
 
   return workflow;
+}
+
+export async function updateWorkflowExecutionModeForUser(params: {
+  userId?: string;
+  workflowId: string;
+  executionMode: "live" | "dry-run";
+}) {
+  return WorkflowModel.findOneAndUpdate(
+    { _id: params.workflowId, userId: params.userId },
+    {
+      $set: {
+        executionMode: params.executionMode,
+        updatedAt: new Date(),
+      },
+    },
+    { new: true },
+  );
 }
 
 export async function listWorkflowsForUser(userId?: string) {

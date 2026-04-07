@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGetAllWorkflows } from "@/http";
 import type { Workflow } from "@/types/api";
-import { Button } from "@/components/ui/button";
 import { WorkflowTable } from "../components/dashboard/WorkflowTable";
 import { AppBackground } from "@/components/background";
+import { OrangeButton } from "@/components/ui/button-orange";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -34,16 +34,6 @@ export const Dashboard = () => {
     void loadWorkflows();
   }, []);
 
-  const totalNodes = useMemo(
-    () => workflows.reduce((acc, w) => acc + (w.nodes?.length ?? 0), 0),
-    [workflows],
-  );
-
-  const totalEdges = useMemo(
-    () => workflows.reduce((acc, w) => acc + (w.edges?.length ?? 0), 0),
-    [workflows],
-  );
-
   return (
     <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-6 pt-36 text-white md:px-10">
       <AppBackground />
@@ -61,42 +51,15 @@ export const Dashboard = () => {
             </p>
           </div>
           <div className="flex flex-col items-end gap-3">
-            <Button
-              className="bg-white px-5 py-2 text-xs font-medium text-neutral-900 hover:bg-gray-200 md:text-sm cursor-pointer"
+            <OrangeButton
+              className="px-5 py-2 text-xs font-medium text-neutral-100 md:text-sm cursor-pointer"
               onClick={() => navigate("/create/onboarding")}
             >
               + Create new workflow
-            </Button>
+            </OrangeButton>
             {error && (
               <p className="max-w-xs text-xs text-red-300">{error}</p>
             )}
-          </div>
-        </section>
-
-        <section className="grid gap-4 text-sm text-neutral-200 md:grid-cols-3">
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
-              Total workflows
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-white">
-              {loading ? "—" : workflows.length}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
-              Nodes across workflows
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-white">
-              {loading ? "—" : totalNodes}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
-              Connections
-            </p>
-            <p className="mt-3 text-3xl font-semibold text-white">
-              {loading ? "—" : totalEdges}
-            </p>
           </div>
         </section>
 
@@ -123,12 +86,12 @@ export const Dashboard = () => {
           ) : workflows.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center text-center text-sm text-neutral-400">
               <p>No workflows yet.</p>
-              <Button
-                className="mt-4 bg-white px-4 py-2 text-xs font-medium text-neutral-900 hover:bg-gray-200 md:text-sm"
+              <OrangeButton
+                className="mt-4 px-4 py-2 text-xs font-medium text-neutral-100 md:text-sm"
                 onClick={() => navigate("/create/onboarding")}
               >
                 Start your first workflow
-              </Button>
+              </OrangeButton>
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-neutral-800/80 bg-neutral-950/60">

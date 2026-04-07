@@ -29,8 +29,10 @@ type UseAiDraftRestoreParams = {
   activeDraft: AiStrategyDraftSession | null;
   activeVersionId: string;
   workflowName: string;
+  executionMode: "live" | "dry-run";
   metadataOverrides: AiMetadataOverrides;
   setWorkflowName: (value: string) => void;
+  setExecutionMode: (value: "live" | "dry-run") => void;
   setMetadataOverrides: (value: AiMetadataOverrides) => void;
   setActiveDraft: (value: AiStrategyDraftSession) => void;
 };
@@ -49,8 +51,10 @@ export function useAiDraftRestore({
   activeDraft,
   activeVersionId,
   workflowName,
+  executionMode,
   metadataOverrides,
   setWorkflowName,
+  setExecutionMode,
   setMetadataOverrides,
   setActiveDraft,
 }: UseAiDraftRestoreParams) {
@@ -123,13 +127,14 @@ export function useAiDraftRestore({
     );
     if (!selectedVersion) return;
 
-    const nextSetupState = { workflowName, metadataOverrides };
+    const nextSetupState = { workflowName, metadataOverrides, executionMode };
     const existing = {
       workflowName:
         selectedSetupState?.workflowName ||
         selectedVersion.response.plan.workflowName ||
         "",
       metadataOverrides: selectedSetupState?.metadataOverrides || {},
+      executionMode: (selectedSetupState?.executionMode || "live") as "live" | "dry-run",
     };
 
     if (JSON.stringify(nextSetupState) === JSON.stringify(existing)) {
@@ -150,6 +155,7 @@ export function useAiDraftRestore({
   }, [
     activeDraft,
     activeVersionId,
+    executionMode,
     metadataOverrides,
     setActiveDraft,
     workflowName,
@@ -167,6 +173,7 @@ export function useAiDraftRestore({
         setWorkflowName(
           payload.setupState?.workflowName || payload.version.response.plan.workflowName,
         );
+        setExecutionMode((payload.setupState?.executionMode || "live") as "live" | "dry-run");
         setMetadataOverrides(payload.setupState?.metadataOverrides || {});
       })
       .catch(() => {
@@ -184,6 +191,7 @@ export function useAiDraftRestore({
         setWorkflowName(
           fallbackSetupState?.workflowName || fallbackVersion.response.plan.workflowName,
         );
+        setExecutionMode((fallbackSetupState?.executionMode || "live") as "live" | "dry-run");
         setMetadataOverrides(fallbackSetupState?.metadataOverrides || {});
       });
 
@@ -193,6 +201,7 @@ export function useAiDraftRestore({
   }, [
     activeDraft,
     activeVersionId,
+    setExecutionMode,
     setMetadataOverrides,
     setWorkflowName,
   ]);

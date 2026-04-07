@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface TradingFormProps {
   metadata: TradingMetadata | {};
@@ -331,6 +332,8 @@ export const TradingForm = ({
             </div>
         </div>
       )}
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };

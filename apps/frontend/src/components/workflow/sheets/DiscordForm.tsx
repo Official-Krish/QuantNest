@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface DiscordFormProps {
   metadata: any;
@@ -86,6 +87,8 @@ export const DiscordForm = ({ metadata, setMetadata }: DiscordFormProps) => {
           To get a webhook URL: Server Settings → Integrations → Webhooks → New Webhook
         </p>
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };

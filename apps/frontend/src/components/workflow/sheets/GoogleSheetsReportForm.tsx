@@ -3,6 +3,7 @@ import { apiGetGoogleSheetsServiceAccount, apiVerifyGoogleSheets } from "@/http"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { ReliabilitySection } from "./ReliabilitySection";
 
 interface GoogleSheetsReportFormProps {
   metadata: any;
@@ -188,6 +189,8 @@ export const GoogleSheetsReportForm = ({
           <p className="mt-1 text-xs text-neutral-500">Spreadsheet ID: {metadata.sheetId}</p>
         ) : null}
       </div>
+
+      <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
   );
 };
