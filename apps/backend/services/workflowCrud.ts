@@ -13,20 +13,23 @@ export async function createWorkflowForUser(params: {
   edges: WorkflowEdgeInput;
   executionMode?: "live" | "dry-run";
 }) {
-  await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);
+  const executionMode = params.executionMode || "live";
+  if (executionMode === "live") {
+    await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);
+  }
 
   const workflow = await WorkflowModel.create({
     workflowName: params.workflowName,
     userId: params.userId,
     nodes: params.nodes,
     edges: params.edges,
-    executionMode: params.executionMode || "live",
+    executionMode,
     status: "active",
     ...deriveWorkflowTriggerState(params.nodes as any),
   });
 
   const zerodhaNode = params.nodes.find((node) => String(node?.type || "").toLowerCase() === "zerodha");
-  if (zerodhaNode) {
+  if (executionMode === "live" && zerodhaNode) {
     const resolvedMetadata = await resolveNodeMetadataSecrets({
       userId: params.userId,
       service: "zerodha",
@@ -46,7 +49,15 @@ export async function updateWorkflowForUser(params: {
   edges: WorkflowEdgeInput;
   executionMode?: "live" | "dry-run";
 }) {
-  await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);
+  const existingWorkflow = await WorkflowModel.findOne({
+    _id: params.workflowId,
+    userId: params.userId,
+  }).select({ executionMode: 1 });
+
+  const effectiveExecutionMode = params.executionMode || existingWorkflow?.executionMode || "live";
+  if (effectiveExecutionMode === "live") {
+    await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);
+  }
 
   const nextSet: Record<string, unknown> = {
     nodes: params.nodes,

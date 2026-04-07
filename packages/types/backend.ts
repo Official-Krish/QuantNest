@@ -114,6 +114,59 @@ function validateWorkflowNodes(
         const metadata = node.data?.metadata || {};
         const path = ["nodes", index, "data", "metadata"] as const;
 
+        const retryPolicy = (metadata as any).retryPolicy;
+        if (retryPolicy !== undefined) {
+            const enabled = (retryPolicy as any)?.enabled;
+            const maxAttempts = Number((retryPolicy as any)?.maxAttempts);
+            const delaySeconds = Number((retryPolicy as any)?.delaySeconds);
+            const backoffType = String((retryPolicy as any)?.backoffType || "").trim().toLowerCase();
+            const onFinalFailure = String((retryPolicy as any)?.onFinalFailure || "").trim().toLowerCase();
+
+            if (enabled !== undefined && typeof enabled !== "boolean") {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "retryPolicy", "enabled"],
+                    message: "retryPolicy.enabled must be a boolean.",
+                });
+            }
+
+            if ((retryPolicy as any)?.maxAttempts !== undefined) {
+                if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "retryPolicy", "maxAttempts"],
+                        message: "retryPolicy.maxAttempts must be an integer between 1 and 10.",
+                    });
+                }
+            }
+
+            if ((retryPolicy as any)?.delaySeconds !== undefined) {
+                if (!Number.isFinite(delaySeconds) || delaySeconds < 0 || delaySeconds > 300) {
+                    ctx.addIssue({
+                        code: "custom",
+                        path: [...path, "retryPolicy", "delaySeconds"],
+                        message: "retryPolicy.delaySeconds must be between 0 and 300.",
+                    });
+                }
+            }
+
+            if ((retryPolicy as any)?.backoffType !== undefined && !["fixed", "exponential"].includes(backoffType)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "retryPolicy", "backoffType"],
+                    message: "retryPolicy.backoffType must be fixed or exponential.",
+                });
+            }
+
+            if ((retryPolicy as any)?.onFinalFailure !== undefined && !["fail-workflow", "continue"].includes(onFinalFailure)) {
+                ctx.addIssue({
+                    code: "custom",
+                    path: [...path, "retryPolicy", "onFinalFailure"],
+                    message: "retryPolicy.onFinalFailure must be fail-workflow or continue.",
+                });
+            }
+        }
+
         const qty = Number((metadata as any).qty);
         if (["zerodha", "groww", "lighter"].includes(type)) {
             if (!Number.isFinite(qty) || qty <= 0) {

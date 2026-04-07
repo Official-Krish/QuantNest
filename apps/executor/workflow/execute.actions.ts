@@ -9,7 +9,7 @@ export async function executeActionNode(params: ExecuteActionNodeParams): Promis
   const registryEntry = getNodeRegistryEntry(type);
   const handlerId = registryEntry?.executorActionHandlerId;
   const reusableSecretService = registryEntry?.reusableSecretService;
-  const resolvedMetadata = reusableSecretService
+  const resolvedMetadata = reusableSecretService && context.executionMode !== "dry-run"
     ? await resolveExecutorNodeSecrets({
         userId: context.userId,
         service: reusableSecretService as Parameters<typeof resolveExecutorNodeSecrets>[0]["service"],

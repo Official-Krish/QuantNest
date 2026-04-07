@@ -241,7 +241,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         executorActionHandlerId: "noop",
         aiAllowed: true,
         aiPreferredAction: true,
-        metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression", "retryPolicy"],
+        metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
     },
     {
         id: "filter",
@@ -255,7 +255,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         executorActionHandlerId: "noop",
         aiAllowed: true,
         aiPreferredAction: true,
-        metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression", "retryPolicy"],
+        metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
     },
     {
         id: "recheck",
@@ -280,7 +280,6 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
             "targetPrice",
             "timeWindowMinutes",
             "expression",
-            "retryPolicy",
         ],
     },
     {
@@ -295,7 +294,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         executorActionHandlerId: "delay",
         aiAllowed: true,
         aiPreferredAction: true,
-        metadataFields: ["durationSeconds", "retryPolicy"],
+        metadataFields: ["durationSeconds"],
     },
     {
         id: "merge",
