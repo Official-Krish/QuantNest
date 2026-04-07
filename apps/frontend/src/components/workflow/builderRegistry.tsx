@@ -4,6 +4,7 @@ import { BreakoutRetestTrigger } from "@/components/nodes/triggers/BreakoutRetes
 import { Timer } from "@/components/nodes/triggers/timers";
 import { conditionTrigger } from "@/components/nodes/triggers/condtional";
 import { MarketSessionTrigger } from "@/components/nodes/triggers/MarketSessionTrigger";
+import { PortfolioPnlDrawdownTrigger } from "@/components/nodes/triggers/PortfolioPnlDrawdownTrigger";
 import { zerodhaAction } from "@/components/nodes/actions/zerodha";
 import { growwAction } from "@/components/nodes/actions/growwAction";
 import { lighterAction } from "@/components/nodes/actions/lighterAction";
@@ -26,6 +27,7 @@ import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
 import { MarketSessionTriggerForm } from "./sheets/MarketSessionTriggerForm";
+import { PortfolioPnlDrawdownTriggerForm } from "./sheets/PortfolioPnlDrawdownTriggerForm";
 import { TradingForm } from "./sheets/TradingForm";
 import { GmailForm } from "./sheets/GmailForm";
 import { SlackForm } from "./sheets/SlackForm";
@@ -57,6 +59,7 @@ export const builderNodeRenderers = {
   "breakout-retest-trigger": BreakoutRetestTrigger,
   "conditional-trigger": conditionTrigger,
   "market-session": MarketSessionTrigger,
+  "portfolio-pnl-drawdown-trigger": PortfolioPnlDrawdownTrigger,
   zerodha: zerodhaAction,
   groww: growwAction,
   lighter: lighterAction,
@@ -82,6 +85,7 @@ export const builderFormRegistry = {
   "breakout-retest-trigger": BreakoutRetestTriggerForm,
   conditional: ConditionalTriggerForm,
   "market-session": MarketSessionTriggerForm,
+  "portfolio-pnl-drawdown-trigger": PortfolioPnlDrawdownTriggerForm,
   trading: TradingForm,
   gmail: GmailForm,
   slack: SlackForm,
@@ -163,6 +167,15 @@ export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProp
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
           setMarketType={props.setMarketType!}
+          marketType={props.marketType ?? null}
+        />
+      );
+    case "portfolio-pnl-drawdown-trigger":
+      return (
+        <PortfolioPnlDrawdownTriggerForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+          setMarketType={props.setMarketType}
           marketType={props.marketType ?? null}
         />
       );

@@ -6,3 +6,5 @@ export {
   handleConditionalTrigger,
 } from "./triggers/conditional";
 export { handleMarketSessionTrigger } from "./triggers/market-session";
+
+export { handlePortfolioPnlDrawdownTrigger } from "./triggers/portfolio-pnl-drawdown";

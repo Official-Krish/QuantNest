@@ -29,7 +29,7 @@ export type WorkflowType = {
     workflowName: string;
     status?: "active" | "paused";
     executionMode?: "live" | "dry-run";
-    triggerType?: "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
+    triggerType?: "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session" | "portfolio-pnl-drawdown-trigger";
     triggerNodeId?: string;
     triggerConfig?: {
         intervalSeconds?: number;

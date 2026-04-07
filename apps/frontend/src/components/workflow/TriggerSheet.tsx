@@ -18,10 +18,11 @@ import { ArrowLeft } from "lucide-react";
 import { SUPPORTED_TRIGGERS } from "./sheets/constants";
 import { TriggerTypeSelector } from "./sheets/TriggerTypeSelector";
 import { renderBuilderForm } from "./builderRegistry";
+import { getPortfolioRiskValidationErrors } from "@/lib/validation";
 
-type SupportedTriggerKind = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
+type SupportedTriggerKind = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session" | "portfolio-pnl-drawdown-trigger";
 
-const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = ["timer", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session"];
+const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = ["timer", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session", "portfolio-pnl-drawdown-trigger"];
 
 const isSupportedTriggerKind = (kind: string): kind is SupportedTriggerKind => {
   return SUPPORTED_TRIGGER_KINDS.includes(kind as SupportedTriggerKind);
@@ -57,6 +58,11 @@ export const TriggerSheet = ({
   const focusAnchorRef = useRef<HTMLDivElement | null>(null);
 
   const selectedTriggerConfig = SUPPORTED_TRIGGERS.find((trigger) => trigger.id === selectedTrigger);
+  const portfolioValidationErrors =
+    selectedTrigger === "portfolio-pnl-drawdown-trigger"
+      ? getPortfolioRiskValidationErrors(metadata as Record<string, unknown>)
+      : [];
+  const canCreateTrigger = Boolean(selectedTrigger) && portfolioValidationErrors.length === 0;
 
   useEffect(() => {
     if (!open) return;
@@ -213,6 +219,12 @@ export const TriggerSheet = ({
                           marketType,
                         })
                       : null}
+
+                    {portfolioValidationErrors.length > 0 ? (
+                      <div className="rounded-2xl border border-[#f17463]/35 bg-[#f17463]/8 px-3 py-2 text-xs leading-5 text-neutral-300">
+                        {portfolioValidationErrors[0]}
+                      </div>
+                    ) : null}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -224,7 +236,7 @@ export const TriggerSheet = ({
               <OrangeButton
                 fullWidth
                 className="py-3 text-sm font-medium"
-                disabled={!selectedTrigger}
+                disabled={!canCreateTrigger}
                 onClick={handleCreate}
               >
                 {submitLabel ?? "Create trigger"}

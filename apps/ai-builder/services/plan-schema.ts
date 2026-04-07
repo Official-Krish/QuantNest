@@ -16,7 +16,7 @@ import { getNodeRegistryEntry, NODE_METADATA_FIELD_LABELS } from "@quantnest-tra
 import { AiBuilderError } from "../errors";
 
 const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
-const TRIGGER_TYPES = new Set(["timer", "price", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session"]);
+const TRIGGER_TYPES = new Set(["timer", "price", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session", "portfolio-pnl-drawdown-trigger"]);
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
 const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter", "recheck"]);
 const CRITICAL_ACTION_FIELDS = new Set([
@@ -955,6 +955,81 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
             node.nodeId,
             "endTime",
           );
+        }
+      }
+    }
+
+    if (normalizedType === "portfolio-pnl-drawdown-trigger") {
+      const broker = String(metadata.broker || "").trim().toLowerCase();
+      const mode = String(metadata.mode || "").trim().toLowerCase();
+      const thresholdUnit = String(metadata.thresholdUnit || "").trim().toLowerCase();
+      const thresholdValue = Number(metadata.thresholdValue);
+      const hasSecret = Boolean(String(metadata.secretId || "").trim());
+
+      if (!["zerodha", "groww", "lighter"].includes(broker)) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Portfolio PnL / drawdown trigger must include broker zerodha, groww, or lighter.",
+          node.nodeId,
+          "broker",
+        );
+      }
+
+      if (!["daily-loss-cap", "profit-target", "drawdown-limit"].includes(mode)) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Portfolio PnL / drawdown trigger must use daily-loss-cap, profit-target, or drawdown-limit.",
+          node.nodeId,
+          "mode",
+        );
+      }
+
+      if (!["absolute", "percent"].includes(thresholdUnit)) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Portfolio PnL / drawdown trigger thresholdUnit must be absolute or percent.",
+          node.nodeId,
+          "thresholdUnit",
+        );
+      }
+
+      if (!Number.isFinite(thresholdValue) || thresholdValue <= 0) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Portfolio PnL / drawdown trigger thresholdValue must be greater than 0.",
+          node.nodeId,
+          "thresholdValue",
+        );
+      }
+
+      if (!hasSecret) {
+        const missingCredentialFields = broker === "lighter"
+          ? ["apiKey", "accountIndex", "apiKeyIndex"]
+          : broker === "zerodha"
+            ? ["apiKey", "accessToken"]
+            : ["accessToken"];
+
+        for (const field of missingCredentialFields) {
+          const value = metadata[field];
+          const missing = value === undefined || value === null || String(value).trim() === "";
+          if (missing) {
+            pushIssue(
+              issues,
+              "warning",
+              "MISSING_SECRET_PLACEHOLDER",
+              `Portfolio PnL / drawdown trigger is missing ${field}; user must select a saved secret or provide it before live execution.`,
+              node.nodeId,
+              field,
+            );
+          }
         }
       }
     }

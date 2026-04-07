@@ -226,6 +226,33 @@ export function PreviewMarketSession({ data }: any) {
   );
 }
 
+export function PreviewPortfolioPnlDrawdownTrigger({ data }: any) {
+  const {
+    broker = "zerodha",
+    mode = "daily-loss-cap",
+    thresholdUnit = "absolute",
+    thresholdValue = 0,
+  } = data.metadata || {};
+  const brokerLabel = String(broker).charAt(0).toUpperCase() + String(broker).slice(1);
+  const modeLabel = String(mode).replaceAll("-", " ");
+  const threshold = thresholdUnit === "percent"
+    ? `${thresholdValue}%`
+    : `${broker === "lighter" ? "USD" : "INR"} ${thresholdValue}`;
+
+  return (
+    <PreviewShell
+      accent="#fb7185"
+      tone="trigger"
+      kindBadge="Trigger"
+      label="Portfolio risk"
+      badge={brokerLabel}
+      title={modeLabel}
+      subtitle={`Fire once at ${threshold}`}
+      showTarget={false}
+    />
+  );
+}
+
 export function PreviewIf({ data }: any) {
   const groups = data.metadata?.expression?.conditions?.length || 1;
   return (
@@ -415,6 +442,7 @@ export const aiPreviewNodeTypes = {
   timer: PreviewTimer,
   "conditional-trigger": PreviewConditional,
   "market-session": PreviewMarketSession,
+  "portfolio-pnl-drawdown-trigger": PreviewPortfolioPnlDrawdownTrigger,
   if: PreviewIf,
   filter: PreviewFilter,
   delay: PreviewDelay,

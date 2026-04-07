@@ -23,6 +23,7 @@ function formatNodeTypeLabel(type: string) {
     timer: "Timer",
     "conditional-trigger": "Condition",
     "market-session": "Session",
+    "portfolio-pnl-drawdown-trigger": "Portfolio Risk",
     if: "If",
     filter: "Filter",
     recheck: "Re-check",

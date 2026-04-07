@@ -6,6 +6,7 @@ export type NodeKind =
     | "breakout-retest-trigger"
     | "conditional-trigger"
     | "market-session"
+    | "portfolio-pnl-drawdown-trigger"
     | "if"
     | "filter"
     | "recheck"
@@ -47,6 +48,7 @@ export type NodeMetadata =
     | PriceTriggerNodeMetadata
     | BreakoutRetestTriggerMetadata
     | MarketSessionTriggerNodeMetadata
+    | PortfolioPnlDrawdownTriggerMetadata
     | NotificationMetadata
     | DelayNodeMetadata
     | MergeNodeMetadata
@@ -146,6 +148,18 @@ export interface MarketSessionTriggerNodeMetadata {
     event: "market-open" | "market-close" | "at-time" | "pause-at-time" | "session-window";
     triggerTime?: string; // HH:MM format, required for time-based events
     endTime?: string; // HH:MM format, required for session-window events
+}
+
+export interface PortfolioPnlDrawdownTriggerMetadata {
+    broker: "zerodha" | "groww" | "lighter";
+    mode: "daily-loss-cap" | "profit-target" | "drawdown-limit";
+    thresholdValue: number;
+    thresholdUnit: "absolute" | "percent";
+    secretId?: string;
+    apiKey?: string;
+    accessToken?: string;
+    accountIndex?: number;
+    apiKeyIndex?: number;
 }
 
 export interface TradingMetadata {

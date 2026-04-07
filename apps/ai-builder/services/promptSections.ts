@@ -36,7 +36,7 @@ export function buildPlannerPromptSections({
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | if | filter | recheck | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report | postgres",
+            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | portfolio-pnl-drawdown-trigger | if | filter | recheck | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report | postgres",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -108,6 +108,9 @@ export function buildPlannerPromptSections({
     "- For root group operator: use 'AND' only when joining multiple inner groups where all groups must match; use 'OR' when any group can match.",
     "- For market-session: if single time point (e.g., 'at 3:20'), use event='at-time'. If range (e.g., '7 PM to 2 AM'), use event='session-window'.",
     "- market-session trigger metadata must include: marketType ('indian' or 'web3'), event, triggerTime (HH:MM), and endTime (if session-window).",
+    "- For portfolio-pnl-drawdown-trigger, metadata must include broker ('zerodha', 'groww', or 'lighter'), mode ('daily-loss-cap', 'profit-target', or 'drawdown-limit'), thresholdValue, thresholdUnit ('absolute' or 'percent'), and secretId if the user references a saved credential.",
+    "- Use portfolio-pnl-drawdown-trigger for account-level phrases like daily loss cap, profit target reached, account drawdown, pause after loss exceeds, or stop/notify once portfolio PnL crosses a limit.",
+    "- Portfolio risk triggers are account-level and one-shot; do not add marketType/asset unless another downstream condition explicitly needs it.",
     "- Always align marketType: use 'indian' for Indian requests, 'web3' for Crypto/Bitcoin requests.",
     "",
     "BRANCHING LOGIC:",

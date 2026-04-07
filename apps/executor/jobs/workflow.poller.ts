@@ -6,6 +6,7 @@ import {
   processBreakoutRetestWorkflows,
   processConditionalWorkflows,
   processMarketSessionWorkflows,
+  processPortfolioPnlDrawdownWorkflows,
   processPriceWorkflows,
   processTimerWorkflows,
 } from "./trigger-processors";
@@ -16,6 +17,7 @@ const triggerProcessorMap: Record<ExecutorTriggerProcessorId, (now: Date) => Pro
   "breakout-retest-trigger": processBreakoutRetestWorkflows,
   "conditional-trigger": processConditionalWorkflows,
   "market-session": processMarketSessionWorkflows,
+  "portfolio-pnl-drawdown-trigger": processPortfolioPnlDrawdownWorkflows,
 };
 
 const registryTriggerProcessors = NODE_REGISTRY

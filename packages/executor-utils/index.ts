@@ -11,7 +11,7 @@ export interface TokenStatus {
 }
 
 export interface DerivedWorkflowTriggerState {
-    triggerType?: "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
+    triggerType?: "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session" | "portfolio-pnl-drawdown-trigger";
     triggerNodeId?: string;
     triggerConfig?: Record<string, unknown>;
     nextRunAt?: Date;
@@ -362,6 +362,22 @@ export function deriveWorkflowTriggerState(
             marketType: rawMetadata.marketType,
             event: rawMetadata.event,
             triggerTime: rawMetadata.triggerTime,
+            endTime: rawMetadata.endTime,
+        };
+        return nextState;
+    }
+
+    if (triggerType === "portfolio-pnl-drawdown-trigger") {
+        nextState.triggerConfig = {
+            broker: rawMetadata.broker,
+            mode: rawMetadata.mode,
+            thresholdValue: rawMetadata.thresholdValue,
+            thresholdUnit: rawMetadata.thresholdUnit,
+            secretId: rawMetadata.secretId,
+            apiKey: rawMetadata.apiKey,
+            accessToken: rawMetadata.accessToken,
+            accountIndex: rawMetadata.accountIndex,
+            apiKeyIndex: rawMetadata.apiKeyIndex,
         };
         return nextState;
     }

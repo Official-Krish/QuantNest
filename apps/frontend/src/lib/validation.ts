@@ -229,3 +229,69 @@ export function getTradingValidationErrors(
 
   return errors;
 }
+
+export function getPortfolioRiskValidationErrors(metadata: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+  const broker = String(metadata.broker || "").trim().toLowerCase();
+  const mode = String(metadata.mode || "").trim().toLowerCase();
+  const thresholdUnit = String(metadata.thresholdUnit || "").trim().toLowerCase();
+  const thresholdValue = Number(metadata.thresholdValue);
+  const secretId = String(metadata.secretId || "").trim();
+
+  if (!["zerodha", "groww", "lighter"].includes(broker)) {
+    errors.push("Select a valid broker account.");
+  }
+
+  if (!["daily-loss-cap", "profit-target", "drawdown-limit"].includes(mode)) {
+    errors.push("Select a valid portfolio risk mode.");
+  }
+
+  if (!["absolute", "percent"].includes(thresholdUnit)) {
+    errors.push("Select a valid threshold type.");
+  }
+
+  if (!Number.isFinite(thresholdValue) || thresholdValue <= 0) {
+    errors.push("Threshold value must be greater than 0.");
+  }
+
+  if (secretId) {
+    return errors;
+  }
+
+  if (broker === "zerodha") {
+    if (!ZERODHA_API_KEY_REGEX.test(String(metadata.apiKey || "").trim())) {
+      errors.push("Enter a valid Zerodha API key.");
+    }
+
+    const accessToken = String(metadata.accessToken || "").trim();
+    if (!accessToken) {
+      errors.push("Enter a Zerodha access token.");
+    } else if (!ACCESS_TOKEN_REGEX.test(accessToken)) {
+      errors.push("Enter a valid Zerodha access token.");
+    }
+  }
+
+  if (broker === "groww") {
+    const accessToken = String(metadata.accessToken || "").trim();
+    if (!ACCESS_TOKEN_REGEX.test(accessToken)) {
+      errors.push("Enter a valid Groww access token.");
+    }
+  }
+
+  if (broker === "lighter") {
+    if (!LIGHTER_PRIVATE_KEY_REGEX.test(String(metadata.apiKey || "").trim())) {
+      errors.push("Enter a valid Lighter private key.");
+    }
+
+    const accountIndex = Number(metadata.accountIndex);
+    const apiKeyIndex = Number(metadata.apiKeyIndex);
+    if (!Number.isInteger(accountIndex) || accountIndex < 0) {
+      errors.push("Enter a valid Lighter account index.");
+    }
+    if (!Number.isInteger(apiKeyIndex) || apiKeyIndex < 0) {
+      errors.push("Enter a valid Lighter API key index.");
+    }
+  }
+
+  return errors;
+}
