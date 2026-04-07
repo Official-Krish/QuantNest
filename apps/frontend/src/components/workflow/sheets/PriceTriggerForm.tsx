@@ -33,6 +33,24 @@ export const PriceTriggerForm = ({
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   useEffect(() => {
+    const mode = String(metadata.mode || "threshold").toLowerCase();
+    const condition = String(metadata.condition || "").trim().toLowerCase();
+
+    if (mode === "change") {
+      return;
+    }
+
+    if (condition === "above" || condition === "below") {
+      return;
+    }
+
+    setMetadata((current: any) => ({
+      ...current,
+      condition: "above",
+    }));
+  }, [metadata.condition, metadata.mode, setMetadata]);
+
+  useEffect(() => {
     const asset = metadata.asset;
     const activeMarket = marketType || (metadata.marketType as "Indian" | "Crypto" | null);
     if (!asset || !activeMarket) {

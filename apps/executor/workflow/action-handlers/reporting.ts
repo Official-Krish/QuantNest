@@ -27,6 +27,22 @@ export const notionActionHandler: ActionHandler = async ({
     operation: async () => {
       if (!context.workflowId) throw new ActionConfigurationError("Workflow ID is required to generate daily report");
       if (!context.userId) throw new ActionConfigurationError("User ID is required to generate daily report");
+
+      if (context.executionMode === "dry-run") {
+        return {
+          message: "[Dry Run] Would create Notion daily report",
+          simulatedPayload: {
+            service: "notion-daily-report",
+            workflowId: context.workflowId,
+            nodeId: node.nodeId,
+            metadata: {
+              parentPageId: (resolvedMetadata as any)?.parentPageId,
+              aiConsent: (resolvedMetadata as any)?.aiConsent,
+            },
+          },
+        };
+      }
+
       if (!isNotionReportWindowOpen()) throw new ActionConfigurationError("Notion report window is closed.");
       if (await wasNotionReportCreatedToday(context.workflowId, node.nodeId)) throw new ActionConfigurationError("Notion report already created today.");
 
@@ -83,6 +99,23 @@ export const googleDriveActionHandler: ActionHandler = async ({
     operation: async () => {
       if (!context.workflowId) throw new ActionConfigurationError("Workflow ID is required to export Google Drive CSV");
       if (!context.userId) throw new ActionConfigurationError("User ID is required to export Google Drive CSV");
+
+      if (context.executionMode === "dry-run") {
+        return {
+          message: "[Dry Run] Would export daily CSV to Google Drive",
+          simulatedPayload: {
+            service: "google-drive-daily-csv",
+            workflowId: context.workflowId,
+            nodeId: node.nodeId,
+            metadata: {
+              googleDriveFolderId: (resolvedMetadata as any)?.googleDriveFolderId,
+              filePrefix: (resolvedMetadata as any)?.filePrefix,
+              aiConsent: (resolvedMetadata as any)?.aiConsent,
+            },
+          },
+        };
+      }
+
       if (!isNotionReportWindowOpen()) throw new ActionConfigurationError("Google Drive report window is closed.");
       if (await wasDailyActionCreatedToday(context.workflowId, node.nodeId, "Google Drive Daily CSV")) {
         throw new ActionConfigurationError("Google Drive CSV report already created today.");
@@ -142,6 +175,22 @@ export const googleSheetsActionHandler: ActionHandler = async ({
     operation: async () => {
       if (!context.workflowId) throw new ActionConfigurationError("Workflow ID is required to append Google Sheets report");
       if (!context.userId) throw new ActionConfigurationError("User ID is required to append Google Sheets report");
+
+      if (context.executionMode === "dry-run") {
+        return {
+          message: "[Dry Run] Would append execution row to Google Sheets",
+          simulatedPayload: {
+            service: "google-sheets-report",
+            workflowId: context.workflowId,
+            nodeId: node.nodeId,
+            metadata: {
+              sheetUrl: (resolvedMetadata as any)?.sheetUrl,
+              sheetId: (resolvedMetadata as any)?.sheetId,
+              sheetName: (resolvedMetadata as any)?.sheetName,
+            },
+          },
+        };
+      }
 
       const updatedRange = await createGoogleSheetsExecutionReport({
         workflowId: context.workflowId,

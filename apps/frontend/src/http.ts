@@ -255,6 +255,17 @@ export async function apiUpdateWorkflowStatus(
   return res.data;
 }
 
+export async function apiUpdateWorkflowExecutionMode(
+  workflowId: string,
+  executionMode: "live" | "dry-run",
+): Promise<{ message: string; workflow: Workflow }> {
+  const res = await api.patch<{ message: string; workflow: Workflow }>(
+    `/workflow/${workflowId}/execution-mode`,
+    { executionMode },
+  );
+  return res.data;
+}
+
 export async function apiCreateZerodhaToken(body: { workflowId: string; accessToken: string }): Promise<{ success: boolean; message: string; tokenStatus: any }> {
   const res = await api.post<{ success: boolean; message: string; tokenStatus: any }>("/zerodha-token/create", body);
   return res.data;

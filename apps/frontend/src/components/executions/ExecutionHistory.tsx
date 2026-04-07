@@ -273,6 +273,11 @@ export const ExecutionHistory = ({
                         <Timer className="h-3 w-3" />
                         {calculateDuration(execution.startTime, execution.endTime)}
                       </span>
+                      {execution.executionMode === "dry-run" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/35 bg-amber-500/12 px-2.5 py-0.5 text-[11px] font-medium text-amber-300">
+                          Dry Run
+                        </span>
+                      ) : null}
                       <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${getStatusBadgeStyle(execution.status)}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${getExecutionDotColor(execution.status)}`} />
                         {execution.status === "InProgress" ? "In Progress" : execution.status.toUpperCase()}
@@ -323,6 +328,11 @@ export const ExecutionHistory = ({
                                         Attempt {step.attempt}/{step.maxAttempts || step.attempt}
                                       </span>
                                     ) : null}
+                                    {step.simulated ? (
+                                      <span className="rounded-full border border-amber-500/35 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+                                        Simulated
+                                      </span>
+                                    ) : null}
                                   </div>
                                   <span className="text-[11px] text-zinc-500">
                                     {new Date(execution.startTime).toLocaleTimeString("en-US", {
@@ -367,6 +377,15 @@ export const ExecutionHistory = ({
                                           : "Final failure recorded for this action."}
                                     </div>
                                   ) : null}
+
+                                  {step.simulatedPayload ? (
+                                    <div className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2">
+                                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-300">Simulated payload</p>
+                                      <pre className="mt-1 max-h-52 overflow-auto text-[11px] text-amber-100/90">
+                                        {JSON.stringify(step.simulatedPayload, null, 2)}
+                                      </pre>
+                                    </div>
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
@@ -380,7 +399,9 @@ export const ExecutionHistory = ({
                     {/* Footer — finalized message + progress */}
                     <div className="flex items-center justify-between border-t border-white/5 px-4 py-3 md:px-5">
                       <p className="text-[11px] italic text-zinc-600">
-                        Execution finalized. All signals dispatched.
+                        {execution.executionMode === "dry-run"
+                          ? "Dry-run execution finalized. Side effects were simulated only."
+                          : "Execution finalized. All signals dispatched."}
                       </p>
                       <div className="flex items-center gap-2">
                         <div className="h-1 w-24 overflow-hidden rounded-full bg-white/6">

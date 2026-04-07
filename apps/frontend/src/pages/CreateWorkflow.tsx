@@ -65,6 +65,7 @@ export const CreateWorkflow = () => {
   const [showActionSheetEdit, setShowActionSheetEdit] = useState(false);
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
   const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(null);
+  const [executionMode, setExecutionMode] = useState<"live" | "dry-run">("live");
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [aiBuilderContext, setAiBuilderContext] = useState<{
@@ -88,6 +89,7 @@ export const CreateWorkflow = () => {
         edges?: EdgeType[];
         workflowName?: string;
         marketType?: "Indian" | "Crypto";
+        executionMode?: "live" | "dry-run";
       };
       aiBuilderContext?: {
         draftId?: string;
@@ -103,6 +105,7 @@ export const CreateWorkflow = () => {
     setEdges((generatedPlan.edges || []) as EdgeType[]);
     setWorkflowName(String(generatedPlan.workflowName || ""));
     setMarketType((generatedPlan.marketType || "Indian") as "Indian" | "Crypto");
+    setExecutionMode((generatedPlan.executionMode || "live") as "live" | "dry-run");
 
     if (state.aiBuilderContext?.draftId && Array.isArray(state.aiBuilderContext.versions)) {
       setAiBuilderContext({
@@ -174,8 +177,10 @@ export const CreateWorkflow = () => {
             workflowName: normalizedWorkflow.workflowName,
             nodes: normalizedWorkflow.nodes,
             edges: normalizedWorkflow.edges,
+            executionMode: normalizedWorkflow.executionMode,
           }),
         );
+        setExecutionMode((normalizedWorkflow.executionMode || "live") as "live" | "dry-run");
       } catch (e: any) {
         setSaveError(
           e?.response?.data?.message ??
@@ -260,10 +265,11 @@ export const CreateWorkflow = () => {
           workflowName,
           nodes,
           edges,
+          executionMode,
         }) !== lastSavedSnapshot
       );
     },
-    [nodes, edges, workflowName, workflowId, loading, lastSavedSnapshot],
+    [nodes, edges, workflowName, executionMode, workflowId, loading, lastSavedSnapshot],
   );
   const hasZerodhaAction = useMemo(
     () =>
@@ -283,7 +289,7 @@ export const CreateWorkflow = () => {
         await apiVerifyBrokerCredentials(payload);
       }
 
-      const payload = { workflowName, nodes, edges };
+      const payload = { workflowName, nodes, edges, executionMode };
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
         if (!res.workflowId) throw new Error("Missing workflowId from server");
@@ -296,6 +302,7 @@ export const CreateWorkflow = () => {
             workflowName,
             nodes,
             edges,
+            executionMode,
           }),
         );
         toast.success("Workflow updated successfully");
@@ -318,7 +325,7 @@ export const CreateWorkflow = () => {
     } finally {
       setSaving(false);
     }
-  }, [nodes, edges, workflowId, workflowName, navigate]);
+  }, [nodes, edges, workflowId, workflowName, executionMode, navigate]);
 
   const handleNameDialogSubmit = () => {
     if (workflowName.trim()) {
@@ -375,6 +382,7 @@ export const CreateWorkflow = () => {
     setEdges([]);
     setWorkflowId(null);
     setWorkflowName("");
+    setExecutionMode("live");
     setSaveError(null);
     setMarketType(null);
     setSelectedAction(null);
@@ -436,6 +444,12 @@ export const CreateWorkflow = () => {
               </div>
               <div className="flex flex-col items-end gap-2 text-xs md:text-sm">
                 <div className="flex items-center gap-2">
+                  <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
+                    <span className="mr-1 text-neutral-500">Mode:</span>
+                    <span className={executionMode === "dry-run" ? "font-medium text-amber-300" : "font-medium text-emerald-300"}>
+                      {executionMode === "dry-run" ? "Dry Run" : "Live"}
+                    </span>
+                  </div>
                   {routeWorkflowId && <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
                     <span className="mr-1 text-neutral-500">Name:</span>
                     <span className="font-mono text-neutral-200">
@@ -457,6 +471,18 @@ export const CreateWorkflow = () => {
                   </div>
                 )}
                 <div className="flex gap-2">
+                  <Select
+                    value={executionMode}
+                    onValueChange={(value) => setExecutionMode(value as "live" | "dry-run")}
+                  >
+                    <SelectTrigger className="mt-1 h-9 min-w-34 rounded-xl border-neutral-800 bg-neutral-950 px-3 text-xs font-medium text-neutral-200">
+                      <SelectValue placeholder="Execution mode" />
+                    </SelectTrigger>
+                    <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                      <SelectItem value="live" className="text-xs cursor-pointer">Live mode</SelectItem>
+                      <SelectItem value="dry-run" className="text-xs cursor-pointer">Dry run mode</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {aiBuilderContext?.versions?.length ? (
                     <Select
                       value={activeAiVersionId || ""}
@@ -497,6 +523,7 @@ export const CreateWorkflow = () => {
                         setEdges([]);
                         setWorkflowId(null);
                         setWorkflowName("");
+                        setExecutionMode("live");
                         setAiBuilderContext(null);
                         setActiveAiVersionId("");
                         navigate("/create/builder");

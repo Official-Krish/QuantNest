@@ -590,6 +590,7 @@ export const CreateWorkflowSchema = z.object({
     workflowName: z.string().min(3).max(100),
     nodes: z.array(WorkflowNodeSchema),
     edges: z.array(WorkflowEdgeSchema),
+    executionMode: z.enum(["live", "dry-run"]).optional(),
 }).superRefine((data, ctx) => {
     validateWorkflowNodes(data.nodes, ctx);
 });
@@ -597,10 +598,15 @@ export const CreateWorkflowSchema = z.object({
 export const UpdateWorkflowSchema = z.object({
     nodes: z.array(WorkflowNodeSchema),
     edges: z.array(WorkflowEdgeSchema),
+    executionMode: z.enum(["live", "dry-run"]).optional(),
 }).superRefine((data, ctx) => {
     validateWorkflowNodes(data.nodes, ctx);
 });
 
 export const WorkflowStatusSchema = z.object({
     status: z.enum(["active", "paused"]),
+});
+
+export const WorkflowExecutionModeSchema = z.object({
+    executionMode: z.enum(["live", "dry-run"]),
 });

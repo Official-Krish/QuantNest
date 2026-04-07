@@ -208,6 +208,7 @@ export interface AiStrategyConversationMessage {
 export interface AiStrategySetupState {
   workflowName?: string;
   metadataOverrides?: Record<string, Record<string, unknown>>;
+  executionMode?: "live" | "dry-run";
 }
 
 export interface AiStrategyDraftSession {
@@ -399,6 +400,7 @@ export const aiStrategyConversationMessageSchema = z.object({
 export const aiStrategySetupStateSchema = z.object({
   workflowName: z.string().trim().min(1).optional(),
   metadataOverrides: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+  executionMode: z.enum(["live", "dry-run"]).optional(),
 }) satisfies z.ZodType<AiStrategySetupState>;
 
 export const aiStrategyDraftSessionSchema = z.object({

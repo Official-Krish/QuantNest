@@ -17,10 +17,12 @@ export async function canExecute(workflowId: string): Promise<boolean> {
 }
 
 export async function executeWorkflowSafe(workflow: WorkflowType, condition?: boolean) {
+    const executionMode = workflow.executionMode || "live";
     const execution = await ExecutionModel.create({
         workflowId: workflow._id,
         userId: workflow.userId,
         status: "InProgress",
+        executionMode,
         steps: [],
         startTime: new Date(),
     });
@@ -31,7 +33,8 @@ export async function executeWorkflowSafe(workflow: WorkflowType, condition?: bo
             workflow.edges,
             workflow.userId.toString(),
             workflow._id.toString(),
-            condition
+            condition,
+            executionMode,
         );
         execution.status = res.status;
         execution.set("steps", res.steps);

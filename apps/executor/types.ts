@@ -28,6 +28,7 @@ export type WorkflowType = {
     userId: mongoose.Types.ObjectId;
     workflowName: string;
     status?: "active" | "paused";
+    executionMode?: "live" | "dry-run";
     triggerType?: "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session";
     triggerNodeId?: string;
     triggerConfig?: {

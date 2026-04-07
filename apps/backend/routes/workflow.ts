@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware';
-import { CreateWorkflowSchema, UpdateWorkflowSchema, WorkflowStatusSchema } from '@quantnest-trading/types/metadata';
+import { CreateWorkflowSchema, UpdateWorkflowSchema, WorkflowExecutionModeSchema, WorkflowStatusSchema } from '@quantnest-trading/types/metadata';
 import { createUserNotification } from '@quantnest-trading/executor-utils';
 import {
     isBrokerVerificationError,
@@ -16,6 +16,7 @@ import {
     handleWorkflowBrokerVerificationFailure,
     listExecutionsForWorkflow,
     listWorkflowsForUser,
+    updateWorkflowExecutionModeForUser,
     updateWorkflowForUser,
     updateWorkflowStatusForUser,
 } from '../services/workflowCrud';
@@ -145,6 +146,7 @@ workFlowRouter.post('/', authMiddleware, async (req, res) => {
             workflowName: data.workflowName,
             nodes: data.nodes,
             edges: data.edges,
+            executionMode: data.executionMode,
         });
         res.status(200).json({ message: "Workflow created", workflowId: workflow._id });
     } catch (error) {
@@ -205,6 +207,37 @@ workFlowRouter.patch('/:workflowId/status', authMiddleware, async (req, res) => 
     }
 });
 
+workFlowRouter.patch('/:workflowId/execution-mode', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const workflowId = String(req.params.workflowId);
+    const parsedExecutionMode = WorkflowExecutionModeSchema.safeParse(req.body);
+
+    if (!parsedExecutionMode.success) {
+        res.status(400).json({ message: "Invalid workflow execution mode" });
+        return;
+    }
+
+    try {
+        const workflow = await updateWorkflowExecutionModeForUser({
+            userId,
+            workflowId,
+            executionMode: parsedExecutionMode.data.executionMode,
+        });
+
+        if (!workflow) {
+            res.status(404).json({ message: "Workflow not found" });
+            return;
+        }
+
+        res.status(200).json({
+            message: `Workflow switched to ${parsedExecutionMode.data.executionMode === "dry-run" ? "dry run" : "live"} mode`,
+            workflow,
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
 workFlowRouter.put('/:workflowId', authMiddleware, async (req, res) => {
     const userId = req.userId;
     const parsedUpdate = UpdateWorkflowSchema.safeParse(req.body);
@@ -220,6 +253,7 @@ workFlowRouter.put('/:workflowId', authMiddleware, async (req, res) => {
             workflowId,
             nodes: data.nodes,
             edges: data.edges,
+            executionMode: data.executionMode,
         });
         if (!workflow) {
             res.status(404).json({ message: "Workflow not found" });

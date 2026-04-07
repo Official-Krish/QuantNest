@@ -113,6 +113,7 @@ export type SessionRowProps = {
 export type WorkflowCanvasCardProps = {
   version: AiStrategyWorkflowVersion | null;
   theme: LocalTheme;
+  executionMode?: "live" | "dry-run";
   compact?: boolean;
   title?: string;
   attached?: boolean;

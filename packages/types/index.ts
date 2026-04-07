@@ -230,6 +230,8 @@ export interface RetryPolicyMetadata {
     onFinalFailure?: "fail-workflow" | "continue";
 }
 
+export type WorkflowExecutionMode = "live" | "dry-run";
+
 export const SUPPORTED_MARKETS = ["Indian", "Crypto"];
 
 export const SUPPORTED_INDIAN_MARKET_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE"];
@@ -262,6 +264,8 @@ export interface ExecutionStep {
     backoffType?: "fixed" | "exponential";
     backoffSeconds?: number;
     terminalFailure?: boolean;
+    simulated?: boolean;
+    simulatedPayload?: Record<string, unknown>;
 }
 
 export interface ExecutionResponseType {

@@ -1,6 +1,7 @@
 import type { EdgeType, NodeType } from "../types";
 
 export interface ExecutionContext {
+    executionMode?: "live" | "dry-run";
     eventType?: "buy" | "sell" | "price_trigger" | "trade_failed" | "Long" | "Short";
     userId?: string;
     workflowId?: string;
@@ -51,9 +52,10 @@ export function initializeExecutionContext(params: {
     userId?: string;
     workflowId?: string;
     condition?: boolean;
+    executionMode?: "live" | "dry-run";
 }): ExecutionContext {
-    const { nodes, trigger, userId, workflowId, condition } = params;
-    const context: ExecutionContext = { userId, workflowId };
+    const { nodes, trigger, userId, workflowId, condition, executionMode } = params;
+    const context: ExecutionContext = { userId, workflowId, executionMode: executionMode || "live" };
 
     const connectedSymbols = [
         ...new Set(

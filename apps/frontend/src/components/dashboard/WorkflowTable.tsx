@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiUpdateWorkflowStatus } from "@/http";
+import { apiUpdateWorkflowExecutionMode, apiUpdateWorkflowStatus } from "@/http";
 import { Button } from "@/components/ui/button";
 import { Pencil, ChevronRight, Activity, Key, Trash2, Pause, Play } from "lucide-react";
 import type { Workflow } from "@/types/api";
@@ -21,11 +21,32 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
     const [statusLoadingWorkflowId, setStatusLoadingWorkflowId] = useState<string | null>(null);
+    const [modeLoadingWorkflowId, setModeLoadingWorkflowId] = useState<string | null>(null);
 
     const hasZerodhaAction = (workflow: Workflow) => {
         return workflow.nodes?.some((node: any) => 
             node.type?.toLowerCase() === "zerodha"
         ) ?? false;
+    };
+
+    const handleModeToggle = async (workflow: Workflow) => {
+        const currentMode = workflow.executionMode || "live";
+        const nextMode = currentMode === "dry-run" ? "live" : "dry-run";
+        setModeLoadingWorkflowId(workflow._id);
+        try {
+            const response = await apiUpdateWorkflowExecutionMode(workflow._id, nextMode);
+            toast.success(
+                nextMode === "dry-run" ? "Dry run enabled" : "Live mode enabled",
+                { description: response.message },
+            );
+            onWorkflowStatusChanged?.();
+        } catch (error: any) {
+            toast.error("Execution mode update failed", {
+                description: error?.response?.data?.message ?? "Could not update workflow execution mode.",
+            });
+        } finally {
+            setModeLoadingWorkflowId(null);
+        }
     };
 
     const handleStatusToggle = async (workflow: Workflow) => {
@@ -76,7 +97,7 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
     return (
         <div className="overflow-hidden rounded-lg">
             {/* Table Header */}
-            <div className="grid grid-cols-[minmax(220px,1.8fr)_80px_120px_140px_120px_minmax(260px,1.5fr)] gap-4 border-b border-neutral-600 bg-table-header px-5 py-3.5">
+            <div className="grid grid-cols-[minmax(220px,1.8fr)_80px_120px_120px_120px_minmax(320px,1.5fr)] gap-4 border-b border-neutral-600 bg-table-header px-5 py-3.5">
                 <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
                     Workflow Name
                 </span>
@@ -87,7 +108,7 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
                     Connections
                 </span>
                 <span className="hidden text-xs font-medium uppercase tracking-widest text-muted-foreground md:block">
-                    Type
+                    Mode
                 </span>
                 <span className="hidden text-xs font-medium uppercase tracking-widest text-muted-foreground md:block">
                     Status
@@ -102,7 +123,7 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
                 {workflows.map((wf) => (
                     <div
                         key={wf._id}
-                        className="grid grid-cols-[minmax(220px,1.8fr)_80px_120px_140px_120px_minmax(260px,1.5fr)] items-center gap-4 px-5 py-4 transition-colors hover:bg-table-row-hover"
+                        className="grid grid-cols-[minmax(220px,1.8fr)_80px_120px_120px_120px_minmax(320px,1.5fr)] items-center gap-4 px-5 py-4 transition-colors hover:bg-table-row-hover"
                     >
                         <div className="flex flex-col gap-0.5">
                             <span className="font-medium text-neutral-200">
@@ -119,13 +140,15 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
                             {wf.edges?.length ?? 0}
                         </span>
                         <div className="hidden md:block">
-                            {wf.marketType ? (
-                                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-neutral-600/50 bg-neutral-800/30 text-neutral-300">
-                                    {wf.marketType}
-                                </span>
-                            ) : (
-                                <span className="text-xs text-muted-foreground/50">—</span>
-                            )}
+                            <span
+                                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${
+                                    (wf.executionMode || "live") === "dry-run"
+                                        ? "border-amber-500/25 bg-amber-500/10 text-amber-300"
+                                        : "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                                }`}
+                            >
+                                {(wf.executionMode || "live") === "dry-run" ? "Dry Run" : "Live"}
+                            </span>
                         </div>
                         <div className="hidden md:block">
                             <span
@@ -140,6 +163,23 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
                         </div>
                         <div className="grid gap-2 justify-items-end">
                             <div className="flex flex-wrap justify-end gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                                    disabled={modeLoadingWorkflowId === wf._id}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleModeToggle(wf);
+                                    }}
+                                    title={(wf.executionMode || "live") === "dry-run" ? "Switch to Live mode" : "Switch to Dry run mode"}
+                                >
+                                    {modeLoadingWorkflowId === wf._id
+                                        ? "Updating mode"
+                                        : (wf.executionMode || "live") === "dry-run"
+                                          ? "Switch to Live"
+                                          : "Switch to Dry Run"}
+                                </Button>
                                 <Button
                                     variant="ghost"
                                     size="sm"

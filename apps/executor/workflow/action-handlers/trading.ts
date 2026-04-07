@@ -30,6 +30,26 @@ export const zerodhaActionHandler: ActionHandler = async ({
     nodeTypeLabel: "Zerodha Action",
     retryPolicy: (resolvedMetadata as any)?.retryPolicy,
     operation: async () => {
+      if (context.executionMode === "dry-run") {
+        context.eventType = (resolvedMetadata as any)?.type;
+        context.details = {
+          symbol: (resolvedMetadata as any)?.symbol,
+          quantity: (resolvedMetadata as any)?.qty,
+          exchange: (resolvedMetadata as any)?.exchange || "NSE",
+          aiContext: context.details?.aiContext,
+        };
+        return {
+          message: `[Dry Run] Would place ${String((resolvedMetadata as any)?.type || "").toUpperCase()} order for ${(resolvedMetadata as any)?.symbol}`,
+          simulatedPayload: {
+            broker: "zerodha",
+            symbol: (resolvedMetadata as any)?.symbol,
+            qty: (resolvedMetadata as any)?.qty,
+            side: (resolvedMetadata as any)?.type,
+            exchange: (resolvedMetadata as any)?.exchange || "NSE",
+          },
+        };
+      }
+
       if (!isMarketOpen()) {
         const marketStatus = getMarketStatus();
         throw new ActionConfigurationError(
@@ -134,6 +154,26 @@ export const growwActionHandler: ActionHandler = async ({
     nodeTypeLabel: "Groww Action",
     retryPolicy: (resolvedMetadata as any)?.retryPolicy,
     operation: async () => {
+      if (context.executionMode === "dry-run") {
+        context.eventType = (resolvedMetadata as any)?.type;
+        context.details = {
+          symbol: (resolvedMetadata as any)?.symbol,
+          quantity: (resolvedMetadata as any)?.qty,
+          exchange: (resolvedMetadata as any)?.exchange || "NSE",
+          aiContext: context.details?.aiContext,
+        };
+        return {
+          message: `[Dry Run] Would place ${String((resolvedMetadata as any)?.type || "").toUpperCase()} order for ${(resolvedMetadata as any)?.symbol}`,
+          simulatedPayload: {
+            broker: "groww",
+            symbol: (resolvedMetadata as any)?.symbol,
+            qty: (resolvedMetadata as any)?.qty,
+            side: (resolvedMetadata as any)?.type,
+            exchange: (resolvedMetadata as any)?.exchange || "NSE",
+          },
+        };
+      }
+
       const result = await executeGrowwNode(
         (resolvedMetadata as any)?.symbol,
         (resolvedMetadata as any)?.qty,
@@ -197,6 +237,27 @@ export const lighterActionHandler: ActionHandler = async ({
     nodeTypeLabel: "Lighter Action",
     retryPolicy: (resolvedMetadata as any)?.retryPolicy,
     operation: async () => {
+      if (context.executionMode === "dry-run") {
+        context.eventType = (resolvedMetadata as any)?.type;
+        context.details = {
+          symbol: (resolvedMetadata as any)?.symbol,
+          quantity: (resolvedMetadata as any)?.amount,
+          exchange: "Lighter",
+          aiContext: context.details?.aiContext,
+        };
+        return {
+          message: `[Dry Run] Would place ${String((resolvedMetadata as any)?.type || "").toUpperCase()} position for ${(resolvedMetadata as any)?.symbol}`,
+          simulatedPayload: {
+            broker: "lighter",
+            symbol: (resolvedMetadata as any)?.symbol,
+            amount: (resolvedMetadata as any)?.amount,
+            side: (resolvedMetadata as any)?.type,
+            accountIndex: (resolvedMetadata as any)?.accountIndex,
+            apiKeyIndex: (resolvedMetadata as any)?.apiKeyIndex,
+          },
+        };
+      }
+
       await ExecuteLighter(
         (resolvedMetadata as any)?.symbol,
         (resolvedMetadata as any)?.amount,

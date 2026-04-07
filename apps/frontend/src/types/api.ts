@@ -108,6 +108,7 @@ export interface Workflow {
   workflowName: string;
   nodes: any[];
   edges: any[];
+  executionMode?: "live" | "dry-run";
   updatedAt?: Date;
   status?: "active" | "paused";
   marketType?: "Indian" | "Crypto";

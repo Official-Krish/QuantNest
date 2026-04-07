@@ -39,9 +39,11 @@ export function AiPlanSetupDialog({
   open,
   result,
   workflowName,
+  executionMode,
   metadataOverrides,
   onOpenChange,
   onWorkflowNameChange,
+  onExecutionModeChange,
   onMetadataOverridesChange,
   onContinue,
 }: AiPlanSetupDialogProps) {
@@ -306,6 +308,27 @@ export function AiPlanSetupDialog({
               placeholder="Enter workflow name"
               className="bg-neutral-800 text-neutral-100 placeholder:text-neutral-500"
             />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#f17463]">
+              Execution mode
+            </p>
+            <Select
+              value={executionMode}
+              onValueChange={(value) => onExecutionModeChange(value as "live" | "dry-run")}
+            >
+              <SelectTrigger className="h-10 border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+                <SelectValue placeholder="Select execution mode" />
+              </SelectTrigger>
+              <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                <SelectItem value="live">Live mode</SelectItem>
+                <SelectItem value="dry-run">Dry run mode</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-neutral-500">
+              Dry run simulates external actions and logs payloads without placing trades or sending messages.
+            </p>
           </div>
 
           {Object.entries(groupedInputs).map(([nodeId, inputs]) => {

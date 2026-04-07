@@ -49,6 +49,7 @@ export function useAiChatDrafts() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [workflowName, setWorkflowName] = useState("");
+  const [executionMode, setExecutionMode] = useState<"live" | "dry-run">("live");
   const [metadataOverrides, setMetadataOverrides] = useState<AiMetadataOverrides>({});
   const [market, setMarket] = useState<AiStrategyBuilderRequest["market"]>("Indian");
   const [goal, setGoal] = useState<AiStrategyBuilderRequest["goal"]>("alerts");
@@ -74,6 +75,7 @@ export function useAiChatDrafts() {
         latestVersion?.response.plan.workflowName ||
         draft.response.plan.workflowName,
     );
+    setExecutionMode((latestSetupState?.executionMode || "live") as "live" | "dry-run");
     setMetadataOverrides(latestSetupState?.metadataOverrides || {});
     setMarket(draft.request.market);
     setGoal(draft.request.goal);
@@ -107,6 +109,7 @@ export function useAiChatDrafts() {
   const handleNewChat = useCallback((onConversationReset?: () => void) => {
     setActiveDraft(null);
     setWorkflowName("");
+    setExecutionMode("live");
     setMetadataOverrides({});
     setActiveVersionId("");
     setError(null);
@@ -239,6 +242,8 @@ export function useAiChatDrafts() {
     setLoading,
     workflowName,
     setWorkflowName,
+    executionMode,
+    setExecutionMode,
     metadataOverrides,
     setMetadataOverrides,
     market,

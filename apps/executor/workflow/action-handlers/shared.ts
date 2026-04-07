@@ -19,6 +19,13 @@ export type ResolvedRetryPolicy = {
   onFinalFailure: "fail-workflow" | "continue";
 };
 
+export type ActionOperationResult =
+  | string
+  | {
+      message: string;
+      simulatedPayload?: Record<string, unknown>;
+    };
+
 export function resolveRetryPolicy(rawPolicy: unknown): ResolvedRetryPolicy {
   const policy = (rawPolicy || {}) as RetryPolicyMetadata;
   return {
@@ -101,7 +108,7 @@ export async function executeActionWithRetry(params: {
   steps: ExecutionStep[];
   nodeTypeLabel: string;
   retryPolicy?: RetryPolicyMetadata;
-  operation: (attempt: { attempt: number; maxAttempts: number }) => Promise<string>;
+  operation: (attempt: { attempt: number; maxAttempts: number }) => Promise<ActionOperationResult>;
   onFinalFailure?: (error: unknown, attempt: { attempt: number; maxAttempts: number; terminalFailure: boolean }) => Promise<void> | void;
 }) {
   const resolvedPolicy = resolveRetryPolicy(params.retryPolicy);
@@ -109,7 +116,9 @@ export async function executeActionWithRetry(params: {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      const successMessage = await params.operation({ attempt, maxAttempts });
+      const result = await params.operation({ attempt, maxAttempts });
+      const successMessage = typeof result === "string" ? result : result.message;
+      const simulatedPayload = typeof result === "string" ? undefined : result.simulatedPayload;
       pushStep(params.steps, {
         nodeId: params.node.nodeId,
         nodeType: params.nodeTypeLabel,
@@ -120,6 +129,8 @@ export async function executeActionWithRetry(params: {
         retryPolicy: resolvedPolicy,
         backoffType: resolvedPolicy.backoffType,
         terminalFailure: true,
+        simulated: Boolean(simulatedPayload),
+        simulatedPayload,
       });
       return;
     } catch (error: any) {
@@ -245,6 +256,18 @@ export async function executeNotificationAction(
         context.eventType && context.details
           ? context.details
           : getNotificationDetailsFallback(resolvedMetadata, context);
+
+      if (context.executionMode === "dry-run") {
+        return {
+          message: `[Dry Run] Would send ${nodeTypeLabel.toLowerCase()} for ${eventType}`,
+          simulatedPayload: {
+            channel: nodeTypeLabel,
+            eventType,
+            details,
+            metadata: resolvedMetadata,
+          },
+        };
+      }
 
       await send(resolvedMetadata, eventType, details);
       return successMessage;

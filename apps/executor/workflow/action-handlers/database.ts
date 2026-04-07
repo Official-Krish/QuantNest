@@ -39,6 +39,22 @@ export const postgresActionHandler: ActionHandler = async ({
       const tableName = String((resolvedMetadata as any)?.tableName || "").trim();
       const payload = parseJsonPayload((resolvedMetadata as any)?.jsonPayload);
 
+      if (context.executionMode === "dry-run") {
+        return {
+          message: `[Dry Run] Would insert workflow payload into ${tableName || "<table>"}`,
+          simulatedPayload: {
+            service: "postgres",
+            tableName,
+            workflowId: context.workflowId || null,
+            userId: context.userId || null,
+            nodeId: node.nodeId,
+            eventType: context.eventType || "workflow_execution",
+            details: context.details || null,
+            payload,
+          },
+        };
+      }
+
       if (!connectionString) {
         throw new ActionConfigurationError("Postgres connection string is required.");
       }

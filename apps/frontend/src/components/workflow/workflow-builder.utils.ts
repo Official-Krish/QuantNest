@@ -34,9 +34,11 @@ export function buildWorkflowSnapshot(params: {
   workflowName: string;
   nodes: NodeType[];
   edges: EdgeType[];
+  executionMode?: "live" | "dry-run";
 }) {
   return JSON.stringify({
     workflowName: params.workflowName.trim(),
+    executionMode: params.executionMode || "live",
     nodes: params.nodes.map(normalizeNodeForCompare),
     edges: params.edges.map(normalizeEdgeForCompare),
   });
@@ -157,6 +159,7 @@ export function normalizeWorkflowForBuilder(workflow: Workflow) {
     edges: normalizedEdges as EdgeType[],
     workflowId: workflow._id,
     workflowName: workflow.workflowName || "",
+    executionMode: workflow.executionMode || "live",
     marketType: workflow.marketType || "Indian",
   };
 }

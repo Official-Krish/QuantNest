@@ -5,6 +5,7 @@ export interface Execution {
   workflowId: string;
   userId: string;
   status: string;
+  executionMode?: "live" | "dry-run";
   steps: ExecutionStep[];
   startTime: string;
   endTime?: string;
