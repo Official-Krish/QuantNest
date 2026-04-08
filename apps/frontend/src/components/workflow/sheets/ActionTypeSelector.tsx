@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MarketStatusBadge } from "./MarketStatusBadge";
 
 interface ActionTypeSelector {
   value: string;
@@ -21,10 +22,13 @@ export const ActionTypeSelector = ({
 }: ActionTypeSelector) => {
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
-      <div className="space-y-1">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#f17463]">
-          Choose Action Type
-        </p>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#f17463]">
+            Choose Action Type
+          </p>
+          <MarketStatusBadge />
+        </div>
 
         <p className="text-[10px] text-neutral-500">
           Choose between executing orders or sending notifications

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { WorkflowExampleModel, WorkflowModel } from "@quantnest-trading/db/client";
 import { deriveWorkflowTriggerState } from "@quantnest-trading/executor-utils";
 import { authMiddleware } from "../middleware";
+import { assertWorkflowCreationAllowed, isPlanLimitError } from "../services/subscription";
 
 const examplesRouter = Router();
 
@@ -59,10 +60,28 @@ examplesRouter.get("/", async (req, res) => {
   }
 });
 
+examplesRouter.get("/practical-algos", async (req, res) => {
+  try {
+    const practicalAlgos = await WorkflowExampleModel.find({ category: "Practical-Algos" })
+      .sort({ sortOrder: 1, createdAt: 1 })
+      .lean();
+
+    res.status(200).json({
+      message: "Practical algos fetched successfully",
+      examples: practicalAlgos,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch practical algos",
+    });
+  }
+});
+
 examplesRouter.post("/:slug/create", authMiddleware, async (req, res) => {
   const userId = req.userId;
   const slug = String(req.params.slug || "");
   const workflowName = String(req.body?.workflowName || "").trim();
+  const executionMode = req.body?.executionMode === "dry-run" ? "dry-run" : "live";
   const metadataOverrides =
     typeof req.body?.metadataOverrides === "object" && req.body?.metadataOverrides
       ? (req.body.metadataOverrides as Record<string, Record<string, unknown>>)
@@ -79,6 +98,8 @@ examplesRouter.post("/:slug/create", authMiddleware, async (req, res) => {
   }
 
   try {
+    await assertWorkflowCreationAllowed(userId);
+
     const example = await WorkflowExampleModel.findOne({ slug }).lean();
 
     if (!example) {
@@ -96,6 +117,7 @@ examplesRouter.post("/:slug/create", authMiddleware, async (req, res) => {
       nodes: normalizedNodes,
       edges: example.edges,
       status: "paused",
+      executionMode,
       ...deriveWorkflowTriggerState(normalizedNodes as any),
     });
 
@@ -104,6 +126,15 @@ examplesRouter.post("/:slug/create", authMiddleware, async (req, res) => {
       workflowId: workflow._id,
     });
   } catch (error) {
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        message: error.message,
+        code: error.code,
+        details: error.details,
+      });
+      return;
+    }
+
     res.status(500).json({ message: "Failed to create workflow from example" });
     console.error("Error creating workflow from example:", error);
   }

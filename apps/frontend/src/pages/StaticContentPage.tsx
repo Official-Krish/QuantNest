@@ -48,7 +48,7 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
         title: "Plan architecture",
         body: "QuantNest pricing separates core platform access from high-throughput execution and advanced reporting needs. This keeps entry cost low while preserving predictable scaling.",
         checklist: [
-          "Starter for early strategy validation",
+          "Free tier for early strategy validation",
           "Pro for high-frequency workflow iteration",
           "Team for governance and shared operations",
         ],
@@ -92,14 +92,14 @@ const PAGE_CONFIG: Record<string, StaticPageConfig> = {
     ],
     pricingPlans: [
       {
-        name: "Starter",
-        monthlyPrice: "$19",
-        annualPrice: "$190",
-        description: "For solo traders validating workflow ideas.",
-        workflows: "Up to 10",
-        executionsPerDay: "2,000",
-        support: "Community + Email",
-        reporting: "Basic reports",
+        name: "Free",
+        monthlyPrice: "$0",
+        annualPrice: "$0",
+        description: "For solo traders getting started with capped usage.",
+        workflows: "Max 3",
+        executionsPerDay: "Fair-use",
+        support: "Community",
+        reporting: "Basic reports + usage limits",
       },
       {
         name: "Pro",

@@ -128,6 +128,12 @@ const UserSchema = new Schema({
             workflowAlerts: true,
         }),
     },
+    subscriptionPlan: {
+        type: String,
+        enum: ["free", "pro", "team"],
+        default: "free",
+        index: true,
+    },
     emailVerified: {
         type: Boolean,
         default: true,
@@ -459,7 +465,7 @@ const WorkflowExampleSchema = new Schema({
     },
     category: {
         type: String,
-        enum: ["Execution", "Reporting", "Alerts", "AI"],
+        enum: ["Execution", "Reporting", "Alerts", "AI", "Practical-Algos"],
         required: true,
     },
     market: {

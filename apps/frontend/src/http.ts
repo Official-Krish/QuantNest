@@ -18,6 +18,7 @@ import type {
   TelegramChatSummary,
   marketStatus,
   SigninResponse,
+  UsageSnapshot,
   UserNotification,
   Workflow,
   WorkflowLivePreview,
@@ -116,6 +117,21 @@ export async function apiVerifyToken(): Promise<{ message: string }> {
 export async function apiGetProfile(): Promise<UserProfileResponse> {
   const res = await api.get<UserProfileResponse>("/user/profile");
   return res.data;
+}
+
+export async function apiGetUsageSnapshot(): Promise<UsageSnapshot> {
+  const res = await api.get<{
+    message: string;
+    plan: UsageSnapshot["plan"];
+    limits: UsageSnapshot["limits"];
+    usage: UsageSnapshot["usage"];
+  }>("/user/usage");
+
+  return {
+    plan: res.data.plan,
+    limits: res.data.limits,
+    usage: res.data.usage,
+  };
 }
 
 export async function apiSaveProfile(body: {
@@ -367,13 +383,20 @@ export async function apiGetExamples(): Promise<{ examples: WorkflowExample[] }>
   return { examples: res.data.examples };
 }
 
+export async function apiGetPracticalAlgos(): Promise<{ examples: WorkflowExample[] }> {
+  const res = await api.get<{ message: string; examples: WorkflowExample[] }>("/examples/practical-algos");
+  return { examples: res.data.examples };
+}
+
 export async function apiCreateWorkflowFromExample(
   slug: string,
   workflowName: string,
+  executionMode: "live" | "dry-run",
   metadataOverrides: Record<string, Record<string, unknown>>,
 ): Promise<IdResponse> {
   const res = await api.post<IdResponse>(`/examples/${slug}/create`, {
     workflowName,
+    executionMode,
     metadataOverrides,
   });
   return res.data;

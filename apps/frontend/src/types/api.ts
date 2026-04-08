@@ -177,7 +177,7 @@ export interface WorkflowExample {
   slug: string;
   title: string;
   summary: string;
-  category: "Execution" | "Reporting" | "Alerts" | "AI";
+  category: "Execution" | "Reporting" | "Alerts" | "AI" | "Practical-Algos";
   market: "Indian" | "Crypto" | "Cross-market";
   difficulty: "Starter" | "Intermediate" | "Advanced";
   setupMinutes: number;
@@ -194,6 +194,22 @@ export type marketStatus = {
   isOpen: boolean;
   message: string;
   nextOpenTime?: string;
+}
+
+export type SubscriptionPlan = "free" | "pro" | "team";
+
+export interface UsageSnapshot {
+  plan: SubscriptionPlan;
+  limits: {
+    maxWorkflows: number;
+    maxAiChats: number;
+    maxAiIterationsPerChat: number;
+    aiRequestsPerMinute: number;
+  };
+  usage: {
+    workflows: number;
+    aiChats: number;
+  };
 }
 
 export type {

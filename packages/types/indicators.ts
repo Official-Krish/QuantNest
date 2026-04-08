@@ -1,4 +1,4 @@
-export type IndicatorTimeframe = "1m" | "5m" | "15m" | "1h";
+export type IndicatorTimeframe = "1m" | "5m" | "15m" | "1h" | "day" | "1w" | "1mon";
 
 export type IndicatorMarket = "Indian" | "Crypto";
 

@@ -40,14 +40,17 @@ app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/zerodha-token", ZerodhaTokenRouter);
 app.use("/api/v1/examples", examplesRouter);
 
-app.get("/market-status", async (req, res) => {
+const handleMarketStatus = async (req: express.Request, res: express.Response) => {
   try {
     const marketStatus = getMarketStatus();
     res.status(200).json({ success: true, marketStatus });  
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error", error });
   }
-});
+};
+
+app.get("/market-status", handleMarketStatus);
+app.get("/api/v1/market-status", handleMarketStatus);
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');

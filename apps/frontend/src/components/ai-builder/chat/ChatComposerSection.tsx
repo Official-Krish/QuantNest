@@ -99,10 +99,26 @@ export function ChatComposerSection({
     [models],
   );
 
+  const providerState = useMemo(() => {
+    const map = new Map<string, { hasUnlocked: boolean }>();
+    providers.forEach((provider) => {
+      const entries = models.filter((model) => String(model.provider) === provider);
+      map.set(provider, { hasUnlocked: entries.some((model) => !model.locked) });
+    });
+    return map;
+  }, [models, providers]);
+
   const providerModels = useMemo(
     () => models.filter((entry) => String(entry.provider) === selectedProvider),
     [models, selectedProvider],
   );
+
+  const selectedModelEntry = useMemo(
+    () => models.find((entry) => entry.id === selectedModel),
+    [models, selectedModel],
+  );
+
+  const selectedModelLocked = Boolean(selectedModelEntry?.locked);
 
   const selectTriggerClass =
     "h-7 border-neutral-800 bg-transparent px-2 text-[10px] text-neutral-300 shadow-none focus-visible:border-[#f17463]/45 focus-visible:ring-1 focus-visible:ring-[#f17463]/30";
@@ -220,7 +236,7 @@ export function ChatComposerSection({
               <motion.button
                 type="button"
                 onClick={onSend}
-                disabled={sending || !canSend}
+                disabled={sending || !canSend || selectedModelLocked}
                 title="Enter to send · Shift+Enter for newline"
                 style={{
                   position: "absolute",
@@ -234,26 +250,32 @@ export function ChatComposerSection({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: canSend && !sending ? "pointer" : "not-allowed",
+                  cursor: canSend && !sending && !selectedModelLocked ? "pointer" : "not-allowed",
                   outline: "none",
                   flexShrink: 0,
                 }}
                 animate={{
-                  borderColor: canSend && !sending ? T.or : "rgba(255,255,255,0.1)",
-                  background: canSend && !sending ? T.or : "transparent",
-                  color: canSend && !sending ? "#fcfcfa" : "rgba(255,255,255,0.3)",
+                  borderColor: canSend && !sending && !selectedModelLocked ? T.or : "rgba(255,255,255,0.1)",
+                  background: canSend && !sending && !selectedModelLocked ? T.or : "transparent",
+                  color: canSend && !sending && !selectedModelLocked ? "#fcfcfa" : "rgba(255,255,255,0.3)",
                   opacity: sending ? 0.5 : 1,
-                  boxShadow: canSend && !sending
+                  boxShadow: canSend && !sending && !selectedModelLocked
                     ? `0 0 16px ${T.orGlow}, 0 2px 8px rgba(0,0,0,0.3)`
                     : "none",
                 }}
-                whileHover={canSend && !sending ? { scale: 1.05, boxShadow: `0 0 20px rgba(249,115,22,0.4)` } : {}}
-                whileTap={canSend && !sending ? { scale: 0.94 } : {}}
+                whileHover={canSend && !sending && !selectedModelLocked ? { scale: 1.05, boxShadow: `0 0 20px rgba(249,115,22,0.4)` } : {}}
+                whileTap={canSend && !sending && !selectedModelLocked ? { scale: 0.94 } : {}}
                 transition={{ duration: 0.18 }}
               >
                 <Send style={{ width: 13, height: 13 }} />
               </motion.button>
             </div>
+
+            {selectedModelLocked ? (
+              <div className="px-4 pb-2 text-[11px] text-amber-300">
+                {selectedModelEntry?.lockReason || "This model is locked for your current plan."}
+              </div>
+            ) : null}
 
 
 
@@ -285,7 +307,12 @@ export function ChatComposerSection({
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
                   {providers.map((provider) => (
-                    <SelectItem key={provider} value={provider} className={selectItemClass}>
+                    <SelectItem
+                      key={provider}
+                      value={provider}
+                      disabled={!providerState.get(provider)?.hasUnlocked}
+                      className={selectItemClass}
+                    >
                       {provider.charAt(0).toUpperCase() + provider.slice(1)}
                     </SelectItem>
                   ))}
@@ -300,8 +327,13 @@ export function ChatComposerSection({
                 <SelectContent className={selectContentClass}>
                   {providerModels.length ? (
                     providerModels.map((model) => (
-                      <SelectItem key={model.id} value={model.id} className={selectItemClass}>
-                        {model.label}
+                      <SelectItem
+                        key={model.id}
+                        value={model.id}
+                        disabled={Boolean(model.locked)}
+                        className={selectItemClass}
+                      >
+                        {model.label}{model.locked ? " (Locked)" : ""}
                       </SelectItem>
                     ))
                   ) : (

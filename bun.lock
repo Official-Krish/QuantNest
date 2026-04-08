@@ -15,6 +15,7 @@
         "@anthropic-ai/sdk": "^0.78.0",
         "@google/genai": "^1.42.0",
         "@quantnest-trading/db": "workspace:^",
+        "@quantnest-trading/plan-guards": "workspace:^",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "dotenv": "^17.3.1",
@@ -38,6 +39,7 @@
       "name": "@quantnest-trading/backend",
       "dependencies": {
         "@google-cloud/storage": "^7.19.0",
+        "@quantnest-trading/plan-guards": "workspace:^",
         "@types/bcrypt": "^6.0.0",
         "@types/cookie-parser": "^1.4.10",
         "@types/jsonwebtoken": "^9.0.10",
@@ -210,6 +212,19 @@
     },
     "packages/node-registry": {
       "name": "@quantnest-trading/node-registry",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "packages/plan-guards": {
+      "name": "@quantnest-trading/plan-guards",
+      "dependencies": {
+        "@quantnest-trading/db": "workspace:^",
+        "@quantnest-trading/types": "workspace:^",
+      },
       "devDependencies": {
         "@types/bun": "latest",
       },
@@ -462,6 +477,8 @@
     "@quantnest-trading/market": ["@quantnest-trading/market@workspace:packages/market"],
 
     "@quantnest-trading/node-registry": ["@quantnest-trading/node-registry@workspace:packages/node-registry"],
+
+    "@quantnest-trading/plan-guards": ["@quantnest-trading/plan-guards@workspace:packages/plan-guards"],
 
     "@quantnest-trading/types": ["@quantnest-trading/types@workspace:packages/types"],
 

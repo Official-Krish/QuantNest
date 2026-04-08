@@ -22,11 +22,14 @@ import type {
     IndicatorTimeframe,
 } from '@quantnest-trading/types';
 
-export const TIMEFRAME_TO_INTERVAL: Record<IndicatorTimeframe, "1m" | "5m" | "15m" | "1h"> = {
+export const TIMEFRAME_TO_INTERVAL: Record<IndicatorTimeframe, "1m" | "5m" | "15m" | "1h" | "1d" | "1wk" | "1mo"> = {
     "1m": "1m",
     "5m": "5m",
     "15m": "15m",
     "1h": "1h",
+    "day": "1d",
+    "1w": "1wk",
+    "1mon": "1mo",
 };
 
 export const TIMEFRAME_TO_MS: Record<IndicatorTimeframe, number> = {
@@ -34,7 +37,36 @@ export const TIMEFRAME_TO_MS: Record<IndicatorTimeframe, number> = {
     "5m": 5 * 60_000,
     "15m": 15 * 60_000,
     "1h": 60 * 60_000,
+    "day": 24 * 60 * 60_000,
+    "1w": 7 * 24 * 60 * 60_000,
+    "1mon": 30 * 24 * 60 * 60_000,
 };
+
+function normalizeTimeframe(timeframe?: string): IndicatorTimeframe {
+    switch (String(timeframe || "").toLowerCase()) {
+        case "1d":
+        case "d":
+        case "day":
+            return "day";
+        case "1wk":
+        case "wk":
+        case "week":
+        case "1w":
+            return "1w";
+        case "1mo":
+        case "mo":
+        case "month":
+        case "1mon":
+            return "1mon";
+        case "1m":
+        case "5m":
+        case "15m":
+        case "1h":
+            return timeframe as IndicatorTimeframe;
+        default:
+            return "5m";
+    }
+}
 
 export function normalizeMarket(marketType?: string): IndicatorMarket {
     return marketType === "Crypto" || marketType === "web3" ? "Crypto" : "Indian";
@@ -48,7 +80,8 @@ export function normalizePeriod(period?: number, fallback = 14): number {
 }
 
 export function refKey(ref: IndicatorReference): string {
-    return `${normalizeMarket(ref.marketType)}:${ref.symbol}:${ref.timeframe}:${ref.indicator}:${ref.params?.period || ""}`;
+    const timeframe = normalizeTimeframe(ref.timeframe);
+    return `${normalizeMarket(ref.marketType)}:${ref.symbol}:${timeframe}:${ref.indicator}:${ref.params?.period || ""}`;
 }
 
 export function isGroup(value: IndicatorConditionClause | IndicatorConditionGroup): value is IndicatorConditionGroup {
@@ -144,17 +177,18 @@ export async function computeIndicatorValue(
     }
 
     const period = normalizePeriod(ref.params?.period, ref.indicator === "pct_change" ? 1 : 14);
-    const candleCacheKey = `${marketType}:${ref.symbol}:${ref.timeframe}:${period}`;
+    const timeframe = normalizeTimeframe(ref.timeframe);
+    const candleCacheKey = `${marketType}:${ref.symbol}:${timeframe}:${period}`;
 
     let candles = historicalCache.get(candleCacheKey);
     if (!candles) {
         const barsToFetch = Math.max(period * 4, 60);
-        const period1 = new Date(Date.now() - barsToFetch * TIMEFRAME_TO_MS[ref.timeframe]);
+        const period1 = new Date(Date.now() - barsToFetch * TIMEFRAME_TO_MS[timeframe]);
         const historical = await getHistoricalChart(
             ref.symbol,
             marketType,
             period1,
-            TIMEFRAME_TO_INTERVAL[ref.timeframe],
+            TIMEFRAME_TO_INTERVAL[timeframe],
         );
         candles = historical.map((bar) => ({
             date: bar.date,

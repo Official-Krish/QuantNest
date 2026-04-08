@@ -2,10 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware';
 import { CreateWorkflowSchema, UpdateWorkflowSchema, WorkflowExecutionModeSchema, WorkflowStatusSchema } from '@quantnest-trading/types/metadata';
 import { createUserNotification } from '@quantnest-trading/executor-utils';
-import {
-    isBrokerVerificationError,
-    verifyBrokerCredentials,
-} from "../services/brokerVerification";
+import { verifyBrokerCredentials } from "../services/brokerVerification";
 import { getGoogleSheetsServiceAccountEmail, verifyGoogleSheetAccess } from "../services/googleSheets";
 import { resolveNodeMetadataSecrets } from '../services/reusableSecrets';
 import { buildWorkflowPreview } from '../services/workflowPreview';
@@ -20,6 +17,7 @@ import {
     updateWorkflowForUser,
     updateWorkflowStatusForUser,
 } from '../services/workflowCrud';
+import { isPlanLimitError } from '../services/subscription';
 
 const workFlowRouter = Router();
 
@@ -150,6 +148,15 @@ workFlowRouter.post('/', authMiddleware, async (req, res) => {
         });
         res.status(200).json({ message: "Workflow created", workflowId: workflow._id });
     } catch (error) {
+        if (isPlanLimitError(error)) {
+            res.status(error.statusCode).json({
+                message: error.message,
+                code: error.code,
+                details: error.details,
+            });
+            return;
+        }
+
         const message = error instanceof Error ? error.message : "Workflow creation failed";
         if (await handleWorkflowBrokerVerificationFailure({
             userId,

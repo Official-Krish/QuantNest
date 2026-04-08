@@ -1,5 +1,11 @@
 import { Router } from "express";
 import { aiStrategySetupStateSchema } from "@quantnest-trading/types/ai";
+import {
+  annotateModelsForPlan,
+  enforcePlanModelAccess,
+  getUserPlan,
+  isPlanLimitError,
+} from "@quantnest-trading/plan-guards";
 import { ZodError } from "zod";
 import { AiBuilderError, isAiBuilderError } from "../errors";
 import { serviceAuthMiddleware } from "../middleware";
@@ -97,16 +103,37 @@ Regenerate the workflow plan. Return only corrected JSON.`;
   throw new AiBuilderError("PLAN_GENERATION_FAILED", "Failed to generate a valid strategy plan.", 502);
 }
 
-router.get("/models", serviceAuthMiddleware, (_req, res) => {
-  res.status(200).json({
-    success: true,
-    models: providers.flatMap((provider) => provider.models),
-  });
+router.get("/models", serviceAuthMiddleware, async (req, res) => {
+  try {
+    const allModels = providers.flatMap((provider) => provider.models);
+    const userId = req.userId;
+    if (!userId) {
+      res.status(200).json({
+        success: true,
+        models: allModels,
+      });
+      return;
+    }
+
+    const plan = await getUserPlan(userId);
+    res.status(200).json({
+      success: true,
+      models: annotateModelsForPlan(allModels, plan),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "INTERNAL_ERROR",
+      message: error instanceof Error ? error.message : "Failed to load models.",
+    });
+  }
 });
 
 router.post("/strategy/plan", serviceAuthMiddleware, async (req, res) => {
   try {
-    const input = parseStrategyBuilderRequest(req.body);
+    const userId = requireUserId(req.userId);
+    const payload = await enforcePlanModelAccess(userId, req.body);
+    const input = parseStrategyBuilderRequest(payload);
     const { provider } = resolvePlannerProvider(providers, input.model);
     const prompt = buildStrategyPlannerPrompt(input);
     const result = await generatePlanWithRetry(provider, input, prompt);
@@ -122,6 +149,16 @@ router.post("/strategy/plan", serviceAuthMiddleware, async (req, res) => {
         code: "INVALID_REQUEST",
         message: "Invalid planner request.",
         errors: error,
+      });
+      return;
+    }
+
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
       });
       return;
     }
@@ -148,7 +185,8 @@ router.post("/strategy/plan", serviceAuthMiddleware, async (req, res) => {
 router.post("/strategy/drafts", serviceAuthMiddleware, async (req, res) => {
   try {
     const userId = requireUserId(req.userId);
-    const input = parseStrategyBuilderRequest(req.body);
+    const payload = await enforcePlanModelAccess(userId, req.body);
+    const input = parseStrategyBuilderRequest(payload);
     const { provider } = resolvePlannerProvider(providers, input.model);
     const prompt = buildStrategyPlannerPrompt(input);
     const response = await generatePlanWithRetry(provider, input, prompt);
@@ -165,6 +203,16 @@ router.post("/strategy/drafts", serviceAuthMiddleware, async (req, res) => {
         code: "INVALID_REQUEST",
         message: "Invalid planner request.",
         errors: error.flatten(),
+      });
+      return;
+    }
+
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
       });
       return;
     }
@@ -191,6 +239,7 @@ router.post("/strategy/drafts", serviceAuthMiddleware, async (req, res) => {
 router.post("/strategy/drafts/:draftId/edit", serviceAuthMiddleware, async (req, res) => {
   try {
     const userId = requireUserId(req.userId);
+    await enforcePlanModelAccess(userId, req.body);
     const edit = parseStrategyDraftEditRequest(req.body);
     const existing = await aiDraftStore.get(userId, String(req.params.draftId));
     
@@ -222,6 +271,16 @@ router.post("/strategy/drafts/:draftId/edit", serviceAuthMiddleware, async (req,
         code: "INVALID_REQUEST",
         message: "Invalid draft edit request.",
         errors: error.flatten(),
+      });
+      return;
+    }
+
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
       });
       return;
     }
