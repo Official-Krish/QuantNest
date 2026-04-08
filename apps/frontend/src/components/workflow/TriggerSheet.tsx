@@ -17,6 +17,7 @@ import { OrangeButton } from "@/components/ui/button-orange";
 import { ArrowLeft } from "lucide-react";
 import { SUPPORTED_TRIGGERS } from "./sheets/constants";
 import { TriggerTypeSelector } from "./sheets/TriggerTypeSelector";
+import { MarketStatusBadge } from "./sheets/MarketStatusBadge";
 import { renderBuilderForm } from "./builderRegistry";
 import { getPortfolioRiskValidationErrors } from "@/lib/validation";
 
@@ -180,6 +181,7 @@ export const TriggerSheet = ({
                       value={selectedTrigger}
                       onValueChange={handleTriggerSelect}
                       triggers={SUPPORTED_TRIGGERS}
+                      marketType={marketType}
                     />
                   </motion.div>
                 ) : (
@@ -191,6 +193,8 @@ export const TriggerSheet = ({
                     transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                     className="space-y-4"
                   >
+                    <MarketStatusBadge marketType={marketType} showDeferredHint />
+
                     <div className="rounded-2xl border border-[#f17463]/45 border-l-4 border-l-[#f17463] bg-[#f17463]/8 p-3 shadow-[0_0_0_1px_rgba(241,116,99,0.1)]">
                       <div className="min-w-0">
                         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#f17463]">

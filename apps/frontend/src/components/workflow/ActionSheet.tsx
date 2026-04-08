@@ -23,6 +23,7 @@ import { ArrowLeft, ArrowRight, GitFork, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getServiceBrand, ServiceLogo } from "./service-branding";
 import { getBuilderPanelGroupForNodeType, renderBuilderForm } from "./builderRegistry";
+import { MarketStatusBadge } from "./sheets/MarketStatusBadge";
 import {
   ACTION_GROUP_OPTIONS,
   FLOW_CONTROL_STEP_OPTIONS,
@@ -304,6 +305,8 @@ export const ActionSheet = ({
                     transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                     className="space-y-4"
                   >
+                    <MarketStatusBadge marketType={marketType} showDeferredHint={canShowConfig} />
+
                     <motion.div
                       key={selectedAction || "preview-placeholder"}
                       initial={{ opacity: 0, x: 28 }}

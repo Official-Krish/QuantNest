@@ -1,9 +1,11 @@
 import { cn } from "@/lib/utils";
+import { MarketStatusBadge } from "./MarketStatusBadge";
 
 interface TriggerTypeSelectorProps {
   value: string;
   onValueChange: (value: string) => void;
   triggers: Array<{ id: string; title: string; description: string }>;
+  marketType?: "Indian" | "Crypto" | null;
 }
 
 const TRIGGER_DESCRIPTIONS: Record<string, string> = {
@@ -19,12 +21,16 @@ export const TriggerTypeSelector = ({
   value,
   onValueChange,
   triggers,
+  marketType,
 }: TriggerTypeSelectorProps) => {
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#f17463]">
-        Trigger options
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#f17463]">
+          Trigger options
+        </p>
+        <MarketStatusBadge marketType={marketType} showDeferredHint={false} />
+      </div>
       <div className="space-y-2">
         {triggers.map((trigger) => {
           const selected = value === trigger.id;
