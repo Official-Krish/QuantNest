@@ -60,7 +60,7 @@ interface UIGroup {
 
 type TriggerTemplateMode = "custom" | "volume-spike";
 
-const TIMEFRAMES: IndicatorTimeframe[] = ["1m", "5m", "15m", "1h"];
+const TIMEFRAMES: IndicatorTimeframe[] = ["1m", "5m", "15m", "1h", "day", "1w", "1mon"];
 const OPERATOR_OPTIONS: Array<{ value: IndicatorComparator; label: string }> = [
   { value: ">", label: ">" },
   { value: ">=", label: ">=" },
@@ -183,9 +183,19 @@ function defaultGroup(marketType: "Indian" | "Crypto" | null): UIGroup {
 }
 
 function parseIndicatorOperand(operand: IndicatorOperand): UIIndicator {
+  const rawTimeframe = String(operand.indicator.timeframe || "5m").toLowerCase();
+  const timeframe =
+    rawTimeframe === "1d" || rawTimeframe === "day"
+      ? "day"
+      : rawTimeframe === "1wk" || rawTimeframe === "week" || rawTimeframe === "1w"
+        ? "1w"
+        : rawTimeframe === "1mo" || rawTimeframe === "month" || rawTimeframe === "1mon"
+          ? "1mon"
+          : rawTimeframe;
+
   return {
     symbol: operand.indicator.symbol,
-    timeframe: operand.indicator.timeframe,
+    timeframe: timeframe as IndicatorTimeframe,
     indicator: operand.indicator.indicator,
     period: operand.indicator.params?.period,
   };
@@ -203,10 +213,18 @@ function parseLooseIndicatorOperand(operand: unknown): UIIndicator {
   const indicator = operand.indicator as Record<string, unknown> | undefined;
   const params = indicator?.params as Record<string, unknown> | undefined;
 
+  const normalizeTimeframe = (value: unknown): IndicatorTimeframe => {
+    const raw = String(value || "5m").toLowerCase();
+    if (raw === "1d" || raw === "day") return "day";
+    if (raw === "1wk" || raw === "week" || raw === "1w") return "1w";
+    if (raw === "1mo" || raw === "month" || raw === "1mon") return "1mon";
+    return raw as IndicatorTimeframe;
+  };
+
   if (operand.type === "indicator" && indicator) {
     return {
       symbol: String(indicator.symbol || defaultSymbolForMarket(null)),
-      timeframe: String(indicator.timeframe || "5m") as IndicatorTimeframe,
+      timeframe: normalizeTimeframe(indicator.timeframe),
       indicator: String(indicator.indicator || "rsi") as IndicatorKind,
       period: typeof params?.period === "number" ? (params.period as number) : undefined,
     };
@@ -215,7 +233,7 @@ function parseLooseIndicatorOperand(operand: unknown): UIIndicator {
   if (indicator) {
     return {
       symbol: String(indicator.symbol || defaultSymbolForMarket(null)),
-      timeframe: String(indicator.timeframe || "5m") as IndicatorTimeframe,
+      timeframe: normalizeTimeframe(indicator.timeframe),
       indicator: String(indicator.indicator || "rsi") as IndicatorKind,
       period: typeof params?.period === "number" ? (params.period as number) : undefined,
     };

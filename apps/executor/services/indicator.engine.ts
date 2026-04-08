@@ -55,6 +55,9 @@ const timeframeMs: Record<IndicatorTimeframe, number> = {
     "5m": 5 * 60_000,
     "15m": 15 * 60_000,
     "1h": 60 * 60_000,
+    "day": 24 * 60 * 60_000,
+    "1w": 7 * 24 * 60 * 60_000,
+    "1mon": 30 * 24 * 60 * 60_000,
 };
 
 const MAX_CANDLES = 1_000;
@@ -77,6 +80,32 @@ function isGroup(value: IndicatorConditionClause | IndicatorConditionGroup): val
     return value.type === "group";
 }
 
+function normalizeTimeframe(timeframe?: string): IndicatorTimeframe {
+    switch (String(timeframe || "").toLowerCase()) {
+        case "1d":
+        case "d":
+        case "day":
+            return "day";
+        case "1wk":
+        case "wk":
+        case "week":
+        case "1w":
+            return "1w";
+        case "1mo":
+        case "mo":
+        case "month":
+        case "1mon":
+            return "1mon";
+        case "1m":
+        case "5m":
+        case "15m":
+        case "1h":
+            return timeframe as IndicatorTimeframe;
+        default:
+            return "5m";
+    }
+}
+
 export class IndicatorEngine {
     private readonly candles = new Map<string, Candle[]>();
     private readonly activeCandles = new Map<string, Candle>();
@@ -96,6 +125,7 @@ export class IndicatorEngine {
             this.subscriptions.set(this.referenceKey(ref), {
                 ...ref,
                 marketType: toMarketType(ref.marketType),
+                timeframe: normalizeTimeframe(ref.timeframe),
             });
         });
     }
@@ -252,6 +282,7 @@ export class IndicatorEngine {
         const ref: IndicatorReference = {
             ...operand.indicator,
             marketType: toMarketType(operand.indicator.marketType),
+            timeframe: normalizeTimeframe(operand.indicator.timeframe),
         };
 
         return this.computeFromHistoryPair(ref);
@@ -265,6 +296,7 @@ export class IndicatorEngine {
         const ref: IndicatorReference = {
             ...operand.indicator,
             marketType: toMarketType(operand.indicator.marketType),
+            timeframe: normalizeTimeframe(operand.indicator.timeframe),
         };
 
         const cached = indicatorCache.get(ref);
@@ -435,6 +467,7 @@ export class IndicatorEngine {
                     refs.push({
                         ...operand.indicator,
                         marketType: toMarketType(operand.indicator.marketType),
+                        timeframe: normalizeTimeframe(operand.indicator.timeframe),
                     });
                 }
             });
@@ -453,7 +486,8 @@ export class IndicatorEngine {
     }
 
     private referenceKey(ref: IndicatorReference): string {
-        return `${toMarketType(ref.marketType)}:${ref.symbol}:${ref.timeframe}:${ref.indicator}:${ref.params?.period || ""}`;
+        const timeframe = normalizeTimeframe(ref.timeframe);
+        return `${toMarketType(ref.marketType)}:${ref.symbol}:${timeframe}:${ref.indicator}:${ref.params?.period || ""}`;
     }
 
     private pushClosedCandle(key: string, candle: Candle): void {
@@ -506,7 +540,7 @@ export class IndicatorEngine {
     }
 }
 
-function timeframeToChartInterval(timeframe: IndicatorTimeframe): "1m" | "5m" | "15m" | "1h" {
+function timeframeToChartInterval(timeframe: IndicatorTimeframe): "1m" | "5m" | "15m" | "1h" | "1d" | "1wk" | "1mo" {
     switch (timeframe) {
         case "1m":
             return "1m";
@@ -516,6 +550,12 @@ function timeframeToChartInterval(timeframe: IndicatorTimeframe): "1m" | "5m" | 
             return "15m";
         case "1h":
             return "1h";
+        case "day":
+            return "1d";
+        case "1w":
+            return "1wk";
+        case "1mon":
+            return "1mo";
         default:
             return "5m";
     }
