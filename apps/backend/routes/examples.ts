@@ -2,6 +2,7 @@ import { Router } from "express";
 import { WorkflowExampleModel, WorkflowModel } from "@quantnest-trading/db/client";
 import { deriveWorkflowTriggerState } from "@quantnest-trading/executor-utils";
 import { authMiddleware } from "../middleware";
+import { assertWorkflowCreationAllowed, isPlanLimitError } from "../services/subscription";
 
 const examplesRouter = Router();
 
@@ -97,6 +98,8 @@ examplesRouter.post("/:slug/create", authMiddleware, async (req, res) => {
   }
 
   try {
+    await assertWorkflowCreationAllowed(userId);
+
     const example = await WorkflowExampleModel.findOne({ slug }).lean();
 
     if (!example) {
@@ -123,6 +126,15 @@ examplesRouter.post("/:slug/create", authMiddleware, async (req, res) => {
       workflowId: workflow._id,
     });
   } catch (error) {
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        message: error.message,
+        code: error.code,
+        details: error.details,
+      });
+      return;
+    }
+
     res.status(500).json({ message: "Failed to create workflow from example" });
     console.error("Error creating workflow from example:", error);
   }

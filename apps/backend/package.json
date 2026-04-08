@@ -13,6 +13,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@quantnest-trading/plan-guards": "workspace:^",
     "@google-cloud/storage": "^7.19.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",

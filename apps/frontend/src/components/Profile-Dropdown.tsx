@@ -84,7 +84,7 @@ export function ProfileDropDown() {
                     className="flex items-center gap-2.5 px-2.5 py-2.5 mb-1 rounded-lg"
                     style={{ background: "rgba(255,255,255,0.03)" }}
                 >
-                    <Avatar className="h-8 w-8 flex-shrink-0">
+                    <Avatar className="h-8 w-8 shrink-0">
                         <AvatarImage src={avatarUrl} alt="User Avatar" />
                         <AvatarFallback
                             className="text-[12px] font-semibold text-white"
@@ -111,30 +111,38 @@ export function ProfileDropDown() {
                         className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-white/60 cursor-pointer transition-colors duration-100 focus:text-white/90 focus:bg-white/6"
                         onClick={() => window.location.href = "/profile"}
                     >
-                        <SettingsIcon size={14} className="text-white/40 flex-shrink-0" />
+                        <SettingsIcon size={14} className="text-white/40 shrink-0" />
                         Account settings
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
                         className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-white/60 cursor-pointer transition-colors duration-100 focus:text-white/90 focus:bg-white/6"
-                        onClick={() => window.location.href = "/coming-soon/:billing"}
+                        onClick={() => window.location.href = "/billing"}
                     >
-                        <CreditCardIcon size={14} className="text-white/40 flex-shrink-0" />
+                        <CreditCardIcon size={14} className="text-white/40 shrink-0" />
                         Billing
                         {/* Plan badge */}
                         <span
                             className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                             style={{ background: "rgba(241,116,99,0.12)", color: "#f17463" }}
                         >
-                            Starter
+                            Free
                         </span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                        className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-white/60 cursor-pointer transition-colors duration-100 focus:text-white/90 focus:bg-white/6"
+                        onClick={() => window.location.href = "/usage"}
+                    >
+                        <CreditCardIcon size={14} className="text-white/40 shrink-0" />
+                        Usage
                     </DropdownMenuItem>
 
                     <DropdownMenuItem
                         className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-white/60 cursor-pointer transition-colors duration-100 focus:text-white/90 focus:bg-white/6"
                         onClick={() => window.location.href = "/notifications"}
                     >
-                        <BellIcon size={14} className="text-white/40 flex-shrink-0" />
+                        <BellIcon size={14} className="text-white/40 shrink-0" />
                         Notifications
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -149,7 +157,7 @@ export function ProfileDropDown() {
                     style={{ color: "rgba(239,68,68,0.8)" }}
                     onClick={() => void handleSignOut()}
                 >
-                    <LogOutIcon size={14} className="flex-shrink-0" style={{ color: "rgba(239,68,68,0.6)" }} />
+                    <LogOutIcon size={14} className="shrink-0" style={{ color: "rgba(239,68,68,0.6)" }} />
                     Sign out
                 </DropdownMenuItem>
             </DropdownMenuContent>

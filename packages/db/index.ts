@@ -128,6 +128,12 @@ const UserSchema = new Schema({
             workflowAlerts: true,
         }),
     },
+    subscriptionPlan: {
+        type: String,
+        enum: ["free", "pro", "team"],
+        default: "free",
+        index: true,
+    },
     emailVerified: {
         type: Boolean,
         default: true,

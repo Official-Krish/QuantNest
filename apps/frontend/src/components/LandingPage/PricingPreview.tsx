@@ -10,10 +10,15 @@ type PlanPreview = {
 
 const plans: PlanPreview[] = [
   {
-    name: "Starter",
-    price: "$19/mo",
-    subtitle: "For solo traders validating workflow ideas.",
-    features: ["Up to 10 workflows", "2,000 executions/day", "Basic reporting"],
+    name: "Free",
+    price: "$0/mo",
+    subtitle: "For solo traders getting started with capped usage.",
+    features: [
+      "Max 3 workflows",
+      "Max 3 AI chats",
+      "5 iterations per AI chat",
+      "Delete one chat to start a new one after reaching cap",
+    ],
   },
   {
     name: "Pro",

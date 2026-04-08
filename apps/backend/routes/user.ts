@@ -27,6 +27,7 @@ import {
     getUserProfilePayload,
     updateUserProfilePayload,
 } from '../services/userProfile';
+import { getUserUsageSnapshot } from '../services/subscription';
 
 const userRouter = Router();
 const JWT_SECRET = getJwtSecret();
@@ -366,6 +367,25 @@ userRouter.get('/profile', authMiddleware, async (req, res) => {
             return;
         }
         res.status(200).json(payload);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+userRouter.get('/usage', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    try {
+        const snapshot = await getUserUsageSnapshot(userId);
+        res.status(200).json({
+            message: "Usage retrieved",
+            ...snapshot,
+        });
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
     }

@@ -24,6 +24,8 @@ export interface AiModelDescriptor {
   label: string;
   capabilities: AiModelCapability[];
   recommended?: boolean;
+  locked?: boolean;
+  lockReason?: string;
 }
 
 export interface DailyPerformanceInput {

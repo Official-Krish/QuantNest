@@ -196,6 +196,22 @@ export type marketStatus = {
   nextOpenTime?: string;
 }
 
+export type SubscriptionPlan = "free" | "pro" | "team";
+
+export interface UsageSnapshot {
+  plan: SubscriptionPlan;
+  limits: {
+    maxWorkflows: number;
+    maxAiChats: number;
+    maxAiIterationsPerChat: number;
+    aiRequestsPerMinute: number;
+  };
+  usage: {
+    workflows: number;
+    aiChats: number;
+  };
+}
+
 export type {
   AiModelDescriptor,
   AiStrategyBuilderRequest,

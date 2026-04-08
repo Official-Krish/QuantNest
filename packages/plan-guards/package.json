@@ -1,0 +1,19 @@
+{
+  "name": "@quantnest-trading/plan-guards",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "@quantnest-trading/db": "workspace:^",
+    "@quantnest-trading/types": "workspace:^"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

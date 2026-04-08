@@ -18,6 +18,7 @@ import type {
   TelegramChatSummary,
   marketStatus,
   SigninResponse,
+  UsageSnapshot,
   UserNotification,
   Workflow,
   WorkflowLivePreview,
@@ -116,6 +117,21 @@ export async function apiVerifyToken(): Promise<{ message: string }> {
 export async function apiGetProfile(): Promise<UserProfileResponse> {
   const res = await api.get<UserProfileResponse>("/user/profile");
   return res.data;
+}
+
+export async function apiGetUsageSnapshot(): Promise<UsageSnapshot> {
+  const res = await api.get<{
+    message: string;
+    plan: UsageSnapshot["plan"];
+    limits: UsageSnapshot["limits"];
+    usage: UsageSnapshot["usage"];
+  }>("/user/usage");
+
+  return {
+    plan: res.data.plan,
+    limits: res.data.limits,
+    usage: res.data.usage,
+  };
 }
 
 export async function apiSaveProfile(body: {

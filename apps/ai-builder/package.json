@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@quantnest-trading/db": "workspace:^",
+    "@quantnest-trading/plan-guards": "workspace:^",
     "@anthropic-ai/sdk": "^0.78.0",
     "@google/genai": "^1.42.0",
     "cookie-parser": "^1.4.7",

@@ -2,6 +2,7 @@ import { ExecutionModel, WorkflowModel } from "@quantnest-trading/db/client";
 import { createUserNotification, deriveWorkflowTriggerState, saveZerodhaToken } from "@quantnest-trading/executor-utils";
 import { isBrokerVerificationError, verifyBrokerCredentialsForNodes } from "./brokerVerification";
 import { resolveNodeMetadataSecrets } from "./reusableSecrets";
+import { assertWorkflowCreationAllowed } from "./subscription";
 
 type WorkflowNodeInput = Array<any>;
 type WorkflowEdgeInput = Array<any>;
@@ -13,6 +14,8 @@ export async function createWorkflowForUser(params: {
   edges: WorkflowEdgeInput;
   executionMode?: "live" | "dry-run";
 }) {
+  await assertWorkflowCreationAllowed(params.userId);
+
   const executionMode = params.executionMode || "live";
   if (executionMode === "live") {
     await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);

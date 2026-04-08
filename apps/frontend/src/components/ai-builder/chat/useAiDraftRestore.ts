@@ -68,7 +68,9 @@ export function useAiDraftRestore({
         ]);
         setModels(modelRes.models);
         const preferred =
-          modelRes.models.find((entry) => entry.recommended) || modelRes.models[0];
+          modelRes.models.find((entry) => entry.recommended && !entry.locked) ||
+          modelRes.models.find((entry) => !entry.locked) ||
+          modelRes.models[0];
         if (preferred) {
           setSelectedProvider(String(preferred.provider));
           setSelectedModel(preferred.id);
@@ -113,10 +115,21 @@ export function useAiDraftRestore({
   );
 
   useEffect(() => {
-    if (!providerModels.some((entry) => entry.id === selectedModel)) {
-      setSelectedModel(providerModels[0]?.id || "");
+    const providerUnlockedModels = providerModels.filter((entry) => !entry.locked);
+
+    if (!providerUnlockedModels.length) {
+      const fallback = models.find((entry) => !entry.locked);
+      if (fallback) {
+        setSelectedProvider(String(fallback.provider));
+        setSelectedModel(fallback.id);
+      }
+      return;
     }
-  }, [providerModels, selectedModel, setSelectedModel]);
+
+    if (!providerUnlockedModels.some((entry) => entry.id === selectedModel)) {
+      setSelectedModel(providerUnlockedModels[0]?.id || "");
+    }
+  }, [models, providerModels, selectedModel, setSelectedModel, setSelectedProvider]);
 
   useEffect(() => {
     if (!activeDraft || !activeVersionId) return;

@@ -17,6 +17,7 @@ import { VerifyEmail } from "./pages/VerifyEmail";
 import { Examples } from "./pages/Examples";
 import { Algorithms } from "./pages/Algorithms";
 import { AiStrategyChatBuilder } from "./pages/AiStrategyChatBuilder";
+import { BillingUsage } from "./pages/BillingUsage";
 
 export function App() {
   return (
@@ -98,6 +99,22 @@ export function App() {
         element={
           <ProtectedRoute>
             <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/billing"
+        element={
+          <ProtectedRoute>
+            <BillingUsage defaultTab="billing" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/usage"
+        element={
+          <ProtectedRoute>
+            <BillingUsage defaultTab="usage" />
           </ProtectedRoute>
         }
       />

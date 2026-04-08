@@ -1,10 +1,19 @@
 import axios from "axios";
 import { Router } from "express";
 import { AiStrategyDraftVersionModel, AiStrategySessionModel } from "@quantnest-trading/db/client";
-import { aiStrategyDraftSessionSchema } from "@quantnest-trading/types/ai";
+import { aiStrategyDraftSessionSchema, type AiModelDescriptor } from "@quantnest-trading/types/ai";
 import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware";
 import { getUserAiDraft, listUserAiDraftSummaries } from "../services/aiDrafts";
+import {
+  assertAiChatCreationAllowed,
+  assertAiIterationsAllowed,
+  enforceAiRateLimit,
+  enforcePlanModelAccess,
+  getUserPlan,
+  annotateModelsForPlan,
+  isPlanLimitError,
+} from "../services/subscription";
 
 const aiRouter = Router();
 
@@ -61,10 +70,31 @@ async function proxyAiBuilder(
 
 aiRouter.get("/models", authMiddleware, async (req, res) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
     const result = await proxyAiBuilder("/api/v1/models", {
       method: "GET",
-      userId: req.userId || undefined,
+      userId,
     });
+
+    if (result.status >= 200 && result.status < 300 && result.data?.models) {
+      const plan = await getUserPlan(userId);
+      const nextModels = annotateModelsForPlan(result.data.models as AiModelDescriptor[], plan);
+
+      res.status(result.status).json({
+        ...result.data,
+        models: nextModels,
+      });
+      return;
+    }
 
     res.status(result.status).json(result.data);
   } catch (error) {
@@ -78,14 +108,37 @@ aiRouter.get("/models", authMiddleware, async (req, res) => {
 
 aiRouter.post("/strategy/plan", authMiddleware, async (req, res) => {
   try {
+    if (!req.userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    await enforceAiRateLimit(req.userId);
+
+    const payload = await enforcePlanModelAccess(req.userId, req.body);
+
     const result = await proxyAiBuilder("/api/v1/strategy/plan", {
       method: "POST",
       userId: req.userId || undefined,
-      data: req.body,
+      data: payload,
     });
 
     res.status(result.status).json(result.data);
   } catch (error) {
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      return;
+    }
+
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
@@ -96,14 +149,39 @@ aiRouter.post("/strategy/plan", authMiddleware, async (req, res) => {
 
 aiRouter.post("/strategy/drafts", authMiddleware, async (req, res) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    await enforceAiRateLimit(userId);
+    await assertAiChatCreationAllowed(userId);
+
+    const payload = await enforcePlanModelAccess(userId, req.body);
+
     const result = await proxyAiBuilder("/api/v1/strategy/drafts", {
       method: "POST",
-      userId: req.userId || undefined,
-      data: req.body,
+      userId,
+      data: payload,
     });
 
     res.status(result.status).json(result.data);
   } catch (error) {
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      return;
+    }
+
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
@@ -185,14 +263,59 @@ aiRouter.get("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
 
 aiRouter.post("/strategy/drafts/:draftId/edit", authMiddleware, async (req, res) => {
   try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    await enforceAiRateLimit(userId);
+
+    const draftResult = await getUserAiDraft(userId, String(req.params.draftId));
+    if (draftResult.status === "not_found") {
+      res.status(404).json({
+        success: false,
+        code: "DRAFT_NOT_FOUND",
+        message: "AI draft session was not found.",
+      });
+      return;
+    }
+    if (draftResult.status === "invalid") {
+      res.status(500).json({
+        success: false,
+        code: "INVALID_DRAFT_DATA",
+        message: "Stored draft session data is invalid.",
+        details: draftResult.issues,
+      });
+      return;
+    }
+
+    await assertAiIterationsAllowed(userId, draftResult.draft.edits.length);
+
+    const payload = await enforcePlanModelAccess(userId, req.body);
+
     const result = await proxyAiBuilder(`/api/v1/strategy/drafts/${req.params.draftId}/edit`, {
       method: "POST",
-      userId: req.userId || undefined,
-      data: req.body,
+      userId,
+      data: payload,
     });
 
     res.status(result.status).json(result.data);
   } catch (error) {
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      return;
+    }
+
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
