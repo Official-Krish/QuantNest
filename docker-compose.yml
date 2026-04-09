@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0-alpine
+    container_name: quantnest-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: quantnest
+      MONGO_INITDB_ROOT_PASSWORD: quantnest_dev_password
+      MONGO_INITDB_DATABASE: quantnest
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - quantnest-network
+    healthcheck:
+      test: ["CMD", "mongostat", "--authenticationDatabase", "admin", "-u", "quantnest", "-p", "quantnest_dev_password", "--noheaders", "--rowcount=1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API Service
+  backend:
+    image: krishanand01/quantnest-backend:v1
+    container_name: quantnest-backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      MONGO_URL: mongodb://quantnest:quantnest_dev_password@mongodb:27017/quantnest?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-change-in-production}
+      AI_SERVICE_JWT_SECRET: ${AI_SERVICE_JWT_SECRET:-your-ai-jwt-secret-change-in-production}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      GOOGLE_SHEETS_PRIVATE_KEY: ${GOOGLE_SHEETS_PRIVATE_KEY:-}
+      GOOGLE_SHEETS_CLIENT_EMAIL: ${GOOGLE_SHEETS_CLIENT_EMAIL:-}
+      GOOGLE_SHEETS_PROJECT_ID: ${GOOGLE_SHEETS_PROJECT_ID:-}
+      AI_BUILDER_URL: http://ai-builder:3001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - quantnest-network
+    restart: unless-stopped
+
+  # AI Builder Service
+  ai-builder:
+    image: krishanand01/quantnest-ai-builder:v1
+    container_name: quantnest-ai-builder
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      MONGO_URL: mongodb://quantnest:quantnest_dev_password@mongodb:27017/quantnest?authSource=admin
+      AI_SERVICE_JWT_SECRET: ${AI_SERVICE_JWT_SECRET:-your-ai-jwt-secret-change-in-production}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - quantnest-network
+    restart: unless-stopped
+
+  # Workflow Executor Service
+  executor:
+    image: krishanand01/quantnest-executor:v1
+    container_name: quantnest-executor
+    environment:
+      NODE_ENV: production
+      MONGO_URL: mongodb://quantnest:quantnest_dev_password@mongodb:27017/quantnest?authSource=admin
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - quantnest-network
+    restart: unless-stopped
+
+  # Frontend Service (React + Nginx)
+  frontend:
+    image: krishanand01/quantnest-frontend:v1
+    container_name: quantnest-frontend
+    ports:
+      - "5173:80"
+    environment:
+      # VITE_BACKEND_URL is baked at build time, so this env var is informational only
+      VITE_BACKEND_URL: /api/v1
+    depends_on:
+      - backend
+    networks:
+      - quantnest-network
+    restart: unless-stopped
+
+networks:
+  quantnest-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
