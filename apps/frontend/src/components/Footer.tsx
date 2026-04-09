@@ -76,7 +76,9 @@ const Footer = () => {
               <p className="mt-3 max-w-sm text-sm text-neutral-400">
                 Visual trading automation for teams that need speed, control, and traceability.
               </p>
-              <div className="mt-4 flex items-center gap-1 text-xs text-neutral-200">
+              <div className="mt-4 flex items-center gap-1 text-xs text-neutral-200 cursor-pointer hover:underline"
+                onClick={() => window.location.href = "https://github.com/Official-Krish"}
+              >
                 <span>Crafted with</span>
                 <span className="text-[#f17463]">❤️</span>
                 <span>by Krish Anand</span>
@@ -123,7 +125,7 @@ const Footer = () => {
 
             <div className="flex items-center gap-3">
               <a
-                href="https://x.com"
+                href="https://x.com/KrishAnand0103"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-md border border-neutral-800 bg-neutral-950 p-2 text-neutral-400 transition-colors hover:text-white"
@@ -132,7 +134,7 @@ const Footer = () => {
                 <FaXTwitter className="h-4 w-4" />
               </a>
               <a
-                href="https://github.com"
+                href="https://github.com/Official-Krish/QuantNest"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-md border border-neutral-800 bg-neutral-950 p-2 text-neutral-400 transition-colors hover:text-white"

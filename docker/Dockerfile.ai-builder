@@ -3,13 +3,11 @@ FROM oven/bun:1 AS builder
 WORKDIR /app
 
 COPY package.json bun.lock turbo.json ./
-COPY apps/backend/package.json apps/backend/package.json
+COPY apps/ai-builder/package.json apps/ai-builder/package.json
 COPY packages/db/package.json packages/db/package.json
-COPY packages/market/package.json packages/market/package.json
 COPY packages/node-registry/package.json packages/node-registry/package.json
 COPY packages/plan-guards/package.json packages/plan-guards/package.json
 COPY packages/types/package.json packages/types/package.json
-COPY packages/executor-utils/package.json packages/executor-utils/package.json
 
 RUN bun install --frozen-lockfile
 
@@ -22,9 +20,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY --from=builder /app/node_modules /app/node_modules
-COPY --from=builder /app/apps/backend /app/apps/backend
+COPY --from=builder /app/apps/ai-builder /app/apps/ai-builder
 COPY --from=builder /app/packages /app/packages
 
-EXPOSE 3000
+EXPOSE 3001
 
-CMD ["bun", "--cwd", "apps/backend", "run", "index.ts"]
+CMD ["bun", "--cwd", "apps/ai-builder", "run", "index.ts"]

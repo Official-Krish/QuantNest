@@ -1,0 +1,16 @@
+node_modules
+.turbo
+dist
+coverage
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+
+apps/*/node_modules
+apps/*/dist
+apps/*/coverage
+packages/*/node_modules
+packages/*/dist
+packages/*/coverage

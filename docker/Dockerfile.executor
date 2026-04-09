@@ -1,10 +1,12 @@
-FROM oven/bun:1 AS base
+FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
 COPY package.json bun.lock turbo.json ./
 COPY apps/executor/package.json apps/executor/package.json
 COPY packages/db/package.json packages/db/package.json
+COPY packages/market/package.json packages/market/package.json
+COPY packages/node-registry/package.json packages/node-registry/package.json
 COPY packages/types/package.json packages/types/package.json
 COPY packages/executor-utils/package.json packages/executor-utils/package.json
 COPY packages/lighter-sdk-ts/package.json packages/lighter-sdk-ts/package.json
@@ -13,6 +15,14 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
+FROM oven/bun:1 AS runtime
+
+WORKDIR /app
+
 ENV NODE_ENV=production
+
+COPY --from=builder /app/node_modules /app/node_modules
+COPY --from=builder /app/apps/executor /app/apps/executor
+COPY --from=builder /app/packages /app/packages
 
 CMD ["bun", "--cwd", "apps/executor", "run", "index.ts"]
