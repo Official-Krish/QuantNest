@@ -178,3 +178,118 @@ export async function handleWorkflowBrokerVerificationFailure(params: {
 
   return true;
 }
+
+function generateUniqueShareCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+export async function generateShareCode(userId: string | undefined, workflowId: string) {
+  const workflow = await WorkflowModel.findOne({ _id: workflowId, userId });
+
+  if (!workflow) {
+    return null;
+  }
+
+  // Check if share code already exists
+  if (workflow.shareCode) {
+    return { shareCode: workflow.shareCode, workflowId };
+  }
+
+  // Generate new share code
+  let shareCode = generateUniqueShareCode();
+  let attempts = 0;
+  
+  while (attempts < 5) {
+    const existing = await WorkflowModel.findOne({ shareCode });
+    if (!existing) {
+      break;
+    }
+    shareCode = generateUniqueShareCode();
+    attempts++;
+  }
+
+  // Save share code to workflow
+  workflow.shareCode = shareCode;
+  await workflow.save();
+
+  return { shareCode, workflowId };
+}
+
+export async function getWorkflowByShareCode(shareCode: string) {
+  const workflow = await WorkflowModel.findOne({ shareCode }).lean();
+  
+  if (!workflow) {
+    return null;
+  }
+
+  // Return shareable workflow data (don't expose userId)
+  return {
+    workflowName: workflow.workflowName,
+    executionMode: workflow.executionMode,
+    nodes: workflow.nodes,
+    edges: workflow.edges,
+    marketType: (workflow as any).marketType,
+  };
+}
+
+export async function exportWorkflow(userId: string | undefined, workflowId: string) {
+  const workflow = await WorkflowModel.findOne({ _id: workflowId, userId }).lean();
+
+  if (!workflow) {
+    return null;
+  }
+
+  // Return shareable workflow data
+  return {
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+    workflowName: workflow.workflowName,
+    executionMode: workflow.executionMode,
+    nodes: workflow.nodes,
+    edges: workflow.edges,
+    marketType: (workflow as any).marketType,
+  };
+}
+
+export async function importWorkflow(params: {
+  userId: string;
+  workflowName: string;
+  nodes: WorkflowNodeInput;
+  edges: WorkflowEdgeInput;
+  executionMode?: "live" | "dry-run";
+}) {
+  await assertWorkflowCreationAllowed(params.userId);
+
+  const executionMode = params.executionMode || "live";
+  if (executionMode === "live") {
+    await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);
+  }
+
+  const workflow = await WorkflowModel.create({
+    workflowName: params.workflowName,
+    userId: params.userId,
+    nodes: params.nodes,
+    edges: params.edges,
+    executionMode,
+    status: "paused", 
+    ...deriveWorkflowTriggerState(params.nodes as any),
+  });
+
+  const zerodhaNode = params.nodes.find((node) => String(node?.type || "").toLowerCase() === "zerodha");
+  if (executionMode === "live" && zerodhaNode) {
+    const resolvedMetadata = await resolveNodeMetadataSecrets({
+      userId: params.userId,
+      service: "zerodha",
+      metadata: zerodhaNode.data?.metadata || {},
+    });
+    const accessToken = (resolvedMetadata as any)?.accessToken || "";
+    await saveZerodhaToken(params.userId, workflow._id.toString(), accessToken);
+  }
+
+  return workflow;
+}

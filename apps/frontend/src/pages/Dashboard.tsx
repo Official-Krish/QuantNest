@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { apiGetAllWorkflows } from "@/http";
 import type { Workflow } from "@/types/api";
 import { WorkflowTable } from "../components/dashboard/WorkflowTable";
+import { ImportCodeDialog } from "../components/workflow/ImportCodeDialog";
 import { AppBackground } from "@/components/background";
 import { OrangeButton } from "@/components/ui/button-orange";
+import { type NodeType, type EdgeType } from "@quantnest-trading/types";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ export const Dashboard = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const loadWorkflows = async () => {
     setLoading(true);
@@ -51,12 +54,20 @@ export const Dashboard = () => {
             </p>
           </div>
           <div className="flex flex-col items-end gap-3">
-            <OrangeButton
-              className="px-5 py-2 text-xs font-medium text-neutral-100 md:text-sm cursor-pointer"
-              onClick={() => navigate("/create/onboarding")}
-            >
-              + Create new workflow
-            </OrangeButton>
+            <div className="flex gap-2 flex-col sm:flex-row">
+              <button
+                onClick={() => setImportDialogOpen(true)}
+                className="px-4 py-2 text-xs font-medium bg-neutral-800 hover:bg-neutral-700 text-neutral-100 rounded-lg cursor-pointer transition-colors"
+              >
+                ↓ Import Workflow
+              </button>
+              <OrangeButton
+                className="px-5 py-2 text-xs font-medium text-neutral-100 md:text-sm cursor-pointer"
+                onClick={() => navigate("/create/onboarding")}
+              >
+                + Create new workflow
+              </OrangeButton>
+            </div>
             {error && (
               <p className="max-w-xs text-xs text-red-300">{error}</p>
             )}
@@ -105,6 +116,25 @@ export const Dashboard = () => {
           )}
         </section>
       </div>
+
+      {/* Import Dialog */}
+      <ImportCodeDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImported={(nodes: NodeType[], edges: EdgeType[], executionMode: string, workflowName?: string) => {
+          // For dashboard, we navigate to builder with the imported workflow
+          navigate("/create/builder", {
+            state: {
+              generatedPlan: {
+                nodes,
+                edges,
+                workflowName,
+                executionMode,
+              },
+            },
+          });
+        }}
+      />
     </div>
   );
 };

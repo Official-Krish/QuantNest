@@ -274,6 +274,13 @@ const WorkflowSchema = new Schema({
         type: Date,
         required: false,
     },
+    shareCode: {
+        type: String,
+        required: false,
+        unique: true,
+        sparse: true,
+        index: true,
+    },
 });
 
 const CreedentialTypeSchema = new Schema({

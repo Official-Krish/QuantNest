@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiUpdateWorkflowExecutionMode, apiUpdateWorkflowStatus } from "@/http";
+import { apiUpdateWorkflowExecutionMode, apiUpdateWorkflowStatus, apiGenerateShareCode } from "@/http";
 import { Button } from "@/components/ui/button";
-import { Pencil, ChevronRight, Activity, Key, Trash2, Pause, Play } from "lucide-react";
+import { Pencil, ChevronRight, Activity, Key, Trash2, Pause, Play, Share2 } from "lucide-react";
 import type { Workflow } from "@/types/api";
 import { ZerodhaTokenDialog } from "./ZerodhaTokenDialog";
 import { DeleteWorkflowDialog } from "./DeleteWorkflowDialog";
+import { ShareCodeDialog } from "./ShareCodeDialog";
 import { toast } from "sonner";
 
 interface WorkflowTableProps {
@@ -19,9 +20,12 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
     const navigate = useNavigate();
     const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [shareCodeDialogOpen, setShareCodeDialogOpen] = useState(false);
     const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
     const [statusLoadingWorkflowId, setStatusLoadingWorkflowId] = useState<string | null>(null);
     const [modeLoadingWorkflowId, setModeLoadingWorkflowId] = useState<string | null>(null);
+    const [shareCodeLoading, setShareCodeLoading] = useState(false);
+    const [shareCode, setShareCode] = useState<string | null>(null);
 
     const hasZerodhaAction = (workflow: Workflow) => {
         return workflow.nodes?.some((node: any) => 
@@ -65,6 +69,22 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
             });
         } finally {
             setStatusLoadingWorkflowId(null);
+        }
+    };
+
+    const handleShareWorkflow = async (workflow: Workflow) => {
+        setSelectedWorkflow(workflow);
+        setShareCodeLoading(true);
+        try {
+            const response = await apiGenerateShareCode(workflow._id);
+            setShareCode(response.shareCode);
+            setShareCodeDialogOpen(true);
+        } catch (error: any) {
+            toast.error("Failed to generate share code", {
+                description: error?.response?.data?.message ?? "Could not generate share code.",
+            });
+        } finally {
+            setShareCodeLoading(false);
         }
     };
 
@@ -235,6 +255,20 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleShareWorkflow(wf);
+                                    }}
+                                    disabled={shareCodeLoading}
+                                    title="Share Workflow"
+                                >
+                                    <Share2 className="h-3.5 w-3.5" />
+                                    Share
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
                                     className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -265,6 +299,13 @@ export const WorkflowTable = ({ workflows, loading, onWorkflowDeleted, onWorkflo
             </div>
 
             {/* Dialogs */}
+            <ShareCodeDialog
+                open={shareCodeDialogOpen}
+                onOpenChange={setShareCodeDialogOpen}
+                shareCode={shareCode}
+                loading={shareCodeLoading}
+            />
+            
             {selectedWorkflow && (
                 <>
                     <ZerodhaTokenDialog

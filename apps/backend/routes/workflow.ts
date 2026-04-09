@@ -9,8 +9,12 @@ import { buildWorkflowPreview } from '../services/workflowPreview';
 import {
     createWorkflowForUser,
     deleteWorkflowForUser,
+    exportWorkflow,
+    generateShareCode,
+    getWorkflowByShareCode,
     getWorkflowForUser,
     handleWorkflowBrokerVerificationFailure,
+    importWorkflow,
     listExecutionsForWorkflow,
     listWorkflowsForUser,
     updateWorkflowExecutionModeForUser,
@@ -323,6 +327,105 @@ workFlowRouter.delete('/:workflowId', authMiddleware, async (req, res) => {
         res.status(200).json({ message: "Workflow deleted" });
     } catch (error) {
         res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+workFlowRouter.post('/:workflowId/export', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    const workflowId = String(req.params.workflowId);
+
+    try {
+        const result = await generateShareCode(userId, workflowId);
+        
+        if (!result) {
+            res.status(404).json({ message: "Workflow not found" });
+            return;
+        }
+
+        res.status(200).json({
+            message: "Share code generated",
+            shareCode: result.shareCode,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+workFlowRouter.get('/share/:shareCode', async (req, res) => {
+    const shareCode = String(req.params.shareCode).toUpperCase();
+
+    try {
+        const workflow = await getWorkflowByShareCode(shareCode);
+        
+        if (!workflow) {
+            res.status(404).json({ message: "Workflow not found" });
+            return;
+        }
+
+        res.status(200).json({
+            message: "Workflow retrieved",
+            workflow,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error", error });
+    }
+});
+
+workFlowRouter.post('/import/workflow', authMiddleware, async (req, res) => {
+    const userId = req.userId;
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+
+    const { workflowName, nodes, edges, executionMode } = req.body;
+
+    if (!workflowName || !nodes || !edges) {
+        res.status(400).json({ 
+            message: "Missing required fields: workflowName, nodes, edges" 
+        });
+        return;
+    }
+
+    try {
+        const newWorkflow = await importWorkflow({
+            userId,
+            workflowName: String(workflowName).trim(),
+            nodes,
+            edges,
+            executionMode: executionMode === "live" ? "live" : "dry-run",
+        });
+
+        res.status(201).json({
+            message: "Workflow imported successfully",
+            workflowId: newWorkflow._id,
+            workflow: newWorkflow,
+        });
+    } catch (error) {
+        if (isPlanLimitError(error)) {
+            res.status(error.statusCode).json({
+                message: error.message,
+                code: error.code,
+                details: error.details,
+            });
+            return;
+        }
+
+        const message = error instanceof Error ? error.message : "Workflow import failed";
+        if (await handleWorkflowBrokerVerificationFailure({
+            userId,
+            workflowName: String(workflowName),
+            stage: "create",
+            error,
+        })) {
+            res.status(400).json({ message });
+            return;
+        }
+
+        console.error(error);
+        res.status(400).json({ message: "Workflow import failed" });
     }
 });
 

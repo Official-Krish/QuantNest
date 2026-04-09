@@ -303,6 +303,34 @@ export async function apiUpdateZerodhaToken(body: { workflowId: string; accessTo
   return res.data;
 }
 
+export async function apiExportWorkflow(workflowId: string): Promise<{ message: string; workflow: any }> {
+  const res = await api.post<{ message: string; workflow: any }>(`/workflow/${workflowId}/export`);
+  return res.data;
+}
+
+export async function apiGenerateShareCode(workflowId: string): Promise<{ message: string; shareCode: string }> {
+  const res = await api.post<{ message: string; shareCode: string }>(`/workflow/${workflowId}/export`);
+  return res.data;
+}
+
+export async function apiGetWorkflowByShareCode(shareCode: string): Promise<{ message: string; workflow: any }> {
+  const res = await api.get<{ message: string; workflow: any }>(`/workflow/share/${shareCode}`);
+  return res.data;
+}
+
+export async function apiImportWorkflow(body: {
+  workflowName: string;
+  nodes: any[];
+  edges: any[];
+  executionMode?: "live" | "dry-run";
+}): Promise<{ message: string; workflowId: string; workflow: Workflow }> {
+  const res = await api.post<{ message: string; workflowId: string; workflow: Workflow }>(
+    "/workflow/import/workflow",
+    normalizeWorkflowPayload(body)
+  );
+  return res.data;
+}
+
 export async function apiGetMarketStatus(): Promise<{ success: boolean; marketStatus: marketStatus }> {
   const res = await api.get<{ success: boolean; marketStatus: marketStatus }>("/market-status");
   return res.data;

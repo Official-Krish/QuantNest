@@ -4,6 +4,8 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { type EdgeType, type NodeType } from "@quantnest-trading/types";
 import { WorkflowCanvas } from "../components/workflow/WorkflowCanvas";
 import { WorkflowNameDialog } from "../components/workflow/WorkflowNameDialog";
+import { ImportCodeDialog } from "../components/workflow/ImportCodeDialog";
+import { ShareCodeDialog } from "../components/dashboard/ShareCodeDialog";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +20,11 @@ import {
   apiGetWorkflow,
   apiVerifyBrokerCredentials,
   apiUpdateWorkflow,
+  apiGenerateShareCode,
 } from "@/http";
 import { Button } from "@/components/ui/button";
 import { OrangeButton } from "@/components/ui/button-orange";
+import { Share2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -80,6 +84,10 @@ export const CreateWorkflow = () => {
     x: number;
     y: number;
   } | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [shareCodeDialogOpen, setShareCodeDialogOpen] = useState(false);
+  const [shareCode, setShareCode] = useState<string | null>(null);
+  const [exportingBuilder, setExportingBuilder] = useState(false);
 
   useEffect(() => {
     if (routeWorkflowId) return;
@@ -423,6 +431,39 @@ export const CreateWorkflow = () => {
     setShowResetDialog(true);
   }, []);
 
+  const handleExportBuilder = useCallback(async () => {
+    if (!workflowId) {
+      toast.error("Save workflow first", { description: "Please save your workflow before sharing." });
+      return;
+    }
+
+    setExportingBuilder(true);
+    try {
+      const response = await apiGenerateShareCode(workflowId);
+      setShareCode(response.shareCode);
+      setShareCodeDialogOpen(true);
+      toast.success("Share code generated", { description: "Share this code with others!" });
+    } catch (error: any) {
+      toast.error("Export failed", {
+        description: error?.response?.data?.message ?? "Could not generate share code.",
+      });
+    } finally {
+      setExportingBuilder(false);
+    }
+  }, [workflowId]);
+
+  const handleImportToBuilder = useCallback((importedNodes: NodeType[], importedEdges: EdgeType[], importedExecutionMode: string, importedName?: string) => {
+    // Import workflow data into current builder
+    setNodes(importedNodes);
+    setEdges(importedEdges);
+    setExecutionMode((importedExecutionMode as "live" | "dry-run") || "live");
+    if (importedName) {
+      setWorkflowName(importedName);
+    }
+    setImportDialogOpen(false);
+    toast.success("Workflow imported", { description: "Imported into builder. Save when ready!" });
+  }, []);
+
   return (
     <div className="relative isolate min-h-screen w-full overflow-hidden bg-black px-6 pb-8 pt-28 text-white md:px-10">
       <AppBackground />
@@ -460,7 +501,7 @@ export const CreateWorkflow = () => {
                       }
                     }}
                     placeholder="Untitled workflow"
-                    className="h-10 w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-950 px-3 text-lg font-medium tracking-tight text-neutral-50 outline-none transition focus:border-[#f17463]/70"
+                    className="h-10 w-full max-w-xs md:max-w-sm rounded-xl border border-neutral-800 bg-neutral-950 px-3 text-lg font-medium tracking-tight text-neutral-50 outline-none transition focus:border-[#f17463]/70"
                   />
                   {workflowName.trim().length > 0 && workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH ? (
                     <p className="text-xs text-amber-300">
@@ -535,7 +576,7 @@ export const CreateWorkflow = () => {
                   <OrangeButton
                     onClick={onSave}
                     disabled={!canSave || saving}
-                    className="mt-1 px-5 py-2 text-xs md:text-sm"
+                    className="mt-1 shrink-0 whitespace-nowrap px-4 py-2 text-xs md:text-sm"
                   >
                     {switchingAiVersion
                       ? "Loading version..."
@@ -545,6 +586,24 @@ export const CreateWorkflow = () => {
                         ? "Update workflow"
                         : "Save workflow"}
                   </OrangeButton>
+                  <Button
+                    variant="outline"
+                    className="mt-1 border-neutral-800 bg-neutral-950 px-4 py-2 text-xs font-medium text-neutral-200 md:text-sm cursor-pointer"
+                    onClick={() => setImportDialogOpen(true)}
+                    title="Import workflow from file"
+                  >
+                    ↑ Import
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="mt-1 border-neutral-800 bg-neutral-950 px-4 py-2 text-xs font-medium text-neutral-200 md:text-sm cursor-pointer gap-2"
+                    onClick={handleExportBuilder}
+                    disabled={exportingBuilder}
+                    title="Share workflow with code"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    {exportingBuilder ? "Generating..." : "Share"}
+                  </Button>
                   {routeWorkflowId && 
                     <Button
                       variant="outline"
@@ -692,6 +751,18 @@ export const CreateWorkflow = () => {
           workflowName={workflowName}
           onChangeName={setWorkflowName}
           onSubmit={handleNameDialogSubmit}
+        />
+
+        <ImportCodeDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onImported={handleImportToBuilder}
+        />
+
+        <ShareCodeDialog
+          open={shareCodeDialogOpen}
+          onOpenChange={setShareCodeDialogOpen}
+          shareCode={shareCode || ""}
         />
 
         <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
