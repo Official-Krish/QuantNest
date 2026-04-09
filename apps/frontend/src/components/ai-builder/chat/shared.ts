@@ -108,6 +108,7 @@ export type SessionRowProps = {
   onClick: () => void;
   onRename: (nextTitle: string) => Promise<void> | void;
   onDelete: () => void;
+  onShare: () => void;
 };
 
 export type WorkflowCanvasCardProps = {

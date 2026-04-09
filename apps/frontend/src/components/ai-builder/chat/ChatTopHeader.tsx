@@ -1,7 +1,8 @@
-import { ArrowUpRight, Home } from "lucide-react";
+import { ArrowUpRight, Home, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cx, type LocalTheme } from "./shared";
 import { useNavigate } from "react-router-dom";
+import { OrangeButton } from "@/components/ui/button-orange";
 
 type ChatTopHeaderProps = {
   border: string;
@@ -11,8 +12,11 @@ type ChatTopHeaderProps = {
   compact?: boolean;
   title: string;
   canOpenBuilder: boolean;
+  canShareChat: boolean;
   onGoHome: () => void;
   onOpenSetup: () => void;
+  onImportChat: () => void;
+  onShareChat: () => void;
 };
 
 export function ChatTopHeader({
@@ -23,8 +27,11 @@ export function ChatTopHeader({
   compact = false,
   title,
   canOpenBuilder,
+  canShareChat,
   onGoHome,
   onOpenSetup,
+  onImportChat,
+  onShareChat,
 }: ChatTopHeaderProps) {
   const naviagte = useNavigate();
   return (
@@ -76,13 +83,33 @@ export function ChatTopHeader({
 
         <div className="flex shrink-0 items-center gap-2">
           <Button
+            type="button"
+            onClick={onImportChat}
+            className="h-10 rounded-2xl border border-neutral-700 bg-transparent px-4 text-[13px] text-neutral-200 hover:bg-neutral-800 cursor-pointer"
+          >
+            Import Chat
+          </Button>
+
+          <Button
+            type="button"
+            onClick={onShareChat}
+            disabled={!canShareChat}
+            className="h-10 rounded-2xl border border-neutral-700 bg-transparent px-4 text-[13px] text-neutral-200 hover:bg-neutral-800 cursor-pointer"
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            Share Chat
+          </Button>
+
+          <OrangeButton
             onClick={onOpenSetup}
             disabled={!canOpenBuilder}
-            className="h-10 rounded-2xl bg-black px-4 text-[13px] text-white hover:bg-[#111111] cursor-pointer"
+            className="h-10 shrink-0 whitespace-nowrap rounded-2xl px-4 text-[13px] text-white"
           >
-            Open in Builder
-            <ArrowUpRight className="ml-2 h-4 w-4" />
-          </Button>
+            <span className="inline-flex items-center gap-2">
+              <span>Open in Builder</span>
+              <ArrowUpRight className="h-4 w-4" />
+            </span>
+          </OrangeButton>
         </div>
       </div>
     </div>

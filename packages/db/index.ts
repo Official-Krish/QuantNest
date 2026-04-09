@@ -570,6 +570,13 @@ const AiStrategySessionSchema = new Schema({
         required: true,
         index: true,
     },
+    shareCode: {
+        type: String,
+        unique: true,
+        sparse: true,
+        trim: true,
+        uppercase: true,
+    },
     title: {
         type: String,
         required: true,

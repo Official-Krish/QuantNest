@@ -3,6 +3,7 @@ import { createUserNotification, deriveWorkflowTriggerState, saveZerodhaToken } 
 import { isBrokerVerificationError, verifyBrokerCredentialsForNodes } from "./brokerVerification";
 import { resolveNodeMetadataSecrets } from "./reusableSecrets";
 import { assertWorkflowCreationAllowed } from "./subscription";
+import { sanitizeSharedPayload } from "./shareSanitizer";
 
 type WorkflowNodeInput = Array<any>;
 type WorkflowEdgeInput = Array<any>;
@@ -231,7 +232,7 @@ export async function getWorkflowByShareCode(shareCode: string) {
   return {
     workflowName: workflow.workflowName,
     executionMode: workflow.executionMode,
-    nodes: workflow.nodes,
+    nodes: sanitizeSharedPayload(workflow.nodes),
     edges: workflow.edges,
     marketType: (workflow as any).marketType,
   };

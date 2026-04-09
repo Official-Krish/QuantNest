@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { SessionRowProps } from "./shared";
 import { cx } from "./shared";
-import { Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { Ellipsis, Pencil, Share2, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function SessionRow({ item, active, theme, onClick, onRename, onDelete }: SessionRowProps) {
+export function SessionRow({ item, active, theme, onClick, onRename, onDelete, onShare }: SessionRowProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [nextTitle, setNextTitle] = useState(item.title);
   const [renaming, setRenaming] = useState(false);
@@ -209,6 +209,15 @@ export function SessionRow({ item, active, theme, onClick, onRename, onDelete }:
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={() => {
+                  onShare();
+                }}
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                Share
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer text-red-500 focus:bg-red-500/10 focus:text-red-400"

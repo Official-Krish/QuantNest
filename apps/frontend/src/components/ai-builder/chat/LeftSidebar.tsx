@@ -16,6 +16,7 @@ type LeftSidebarProps = {
   onLoadDraft: (draftId: string) => void;
   onRenameDraft: (draftId: string, nextTitle: string) => Promise<void> | void;
   onDeleteDraft: (draftId: string) => void;
+  onShareDraft: (draftId: string) => void;
   onToggleTheme: () => void;
   onNewChat: () => void;
 };
@@ -33,6 +34,7 @@ export function LeftSidebar({
   onLoadDraft,
   onRenameDraft,
   onDeleteDraft,
+  onShareDraft,
   onToggleTheme,
   onNewChat,
 }: LeftSidebarProps) {
@@ -118,6 +120,7 @@ export function LeftSidebar({
                     onClick={() => onLoadDraft(item.draftId)}
                     onRename={(nextTitle) => onRenameDraft(item.draftId, nextTitle)}
                     onDelete={() => onDeleteDraft(item.draftId)}
+                    onShare={() => onShareDraft(item.draftId)}
                   />
                 ))}
               </div>

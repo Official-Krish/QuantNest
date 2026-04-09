@@ -19,6 +19,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import type { AiStrategyDraftSession } from "@/types/api";
+import { toast } from "sonner";
+import {
+  apiGenerateAiDraftShareCode,
+} from "@/http";
+import { ShareChatCodeDialog } from "@/components/ai-builder/chat/ShareChatCodeDialog";
+import { ImportChatCodeDialog } from "@/components/ai-builder/chat/ImportChatCodeDialog";
 
 export function AiStrategyChatBuilder() {
   const navigate = useNavigate();
@@ -28,6 +35,10 @@ export function AiStrategyChatBuilder() {
   const [setupOpen, setSetupOpen] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const didHandleRouteRef = useRef(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareCode, setShareCode] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
 
   const drafts = useAiChatDrafts();
 
@@ -153,6 +164,42 @@ export function AiStrategyChatBuilder() {
     setSetupOpen(true);
   };
 
+  const handleShareChat = async () => {
+    if (!drafts.activeDraft?.draftId) {
+      toast.error("No active chat to share.");
+      return;
+    }
+
+    setShareLoading(true);
+    try {
+      const data = await apiGenerateAiDraftShareCode(drafts.activeDraft.draftId);
+      setShareCode(data.shareCode);
+      setShareDialogOpen(true);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to generate chat share code.");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleShareDraft = async (draftId: string) => {
+    if (!draftId) return;
+
+    try {
+      const data = await apiGenerateAiDraftShareCode(draftId);
+      setShareCode(data.shareCode);
+      setShareDialogOpen(true);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to generate chat share code.");
+    }
+  };
+
+  const handleImportedChat = (draft: AiStrategyDraftSession) => {
+    composerState.resetConversationUi();
+    drafts.syncActiveDraft(draft);
+    toast.success("Chat imported successfully.");
+  };
+
   useEffect(() => {
     if (didHandleRouteRef.current) return;
     const state = (location.state || {}) as {
@@ -204,6 +251,7 @@ export function AiStrategyChatBuilder() {
           onLoadDraft={handleLoadDraft}
           onRenameDraft={drafts.handleRenameDraft}
           onDeleteDraft={drafts.handleDeleteDraft}
+          onShareDraft={handleShareDraft}
           onToggleTheme={() =>
             setTheme((current) => (current === "dark" ? "light" : "dark"))
           }
@@ -224,8 +272,11 @@ export function AiStrategyChatBuilder() {
               theme={theme}
               title={drafts.activeDraft?.title || "New workflow conversation"}
               canOpenBuilder={Boolean(selectedVersion)}
+              canShareChat={Boolean(drafts.activeDraft?.draftId)}
               onGoHome={() => navigate("/create/onboarding")}
               onOpenSetup={() => setSetupOpen(true)}
+              onImportChat={() => setImportDialogOpen(true)}
+              onShareChat={() => void handleShareChat()}
             />
 
             <ChatMessagesPane
@@ -326,6 +377,19 @@ export function AiStrategyChatBuilder() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImportChatCodeDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImported={handleImportedChat}
+      />
+
+      <ShareChatCodeDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        shareCode={shareCode}
+        loading={shareLoading}
+      />
     </div>
   );
 }

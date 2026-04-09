@@ -563,3 +563,48 @@ export async function apiRenameAiStrategyDraft(
   );
   return res.data.data.draft;
 }
+
+export async function apiGenerateAiDraftShareCode(
+  draftId: string,
+): Promise<{ shareCode: string }> {
+  const res = await api.post<{ success: boolean; data: { shareCode: string } }>(
+    `/ai/strategy/drafts/${draftId}/share`,
+  );
+  return res.data.data;
+}
+
+export async function apiGetAiDraftSharePreview(
+  shareCode: string,
+): Promise<{
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  versions: number;
+  lastMessage: string;
+}> {
+  const res = await api.get<{
+    success: boolean;
+    data: {
+      preview: {
+        title: string;
+        status: string;
+        createdAt: string;
+        updatedAt: string;
+        versions: number;
+        lastMessage: string;
+      };
+    };
+  }>(`/ai/strategy/drafts/share/${encodeURIComponent(shareCode)}`);
+  return res.data.data.preview;
+}
+
+export async function apiImportAiDraftByShareCode(
+  shareCode: string,
+): Promise<AiStrategyDraftSession> {
+  const res = await api.post<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
+    "/ai/strategy/drafts/import",
+    { shareCode },
+  );
+  return res.data.data.draft;
+}

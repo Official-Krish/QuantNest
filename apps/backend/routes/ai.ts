@@ -2,9 +2,11 @@ import axios from "axios";
 import { Router } from "express";
 import { AiStrategyDraftVersionModel, AiStrategySessionModel } from "@quantnest-trading/db/client";
 import { aiStrategyDraftSessionSchema, type AiModelDescriptor } from "@quantnest-trading/types/ai";
+import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware";
 import { getUserAiDraft, listUserAiDraftSummaries } from "../services/aiDrafts";
+import { sanitizeSharedPayload } from "../services/shareSanitizer";
 import {
   assertAiChatCreationAllowed,
   assertAiIterationsAllowed,
@@ -16,6 +18,39 @@ import {
 } from "../services/subscription";
 
 const aiRouter = Router();
+
+function generateUniqueShareCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+async function ensureDraftShareCode(userId: string, draftId: string) {
+  const draft = await AiStrategySessionModel.findOne({ _id: draftId, userId });
+  if (!draft) {
+    return null;
+  }
+
+  if ((draft as any).shareCode) {
+    return String((draft as any).shareCode);
+  }
+
+  let nextCode = generateUniqueShareCode();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const existing = await AiStrategySessionModel.findOne({ shareCode: nextCode }).select({ _id: 1 }).lean();
+    if (!existing) {
+      (draft as any).shareCode = nextCode;
+      await draft.save();
+      return nextCode;
+    }
+    nextCode = generateUniqueShareCode();
+  }
+
+  throw new Error("Failed to generate a unique share code.");
+}
 
 function getAiBuilderBaseUrl(): string {
   return process.env.AI_BUILDER_URL || "http://localhost:3001";
@@ -477,6 +512,220 @@ aiRouter.patch("/strategy/drafts/:draftId/title", authMiddleware, async (req, re
       success: false,
       code: "AI_PROXY_ERROR",
       message: error instanceof Error ? error.message : "Failed to rename AI draft.",
+    });
+  }
+});
+
+aiRouter.post("/strategy/drafts/:draftId/share", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const shareCode = await ensureDraftShareCode(userId, String(req.params.draftId));
+    if (!shareCode) {
+      res.status(404).json({
+        success: false,
+        code: "DRAFT_NOT_FOUND",
+        message: "AI draft session was not found.",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        shareCode,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to generate share code.",
+    });
+  }
+});
+
+aiRouter.get("/strategy/drafts/share/:shareCode", async (req, res) => {
+  try {
+    const shareCode = String(req.params.shareCode || "").trim().toUpperCase();
+    if (!shareCode) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_REQUEST",
+        message: "Share code is required.",
+      });
+      return;
+    }
+
+    const doc = await AiStrategySessionModel.findOne({ shareCode }).lean();
+    if (!doc) {
+      res.status(404).json({
+        success: false,
+        code: "DRAFT_NOT_FOUND",
+        message: "AI draft session was not found.",
+      });
+      return;
+    }
+
+    const parsed = aiStrategyDraftSessionSchema.safeParse((doc as any).sessionData);
+    if (!parsed.success) {
+      res.status(500).json({
+        success: false,
+        code: "INVALID_DRAFT_DATA",
+        message: "Stored draft session data is invalid.",
+      });
+      return;
+    }
+
+    const draft = parsed.data;
+    const preview = {
+      title: draft.title,
+      status: draft.status,
+      createdAt: draft.createdAt,
+      updatedAt: draft.updatedAt,
+      versions: draft.workflowVersions.length,
+      lastMessage:
+        [...draft.messages].reverse().find((message) => message.role === "user")?.content || "",
+    };
+
+    res.status(200).json({
+      success: true,
+      data: { preview },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to load shared AI draft.",
+    });
+  }
+});
+
+aiRouter.post("/strategy/drafts/import", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    await assertAiChatCreationAllowed(userId);
+
+    const shareCode = String(req.body?.shareCode || "").trim().toUpperCase();
+    if (!shareCode) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_REQUEST",
+        message: "Share code is required.",
+      });
+      return;
+    }
+
+    const source = await AiStrategySessionModel.findOne({ shareCode }).lean();
+    if (!source) {
+      res.status(404).json({
+        success: false,
+        code: "DRAFT_NOT_FOUND",
+        message: "AI draft session was not found.",
+      });
+      return;
+    }
+
+    const parsed = aiStrategyDraftSessionSchema.safeParse((source as any).sessionData);
+    if (!parsed.success) {
+      res.status(500).json({
+        success: false,
+        code: "INVALID_DRAFT_DATA",
+        message: "Stored draft session data is invalid.",
+      });
+      return;
+    }
+
+    const sourceDraft = sanitizeSharedPayload(parsed.data);
+    const nowIso = new Date().toISOString();
+    const importedTitleBase = String(sourceDraft.title || "Imported AI chat").trim();
+    const importedTitle = importedTitleBase.toLowerCase().includes("imported")
+      ? importedTitleBase
+      : `${importedTitleBase} (Imported)`;
+
+    const importedDoc = await AiStrategySessionModel.create({
+      userId,
+      title: importedTitle,
+      status: sourceDraft.status,
+      workflowId: undefined,
+      sessionData: {
+        ...sourceDraft,
+        title: importedTitle,
+        workflowId: undefined,
+        draftId: new mongoose.Types.ObjectId().toString(),
+        updatedAt: nowIso,
+      },
+    });
+
+    const importedDraftId = String(importedDoc._id);
+    const sourceDraftId = String((source as any)._id);
+
+    const sessionDataWithNewId = {
+      ...(importedDoc as any).sessionData,
+      draftId: importedDraftId,
+    };
+
+    await AiStrategySessionModel.updateOne(
+      { _id: importedDraftId, userId },
+      {
+        $set: {
+          sessionData: sessionDataWithNewId,
+        },
+      },
+    );
+
+    const sourceVersions = await AiStrategyDraftVersionModel.find({ draftId: sourceDraftId }).lean();
+    if (sourceVersions.length > 0) {
+      await AiStrategyDraftVersionModel.insertMany(
+        sourceVersions.map((entry) => ({
+          userId,
+          draftId: importedDraftId,
+          versionId: entry.versionId,
+          version: entry.version,
+          setupState: entry.setupState,
+        })),
+        { ordered: false },
+      );
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        draft: sessionDataWithNewId,
+      },
+    });
+  } catch (error) {
+    if (isPlanLimitError(error)) {
+      res.status(error.statusCode).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      return;
+    }
+
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message: error instanceof Error ? error.message : "Failed to import AI draft.",
     });
   }
 });
