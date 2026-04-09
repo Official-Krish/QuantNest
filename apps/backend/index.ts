@@ -9,6 +9,7 @@ import examplesRouter from './routes/examples';
 import mongoose from 'mongoose';
 import ZerodhaTokenRouter from './routes/token';
 import { getMarketStatus } from '@quantnest-trading/executor-utils';
+import { getAllMarketAssets, getMarketAssets } from '@quantnest-trading/market';
 
 const app = express();
 app.set("trust proxy", 1);
@@ -49,8 +50,35 @@ const handleMarketStatus = async (req: express.Request, res: express.Response) =
   }
 };
 
+const handleMarketAssets = async (req: express.Request, res: express.Response) => {
+  try {
+    const marketQuery = String(req.query.market || "").trim();
+    const limit = Number(req.query.limit || 50);
+    const forceRefresh = String(req.query.forceRefresh || "").toLowerCase() === "true";
+
+    if (marketQuery === "Indian" || marketQuery === "Crypto") {
+      const assets = await getMarketAssets(marketQuery, {
+        limit,
+        forceRefresh,
+      });
+      res.status(200).json({ success: true, market: marketQuery, assets });
+      return;
+    }
+
+    const assets = await getAllMarketAssets({
+      limitPerMarket: limit,
+      forceRefresh,
+    });
+    res.status(200).json({ success: true, assets });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch market assets", error });
+  }
+};
+
 app.get("/market-status", handleMarketStatus);
 app.get("/api/v1/market-status", handleMarketStatus);
+app.get("/market/assets", handleMarketAssets);
+app.get("/api/v1/market/assets", handleMarketAssets);
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');

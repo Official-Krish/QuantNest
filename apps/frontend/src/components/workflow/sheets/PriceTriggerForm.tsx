@@ -11,9 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_MARKETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
+import { SUPPORTED_MARKETS } from "@quantnest-trading/types";
 import type { WorkflowLivePreview } from "@/types/api";
 import { WorkflowLivePreviewPanel } from "./WorkflowLivePreviewPanel";
+import { useMarketAssets } from "./useMarketAssets";
 
 interface PriceTriggerFormProps {
     marketType: "Indian" | "Crypto" | null;
@@ -28,6 +29,7 @@ export const PriceTriggerForm = ({
     metadata,
     setMetadata,
 }: PriceTriggerFormProps) => {
+  const { indianAssets, cryptoAssets } = useMarketAssets();
   const [preview, setPreview] = useState<WorkflowLivePreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export const PriceTriggerForm = ({
       return;
     }
 
-    const allowedAssets = activeMarket === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS;
+    const allowedAssets = activeMarket === "Indian" ? indianAssets : cryptoAssets;
     if (!allowedAssets.includes(asset as any)) {
       setPreview(null);
       setPreviewError(null);
@@ -386,7 +388,7 @@ export const PriceTriggerForm = ({
                 <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">
                   Select asset
                 </SelectLabel>
-                {(marketType === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS).map((asset) => (
+                {(marketType === "Indian" ? indianAssets : cryptoAssets).map((asset) => (
                   <SelectItem
                     key={asset}
                     value={asset}

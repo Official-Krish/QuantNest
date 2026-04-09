@@ -17,8 +17,10 @@ export const WorkflowNameDialog = ({
   onChangeName,
   onSubmit,
 }: WorkflowNameDialogProps) => {
+  const MIN_WORKFLOW_NAME_LENGTH = 3;
+
   const handleSubmit = () => {
-    if (workflowName.trim()) onSubmit();
+    if (workflowName.trim().length >= MIN_WORKFLOW_NAME_LENGTH) onSubmit();
   };
 
   return (
@@ -45,6 +47,11 @@ export const WorkflowNameDialog = ({
             }}
             autoFocus
           />
+          {workflowName.trim().length > 0 && workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH ? (
+            <p className="mt-2 text-xs text-amber-300">
+              Workflow name must be at least {MIN_WORKFLOW_NAME_LENGTH} characters.
+            </p>
+          ) : null}
         </div>
         <DialogFooter>
           <button
@@ -55,7 +62,7 @@ export const WorkflowNameDialog = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!workflowName.trim()}
+            disabled={workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH}
             className="px-4 py-2 ml-2 text-sm font-medium text-neutral-900 bg-neutral-100 rounded-lg hover:scale-103 disabled:opacity-50 transform transition duration-300 cursor-pointer"
           >
             Continue

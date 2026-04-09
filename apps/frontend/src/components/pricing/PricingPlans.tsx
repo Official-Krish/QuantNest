@@ -61,11 +61,18 @@ export function PricingPlans({ plans }: PricingPlansProps) {
       <section className="rounded-2xl border border-neutral-800 bg-neutral-950/60 p-6">
         <div className="grid gap-4 md:grid-cols-3">
           {plans.map((plan) => {
+            const isFreePlan = plan.name.trim().toLowerCase() === "free";
             const activePrice = billingMode === "monthly" ? plan.monthlyPrice : plan.annualPrice;
             const suffix = billingMode === "monthly" ? "/mo" : "/year";
             const monthlyPrice = parseFloat(plan.monthlyPrice.replace("$", ""));
             const annualPrice = parseFloat(plan.annualPrice.replace("$", ""));
             const savings = Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100);
+            const showSavings =
+              billingMode === "annual" &&
+              Number.isFinite(savings) &&
+              monthlyPrice > 0 &&
+              annualPrice > 0 &&
+              savings > 0;
 
             return (
               <article
@@ -90,7 +97,7 @@ export function PricingPlans({ plans }: PricingPlansProps) {
                 <div className="mt-3 flex items-baseline gap-2">
                   <p className="text-2xl font-semibold text-white">{activePrice}</p>
                   <span className="text-sm font-normal text-neutral-400">{suffix}</span>
-                  {billingMode === "annual" && (
+                  {showSavings && (
                     <span className="ml-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
                       Save {savings}%
                     </span>
@@ -104,7 +111,11 @@ export function PricingPlans({ plans }: PricingPlansProps) {
                   <li>Reporting: {plan.reporting}</li>
                 </ul>
 
-                {plan.recommended ? (
+                {isFreePlan ? (
+                  <div className="mt-5 w-full rounded-lg border border-neutral-700 bg-neutral-900/70 px-4 py-2 text-center text-xs font-medium text-neutral-300">
+                    Included
+                  </div>
+                ) : plan.recommended ? (
                   <OrangeButton
                     fullWidth
                     size="md"

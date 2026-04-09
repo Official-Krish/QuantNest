@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_MARKETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
+import { SUPPORTED_MARKETS } from "@quantnest-trading/types";
+import { useMarketAssets } from "./useMarketAssets";
 
 interface TimerFormProps {
   setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
@@ -19,6 +20,8 @@ interface TimerFormProps {
 }
 
 export const TimerForm = ({ setMarketType, metadata, setMetadata, marketType }: TimerFormProps) => {
+  const { indianAssets, cryptoAssets } = useMarketAssets();
+
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
       <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
@@ -99,7 +102,7 @@ export const TimerForm = ({ setMarketType, metadata, setMetadata, marketType }: 
                   <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">
                     Select asset
                   </SelectLabel>
-                  {(marketType === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS).map((asset) => (
+                  {(marketType === "Indian" ? indianAssets : cryptoAssets).map((asset) => (
                     <SelectItem
                       key={asset}
                       value={asset}

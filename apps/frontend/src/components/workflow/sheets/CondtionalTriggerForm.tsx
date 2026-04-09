@@ -22,11 +22,10 @@ import {
 } from "@/components/ui/select";
 import type { WorkflowLivePreview } from "@/types/api";
 import {
-  SUPPORTED_INDIAN_MARKET_ASSETS,
   SUPPORTED_MARKETS,
-  SUPPORTED_WEB3_ASSETS,
 } from "@quantnest-trading/types";
 import { WorkflowLivePreviewPanel } from "./WorkflowLivePreviewPanel";
+import { useMarketAssets } from "./useMarketAssets";
 
 interface ConditionalTriggerFormProps {
   marketType: "Indian" | "Crypto" | null;
@@ -87,7 +86,7 @@ const PERIOD_INDICATORS: IndicatorKind[] = ["ema", "sma", "rsi", "pct_change"];
 const DEFAULT_VOLUME_SPIKE_THRESHOLD = 1_000_000;
 
 function defaultSymbolForMarket(marketType: "Indian" | "Crypto" | null): string {
-  return (marketType === "Crypto" ? SUPPORTED_WEB3_ASSETS[0] : SUPPORTED_INDIAN_MARKET_ASSETS[0]) || "";
+  return marketType === "Crypto" ? "BTC" : "RELIANCE";
 }
 
 function defaultIndicator(marketType: "Indian" | "Crypto" | null): UIIndicator {
@@ -422,15 +421,14 @@ function toExpression(
 function ExpressionIndicatorEditor({
   label,
   value,
-  marketType,
+  assets,
   onChange,
 }: {
   label: string;
   value: UIIndicator;
-  marketType: "Indian" | "Crypto" | null;
+  assets: string[];
   onChange: (next: UIIndicator) => void;
 }) {
-  const assets = marketType === "Crypto" ? SUPPORTED_WEB3_ASSETS : SUPPORTED_INDIAN_MARKET_ASSETS;
   const needsPeriod = PERIOD_INDICATORS.includes(value.indicator);
 
   return (
@@ -519,6 +517,7 @@ export const ConditionalTriggerForm = ({
   setMetadata,
   hideTimeWindow = false,
 }: ConditionalTriggerFormProps) => {
+  const { indianAssets, cryptoAssets } = useMarketAssets();
   const extractedVolumePreset = useMemo(
     () => tryExtractVolumeSpikePreset(metadata.expression),
     // only for mount/edit open state
@@ -550,7 +549,7 @@ export const ConditionalTriggerForm = ({
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   const activeMarket = marketType || (metadata.marketType as "Indian" | "Crypto" | undefined) || "Indian";
-  const marketAssets = activeMarket === "Crypto" ? SUPPORTED_WEB3_ASSETS : SUPPORTED_INDIAN_MARKET_ASSETS;
+  const marketAssets = activeMarket === "Crypto" ? cryptoAssets : indianAssets;
 
   useEffect(() => {
     if (!marketAssets.includes(volumeSpikeSymbol as any)) {
@@ -794,7 +793,7 @@ export const ConditionalTriggerForm = ({
                   <ExpressionIndicatorEditor
                     label="Left Operand"
                     value={clause.left}
-                    marketType={marketType}
+                    assets={marketAssets}
                     onChange={(left) => {
                       const nextClauses = [...group.clauses];
                       nextClauses[clauseIndex] = { ...clause, left };
@@ -861,7 +860,7 @@ export const ConditionalTriggerForm = ({
                     <ExpressionIndicatorEditor
                       label="Right Operand"
                       value={clause.rightIndicator || defaultIndicator(marketType)}
-                      marketType={marketType}
+                      assets={marketAssets}
                       onChange={(rightIndicator) => {
                         const nextClauses = [...group.clauses];
                         nextClauses[clauseIndex] = { ...clause, rightIndicator };

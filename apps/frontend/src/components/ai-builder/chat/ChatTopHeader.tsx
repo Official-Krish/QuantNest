@@ -1,6 +1,7 @@
 import { ArrowUpRight, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cx, type LocalTheme } from "./shared";
+import { useNavigate } from "react-router-dom";
 
 type ChatTopHeaderProps = {
   border: string;
@@ -25,6 +26,7 @@ export function ChatTopHeader({
   onGoHome,
   onOpenSetup,
 }: ChatTopHeaderProps) {
+  const naviagte = useNavigate();
   return (
     <div className={cx("border-b px-5 py-3", border)}>
       <div className={cx("mx-auto flex w-full min-w-0 items-center justify-between gap-4", compact ? "max-w-245" : "max-w-295")}>
@@ -41,8 +43,9 @@ export function ChatTopHeader({
           </button>
 
           <div
+            onClick={() => naviagte("/")}
             className={cx(
-              "hidden items-center gap-2 rounded-xl border px-2 py-1 sm:flex",
+              "hidden items-center gap-2 rounded-xl border px-2 py-1 sm:flex cursor-pointer",
               theme === "dark"
                 ? "border-neutral-800 bg-[#0f0f0f]"
                 : "border-neutral-200 bg-white",

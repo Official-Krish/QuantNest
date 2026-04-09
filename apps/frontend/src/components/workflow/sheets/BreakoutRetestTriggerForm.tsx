@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { BreakoutRetestTriggerMetadata } from "@quantnest-trading/types";
-import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_MARKETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
+import { SUPPORTED_MARKETS } from "@quantnest-trading/types";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,6 +14,7 @@ import {
 import { apiPreviewWorkflowMetrics } from "@/http";
 import type { WorkflowLivePreview } from "@/types/api";
 import { WorkflowLivePreviewPanel } from "./WorkflowLivePreviewPanel";
+import { useMarketAssets } from "./useMarketAssets";
 
 interface BreakoutRetestTriggerFormProps {
   marketType: "Indian" | "Crypto" | null;
@@ -28,6 +29,7 @@ export function BreakoutRetestTriggerForm({
   metadata,
   setMetadata,
 }: BreakoutRetestTriggerFormProps) {
+  const { indianAssets, cryptoAssets } = useMarketAssets();
   const [preview, setPreview] = useState<WorkflowLivePreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export function BreakoutRetestTriggerForm({
       return;
     }
 
-    const allowedAssets = activeMarket === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS;
+    const allowedAssets = activeMarket === "Indian" ? indianAssets : cryptoAssets;
     if (!allowedAssets.includes(asset as any)) {
       setPreview(null);
       setPreviewError(null);
@@ -175,7 +177,7 @@ export function BreakoutRetestTriggerForm({
             </SelectTrigger>
             <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
               <SelectGroup>
-                {(marketType === "Indian" ? SUPPORTED_INDIAN_MARKET_ASSETS : SUPPORTED_WEB3_ASSETS).map((asset) => (
+                {(marketType === "Indian" ? indianAssets : cryptoAssets).map((asset) => (
                   <SelectItem key={asset} value={asset} className="cursor-pointer">
                     {asset}
                   </SelectItem>

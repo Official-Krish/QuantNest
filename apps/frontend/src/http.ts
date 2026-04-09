@@ -17,6 +17,7 @@ import type {
   ReusableSecretSummary,
   TelegramChatSummary,
   marketStatus,
+  MarketAssetOption,
   SigninResponse,
   UsageSnapshot,
   UserNotification,
@@ -305,6 +306,42 @@ export async function apiUpdateZerodhaToken(body: { workflowId: string; accessTo
 export async function apiGetMarketStatus(): Promise<{ success: boolean; marketStatus: marketStatus }> {
   const res = await api.get<{ success: boolean; marketStatus: marketStatus }>("/market-status");
   return res.data;
+}
+
+export async function apiGetMarketAssets(
+  market?: "Indian" | "Crypto",
+  options?: { forceRefresh?: boolean },
+): Promise<{ Indian: MarketAssetOption[]; Crypto: MarketAssetOption[] }> {
+  const res = await api.get<
+    | {
+        success: boolean;
+        market: "Indian" | "Crypto";
+        assets: MarketAssetOption[];
+      }
+    | {
+        success: boolean;
+        assets: {
+          Indian: MarketAssetOption[];
+          Crypto: MarketAssetOption[];
+        };
+      }
+  >("/market/assets", {
+    params: {
+      ...(market ? { market } : {}),
+      ...(options?.forceRefresh ? { forceRefresh: true } : {}),
+    },
+  });
+
+  if ("market" in res.data) {
+    return res.data.market === "Indian"
+      ? { Indian: res.data.assets || [], Crypto: [] }
+      : { Indian: [], Crypto: res.data.assets || [] };
+  }
+
+  return {
+    Indian: res.data.assets?.Indian || [],
+    Crypto: res.data.assets?.Crypto || [],
+  };
 }
 
 export type VerifyBrokerCredentialsBody = {

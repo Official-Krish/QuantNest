@@ -40,6 +40,7 @@ import {
 } from "@/components/workflow/workflow-builder.utils";
 
 const POSITION_OFFSET = 50;
+const MIN_WORKFLOW_NAME_LENGTH = 3;
 
 export const CreateWorkflow = () => {
   const navigate = useNavigate();
@@ -258,6 +259,7 @@ export const CreateWorkflow = () => {
   const canSave = useMemo(
     () => {
       if (nodes.length === 0 || loading) return false;
+      if (workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH) return false;
       if (!workflowId) return true;
 
       return (
@@ -282,6 +284,13 @@ export const CreateWorkflow = () => {
   );
 
   const onSave = useCallback(async () => {
+    const normalizedWorkflowName = workflowName.trim();
+    if (normalizedWorkflowName.length < MIN_WORKFLOW_NAME_LENGTH) {
+      setSaveError(`Workflow name must be at least ${MIN_WORKFLOW_NAME_LENGTH} characters.`);
+      setShowNameDialog(true);
+      return;
+    }
+
     setSaveError(null);
     setSaving(true);
     try {
@@ -289,17 +298,24 @@ export const CreateWorkflow = () => {
         await apiVerifyBrokerCredentials(payload);
       }
 
-      const payload = { workflowName, nodes, edges, executionMode };
+      const payload = {
+        workflowName: normalizedWorkflowName,
+        nodes,
+        edges,
+        executionMode,
+      };
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
         if (!res.workflowId) throw new Error("Missing workflowId from server");
+        setWorkflowName(normalizedWorkflowName);
         toast.success("Workflow created successfully");
         navigate(`/workflow/${res.workflowId}`);
       } else {
         await apiUpdateWorkflow(workflowId, payload);
+        setWorkflowName(normalizedWorkflowName);
         setLastSavedSnapshot(
           buildWorkflowSnapshot({
-            workflowName,
+            workflowName: normalizedWorkflowName,
             nodes,
             edges,
             executionMode,
@@ -328,11 +344,16 @@ export const CreateWorkflow = () => {
   }, [nodes, edges, workflowId, workflowName, executionMode, navigate]);
 
   const handleNameDialogSubmit = () => {
-    if (workflowName.trim()) {
-      setWorkflowName(workflowName.trim());
+    const normalizedWorkflowName = workflowName.trim();
+    if (normalizedWorkflowName.length >= MIN_WORKFLOW_NAME_LENGTH) {
+      setWorkflowName(normalizedWorkflowName);
+      setSaveError(null);
       setShowNameDialog(false);
       setShowTriggerSheet(true);
+      return;
     }
+
+    setSaveError(`Workflow name must be at least ${MIN_WORKFLOW_NAME_LENGTH} characters.`);
   };
 
   const openEditMenuNode = useCallback(() => {
@@ -432,10 +453,20 @@ export const CreateWorkflow = () => {
                   ) : null}
                   <input
                     value={workflowName}
-                    onChange={(event) => setWorkflowName(event.target.value)}
+                    onChange={(event) => {
+                      setWorkflowName(event.target.value);
+                      if (saveError) {
+                        setSaveError(null);
+                      }
+                    }}
                     placeholder="Untitled workflow"
                     className="h-10 w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-950 px-3 text-lg font-medium tracking-tight text-neutral-50 outline-none transition focus:border-[#f17463]/70"
                   />
+                  {workflowName.trim().length > 0 && workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH ? (
+                    <p className="text-xs text-amber-300">
+                      Workflow name must be at least {MIN_WORKFLOW_NAME_LENGTH} characters.
+                    </p>
+                  ) : null}
                 </div>
                 <p className="mt-1 max-w-xl text-sm text-neutral-400">
                   Chain together triggers and broker actions to automate your

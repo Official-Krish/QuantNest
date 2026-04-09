@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PricingPlans, type PricingPlan } from "@/components/pricing/PricingPlans";
+import { OrangeButton } from "@/components/ui/button-orange";
 
 type PageSection = {
   title: string;
@@ -681,16 +682,16 @@ export const StaticContentPage = ({ pageKey }: { pageKey: keyof typeof PAGE_CONF
                 Ready to automate your first trade? Start building workflows free today.
               </p>
             </div>
-            <button
+            <OrangeButton
               type="button"
-              className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-900 transition hover:bg-neutral-200"
+              className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"
               onClick={() =>
                 navigate(hasAuthSession() ? "/create/onboarding" : "/signup")
               }
             >
               Start Building
               <ArrowRight className="h-4 w-4" />
-            </button>
+            </OrangeButton>
           </div>
         </section>
 

@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cx, type LocalTheme } from "./shared";
+import { AI_PROMPT_MAX_CHARS } from "@/components/ai-builder/chat/errorUtils";
 
 const T = {
   surf2:   "#1E1309",
@@ -119,6 +120,8 @@ export function ChatComposerSection({
   );
 
   const selectedModelLocked = Boolean(selectedModelEntry?.locked);
+  const promptCharCount = composer.trim().length;
+  const promptTooLong = promptCharCount > AI_PROMPT_MAX_CHARS;
 
   const selectTriggerClass =
     "h-7 border-neutral-800 bg-transparent px-2 text-[10px] text-neutral-300 shadow-none focus-visible:border-[#f17463]/45 focus-visible:ring-1 focus-visible:ring-[#f17463]/30";
@@ -236,7 +239,7 @@ export function ChatComposerSection({
               <motion.button
                 type="button"
                 onClick={onSend}
-                disabled={sending || !canSend || selectedModelLocked}
+                disabled={sending || !canSend || selectedModelLocked || promptTooLong}
                 title="Enter to send · Shift+Enter for newline"
                 style={{
                   position: "absolute",
@@ -250,30 +253,42 @@ export function ChatComposerSection({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: canSend && !sending && !selectedModelLocked ? "pointer" : "not-allowed",
+                  cursor: canSend && !sending && !selectedModelLocked && !promptTooLong ? "pointer" : "not-allowed",
                   outline: "none",
                   flexShrink: 0,
                 }}
                 animate={{
-                  borderColor: canSend && !sending && !selectedModelLocked ? T.or : "rgba(255,255,255,0.1)",
-                  background: canSend && !sending && !selectedModelLocked ? T.or : "transparent",
-                  color: canSend && !sending && !selectedModelLocked ? "#fcfcfa" : "rgba(255,255,255,0.3)",
+                  borderColor: canSend && !sending && !selectedModelLocked && !promptTooLong ? T.or : "rgba(255,255,255,0.1)",
+                  background: canSend && !sending && !selectedModelLocked && !promptTooLong ? T.or : "transparent",
+                  color: canSend && !sending && !selectedModelLocked && !promptTooLong ? "#fcfcfa" : "rgba(255,255,255,0.3)",
                   opacity: sending ? 0.5 : 1,
-                  boxShadow: canSend && !sending && !selectedModelLocked
+                  boxShadow: canSend && !sending && !selectedModelLocked && !promptTooLong
                     ? `0 0 16px ${T.orGlow}, 0 2px 8px rgba(0,0,0,0.3)`
                     : "none",
                 }}
-                whileHover={canSend && !sending && !selectedModelLocked ? { scale: 1.05, boxShadow: `0 0 20px rgba(249,115,22,0.4)` } : {}}
-                whileTap={canSend && !sending && !selectedModelLocked ? { scale: 0.94 } : {}}
+                whileHover={canSend && !sending && !selectedModelLocked && !promptTooLong ? { scale: 1.05, boxShadow: `0 0 20px rgba(249,115,22,0.4)` } : {}}
+                whileTap={canSend && !sending && !selectedModelLocked && !promptTooLong ? { scale: 0.94 } : {}}
                 transition={{ duration: 0.18 }}
               >
                 <Send style={{ width: 13, height: 13 }} />
               </motion.button>
             </div>
 
+            <div className="px-4 pb-2 text-right text-[11px] text-neutral-500">
+              <span className={promptTooLong ? "text-amber-300" : "text-neutral-500"}>
+                {promptCharCount}/{AI_PROMPT_MAX_CHARS}
+              </span>
+            </div>
+
             {selectedModelLocked ? (
               <div className="px-4 pb-2 text-[11px] text-amber-300">
                 {selectedModelEntry?.lockReason || "This model is locked for your current plan."}
+              </div>
+            ) : null}
+
+            {promptTooLong ? (
+              <div className="px-4 pb-2 text-[11px] text-amber-300">
+                Prompt is too long. Shorten it before sending.
               </div>
             ) : null}
 

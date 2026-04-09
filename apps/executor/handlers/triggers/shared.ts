@@ -1,5 +1,3 @@
-import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
-
 export function getChartIntervalForWindow(windowMinutes: number): "1m" | "2m" | "5m" | "15m" | "60m" {
   if (windowMinutes <= 30) return "1m";
   if (windowMinutes <= 60) return "2m";
@@ -22,8 +20,14 @@ export function getConfirmationMoveValue(level: number, confirmationMovePct: num
 }
 
 export function isSupportedAssetForMarket(asset: string, market: "Indian" | "Crypto") {
-  if (market === "Indian") {
-    return SUPPORTED_INDIAN_MARKET_ASSETS.includes(asset as string);
+  const normalizedAsset = String(asset || "").trim().toUpperCase();
+  if (!normalizedAsset) {
+    return false;
   }
-  return SUPPORTED_WEB3_ASSETS.includes(asset as string);
+
+  if (market === "Indian") {
+    return /^([A-Z0-9]{1,24})(\.(NS|BO))?$/.test(normalizedAsset);
+  }
+
+  return /^([A-Z0-9]{2,24})(-USD)?$/.test(normalizedAsset);
 }

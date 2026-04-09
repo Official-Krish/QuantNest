@@ -7,6 +7,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { FaXTwitter } from "react-icons/fa6";
+import { OrangeButton } from "./ui/button-orange";
 
 type FooterLink = {
   label: string
@@ -51,8 +52,8 @@ const Footer = () => {
                 Build trigger-to-execution workflows with consent-aware AI reasoning.
               </p>
             </div>
-            <button
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-200 cursor-pointer"
+            <OrangeButton
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold cursor-pointer"
               onClick={() => {
                 if (hasAuthSession()) {
                   window.location.href = "/create/onboarding"
@@ -63,7 +64,7 @@ const Footer = () => {
             >
               Start Building
               <ArrowRight className="h-4 w-4" />
-            </button>
+            </OrangeButton>
           </div>
 
           <div className="grid gap-8 border-b border-neutral-800 py-7 md:grid-cols-[1.4fr_1fr_1fr_1.2fr]">

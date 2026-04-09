@@ -196,6 +196,14 @@ export type marketStatus = {
   nextOpenTime?: string;
 }
 
+export interface MarketAssetOption {
+  symbol: string;
+  ticker: string;
+  market: "Indian" | "Crypto";
+  type: "equity" | "crypto";
+  name?: string;
+}
+
 export type SubscriptionPlan = "free" | "pro" | "team";
 
 export interface UsageSnapshot {

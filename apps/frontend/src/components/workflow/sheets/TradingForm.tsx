@@ -9,9 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SUPPORTED_INDIAN_MARKET_ASSETS, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 import { ReliabilitySection } from "./ReliabilitySection";
+import { useMarketAssets } from "./useMarketAssets";
 
 interface TradingFormProps {
   metadata: TradingMetadata | {};
@@ -27,6 +27,7 @@ export const TradingForm = ({
   action
 }: TradingFormProps) => {
   const isWeb3 = action === "lighter";
+  const { indianAssets, cryptoAssets } = useMarketAssets();
   const hasSecret = Boolean(String((metadata as any).secretId || "").trim());
   const typedMetadata = isWeb3
     ? (metadata as LighterMetadata)
@@ -152,7 +153,7 @@ export const TradingForm = ({
               <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">
                 {isWeb3 ? "Crypto Assets" : "Stock Assets"}
               </SelectLabel>
-              {(isWeb3 ? SUPPORTED_WEB3_ASSETS : SUPPORTED_INDIAN_MARKET_ASSETS).map((asset) => (
+              {(isWeb3 ? cryptoAssets : indianAssets).map((asset) => (
                 <SelectItem
                   key={asset}
                   value={asset}

@@ -6,6 +6,10 @@ import type {
   AiStrategyDraftSession,
 } from "@/types/api";
 import { toRequestPayload } from "@/components/ai-builder/chat/shared";
+import {
+  getFriendlyAiComposerError,
+  getPromptTooLargeReason,
+} from "@/components/ai-builder/chat/errorUtils";
 
 type PendingMessage = AiStrategyConversationMessage & {
   pending?: boolean;
@@ -56,6 +60,12 @@ export function useAiChatComposer({
     if (composer.trim().length < 4 || !selectedModel) return;
 
     const messageText = composer.trim();
+    const promptTooLargeReason = getPromptTooLargeReason(messageText);
+    if (promptTooLargeReason) {
+      setError(promptTooLargeReason);
+      return;
+    }
+
     const now = new Date().toISOString();
     const optimisticUserMessage: PendingMessage = {
       id: `pending_user_${Date.now()}`,
@@ -127,7 +137,7 @@ export function useAiChatComposer({
     } catch (e: any) {
       setComposer(messageText);
       setPendingMessages([]);
-      setError(e?.response?.data?.message ?? e?.message ?? "Failed to send AI message.");
+      setError(getFriendlyAiComposerError(e));
     } finally {
       setSending(false);
     }
