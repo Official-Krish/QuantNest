@@ -15,7 +15,6 @@ import {
 import { ProfileAccountTab } from "@/components/profile/ProfileAccountTab";
 import { ProfileBillingTab } from "@/components/profile/ProfileBillingTab";
 import { ProfileDangerTab } from "@/components/profile/ProfileDangerTab";
-import { ProfileIntegrationsTab } from "@/components/profile/ProfileIntegrationsTab";
 import { ProfileNotificationsTab } from "@/components/profile/ProfileNotificationsTab";
 import { ProfileSecretsTab } from "@/components/profile/ProfileSecretsTab";
 import { ProfileSidebar } from "@/components/profile/ProfileSidebar";

@@ -1,5 +1,5 @@
 {
-  "name": "ai-builder",
+  "name": "@quantnest-trading/ai-builder",
   "module": "index.ts",
   "type": "module",
   "private": true,

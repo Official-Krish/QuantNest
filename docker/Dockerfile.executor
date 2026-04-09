@@ -11,13 +11,13 @@ COPY packages/types/package.json packages/types/package.json
 COPY packages/executor-utils/package.json packages/executor-utils/package.json
 COPY packages/lighter-sdk-ts/package.json packages/lighter-sdk-ts/package.json
 
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY . .
 
 FROM oven/bun:1 AS runtime
 
-WORKDIR /app
+WORKDIR /app/apps/executor
 
 ENV NODE_ENV=production
 
@@ -25,4 +25,4 @@ COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/apps/executor /app/apps/executor
 COPY --from=builder /app/packages /app/packages
 
-CMD ["bun", "--cwd", "apps/executor", "run", "index.ts"]
+CMD ["bun", "index.ts"]

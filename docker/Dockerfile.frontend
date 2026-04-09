@@ -7,14 +7,16 @@ COPY apps/frontend/package.json apps/frontend/package.json
 COPY packages/node-registry/package.json packages/node-registry/package.json
 COPY packages/types/package.json packages/types/package.json
 
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY . .
 
 ARG VITE_BACKEND_URL=/api/v1
 ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
 
-RUN bun --cwd apps/frontend run build
+WORKDIR /app/apps/frontend
+
+RUN bun run build
 
 FROM nginx:1.27-alpine AS runtime
 

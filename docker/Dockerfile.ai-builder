@@ -9,13 +9,13 @@ COPY packages/node-registry/package.json packages/node-registry/package.json
 COPY packages/plan-guards/package.json packages/plan-guards/package.json
 COPY packages/types/package.json packages/types/package.json
 
-RUN bun install --frozen-lockfile
+RUN bun install
 
 COPY . .
 
 FROM oven/bun:1 AS runtime
 
-WORKDIR /app
+WORKDIR /app/apps/ai-builder
 
 ENV NODE_ENV=production
 
@@ -25,4 +25,4 @@ COPY --from=builder /app/packages /app/packages
 
 EXPOSE 3001
 
-CMD ["bun", "--cwd", "apps/ai-builder", "run", "index.ts"]
+CMD ["bun", "index.ts"]

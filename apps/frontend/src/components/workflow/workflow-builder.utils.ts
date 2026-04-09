@@ -1,4 +1,5 @@
-import type { EdgeType, NodeType, Workflow } from "@quantnest-trading/types";
+import type { EdgeType, NodeType } from "@quantnest-trading/types";
+import type { Workflow } from "@/types/api";
 
 export interface BrokerVerificationPayload {
   brokerType: "zerodha" | "groww" | "lighter";
@@ -111,13 +112,13 @@ function normalizeStoredNodeType(nodeType: string | undefined) {
 }
 
 export function normalizeWorkflowForBuilder(workflow: Workflow) {
-  const normalizedNodes = workflow.nodes.map((node: any) => {
+  const normalizedNodes: NodeType[] = workflow.nodes.map((node: any) => {
     const nodeId = node.nodeId || node.id;
     const nodeType = normalizeStoredNodeType(node.type) || inferNodeTypeFromMetadata(node);
 
     return {
       nodeId,
-      type: nodeType,
+      type: nodeType as NodeType["type"],
       data: {
         kind: (node.data?.kind?.toLowerCase() || node.data?.kind || "trigger") as
           | "action"

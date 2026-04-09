@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import { TypewriterEffect } from "@/components/ui/typewriter-effect";
 import { cx, type LocalTheme } from "./shared";
 

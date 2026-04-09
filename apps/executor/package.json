@@ -1,5 +1,5 @@
 {
-  "name": "engine",
+  "name": "@quantnest-trading/engine",
   "module": "index.ts",
   "type": "module",
   "private": true,
