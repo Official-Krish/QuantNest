@@ -1,0 +1,103 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  update-manifests:
+    name: Update Kubernetes Manifests
+
+    runs-on: ubuntu-latest
+
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download Changed Services
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: ci.yml
+          run_id: ${{ github.event.workflow_run.id }}
+          name: changed-services
+          path: changed
+
+      - name: Check Changed Services
+        id: changed
+        shell: bash
+        run: |
+          if [ ! -d changed ]; then
+            echo "deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if grep -Rq "true" changed; then
+            echo "deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure Git
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+      - name: Update Image Tags
+        if: steps.changed.outputs.deploy == 'true'
+        shell: bash
+        run: |
+          VERSION=v1.2.${{ github.event.workflow_run.run_number }}
+
+          if [ "$(cat changed/backend)" = "true" ]; then
+            sed -i "s|image: krishanand01/quantnest-backend:.*|image: krishanand01/quantnest-backend:$VERSION|g" ops/deployment.yml
+          fi
+
+          if [ "$(cat changed/frontend)" = "true" ]; then
+            sed -i "s|image: krishanand01/quantnest-frontend:.*|image: krishanand01/quantnest-frontend:$VERSION|g" ops/deployment.yml
+          fi
+
+          if [ "$(cat changed/executor)" = "true" ]; then
+            sed -i "s|image: krishanand01/quantnest-executor:.*|image: krishanand01/quantnest-executor:$VERSION|g" ops/deployment.yml
+          fi
+
+          if [ "$(cat changed/ai_builder)" = "true" ]; then
+            sed -i "s|image: krishanand01/quantnest-ai-builder:.*|image: krishanand01/quantnest-ai-builder:$VERSION|g" ops/deployment.yml
+          fi
+
+      - name: Check For Manifest Changes
+        if: steps.changed.outputs.deploy == 'true'
+        id: gitcheck
+        shell: bash
+        run: |
+          if git diff --quiet ops/deployment.yml; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit Changes
+        if: |
+          steps.changed.outputs.deploy == 'true' &&
+          steps.gitcheck.outputs.changed == 'true'
+        run: |
+          git add ops/deployment.yml
+          git commit -m "chore: update image tags to v1.2.${{ github.event.workflow_run.run_number }}"
+
+      - name: Push Changes
+        if: |
+          steps.changed.outputs.deploy == 'true' &&
+          steps.gitcheck.outputs.changed == 'true'
+        run: |
+          git push origin main
