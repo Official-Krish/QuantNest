@@ -1,6 +1,7 @@
 import { NODE_REGISTRY } from "@quantnest-trading/node-registry";
 import type { ExecutorTriggerProcessorId } from "@quantnest-trading/node-registry";
 import { indicatorEngine } from "../services/indicator.engine";
+import { DYNAMIC_STATE_REFRESH_INTERVAL_MS } from "../config/constants";
 import { backfillWorkflowTriggerState, registerConditionalExpressions } from "./poller.utils";
 import {
   processBreakoutRetestWorkflows,
@@ -24,12 +25,25 @@ const registryTriggerProcessors = NODE_REGISTRY
   .filter((entry) => entry.kind === "trigger" && entry.executorTriggerProcessorId)
   .map((entry) => entry.executorTriggerProcessorId!) satisfies ExecutorTriggerProcessorId[];
 
+let lastDynamicStateRefreshAt = 0;
+
+async function refreshDynamicExecutorState(now: Date) {
+  const nowMs = now.getTime();
+  if (nowMs - lastDynamicStateRefreshAt < DYNAMIC_STATE_REFRESH_INTERVAL_MS) {
+    return;
+  }
+
+  lastDynamicStateRefreshAt = nowMs;
+
+  await backfillWorkflowTriggerState(now);
+  await Promise.all([registerConditionalExpressions(), indicatorEngine.refreshSubscribedSymbols()]);
+}
+
 export async function pollOnce() {
   const now = new Date();
 
-  await backfillWorkflowTriggerState(now);
-  await registerConditionalExpressions();
-  await indicatorEngine.refreshSubscribedSymbols();
+  await refreshDynamicExecutorState(now);
+
   for (const processorId of registryTriggerProcessors) {
     await triggerProcessorMap[processorId](now);
   }

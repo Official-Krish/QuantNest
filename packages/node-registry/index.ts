@@ -403,8 +403,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
         builderFormId: "whatsapp",
         builderRendererId: "whatsapp",
         executorActionHandlerId: "whatsapp",
-        aiAllowed: true,
-        aiPreferredAction: true,
+        aiAllowed: false,
         metadataFields: ["recipientPhone", "recipientName", "retryPolicy"],
         reusableSecretService: "whatsapp",
         secretFieldKeys: ["recipientPhone"],
@@ -495,6 +494,7 @@ export function getBuilderActionGroups() {
 
     for (const entry of NODE_REGISTRY) {
         if (entry.kind !== "action" || !entry.builderCategory) continue;
+        if (entry.id === "whatsapp") continue;
         groups[entry.builderCategory].push({
             id: entry.id,
             title: entry.title,
@@ -519,6 +519,7 @@ export function getBuilderPanelActions(group: BuilderPanelGroup, hasZerodhaActio
     return NODE_REGISTRY
         .filter((entry) => {
             if (entry.kind !== "action" || entry.builderPanelGroup !== group) return false;
+            if (entry.id === "whatsapp") return false;
             if (group === "Reporting" && !hasZerodhaAction) return false;
             if (group === "Order Execution" && marketType && entry.builderCategory !== marketType) return false;
             if (group === "Order Execution" && !marketType) return false;

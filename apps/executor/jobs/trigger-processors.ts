@@ -20,7 +20,7 @@ export async function processTimerWorkflows(now: Date) {
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "timer",
     nextRunAt: { $lte: now },
-  });
+  }).lean();
 
   for (const workflow of workflows) {
     try {
@@ -56,7 +56,7 @@ export async function processPriceWorkflows(now: Date) {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "price-trigger",
-  });
+  }).lean();
 
   for (const workflow of workflows) {
     try {
@@ -89,7 +89,7 @@ export async function processBreakoutRetestWorkflows(now: Date) {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "breakout-retest-trigger",
-  });
+  }).lean();
 
   for (const workflow of workflows) {
     try {
@@ -129,7 +129,7 @@ export async function processConditionalWorkflows(now: Date) {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "conditional-trigger",
-  });
+  }).lean();
 
   for (const workflow of workflows) {
     try {
@@ -180,7 +180,7 @@ export async function processMarketSessionWorkflows(now: Date) {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "market-session",
-  });
+  }).lean();
 
   for (const workflow of workflows) {
     try {
@@ -233,7 +233,7 @@ export async function processPortfolioPnlDrawdownWorkflows(now: Date) {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "portfolio-pnl-drawdown-trigger",
-  });
+  }).lean();
 
   for (const workflow of workflows) {
     try {
