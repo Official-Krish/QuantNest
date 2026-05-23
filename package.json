@@ -2,8 +2,8 @@
   "name": "quantnest-trading",
   "private": true,
   "scripts": {
-    "build": "turbo build",
-    "build:apps": "turbo run build --filter=apps/*",
+    "build": "turbo run build --filter=@quantnest-trading/ai-builder --filter=@quantnest-trading/backend --filter=@quantnest-trading/frontend",
+    "build:apps": "turbo run build --filter=@quantnest-trading/ai-builder --filter=@quantnest-trading/backend --filter=@quantnest-trading/frontend",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
