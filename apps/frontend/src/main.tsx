@@ -1,10 +1,10 @@
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
-import { BrowserRouter, useLocation } from 'react-router-dom'
-import { Appbar } from './components/Appbar.tsx'
-import Footer from './components/Footer.tsx'
-import { Toaster } from 'sonner'
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.tsx";
+import { BrowserRouter, useLocation } from "react-router-dom";
+import { Appbar } from "./components/Appbar.tsx";
+import Footer from "./components/Footer.tsx";
+import { Toaster } from "sonner";
 
 function AppShell() {
   const location = useLocation();
@@ -28,8 +28,10 @@ function AppShell() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
     <AppShell />
-  </BrowserRouter>
-)
+  </BrowserRouter>,
+);
+
+export default AppShell;

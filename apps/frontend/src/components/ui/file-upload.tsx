@@ -44,7 +44,9 @@ export const FileUpload = ({
   username?: string;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreview ?? null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    initialPreview ?? null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (newFiles: File[]) => {
@@ -52,7 +54,7 @@ export const FileUpload = ({
     if (newFiles[0]) {
       setPreviewUrl(URL.createObjectURL(newFiles[0]));
     }
-    onChange && onChange(newFiles);
+    if (onChange) onChange(newFiles);
   };
 
   const handleClick = () => {
@@ -82,13 +84,19 @@ export const FileUpload = ({
               id="file-upload-handle-avatar"
               type="file"
               accept="image/*"
-              onChange={(e) => handleFileChange(Array.from(e.target.files || []))}
+              onChange={(e) =>
+                handleFileChange(Array.from(e.target.files || []))
+              }
               className="hidden"
             />
 
             <div className="h-full w-full overflow-hidden rounded-full border border-neutral-700 bg-neutral-900 shadow-[0_12px_36px_rgba(0,0,0,0.35)]">
               {previewUrl ? (
-                <img src={previewUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+                <img
+                  src={previewUrl}
+                  alt="Avatar preview"
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-neutral-900 to-neutral-800 text-2xl font-semibold text-neutral-300">
                   {username ? username.charAt(0).toUpperCase() : "U"}

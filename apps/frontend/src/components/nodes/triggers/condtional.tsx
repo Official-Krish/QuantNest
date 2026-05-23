@@ -21,7 +21,7 @@ function formatClause(clause: any): string {
   return `${formatOperand(clause.left)} ${formatOperator(String(clause.operator || ""))} ${formatOperand(clause.right)}`;
 }
 
-export const conditionTrigger = ({
+export const ConditionTrigger = ({
   data,
 }: {
   data: {
@@ -36,7 +36,15 @@ export const conditionTrigger = ({
     };
   };
 }) => {
-  const { marketType, asset, condition, targetPrice, timeWindowMinutes, startTime, expression } = data.metadata || {};
+  const {
+    marketType,
+    asset,
+    condition,
+    targetPrice,
+    timeWindowMinutes,
+    startTime,
+    expression,
+  } = data.metadata || {};
   const expressionConditions = Array.isArray((expression as any)?.conditions)
     ? (expression as any).conditions
     : [];
@@ -58,9 +66,15 @@ export const conditionTrigger = ({
   if (marketType) details.push({ label: "Market", value: marketType });
   if (asset) details.push({ label: "Asset", value: asset });
   if (condition) details.push({ label: "Condition", value: condition });
-  if (typeof targetPrice === "number") details.push({ label: "Target Price", value: targetPrice });
-  if (startTime) details.push({ label: "Start Time", value: new Date(startTime).toLocaleString() });
-  if (typeof timeWindowMinutes === "number") details.push({ label: "Time Window (min)", value: timeWindowMinutes });
+  if (typeof targetPrice === "number")
+    details.push({ label: "Target Price", value: targetPrice });
+  if (startTime)
+    details.push({
+      label: "Start Time",
+      value: new Date(startTime).toLocaleString(),
+    });
+  if (typeof timeWindowMinutes === "number")
+    details.push({ label: "Time Window (min)", value: timeWindowMinutes });
   if (expression) details.push({ label: "Groups", value: groupCount });
 
   return (
@@ -70,31 +84,40 @@ export const conditionTrigger = ({
           Condition
         </span>
         <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
-          {expression ? `${groupCount} Group${groupCount > 1 ? "s" : ""}` : "No Expression"}
+          {expression
+            ? `${groupCount} Group${groupCount > 1 ? "s" : ""}`
+            : "No Expression"}
         </span>
       </div>
       {details.length > 0 && (
         <div className="mt-1 space-y-0.5 text-xs text-neutral-300">
           {details.map((d) => (
             <div key={d.label}>
-              <span className="font-semibold text-neutral-400">{d.label}:</span> {d.value}
+              <span className="font-semibold text-neutral-400">{d.label}:</span>{" "}
+              {d.value}
             </div>
           ))}
         </div>
       )}
       {expressionConditions.length ? (
         <div className="mt-2 space-y-2">
-          <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">Logic Graph</div>
+          <div className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
+            Logic Graph
+          </div>
           {expressionConditions.map((groupOrClause: any, index: number) => {
-            const group = groupOrClause?.type === "group"
-              ? groupOrClause
-              : {
-                  type: "group",
-                  operator: "AND",
-                  conditions: [groupOrClause],
-                };
+            const group =
+              groupOrClause?.type === "group"
+                ? groupOrClause
+                : {
+                    type: "group",
+                    operator: "AND",
+                    conditions: [groupOrClause],
+                  };
             return (
-              <div key={`group-${index}`} className="space-y-1 rounded-lg border border-neutral-800 bg-neutral-900/40 p-2">
+              <div
+                key={`group-${index}`}
+                className="space-y-1 rounded-lg border border-neutral-800 bg-neutral-900/40 p-2"
+              >
                 {index > 0 && (
                   <div className="flex justify-center">
                     <span className="rounded-full border border-neutral-700 bg-neutral-900 px-2 py-0.5 text-[9px] font-semibold text-[#f17463]">
@@ -103,7 +126,10 @@ export const conditionTrigger = ({
                   </div>
                 )}
                 {group.conditions.map((clause: any, clauseIndex: number) => (
-                  <div key={`clause-${index}-${clauseIndex}`} className="space-y-1">
+                  <div
+                    key={`clause-${index}-${clauseIndex}`}
+                    className="space-y-1"
+                  >
                     <div className="rounded-md border border-neutral-800 bg-black/40 px-2 py-1 text-[10px] text-neutral-200">
                       {formatClause(clause)}
                     </div>
@@ -121,23 +147,33 @@ export const conditionTrigger = ({
           })}
         </div>
       ) : null}
-      {(loading || preview) ? (
+      {loading || preview ? (
         <div className="mt-2 rounded-lg border border-neutral-800 bg-black/40 px-2.5 py-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[9px] uppercase tracking-[0.16em] text-neutral-500">Live Snapshot</span>
-            <span className={`text-[9px] font-semibold uppercase tracking-[0.14em] ${preview?.conditionMet ? "text-emerald-300" : "text-neutral-400"}`}>
+            <span className="text-[9px] uppercase tracking-[0.16em] text-neutral-500">
+              Live Snapshot
+            </span>
+            <span
+              className={`text-[9px] font-semibold uppercase tracking-[0.14em] ${preview?.conditionMet ? "text-emerald-300" : "text-neutral-400"}`}
+            >
               {loading ? "Fetching" : preview?.conditionMet ? "True" : "False"}
             </span>
           </div>
           {preview?.indicatorSnapshot?.length ? (
             <div className="mt-1.5 space-y-1">
               {preview.indicatorSnapshot.slice(0, 3).map((entry) => (
-                <div key={`${entry.symbol}-${entry.timeframe}-${entry.indicator}-${entry.period || 0}`} className="flex items-center justify-between gap-2 text-[10px]">
+                <div
+                  key={`${entry.symbol}-${entry.timeframe}-${entry.indicator}-${entry.period || 0}`}
+                  className="flex items-center justify-between gap-2 text-[10px]"
+                >
                   <span className="truncate text-neutral-400">
-                    {String(entry.indicator).toUpperCase()}{entry.period ? `(${entry.period})` : ""} {entry.symbol}
+                    {String(entry.indicator).toUpperCase()}
+                    {entry.period ? `(${entry.period})` : ""} {entry.symbol}
                   </span>
                   <span className="font-semibold text-neutral-100">
-                    {typeof entry.value === "number" ? entry.value.toFixed(2) : "N/A"}
+                    {typeof entry.value === "number"
+                      ? entry.value.toFixed(2)
+                      : "N/A"}
                   </span>
                 </div>
               ))}
@@ -145,7 +181,9 @@ export const conditionTrigger = ({
           ) : typeof preview?.currentPrice === "number" ? (
             <div className="mt-1.5 flex items-center justify-between gap-2 text-[10px]">
               <span className="text-neutral-400">Current price</span>
-              <span className="font-semibold text-neutral-100">{preview.currentPrice.toFixed(2)}</span>
+              <span className="font-semibold text-neutral-100">
+                {preview.currentPrice.toFixed(2)}
+              </span>
             </div>
           ) : null}
         </div>

@@ -1,25 +1,38 @@
-import type { LighterMetadata, RetryPolicyMetadata, TradingMetadata } from "@quantnest-trading/types";
+import type {
+  LighterMetadata,
+  RetryPolicyMetadata,
+  TradingMetadata,
+} from "@quantnest-trading/types";
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const SLACK_BOT_TOKEN_REGEX = /^xoxb-[A-Za-z0-9-]+$/;
 export const SLACK_USER_ID_REGEX = /^[UW][A-Z0-9]+$/;
 export const TELEGRAM_BOT_TOKEN_REGEX = /^\d{6,12}:[A-Za-z0-9_-]{20,}$/;
 export const TELEGRAM_CHAT_ID_REGEX = /^-?\d{5,20}$/;
-export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,100}$/;
+export const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,100}$/;
 export const ZERODHA_API_KEY_REGEX = /^[A-Za-z0-9]{8,32}$/;
 export const ACCESS_TOKEN_REGEX = /^[A-Za-z0-9._-]{16,512}$/;
 export const LIGHTER_PRIVATE_KEY_REGEX = /^(0x)?[a-fA-F0-9]{64}$/;
-export const DISCORD_WEBHOOK_REGEX = /^https:\/\/(discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/;
+export const DISCORD_WEBHOOK_REGEX =
+  /^https:\/\/(discord(?:app)?\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9._-]+$/;
 export const WHATSAPP_PHONE_REGEX = /^\+[1-9]\d{7,14}$/;
-export const NOTION_TOKEN_REGEX = /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
-export const NOTION_PAGE_ID_REGEX = /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
-export const GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX = /^[A-Za-z0-9-]+@[A-Za-z0-9-]+\.iam\.gserviceaccount\.com$/;
-export const GOOGLE_SHEET_URL_REGEX = /^https?:\/\/(?:docs\.google\.com\/spreadsheets\/d\/)[A-Za-z0-9-_]+(?:\/[^\s]*)?(?:\?[^\s]*)?$/i;
-export const POSTGRES_CONNECTION_STRING_REGEX = /^(postgres|postgresql):\/\/.+/i;
+export const NOTION_TOKEN_REGEX =
+  /^(secret_[A-Za-z0-9]{20,}|ntn_[A-Za-z0-9_=-]{20,})$/;
+export const NOTION_PAGE_ID_REGEX =
+  /^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i;
+export const GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX =
+  /^[A-Za-z0-9-]+@[A-Za-z0-9-]+\.iam\.gserviceaccount\.com$/;
+export const GOOGLE_SHEET_URL_REGEX =
+  /^https?:\/\/(?:docs\.google\.com\/spreadsheets\/d\/)[A-Za-z0-9-_]+(?:\/[^\s]*)?(?:\?[^\s]*)?$/i;
+export const POSTGRES_CONNECTION_STRING_REGEX =
+  /^(postgres|postgresql):\/\/.+/i;
 export const SQL_IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_$.]*$/;
 
 function isPlaceholderCredential(value: unknown): boolean {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (!normalized) return false;
 
   return [
@@ -46,7 +59,10 @@ export function validateStrongPassword(password: string): boolean {
   return PASSWORD_REGEX.test(password);
 }
 
-export function getActionValidationErrors(action: string, metadata: Record<string, unknown>): string[] {
+export function getActionValidationErrors(
+  action: string,
+  metadata: Record<string, unknown>,
+): string[] {
   const errors: string[] = [];
   const hasSecret = Boolean(String(metadata.secretId || "").trim());
 
@@ -54,8 +70,12 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   if (retryPolicy?.enabled) {
     const maxAttempts = Number(retryPolicy.maxAttempts);
     const delaySeconds = Number(retryPolicy.delaySeconds);
-    const backoffType = String(retryPolicy.backoffType || "").trim().toLowerCase();
-    const onFinalFailure = String(retryPolicy.onFinalFailure || "").trim().toLowerCase();
+    const backoffType = String(retryPolicy.backoffType || "")
+      .trim()
+      .toLowerCase();
+    const onFinalFailure = String(retryPolicy.onFinalFailure || "")
+      .trim()
+      .toLowerCase();
 
     if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
       errors.push("Retry max attempts must be at least 1.");
@@ -69,55 +89,87 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
       errors.push("Retry backoff must be fixed or exponential.");
     }
 
-    if (![
-      "fail-workflow",
-      "continue",
-    ].includes(onFinalFailure)) {
+    if (!["fail-workflow", "continue"].includes(onFinalFailure)) {
       errors.push("Retry final failure must be fail-workflow or continue.");
     }
   }
 
-  if (action === "gmail" && !validateEmail(String(metadata.recipientEmail || "").trim())) {
+  if (
+    action === "gmail" &&
+    !validateEmail(String(metadata.recipientEmail || "").trim())
+  ) {
     errors.push("Enter a valid recipient email.");
   }
 
-  if (action === "discord" && !hasSecret && !DISCORD_WEBHOOK_REGEX.test(String(metadata.webhookUrl || "").trim())) {
+  if (
+    action === "discord" &&
+    !hasSecret &&
+    !DISCORD_WEBHOOK_REGEX.test(String(metadata.webhookUrl || "").trim())
+  ) {
     errors.push("Discord webhook URL format is invalid.");
   }
 
   if (action === "slack") {
-    if (!hasSecret && !SLACK_BOT_TOKEN_REGEX.test(String(metadata.slackBotToken || "").trim())) {
+    if (
+      !hasSecret &&
+      !SLACK_BOT_TOKEN_REGEX.test(String(metadata.slackBotToken || "").trim())
+    ) {
       errors.push("Slack bot token must start with xoxb-.");
     } else if (!hasSecret && isPlaceholderCredential(metadata.slackBotToken)) {
       errors.push("Replace Slack bot token placeholder with a real token.");
     }
-    if (!hasSecret && !SLACK_USER_ID_REGEX.test(String(metadata.slackUserId || "").trim())) {
+    if (
+      !hasSecret &&
+      !SLACK_USER_ID_REGEX.test(String(metadata.slackUserId || "").trim())
+    ) {
       errors.push("Slack user ID format is invalid.");
     }
   }
 
   if (action === "telegram") {
-    if (!hasSecret && !TELEGRAM_BOT_TOKEN_REGEX.test(String(metadata.telegramBotToken || "").trim())) {
+    if (
+      !hasSecret &&
+      !TELEGRAM_BOT_TOKEN_REGEX.test(
+        String(metadata.telegramBotToken || "").trim(),
+      )
+    ) {
       errors.push("Telegram bot token format is invalid.");
-    } else if (!hasSecret && isPlaceholderCredential(metadata.telegramBotToken)) {
-      errors.push("Replace Telegram bot token placeholder with your real bot token.");
+    } else if (
+      !hasSecret &&
+      isPlaceholderCredential(metadata.telegramBotToken)
+    ) {
+      errors.push(
+        "Replace Telegram bot token placeholder with your real bot token.",
+      );
     }
-    if (!hasSecret && !TELEGRAM_CHAT_ID_REGEX.test(String(metadata.telegramChatId || "").trim())) {
+    if (
+      !hasSecret &&
+      !TELEGRAM_CHAT_ID_REGEX.test(String(metadata.telegramChatId || "").trim())
+    ) {
       errors.push("Telegram chat ID format is invalid.");
     }
   }
 
-  if (action === "whatsapp" && !hasSecret && !WHATSAPP_PHONE_REGEX.test(String(metadata.recipientPhone || "").trim())) {
+  if (
+    action === "whatsapp" &&
+    !hasSecret &&
+    !WHATSAPP_PHONE_REGEX.test(String(metadata.recipientPhone || "").trim())
+  ) {
     errors.push("WhatsApp number must be in +91XXXXXXXXX format.");
   }
 
   if (action === "notion-daily-report") {
-    if (!hasSecret && !NOTION_TOKEN_REGEX.test(String(metadata.notionApiKey || "").trim())) {
+    if (
+      !hasSecret &&
+      !NOTION_TOKEN_REGEX.test(String(metadata.notionApiKey || "").trim())
+    ) {
       errors.push("Notion API key format is invalid.");
     } else if (!hasSecret && isPlaceholderCredential(metadata.notionApiKey)) {
       errors.push("Replace Notion API key placeholder with a real token.");
     }
-    if (!NOTION_PAGE_ID_REGEX.test(String(metadata.parentPageId || "").trim())) {
+    if (
+      !NOTION_PAGE_ID_REGEX.test(String(metadata.parentPageId || "").trim())
+    ) {
       errors.push("Notion parent page ID format is invalid.");
     }
     if (metadata.aiConsent !== true) {
@@ -126,15 +178,33 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
   }
 
   if (action === "google-drive-daily-csv") {
-    if (!hasSecret && !GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(String(metadata.googleClientEmail || "").trim())) {
+    if (
+      !hasSecret &&
+      !GOOGLE_SERVICE_ACCOUNT_EMAIL_REGEX.test(
+        String(metadata.googleClientEmail || "").trim(),
+      )
+    ) {
       errors.push("Google service account email format is invalid.");
-    } else if (!hasSecret && isPlaceholderCredential(metadata.googleClientEmail)) {
-      errors.push("Replace Google service account email placeholder with a real value.");
+    } else if (
+      !hasSecret &&
+      isPlaceholderCredential(metadata.googleClientEmail)
+    ) {
+      errors.push(
+        "Replace Google service account email placeholder with a real value.",
+      );
     }
-    if (!hasSecret && !String(metadata.googlePrivateKey || "").includes("BEGIN PRIVATE KEY")) {
+    if (
+      !hasSecret &&
+      !String(metadata.googlePrivateKey || "").includes("BEGIN PRIVATE KEY")
+    ) {
       errors.push("Google private key format is invalid.");
-    } else if (!hasSecret && isPlaceholderCredential(metadata.googlePrivateKey)) {
-      errors.push("Replace Google private key placeholder with a real private key.");
+    } else if (
+      !hasSecret &&
+      isPlaceholderCredential(metadata.googlePrivateKey)
+    ) {
+      errors.push(
+        "Replace Google private key placeholder with a real private key.",
+      );
     }
     if (metadata.aiConsent !== true) {
       errors.push("AI consent is required for Google Drive insights.");
@@ -153,11 +223,15 @@ export function getActionValidationErrors(action: string, metadata: Record<strin
     const jsonPayload = String(metadata.jsonPayload || "").trim();
 
     if (!POSTGRES_CONNECTION_STRING_REGEX.test(connectionString)) {
-      errors.push("Connection string must start with postgres:// or postgresql://.");
+      errors.push(
+        "Connection string must start with postgres:// or postgresql://.",
+      );
     }
 
     if (!SQL_IDENTIFIER_REGEX.test(tableName)) {
-      errors.push("Table name must be a valid SQL identifier (letters, numbers, _, $, .).");
+      errors.push(
+        "Table name must be a valid SQL identifier (letters, numbers, _, $, .).",
+      );
     }
 
     if (jsonPayload) {
@@ -192,7 +266,7 @@ export function getSignupValidationErrors(input: {
 
   if (!validateStrongPassword(input.password)) {
     errors.push(
-      "Password must include upper/lowercase letters, a number, a special character, and be at least 8 characters."
+      "Password must include upper/lowercase letters, a number, a special character, and be at least 8 characters.",
     );
   }
 
@@ -207,7 +281,7 @@ function toNumber(value: unknown): number {
 
 export function getTradingValidationErrors(
   action: "zerodha" | "groww" | "lighter",
-  metadata: TradingMetadata | LighterMetadata | {}
+  metadata: TradingMetadata | LighterMetadata | Record<string, unknown>,
 ): string[] {
   const errors: string[] = [];
   const data = metadata as any;
@@ -226,7 +300,10 @@ export function getTradingValidationErrors(
   }
 
   if (action === "zerodha") {
-    if (!hasSecret && !ZERODHA_API_KEY_REGEX.test(String(data.apiKey || "").trim())) {
+    if (
+      !hasSecret &&
+      !ZERODHA_API_KEY_REGEX.test(String(data.apiKey || "").trim())
+    ) {
       errors.push("Zerodha API key must be 8-32 alphanumeric characters.");
     } else if (!hasSecret && isPlaceholderCredential(data.apiKey)) {
       errors.push("Replace Zerodha API key placeholder with a real API key.");
@@ -237,12 +314,17 @@ export function getTradingValidationErrors(
     } else if (!hasSecret && !ACCESS_TOKEN_REGEX.test(accessToken)) {
       errors.push("Zerodha access token format is invalid.");
     } else if (!hasSecret && isPlaceholderCredential(data.accessToken)) {
-      errors.push("Replace Zerodha access token placeholder with a real token.");
+      errors.push(
+        "Replace Zerodha access token placeholder with a real token.",
+      );
     }
   }
 
   if (action === "groww") {
-    if (!hasSecret && !ACCESS_TOKEN_REGEX.test(String(data.accessToken || "").trim())) {
+    if (
+      !hasSecret &&
+      !ACCESS_TOKEN_REGEX.test(String(data.accessToken || "").trim())
+    ) {
       errors.push("Groww access token format is invalid.");
     } else if (!hasSecret && isPlaceholderCredential(data.accessToken)) {
       errors.push("Replace Groww access token placeholder with a real token.");
@@ -250,10 +332,15 @@ export function getTradingValidationErrors(
   }
 
   if (action === "lighter") {
-    if (!hasSecret && !LIGHTER_PRIVATE_KEY_REGEX.test(String(data.apiKey || "").trim())) {
+    if (
+      !hasSecret &&
+      !LIGHTER_PRIVATE_KEY_REGEX.test(String(data.apiKey || "").trim())
+    ) {
       errors.push("Lighter API key must be a valid 64-char hex private key.");
     } else if (!hasSecret && isPlaceholderCredential(data.apiKey)) {
-      errors.push("Replace Lighter API key placeholder with a real private key.");
+      errors.push(
+        "Replace Lighter API key placeholder with a real private key.",
+      );
     }
     const accountIndex = toNumber(data.accountIndex);
     const apiKeyIndex = toNumber(data.apiKeyIndex);
@@ -268,11 +355,19 @@ export function getTradingValidationErrors(
   return errors;
 }
 
-export function getPortfolioRiskValidationErrors(metadata: Record<string, unknown>): string[] {
+export function getPortfolioRiskValidationErrors(
+  metadata: Record<string, unknown>,
+): string[] {
   const errors: string[] = [];
-  const broker = String(metadata.broker || "").trim().toLowerCase();
-  const mode = String(metadata.mode || "").trim().toLowerCase();
-  const thresholdUnit = String(metadata.thresholdUnit || "").trim().toLowerCase();
+  const broker = String(metadata.broker || "")
+    .trim()
+    .toLowerCase();
+  const mode = String(metadata.mode || "")
+    .trim()
+    .toLowerCase();
+  const thresholdUnit = String(metadata.thresholdUnit || "")
+    .trim()
+    .toLowerCase();
   const thresholdValue = Number(metadata.thresholdValue);
   const secretId = String(metadata.secretId || "").trim();
 

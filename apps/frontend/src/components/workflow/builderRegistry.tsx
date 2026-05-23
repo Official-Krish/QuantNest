@@ -1,8 +1,11 @@
-import { getNodeRegistryEntry, type BuilderPanelGroup } from "@quantnest-trading/node-registry";
+import {
+  getNodeRegistryEntry,
+  type BuilderPanelGroup,
+} from "@quantnest-trading/node-registry";
 import { PriceTrigger } from "@/components/nodes/triggers/PriceTrigger";
 import { BreakoutRetestTrigger } from "@/components/nodes/triggers/BreakoutRetestTrigger";
 import { Timer } from "@/components/nodes/triggers/timers";
-import { conditionTrigger } from "@/components/nodes/triggers/condtional";
+import { ConditionTrigger } from "@/components/nodes/triggers/condtional";
 import { MarketSessionTrigger } from "@/components/nodes/triggers/MarketSessionTrigger";
 import { PortfolioPnlDrawdownTrigger } from "@/components/nodes/triggers/PortfolioPnlDrawdownTrigger";
 import { zerodhaAction } from "@/components/nodes/actions/zerodha";
@@ -15,8 +18,8 @@ import { discordAction } from "@/components/nodes/actions/discordAction";
 import { whatsappAction } from "@/components/nodes/actions/whatsappAction";
 import { delayAction } from "@/components/nodes/actions/delayAction";
 import { recheckAction } from "@/components/nodes/actions/recheckAction";
-import { filterAction } from "@/components/nodes/actions/filterAction";
-import { ifAction } from "@/components/nodes/actions/ifAction";
+import { FilterAction } from "@/components/nodes/actions/filterAction";
+import { IfAction } from "@/components/nodes/actions/ifAction";
 import { mergeAction } from "@/components/nodes/actions/mergeAction";
 import { notionDailyReportAction } from "@/components/nodes/actions/notionDailyReportAction";
 import { googleDriveDailyCsvAction } from "@/components/nodes/actions/googleDriveDailyCsvAction";
@@ -44,7 +47,7 @@ import type { NodeMetadata } from "@quantnest-trading/types";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
 export interface BuilderFormRenderProps {
-  metadata: NodeMetadata | {};
+  metadata: NodeMetadata | Record<string, unknown>;
   setMetadata: Dispatch<SetStateAction<any>>;
   setMarketType?: Dispatch<SetStateAction<"Indian" | "Crypto" | null>>;
   marketType?: "Indian" | "Crypto" | null;
@@ -57,7 +60,7 @@ export const builderNodeRenderers = {
   timer: Timer,
   "price-trigger": PriceTrigger,
   "breakout-retest-trigger": BreakoutRetestTrigger,
-  "conditional-trigger": conditionTrigger,
+  "conditional-trigger": ConditionTrigger,
   "market-session": MarketSessionTrigger,
   "portfolio-pnl-drawdown-trigger": PortfolioPnlDrawdownTrigger,
   zerodha: zerodhaAction,
@@ -70,8 +73,8 @@ export const builderNodeRenderers = {
   whatsapp: whatsappAction,
   delay: delayAction,
   recheck: recheckAction,
-  filter: filterAction,
-  if: ifAction,
+  filter: FilterAction,
+  if: IfAction,
   merge: mergeAction,
   "notion-daily-report": notionDailyReportAction,
   "google-drive-daily-csv": googleDriveDailyCsvAction,
@@ -109,7 +112,10 @@ export function getBuilderFormComponent(nodeType: string) {
   return builderFormRegistry[formId];
 }
 
-export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProps): ReactNode {
+export function renderBuilderForm(
+  nodeType: string,
+  props: BuilderFormRenderProps,
+): ReactNode {
   const formId = getNodeRegistryEntry(nodeType)?.builderFormId;
   if (!formId || formId === "none") {
     return null;
@@ -122,7 +128,12 @@ export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProp
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
           showApiKey={props.showApiKey}
-          action={(props.action || props.selectedAction) as "zerodha" | "groww" | "lighter"}
+          action={
+            (props.action || props.selectedAction) as
+              | "zerodha"
+              | "groww"
+              | "lighter"
+          }
         />
       );
     case "timer":
@@ -180,17 +191,47 @@ export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProp
         />
       );
     case "gmail":
-      return <GmailForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <GmailForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "slack":
-      return <SlackForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <SlackForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "telegram":
-      return <TelegramForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <TelegramForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "discord":
-      return <DiscordForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <DiscordForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "whatsapp":
-      return <WhatsappForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <WhatsappForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "delay":
-      return <DelayForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <DelayForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "recheck":
       return (
         <RecheckForm
@@ -201,23 +242,46 @@ export function renderBuilderForm(nodeType: string, props: BuilderFormRenderProp
         />
       );
     case "notion-daily-report":
-      return <NotionDailyReportForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <NotionDailyReportForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "google-drive-daily-csv":
-      return <GoogleDriveDailyCsvForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <GoogleDriveDailyCsvForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "google-sheets-report":
-      return <GoogleSheetsReportForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <GoogleSheetsReportForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     case "postgres":
-      return <PostgresForm metadata={props.metadata as any} setMetadata={props.setMetadata} />;
+      return (
+        <PostgresForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
     default:
       return null;
   }
 }
 
 export function getBuilderNodeRenderer(nodeType: string) {
-  const rendererId = getNodeRegistryEntry(nodeType)?.builderRendererId || nodeType;
+  const rendererId =
+    getNodeRegistryEntry(nodeType)?.builderRendererId || nodeType;
   return builderNodeRenderers[rendererId as keyof typeof builderNodeRenderers];
 }
 
-export function getBuilderPanelGroupForNodeType(nodeType: string): BuilderPanelGroup | undefined {
+export function getBuilderPanelGroupForNodeType(
+  nodeType: string,
+): BuilderPanelGroup | undefined {
   return getNodeRegistryEntry(nodeType)?.builderPanelGroup;
 }

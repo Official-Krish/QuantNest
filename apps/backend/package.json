@@ -3,7 +3,15 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint ."
+  },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.0.1",
+    "typescript-eslint": "^8.46.4",
     "@types/bun": "latest",
     "@quantnest-trading/db": "workspace:^",
     "@quantnest-trading/types": "workspace:^",
