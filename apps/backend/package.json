@@ -9,20 +9,20 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@quantnest-trading/db": "workspace:^",
+    "@quantnest-trading/executor-utils": "workspace:^",
+    "@quantnest-trading/types": "workspace:^",
+    "@types/bun": "latest",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.0.1",
-    "typescript-eslint": "^8.46.4",
-    "@types/bun": "latest",
-    "@quantnest-trading/db": "workspace:^",
-    "@quantnest-trading/types": "workspace:^",
-    "@quantnest-trading/executor-utils": "workspace:^"
+    "typescript-eslint": "^8.46.4"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1053.0",
     "@quantnest-trading/plan-guards": "workspace:^",
-    "@google-cloud/storage": "^7.19.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/jsonwebtoken": "^9.0.10",

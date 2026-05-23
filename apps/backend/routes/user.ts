@@ -12,7 +12,7 @@ import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../middleware';
 import type { CookieOptions } from 'express';
 import { createEmailVerificationToken, getEmailVerificationExpiry, sendEmailVerificationEmail } from '../services/emailVerification';
-import { uploadAvatarToGcp } from '../services/avatarUpload';
+import { uploadAvatarToS3 } from '../services/avatarUpload';
 import { getJwtSecret } from '../utils/security';
 import multer from 'multer';
 import {
@@ -425,28 +425,7 @@ userRouter.patch('/profile', authMiddleware, async (req, res) => {
     }
 });
 
-userRouter.post("/update-avatar", authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    const { avatarUrl } = req.body;
-
-    if (typeof avatarUrl !== 'string' || avatarUrl.trim().length === 0) {
-        res.status(400).json({ message: "Invalid avatar URL" });
-        return;
-    }
-
-    try {
-        const user = await UserModel.findByIdAndUpdate(userId, { avatarUrl }, { new: true });
-        if (!user) {
-            res.status(404).json({ message: "User not found" });
-            return;
-        }
-        res.status(200).json({ message: "Avatar updated", avatarUrl: user.avatarUrl });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
-});
-
-userRouter.post("/avatar-upload", authMiddleware, upload.single("image"), async (req, res) => {
+userRouter.post("/avatar/upload", authMiddleware, upload.single("avatar"), async (req, res) => {
     const userId = req.userId;
 
     if (!userId) {
@@ -459,8 +438,14 @@ userRouter.post("/avatar-upload", authMiddleware, upload.single("image"), async 
         return;
     }
 
+    const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedMimes.includes(req.file.mimetype)) {
+        res.status(400).json({ message: "Invalid file type. Allowed: jpeg, png, webp, gif" });
+        return;
+    }
+
     try {
-        const uploadResult = await uploadAvatarToGcp({
+        const uploadResult = await uploadAvatarToS3({
             userId,
             mimeType: req.file.mimetype,
             fileBuffer: req.file.buffer,
@@ -471,15 +456,9 @@ userRouter.post("/avatar-upload", authMiddleware, upload.single("image"), async 
             return;
         }
 
-        const { avatarUrl } = uploadResult;
-        if (!avatarUrl) {
-            res.status(500).json({ message: "Avatar URL not returned from upload service" });
-            return;
-        }
-
         const user = await UserModel.findByIdAndUpdate(
             userId,
-            { avatarUrl: avatarUrl },
+            { avatarUrl: uploadResult.avatarUrl },
             { new: true },
         );
 

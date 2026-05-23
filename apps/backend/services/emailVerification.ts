@@ -25,7 +25,6 @@ export async function sendEmailVerificationEmail(input: {
         if (process.env.NODE_ENV === "production") {
             throw new Error("Email verification is not configured. Set RESEND_API_KEY.");
         }
-        console.log(`Email verification link for ${input.email}: ${verificationLink}`);
         return;
     }
 
