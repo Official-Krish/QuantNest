@@ -11,7 +11,11 @@ COPY packages/types/package.json packages/types/package.json
 
 RUN bun install
 
-COPY . .
+COPY apps/ai-builder/ apps/ai-builder/
+COPY packages/db/ packages/db/
+COPY packages/node-registry/ packages/node-registry/
+COPY packages/plan-guards/ packages/plan-guards/
+COPY packages/types/ packages/types/
 
 FROM oven/bun:1 AS runtime
 

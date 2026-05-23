@@ -13,7 +13,13 @@ COPY packages/lighter-sdk-ts/package.json packages/lighter-sdk-ts/package.json
 
 RUN bun install
 
-COPY . .
+COPY apps/executor/ apps/executor/
+COPY packages/db/ packages/db/
+COPY packages/market/ packages/market/
+COPY packages/node-registry/ packages/node-registry/
+COPY packages/types/ packages/types/
+COPY packages/executor-utils/ packages/executor-utils/
+COPY packages/lighter-sdk-ts/ packages/lighter-sdk-ts/
 
 FROM oven/bun:1 AS runtime
 

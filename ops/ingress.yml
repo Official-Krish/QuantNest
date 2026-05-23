@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-nginx
+  namespace: quantnest
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-body-size: "5g"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - quantnest.krishlabs.tech
+      secretName: quantnest-frontend-tls
+    - hosts:
+        - api.quantnest.krishlabs.tech
+      secretName: quantnest-backend-tls
+    - hosts:
+        - ai.quantnest.krishlabs.tech
+      secretName: quantnest-ai-builder-tls
+
+  rules:
+    - host: quantnest.krishlabs.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: quantnest-frontend
+                port:
+                  number: 80
+
+    - host: api.quantnest.krishlabs.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: quantnest-backend
+                port:
+                  number: 80
+
+    - host: ai.quantnest.krishlabs.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: quantnest-ai-builder
+                port:
+                  number: 80
