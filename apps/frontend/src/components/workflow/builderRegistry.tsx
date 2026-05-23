@@ -220,10 +220,7 @@ export function renderBuilderForm(
       );
     case "whatsapp":
       return (
-        <WhatsappForm
-          metadata={props.metadata as any}
-          setMetadata={props.setMetadata}
-        />
+        <WhatsappForm/>
       );
     case "delay":
       return (

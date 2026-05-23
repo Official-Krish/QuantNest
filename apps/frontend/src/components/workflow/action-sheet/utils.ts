@@ -62,9 +62,7 @@ export function getBuilderActionValidationState(
     (selectedAction !== "discord" ||
       (recipientNamePresent &&
         (secretSelected || hasValue(actionMetadata.webhookUrl)))) &&
-    (selectedAction !== "whatsapp" ||
-      (recipientNamePresent &&
-        (secretSelected || hasValue(actionMetadata.recipientPhone)))) &&
+    (selectedAction !== "whatsapp" || true) &&
     (selectedAction !== "notion-daily-report" ||
       ((secretSelected || hasValue(actionMetadata.notionApiKey)) &&
         Boolean(actionMetadata.aiConsent))) &&

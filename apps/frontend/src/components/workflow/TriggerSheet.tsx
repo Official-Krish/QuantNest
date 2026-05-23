@@ -92,7 +92,7 @@ export const TriggerSheet = ({
         ? (initialKind as SupportedTriggerKind)
         : "";
 
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       setSelectedTrigger(nextSelectedTrigger);
       onPreviewTriggerChange?.(nextSelectedTrigger || null);
       setActiveStep(nextSelectedTrigger ? 2 : 1);
@@ -112,6 +112,8 @@ export const TriggerSheet = ({
     } else if (nextMarketType === "crypto" || nextMarketType === "web3") {
       setMarketType("Crypto");
     }
+
+    return () => clearTimeout(timeout);
   }, [
     open,
     initialKind,
@@ -122,7 +124,8 @@ export const TriggerSheet = ({
 
   useEffect(() => {
     if (!open) {
-      setTimeout(() => onPreviewTriggerChange?.(null), 0);
+      const timeout = setTimeout(() => onPreviewTriggerChange?.(null), 0);
+      return () => clearTimeout(timeout);
     }
   }, [open, onPreviewTriggerChange]);
 

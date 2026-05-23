@@ -67,38 +67,42 @@ export const ActionSheet = ({
   useEffect(() => {
     if (!open) return;
 
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+
     if (!initialKind) {
-      setTimeout(() => {
+      timeouts.push(setTimeout(() => {
         setMetadata({});
         setSelectedAction("");
         setInitialAction(undefined);
         setActiveStep(1);
-      }, 0);
-      return;
+      }, 0));
+      return () => timeouts.forEach(clearTimeout);
     }
 
-    setTimeout(() => {
+    timeouts.push(setTimeout(() => {
       setMetadata({
         ...((initialMetadata || {}) as NodeMetadata | Record<string, unknown>),
       });
       setSelectedAction(initialKind);
       setActiveStep(3);
       setTransitionDirection(1);
-    }, 0);
+    }, 0));
 
     const nextMarketType = String(
       (initialMetadata as any)?.marketType || "",
     ).toLowerCase();
     if (nextMarketType === "indian") {
-      setTimeout(() => setMarketType("Indian"), 0);
+      timeouts.push(setTimeout(() => setMarketType("Indian"), 0));
     } else if (nextMarketType === "crypto" || nextMarketType === "web3") {
-      setTimeout(() => setMarketType("Crypto"), 0);
+      timeouts.push(setTimeout(() => setMarketType("Crypto"), 0));
     }
 
-    setTimeout(
+    timeouts.push(setTimeout(
       () => setInitialAction(getBuilderPanelGroupForNodeType(initialKind)),
       0,
-    );
+    ));
+
+    return () => timeouts.forEach(clearTimeout);
   }, [initialKind, initialMetadata, open, setMarketType]);
 
   useEffect(() => {
@@ -134,11 +138,15 @@ export const ActionSheet = ({
       return;
     }
 
+    if (initialKind) {
+      return;
+    }
+
     setTimeout(() => {
       setSelectedAction("");
       setMetadata({});
     }, 0);
-  }, [availableActions, open, selectedAction]);
+  }, [availableActions, initialKind, open, selectedAction]);
 
   const { tradingValidationErrors, actionValidationErrors, canCreateAction } =
     useMemo(

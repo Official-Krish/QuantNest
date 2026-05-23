@@ -591,7 +591,7 @@ export function PreviewWhatsApp({ data }: any) {
   const hasSecret = Boolean(String(secretId || "").trim());
   const subtitle = hasSecret
     ? "Recipient from stored secret"
-    : recipientPhone || "No phone";
+    : recipientPhone || "Coming soon";
   return (
     <PreviewShell
       accent="#25D366"
@@ -599,7 +599,7 @@ export function PreviewWhatsApp({ data }: any) {
       kindBadge="Action"
       label="WhatsApp"
       badge="MSG"
-      title="WhatsApp alert"
+      title="Coming soon"
       subtitle={subtitle}
       iconService="whatsapp"
     />
