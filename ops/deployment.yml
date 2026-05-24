@@ -29,11 +29,11 @@ spec:
             - containerPort: 80
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: "5m"
+              memory: "32Mi"
             limits:
-              cpu: "300m"
-              memory: "256Mi"
+              cpu: "100m"
+              memory: "512Mi"
           livenessProbe:
             httpGet:
               path: /
@@ -96,10 +96,10 @@ spec:
 
           resources:
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: "5m"
+              memory: "32Mi"
             limits:
-              cpu: "500m"
+              cpu: "100m"
               memory: "512Mi"
 
           volumeMounts:
@@ -149,11 +149,11 @@ spec:
 
           resources:
             requests:
-              cpu: "100m"
-              memory: "256Mi"
+              cpu: "5m"
+              memory: "32Mi"
             limits:
-              cpu: "1"
-              memory: "2Gi"
+              cpu: "100m"
+              memory: "512Mi"
 
           volumeMounts:
             - name: env-file
@@ -196,7 +196,7 @@ spec:
 
       containers:
         - name: quantnest-ai-builder
-          image: krishanand01/quantnest-ai-builder:v1.2.16
+          image: krishanand01/quantnest-ai-builder:v1.0
           imagePullPolicy: Always
         
           ports:
@@ -204,11 +204,11 @@ spec:
 
           resources:
             requests:
-              cpu: "100m"
-              memory: "256Mi"
+              cpu: "5m"
+              memory: "32Mi"
             limits:
-              cpu: "1"
-              memory: "2Gi"
+              cpu: "100m"
+              memory: "512Mi"
 
           volumeMounts:
             - name: env-file
