@@ -222,7 +222,7 @@ export async function createUserNotification(input: UserNotificationInput): Prom
 
         if (dedupeKey) {
             const since = new Date(Date.now() - dedupeWindowHours * 60 * 60 * 1000);
-            const existing = await NotificationModel.findOne({
+            const existing = await NotificationModel.exists({
                 userId: new mongoose.Types.ObjectId(userId),
                 dedupeKey,
                 createdAt: { $gte: since },
@@ -234,7 +234,9 @@ export async function createUserNotification(input: UserNotificationInput): Prom
 
         let resolvedWorkflowName = workflowName;
         if (!resolvedWorkflowName && workflowId) {
-            const workflow = await WorkflowModel.findById(workflowId).select("workflowName");
+            const workflow = await WorkflowModel.findById(workflowId)
+                .select("workflowName")
+                .lean();
             resolvedWorkflowName = workflow?.workflowName;
         }
 

@@ -1,0 +1,222 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantnest-frontend
+  namespace: quantnest
+  labels:
+    app: quantnest-frontend
+spec:
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  selector:
+    matchLabels:
+      app: quantnest-frontend
+  template:
+    metadata:
+      labels:
+        app: quantnest-frontend
+    spec:
+      containers:
+        - name: quantnest-frontend
+          image: krishanand01/quantnest-frontend:v1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "5m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          volumeMounts:
+            - name: env-file
+              mountPath: /app/apps/frontend/.env
+              subPath: env
+
+      volumes:
+        - name: env-file
+          secret:
+            secretName: quantnest-frontend-env
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantnest-backend
+  namespace: quantnest
+  labels:
+    app: quantnest-backend
+
+spec:
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+
+  selector:
+    matchLabels:
+      app: quantnest-backend
+
+  template:
+    metadata:
+      labels:
+        app: quantnest-backend
+
+    spec:
+      containers:
+        - name: quantnest-backend
+          image: krishanand01/quantnest-backend:v1.0
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 3000
+
+          resources:
+            requests:
+              cpu: "5m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "512Mi"
+
+          volumeMounts:
+            - name: env-file
+              mountPath: /app/apps/backend/.env
+              subPath: env
+
+      volumes:
+        - name: env-file
+          secret:
+            secretName: quantnest-backend-env
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantnest-executor
+  namespace: quantnest
+  labels:
+    app: quantnest-executor
+
+spec:
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+
+  selector:
+    matchLabels:
+      app: quantnest-executor
+
+  template:
+    metadata:
+      labels:
+        app: quantnest-executor
+
+    spec:
+      restartPolicy: Always
+
+      containers:
+        - name: quantnest-executor
+          image: krishanand01/quantnest-executor:v1.0
+          imagePullPolicy: Always
+
+          resources:
+            requests:
+              cpu: "5m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "512Mi"
+
+          volumeMounts:
+            - name: env-file
+              mountPath: /app/apps/executor/.env
+              subPath: env
+
+      volumes:
+        - name: env-file
+          secret:
+            secretName: quantnest-executor-env
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantnest-ai-builder
+  namespace: quantnest
+  labels:
+    app: quantnest-ai-builder
+
+spec:
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+
+  selector:
+    matchLabels:
+      app: quantnest-ai-builder
+
+  template:
+    metadata:
+      labels:
+        app: quantnest-ai-builder
+
+    spec:
+      restartPolicy: Always
+
+      containers:
+        - name: quantnest-ai-builder
+          image: krishanand01/quantnest-ai-builder:v1.0
+          imagePullPolicy: Always
+        
+          ports:
+            - containerPort: 3001
+
+          resources:
+            requests:
+              cpu: "5m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "512Mi"
+
+          volumeMounts:
+            - name: env-file
+              mountPath: /app/apps/ai-builder/.env
+              subPath: env
+
+      volumes:
+        - name: env-file
+          secret:
+            secretName: quantnest-ai-builder-env
+---

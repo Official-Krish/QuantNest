@@ -3,29 +3,39 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint ."
+  },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@eslint/js": "^9.39.1",
     "@quantnest-trading/db": "workspace:^",
+    "@quantnest-trading/executor-utils": "workspace:^",
     "@quantnest-trading/types": "workspace:^",
-    "@quantnest-trading/executor-utils": "workspace:^"
+    "@types/bun": "latest",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.0.1",
+    "typescript-eslint": "^8.46.4"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1053.0",
     "@quantnest-trading/plan-guards": "workspace:^",
-    "@google-cloud/storage": "^7.19.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.97",
     "@types/multer": "^2.1.0",
     "axios": "^1.13.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.5.2",
     "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.2",
     "kiteconnect": "^5.1.0",

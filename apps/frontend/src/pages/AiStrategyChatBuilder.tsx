@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/preserve-manual-memoization */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { normalizeGeneratedNodes } from "@/components/ai-builder/utils";
@@ -8,7 +9,10 @@ import { ChatTopHeader } from "@/components/ai-builder/chat/ChatTopHeader";
 import { ChatMessagesPane } from "../components/ai-builder/chat/ChatMessagesPane";
 import { ChatComposerSection } from "@/components/ai-builder/chat/ChatComposerSection";
 import { useAiChatComposer } from "@/components/ai-builder/chat/useAiChatComposer";
-import { getVersionSetupState, useAiChatDrafts } from "@/components/ai-builder/chat/useAiChatDrafts";
+import {
+  getVersionSetupState,
+  useAiChatDrafts,
+} from "@/components/ai-builder/chat/useAiChatDrafts";
 import { useAiDraftRestore } from "@/components/ai-builder/chat/useAiDraftRestore";
 import {
   Dialog,
@@ -121,7 +125,9 @@ export function AiStrategyChatBuilder() {
       (entry) => entry.id === versionId,
     );
     if (!version) return;
-    const versionSetupState = draft ? getVersionSetupState(draft, version.id) : undefined;
+    const versionSetupState = draft
+      ? getVersionSetupState(draft, version.id)
+      : undefined;
 
     navigate("/create/builder", {
       state: {
@@ -129,10 +135,9 @@ export function AiStrategyChatBuilder() {
           workflowName:
             drafts.workflowName || version.response.plan.workflowName,
           marketType: version.response.plan.marketType,
-          executionMode:
-            (versionSetupState?.executionMode || drafts.executionMode || "live") as
-              | "live"
-              | "dry-run",
+          executionMode: (versionSetupState?.executionMode ||
+            drafts.executionMode ||
+            "live") as "live" | "dry-run",
           nodes: normalizeGeneratedNodes(
             version.response.plan,
             drafts.metadataOverrides,
@@ -164,7 +169,10 @@ export function AiStrategyChatBuilder() {
     didHandleRouteRef.current = true;
 
     const load = async () => {
-      await drafts.handleLoadDraft(state.draftId || "", composerState.resetConversationUi);
+      await drafts.handleLoadDraft(
+        state.draftId || "",
+        composerState.resetConversationUi,
+      );
       if (state.versionId) {
         drafts.setActiveVersionId(state.versionId);
       }
@@ -172,10 +180,18 @@ export function AiStrategyChatBuilder() {
     };
 
     void load();
-  }, [composerState.resetConversationUi, drafts, location.pathname, location.state, navigate]);
+  }, [
+    composerState.resetConversationUi,
+    drafts,
+    location.pathname,
+    location.state,
+    navigate,
+  ]);
 
   const shell =
-    theme === "dark" ? "bg-[#050505] text-white" : "bg-[#f6f7fb] text-neutral-900";
+    theme === "dark"
+      ? "bg-[#050505] text-white"
+      : "bg-[#f6f7fb] text-neutral-900";
   const panel =
     theme === "dark"
       ? "border-neutral-800 bg-[#0a0a0a]"
@@ -240,7 +256,9 @@ export function AiStrategyChatBuilder() {
               panel={panel}
               muted={muted}
               theme={theme}
-              onExampleClick={(example: string) => composerState.setComposer(example)}
+              onExampleClick={(example: string) =>
+                composerState.setComposer(example)
+              }
               onOpenVersionInBuilder={openVersionInBuilder}
             />
 
@@ -304,7 +322,9 @@ export function AiStrategyChatBuilder() {
       >
         <DialogContent className="max-w-md border-neutral-800 bg-neutral-950 text-neutral-100">
           <DialogHeader>
-            <DialogTitle className="text-base">Delete conversation?</DialogTitle>
+            <DialogTitle className="text-base">
+              Delete conversation?
+            </DialogTitle>
             <DialogDescription className="text-neutral-400">
               This will permanently delete the selected AI-builder chat.
             </DialogDescription>
@@ -319,7 +339,9 @@ export function AiStrategyChatBuilder() {
             </Button>
             <Button
               className="bg-red-600 text-white hover:bg-red-500 cursor-pointer"
-              onClick={() => void performDeleteDraft(drafts.pendingDeleteDraftId || "")}
+              onClick={() =>
+                void performDeleteDraft(drafts.pendingDeleteDraftId || "")
+              }
             >
               Delete chat
             </Button>

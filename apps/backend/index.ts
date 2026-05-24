@@ -1,6 +1,8 @@
 import express from 'express';
+import crypto from 'crypto';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
 import notificationRouter from './routes/notification';
 import aiRouter from './routes/ai';
 import userRouter from './routes/user';
@@ -14,7 +16,27 @@ import { getAllMarketAssets, getMarketAssets } from '@quantnest-trading/market';
 const app = express();
 app.set("trust proxy", 1);
 app.use(express.json());
-app.use(cookieParser());
+
+const cookieSecret = process.env.COOKIE_SECRET || crypto.randomUUID();
+app.use(cookieParser(cookieSecret));
+
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many attempts. Try again later." },
+});
+app.use("/api/v1/user/signin", authLimiter);
+app.use("/api/v1/user/signup", authLimiter);
 
 const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "http://localhost:5173")
   .split(",")
@@ -33,6 +55,10 @@ app.use(cors({
 }));
 
 mongoose.connect(process.env.MONGO_URL || 'mongodb://localhost:27017/myapp')
+  .catch((err) => {
+    console.error("MongoDB connection failed:", err);
+    process.exit(1);
+  });
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/ai", aiRouter);

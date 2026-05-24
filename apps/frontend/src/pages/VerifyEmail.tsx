@@ -8,7 +8,9 @@ const EMAIL_VERIFIED_FLAG = "quantnest-email-verified";
 export const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "success" | "error">(
+    "loading",
+  );
   const [message, setMessage] = useState("Verifying your email...");
   const [countdown, setCountdown] = useState(10);
 
@@ -41,7 +43,7 @@ export const VerifyEmail = () => {
       return;
     }
 
-    setCountdown(10);
+    setTimeout(() => setCountdown(10), 0);
 
     const intervalId = window.setInterval(() => {
       setCountdown((current) => {
@@ -78,7 +80,11 @@ export const VerifyEmail = () => {
           Email verification
         </p>
         <h1 className="text-3xl font-medium tracking-tight text-neutral-50">
-          {status === "loading" ? "Checking link" : status === "success" ? "Email verified" : "Verification failed"}
+          {status === "loading"
+            ? "Checking link"
+            : status === "success"
+              ? "Email verified"
+              : "Verification failed"}
         </h1>
         <p className="text-sm text-neutral-400">{message}</p>
         {status === "success" ? (

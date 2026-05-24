@@ -34,6 +34,18 @@ GOOGLE_SHEETS_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n---
 # COOKIE_DOMAIN=.yourdomain.com
 # COOKIE_SECURE=true
 # COOKIE_SAMESITE=none
+
+# Avatar upload storage
+# S3_BUCKET_NAME=quantnest-avatars
+# S3_REGION=us-east-1
+# ASSETS_CDN_BASE_URL=https://assets.yourdomain.com
+
+# AWS-style aliases are also supported
+# AWS_BUCKET_NAME=quantnest-avatars
+# AWS_REGION=us-east-1
+# AWS_ACCESS_KEY=...
+# AWS_SECRET_ACCESS_KEY=...
+# CDN_BASE_URL=https://assets.yourdomain.com
 ```
 
 ## Run Locally

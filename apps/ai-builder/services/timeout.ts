@@ -5,7 +5,7 @@ export async function withTimeout<T>(
   timeoutMs: number,
   message = "AI provider timed out.",
 ): Promise<T> {
-  let timeoutId: Timer | undefined;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {

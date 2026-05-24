@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react";
 
 import {
   BellIcon,
@@ -6,40 +6,147 @@ import {
   FileTextIcon,
   GlobeIcon,
   InputIcon,
-} from "@radix-ui/react-icons"
+} from "@radix-ui/react-icons";
 
-import { BentoCard, BentoGrid } from "@/components/ui/bento-grid-feature"
-import { AnimatedList } from "../ui/animated-list"
-import NotificationCard from "./NotificationCard"
-import { WorkflowNodePreview } from "./WorkflowNodePreview"
+import { BentoCard, BentoGrid } from "@/components/ui/bento-grid-feature";
+import { AnimatedList } from "../ui/animated-list";
+import NotificationCard from "./NotificationCard";
+import { WorkflowNodePreview } from "./WorkflowNodePreview";
 
 export const Features = () => {
-  const notificationRef = useRef<HTMLDivElement | null>(null)
-  const [notificationsActive, setNotificationsActive] = useState(false)
+  const notificationRef = useRef<HTMLDivElement | null>(null);
+  const [notificationsActive, setNotificationsActive] = useState(false);
 
   useEffect(() => {
-    if (!notificationRef.current) return
+    if (!notificationRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const [entry] = entries
+        const [entry] = entries;
         if (entry.isIntersecting) {
-          setNotificationsActive(true)
+          setNotificationsActive(true);
           if (notificationRef.current) {
-            observer.unobserve(notificationRef.current)
+            observer.unobserve(notificationRef.current);
           }
         }
       },
       {
         threshold: 0.4,
         rootMargin: "0px 0px -15% 0px",
-      }
-    )
+      },
+    );
 
-    observer.observe(notificationRef.current)
+    observer.observe(notificationRef.current);
 
-    return () => observer.disconnect()
-  }, [])
+    return () => observer.disconnect();
+  }, []);
+
+  const features = () => [
+    {
+      Icon: FileTextIcon,
+      name: "Multi-Market Support",
+      description:
+        "Trade across equities, F&O, and upcoming Web3 protocols from a single workflow.",
+      href: "/",
+      cta: "Learn more",
+      status: "Live",
+      statusTone: "live" as const,
+      background: (
+        <div className="relative h-36 overflow-hidden border-b border-neutral-800/70 bg-gradient-to-b from-neutral-900/90 to-transparent">
+          <WorkflowNodePreview
+            kind="action"
+            title="Execute on Zerodha / Groww"
+            subtitle="Route the same strategy to multiple broker actions."
+            badges={["IND", "F&O"]}
+          />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#151515] to-transparent" />
+        </div>
+      ),
+      className: "lg:col-start-3 lg:col-end-4 lg:row-start-2 lg:row-end-3",
+    },
+    {
+      Icon: BellIcon,
+      name: "Notification Feed",
+      description:
+        "Stay continuously informed with a real-time event stream covering trade executions, trigger hits, risk signals, broker errors, and daily summaries, so you always know what your workflows are doing without opening each strategy one by one.",
+      href: "/",
+      cta: "Learn more",
+      status: "Live",
+      statusTone: "live" as const,
+      background: (
+        <div
+          ref={notificationRef}
+          className="relative h-44 overflow-hidden border-b border-neutral-800/70 bg-gradient-to-b from-neutral-900/90 to-transparent lg:h-[430px]"
+        >
+          <AnimatedList
+            isActive={notificationsActive}
+            delay={1200}
+            className="h-full items-start overflow-hidden p-3"
+          >
+            {notifications.map((notification, index) => (
+              <NotificationCard
+                key={index}
+                name={notification.name}
+                message={notification.message}
+                time={notification.time}
+                icon={notification.icon}
+                accentClasses={notification.accentClasses}
+              />
+            ))}
+          </AnimatedList>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#151515] to-transparent" />
+        </div>
+      ),
+      className:
+        "lg:row-start-1 lg:row-end-3 lg:col-start-2 lg:col-end-3 border border-neutral-800/60 bg-neutral-900/40",
+    },
+    {
+      Icon: InputIcon,
+      name: "Visual Strategy Builder",
+      description:
+        "Design trading strategies using drag-and-drop nodes for indicators, conditions, AI agents, and execution logic.",
+      href: "/",
+      cta: "Learn more",
+      status: "Live",
+      statusTone: "live" as const,
+      background: (
+        <div className="relative h-36 overflow-hidden border-b border-neutral-800/70 bg-gradient-to-b from-neutral-900/90 to-transparent">
+          <WorkflowNodePreview
+            kind="condition"
+            title="RSI(14) < 30 AND EMA20 > EMA50"
+            subtitle="Branch true/false paths like the real builder canvas."
+            badges={["5m", "15m"]}
+          />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#151515] to-transparent" />
+        </div>
+      ),
+      className: "lg:col-start-1 lg:col-end-2 lg:row-start-1 lg:row-end-2",
+    },
+    {
+      Icon: GlobeIcon,
+      name: "AI Chat Builder",
+      description:
+        "Generate trading workflows by conversing with our AI assistant. Describe your strategy and let AI build and optimize it for you.",
+      href: "/create/ai-chat",
+      cta: "Start building",
+      status: "Beta",
+      statusTone: "beta" as const,
+      background: <AIChatPreview />,
+      className: "lg:col-start-1 lg:col-end-2 lg:row-start-2 lg:row-end-3",
+    },
+    {
+      Icon: CalendarIcon,
+      name: "Backtesting & Simulation",
+      description:
+        "Test strategies against historical data with performance metrics and visualizations.",
+      href: "/",
+      cta: "Learn more",
+      status: "Coming Soon",
+      statusTone: "coming-soon" as const,
+      background: <BacktestPreview />,
+      className: "lg:col-start-3 lg:col-end-4 lg:row-start-1 lg:row-end-2",
+    },
+  ];
 
   return (
     <div className="border-y border-neutral-800">
@@ -51,21 +158,22 @@ export const Features = () => {
               Built for Intelligent Trading Automation
             </h1>
             <h3 className="text-sm font-medium tracking-tight md:text-sm lg:text-base text-gray-300 mx-auto mt-6 max-w-lg px-2">
-              Design test and deploy AI powered trading strategies using an intuitive visual workflow engine built for modern traders
+              Design test and deploy AI powered trading strategies using an
+              intuitive visual workflow engine built for modern traders
             </h3>
           </div>
         </div>
         <div className="py-10 flex justify-center items-center px-4">
           <BentoGrid className="lg:grid-rows-2 lg:auto-rows-[18rem]">
-            {features(notificationsActive, notificationRef).map((feature) => (
+            {features().map((feature) => (
               <BentoCard key={feature.name} {...feature} />
             ))}
           </BentoGrid>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const notifications = [
   {
@@ -105,15 +213,16 @@ const notifications = [
   },
   {
     name: "Take Profit Hit",
-    message: "Your NIFTY long target was reached and profit booking is complete.",
+    message:
+      "Your NIFTY long target was reached and profit booking is complete.",
     time: "2h",
     accentClasses: "from-emerald-500 to-lime-500 shadow-emerald-500/30",
     icon: <CalendarIcon className="w-full h-full" />,
   },
-] 
+];
 
 const BacktestPreview = () => {
-  const bars = [42, 58, 35, 71, 55, 88, 64, 79, 47, 93, 68, 82]
+  const bars = [42, 58, 35, 71, 55, 88, 64, 79, 47, 93, 68, 82];
   return (
     <div className="relative h-40 overflow-hidden border-b border-neutral-800/70 bg-gradient-to-b from-neutral-900/90 to-transparent">
       {/* Equity curve line */}
@@ -139,7 +248,7 @@ const BacktestPreview = () => {
           fill="url(#curveGrad)"
         />
       </svg>
- 
+
       {/* Bar chart */}
       <div className="absolute inset-x-5 bottom-12 flex h-14 items-end gap-1">
         {bars.map((h, i) => (
@@ -148,16 +257,17 @@ const BacktestPreview = () => {
             className="flex-1 rounded-sm transition-all duration-300"
             style={{
               height: `${h}%`,
-              background: h > 70
-                ? "rgba(241,116,99,0.7)"
-                : h > 50
-                  ? "rgba(241,116,99,0.35)"
-                  : "rgba(255,255,255,0.08)",
+              background:
+                h > 70
+                  ? "rgba(241,116,99,0.7)"
+                  : h > 50
+                    ? "rgba(241,116,99,0.35)"
+                    : "rgba(255,255,255,0.08)",
             }}
           />
         ))}
       </div>
- 
+
       {/* Stats row */}
       <div className="absolute inset-x-5 bottom-3 flex gap-3">
         {[
@@ -165,7 +275,10 @@ const BacktestPreview = () => {
           { label: "Max DD", value: "-8.2%" },
           { label: "Sharpe", value: "1.84" },
         ].map((s) => (
-          <div key={s.label} className="flex-1 rounded-md bg-neutral-800/60 px-2 py-1.5 text-center">
+          <div
+            key={s.label}
+            className="flex-1 rounded-md bg-neutral-800/60 px-2 py-1.5 text-center"
+          >
             <div className="text-[10px] text-neutral-500 mb-0.5">{s.label}</div>
             <div
               className="text-[12px] font-semibold"
@@ -179,9 +292,9 @@ const BacktestPreview = () => {
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#151515] to-transparent" />
     </div>
-  )
-}
- 
+  );
+};
+
 // ── AI Chat preview illustration ───────────────────────────────────────────────
 const AIChatPreview = () => (
   <div className="relative h-36 overflow-hidden border-b border-neutral-800/70 bg-gradient-to-b from-neutral-900/90 to-transparent px-4 pt-3">
@@ -195,7 +308,8 @@ const AIChatPreview = () => (
       {/* AI response */}
       <div className="self-start max-w-[85%] rounded-xl rounded-bl-sm border border-neutral-700/60 bg-neutral-900/80 px-3 py-2">
         <p className="text-[11px] leading-snug text-neutral-400">
-          ✓ Workflow created — 3 nodes: Price trigger → Zerodha buy → Gmail alert
+          ✓ Workflow created — 3 nodes: Price trigger → Zerodha buy → Gmail
+          alert
         </p>
       </div>
       {/* Typing indicator */}
@@ -204,7 +318,10 @@ const AIChatPreview = () => (
           <span
             key={i}
             className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#f17463]"
-            style={{ animationDelay: `${i * 0.15}s`, animationDuration: "0.9s" }}
+            style={{
+              animationDelay: `${i * 0.15}s`,
+              animationDuration: "0.9s",
+            }}
           />
         ))}
       </div>
@@ -212,119 +329,4 @@ const AIChatPreview = () => (
 
     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#151515] to-transparent" />
   </div>
-)
-
-
-const features = (
-  notificationsActive: boolean,
-  notificationRef: React.RefObject<HTMLDivElement | null>
-) => [
-  {
-    Icon: FileTextIcon,
-    name: "Multi-Market Support",
-    description:
-      "Trade across equities, F&O, and upcoming Web3 protocols from a single workflow.",
-    href: "/",
-    cta: "Learn more",
-    status: "Live",
-    statusTone: "live" as const,
-    background: (
-      <div className="relative h-36 overflow-hidden border-b border-neutral-800/70 bg-gradient-to-b from-neutral-900/90 to-transparent">
-        <WorkflowNodePreview
-          kind="action"
-          title="Execute on Zerodha / Groww"
-          subtitle="Route the same strategy to multiple broker actions."
-          badges={["IND", "F&O"]}
-        />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#151515] to-transparent" />
-      </div>
-    ),
-    className: "lg:col-start-3 lg:col-end-4 lg:row-start-2 lg:row-end-3",
-  },
-  {
-    Icon: BellIcon,
-    name: "Notification Feed",
-    description:
-      "Stay continuously informed with a real-time event stream covering trade executions, trigger hits, risk signals, broker errors, and daily summaries, so you always know what your workflows are doing without opening each strategy one by one.",
-    href: "/",
-    cta: "Learn more",
-    status: "Live",
-    statusTone: "live" as const,
-    background: (
-      <div
-        ref={notificationRef}
-        className="relative h-44 overflow-hidden border-b border-neutral-800/70 bg-gradient-to-b from-neutral-900/90 to-transparent lg:h-[430px]"
-      >
-        <AnimatedList
-          isActive={notificationsActive}
-          delay={1200}
-          className="h-full items-start overflow-hidden p-3"
-        >
-          {notifications.map((notification, index) => (
-            <NotificationCard
-              key={index}
-              name={notification.name}
-              message={notification.message}
-              time={notification.time}
-              icon={notification.icon}
-              accentClasses={notification.accentClasses}
-            />
-          ))}
-        </AnimatedList>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#151515] to-transparent" />
-      </div>
-    ),
-    className:
-      "lg:row-start-1 lg:row-end-3 lg:col-start-2 lg:col-end-3 border border-neutral-800/60 bg-neutral-900/40",
-  },
-  {
-    Icon: InputIcon,
-    name: "Visual Strategy Builder",
-    description:
-      "Design trading strategies using drag-and-drop nodes for indicators, conditions, AI agents, and execution logic.",
-    href: "/",
-    cta: "Learn more",
-    status: "Live",
-    statusTone: "live" as const,
-    background: (
-      <div className="relative h-36 overflow-hidden border-b border-neutral-800/70 bg-gradient-to-b from-neutral-900/90 to-transparent">
-        <WorkflowNodePreview
-          kind="condition"
-          title="RSI(14) < 30 AND EMA20 > EMA50"
-          subtitle="Branch true/false paths like the real builder canvas."
-          badges={["5m", "15m"]}
-        />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#151515] to-transparent" />
-      </div>
-    ),
-    className: "lg:col-start-1 lg:col-end-2 lg:row-start-1 lg:row-end-2",
-  },
-  {
-    Icon: GlobeIcon,
-    name: "AI Chat Builder",
-    description:
-      "Generate trading workflows by conversing with our AI assistant. Describe your strategy and let AI build and optimize it for you.",
-    href: "/create/ai-chat",
-    cta: "Start building",
-    status: "Beta",
-    statusTone: "beta" as const,
-    background: (
-      <AIChatPreview />
-    ),
-    className: "lg:col-start-1 lg:col-end-2 lg:row-start-2 lg:row-end-3",
-  },
-  {
-    Icon: CalendarIcon,
-    name: "Backtesting & Simulation",
-    description:
-      "Test strategies against historical data with performance metrics and visualizations.",
-    href: "/",
-    cta: "Learn more",
-    status: "Coming Soon",
-    statusTone: "coming-soon" as const,
-    background: (
-      <BacktestPreview />
-    ),
-    className: "lg:col-start-3 lg:col-end-4 lg:row-start-1 lg:row-end-2",
-  },
-]
+);

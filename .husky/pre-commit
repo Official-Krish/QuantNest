@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Disallow other package manager lockfiles
+for file in package-lock.json pnpm-lock.yaml yarn.lock
+do
+    if git diff --cached --name-only | grep -q "^${file}$"; then
+        echo "❌ Only Bun is allowed in this repository."
+        echo "❌ Remove '${file}' before committing."
+        exit 1
+    fi
+done
+
+# Run lint-staged
+bunx lint-staged

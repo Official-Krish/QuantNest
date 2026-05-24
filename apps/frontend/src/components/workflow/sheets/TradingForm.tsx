@@ -1,4 +1,7 @@
-import type { LighterMetadata, TradingMetadata } from "@quantnest-trading/types";
+import type {
+  LighterMetadata,
+  TradingMetadata,
+} from "@quantnest-trading/types";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -14,8 +17,10 @@ import { ReliabilitySection } from "./ReliabilitySection";
 import { useMarketAssets } from "./useMarketAssets";
 
 interface TradingFormProps {
-  metadata: TradingMetadata | {};
-  setMetadata: React.Dispatch<React.SetStateAction<TradingMetadata | {}>>;
+  metadata: TradingMetadata | Record<string, unknown>;
+  setMetadata: React.Dispatch<
+    React.SetStateAction<TradingMetadata | Record<string, unknown>>
+  >;
   showApiKey?: boolean;
   action: "zerodha" | "groww" | "lighter";
 }
@@ -24,14 +29,14 @@ export const TradingForm = ({
   metadata,
   setMetadata,
   showApiKey = false,
-  action
+  action,
 }: TradingFormProps) => {
   const isWeb3 = action === "lighter";
   const { indianAssets, cryptoAssets } = useMarketAssets();
   const hasSecret = Boolean(String((metadata as any).secretId || "").trim());
   const typedMetadata = isWeb3
-    ? (metadata as LighterMetadata)
-    : (metadata as TradingMetadata);
+    ? (metadata as unknown as LighterMetadata)
+    : (metadata as unknown as TradingMetadata);
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
@@ -146,7 +151,9 @@ export const TradingForm = ({
           value={typedMetadata.symbol}
         >
           <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
-            <SelectValue placeholder={isWeb3 ? "Select crypto asset" : "Select stock"} />
+            <SelectValue
+              placeholder={isWeb3 ? "Select crypto asset" : "Select stock"}
+            />
           </SelectTrigger>
           <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
             <SelectGroup>
@@ -183,7 +190,11 @@ export const TradingForm = ({
                 exchange: value as "NSE" | "BSE",
               }))
             }
-            value={!isWeb3 ? (typedMetadata as TradingMetadata).exchange || "NSE" : undefined}
+            value={
+              !isWeb3
+                ? (typedMetadata as TradingMetadata).exchange || "NSE"
+                : undefined
+            }
           >
             <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
               <SelectValue placeholder="Select exchange" />
@@ -217,8 +228,8 @@ export const TradingForm = ({
           Quantity
         </p>
         <p className="text-xs text-neutral-400">
-          {isWeb3 
-            ? "Amount of crypto you want to trade when executed." 
+          {isWeb3
+            ? "Amount of crypto you want to trade when executed."
             : "Number of units you want this action to trade when executed."}
         </p>
         <Input
@@ -242,8 +253,8 @@ export const TradingForm = ({
             API key
           </p>
           <p className="text-xs text-neutral-400">
-            {isWeb3 
-              ? "Your Lighter API key for authentication." 
+            {isWeb3
+              ? "Your Lighter API key for authentication."
               : "Your broker API key used only when this node runs."}
           </p>
           <Input
@@ -275,7 +286,9 @@ export const TradingForm = ({
           </p>
           <Input
             type="password"
-            value={!isWeb3 && (typedMetadata as TradingMetadata).accessToken || ""}
+            value={
+              (!isWeb3 && (typedMetadata as TradingMetadata).accessToken) || ""
+            }
             onChange={(e) =>
               setMetadata((current) => ({
                 ...current,
@@ -290,47 +303,50 @@ export const TradingForm = ({
       )}
       {!hasSecret && isWeb3 && (
         <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            Account Index
+          </p>
+          <p className="text-xs text-neutral-400">
+            Your Lighter account index for authentication.
+          </p>
+          <Input
+            type="number"
+            value={
+              (isWeb3 && (typedMetadata as LighterMetadata).accountIndex) || ""
+            }
+            onChange={(e) =>
+              setMetadata((current) => ({
+                ...current,
+                secretId: undefined,
+                accountIndex: Number(e.target.value),
+              }))
+            }
+            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+            placeholder="Enter account index"
+          />
+          <div className="space-y-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-                Account Index
+              ApiKey Index
             </p>
             <p className="text-xs text-neutral-400">
-                Your Lighter account index for authentication.
+              Your Lighter ApiKey index for authentication.
             </p>
             <Input
-                type="number"
-                value={isWeb3  && (typedMetadata as LighterMetadata).accountIndex || ""}
-                onChange={(e) =>
+              type="number"
+              value={
+                (isWeb3 && (typedMetadata as LighterMetadata).apiKeyIndex) || ""
+              }
+              onChange={(e) =>
                 setMetadata((current) => ({
-                    ...current,
-                    secretId: undefined,
-                    accountIndex: Number(e.target.value),
+                  ...current,
+                  secretId: undefined,
+                  apiKeyIndex: Number(e.target.value),
                 }))
-                }
-                className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-                placeholder="Enter account index"
+              }
+              className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder="Enter apiKey index"
             />
-            <div className="space-y-2">
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-                    ApiKey Index
-                </p>
-                <p className="text-xs text-neutral-400">
-                    Your Lighter ApiKey index for authentication.
-                </p>
-                <Input
-                    type="number"
-                    value={isWeb3  && (typedMetadata as LighterMetadata).apiKeyIndex || ""}
-                    onChange={(e) =>
-                    setMetadata((current) => ({
-                        ...current,
-                        secretId: undefined,
-                        apiKeyIndex: Number(e.target.value),
-                    }))
-                    }
-                    className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-                    placeholder="Enter apiKey index"
-                />
-
-            </div>
+          </div>
         </div>
       )}
 

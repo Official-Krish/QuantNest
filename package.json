@@ -2,20 +2,33 @@
   "name": "quantnest-trading",
   "private": true,
   "scripts": {
-    "build": "turbo build",
+    "build": "turbo run build --filter=@quantnest-trading/ai-builder --filter=@quantnest-trading/backend --filter=@quantnest-trading/frontend",
+    "build:apps": "turbo run build --filter=@quantnest-trading/ai-builder --filter=@quantnest-trading/backend --filter=@quantnest-trading/frontend",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "seed:examples": "bun run --cwd packages/db seed"
+    "seed:examples": "bun run --cwd packages/db seed",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
     "prettier": "^3.2.5",
     "turbo": "^2.3.3",
-    "typescript": "5.5.4"
+    "typescript": "^6.0.3"
   },
   "packageManager": "bun@1.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "workspaces": [
     "apps/*",

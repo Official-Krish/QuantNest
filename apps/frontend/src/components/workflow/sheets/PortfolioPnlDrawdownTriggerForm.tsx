@@ -14,7 +14,7 @@ import {
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 
 interface PortfolioPnlDrawdownTriggerFormProps {
-  metadata: PortfolioPnlDrawdownTriggerMetadata | {};
+  metadata: PortfolioPnlDrawdownTriggerMetadata | Record<string, unknown>;
   setMetadata: React.Dispatch<React.SetStateAction<any>>;
   marketType?: "Indian" | "Crypto" | null;
   setMarketType?: Dispatch<SetStateAction<"Indian" | "Crypto" | null>>;
@@ -37,7 +37,8 @@ export function PortfolioPnlDrawdownTriggerForm({
   setMetadata,
   setMarketType,
 }: PortfolioPnlDrawdownTriggerFormProps) {
-  const typedMetadata = metadata as Partial<PortfolioPnlDrawdownTriggerMetadata>;
+  const typedMetadata =
+    metadata as Partial<PortfolioPnlDrawdownTriggerMetadata>;
   const broker = typedMetadata.broker || "zerodha";
   const hasSecret = Boolean(String(typedMetadata.secretId || "").trim());
   const isLighter = broker === "lighter";
@@ -61,14 +62,19 @@ export function PortfolioPnlDrawdownTriggerForm({
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Risk control</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
+          Risk control
+        </p>
         <p className="text-sm leading-6 text-neutral-300">
-          Monitors one broker account and fires once when daily PnL, profit target, or drawdown crosses your limit.
+          Monitors one broker account and fires once when daily PnL, profit
+          target, or drawdown crosses your limit.
         </p>
       </div>
 
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Broker account</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
+          Broker account
+        </p>
         <Select
           value={broker}
           onValueChange={(value) => {
@@ -89,7 +95,9 @@ export function PortfolioPnlDrawdownTriggerForm({
           </SelectTrigger>
           <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
             <SelectGroup>
-              <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">Broker</SelectLabel>
+              <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">
+                Broker
+              </SelectLabel>
               {BROKER_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -124,7 +132,9 @@ export function PortfolioPnlDrawdownTriggerForm({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Mode</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
+            Mode
+          </p>
           <Select
             value={typedMetadata.mode || "daily-loss-cap"}
             onValueChange={(value) =>
@@ -150,7 +160,9 @@ export function PortfolioPnlDrawdownTriggerForm({
         </div>
 
         <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Threshold type</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
+            Threshold type
+          </p>
           <Select
             value={typedMetadata.thresholdUnit || "absolute"}
             onValueChange={(value) =>
@@ -174,7 +186,9 @@ export function PortfolioPnlDrawdownTriggerForm({
       </div>
 
       <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">Threshold value</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300">
+          Threshold value
+        </p>
         <Input
           type="number"
           value={typedMetadata.thresholdValue || ""}
@@ -185,7 +199,13 @@ export function PortfolioPnlDrawdownTriggerForm({
             }))
           }
           className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder={typedMetadata.thresholdUnit === "percent" ? "2" : isLighter ? "100" : "5000"}
+          placeholder={
+            typedMetadata.thresholdUnit === "percent"
+              ? "2"
+              : isLighter
+                ? "100"
+                : "5000"
+          }
         />
       </div>
 
@@ -218,7 +238,9 @@ export function PortfolioPnlDrawdownTriggerForm({
 
           {!isLighter ? (
             <div className="space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Access token</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                Access token
+              </p>
               <Input
                 type="password"
                 value={typedMetadata.accessToken || ""}
@@ -238,7 +260,9 @@ export function PortfolioPnlDrawdownTriggerForm({
           {isLighter ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Account index</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                  Account index
+                </p>
                 <Input
                   type="number"
                   value={typedMetadata.accountIndex ?? ""}
@@ -254,7 +278,9 @@ export function PortfolioPnlDrawdownTriggerForm({
                 />
               </div>
               <div className="space-y-2">
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">API key index</p>
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                  API key index
+                </p>
                 <Input
                   type="number"
                   value={typedMetadata.apiKeyIndex ?? ""}

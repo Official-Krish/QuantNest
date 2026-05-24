@@ -1,9 +1,21 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { IconType } from "react-icons";
 import { HiOutlineBolt } from "react-icons/hi2";
 import { BiLogoPostgresql } from "react-icons/bi";
-import { SiDiscord, SiGmail, SiGoogledrive, SiGooglesheets, SiNotion, SiSlack, SiTelegram, SiWhatsapp, SiZerodha } from "react-icons/si";
+import {
+  SiDiscord,
+  SiGmail,
+  SiGoogledrive,
+  SiGooglesheets,
+  SiNotion,
+  SiSlack,
+  SiTelegram,
+  SiWhatsapp,
+  SiZerodha,
+} from "react-icons/si";
 import { TbChartCandleFilled, TbPlugConnected } from "react-icons/tb";
 
+// helper utilities not required here
 type ServiceBrand = {
   icon: IconType;
   colorClassName: string;
@@ -109,5 +121,10 @@ export function ServiceLogo({
   const brand = getServiceBrand(service);
   const Icon = brand.icon;
 
-  return <Icon size={size} className={`${brand.colorClassName} ${className}`.trim()} />;
+  return (
+    <Icon
+      size={size}
+      className={`${brand.colorClassName} ${className}`.trim()}
+    />
+  );
 }

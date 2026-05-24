@@ -1,0 +1,41 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: quantnest-frontend-cert
+  namespace: quantnest
+spec:
+  secretName: quantnest-frontend-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: quantnest.krishlabs.tech
+  dnsNames:
+  - quantnest.krishlabs.tech
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: quantnest-backend-cert
+  namespace: quantnest
+spec:
+  secretName: quantnest-backend-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: api.quantnest.krishlabs.tech
+  dnsNames:
+  - api.quantnest.krishlabs.tech
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: quantnest-ai-builder-cert
+  namespace: quantnest
+spec:
+  secretName: quantnest-ai-builder-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: ai.quantnest.krishlabs.tech
+  dnsNames:
+  - ai.quantnest.krishlabs.tech

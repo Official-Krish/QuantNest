@@ -1,4 +1,7 @@
-import { getActionValidationErrors, getTradingValidationErrors } from "@/lib/validation";
+import {
+  getActionValidationErrors,
+  getTradingValidationErrors,
+} from "@/lib/validation";
 import type {
   AiStrategyBuilderResponse,
   AiStrategyDraftSession,
@@ -11,7 +14,9 @@ import {
 } from "@quantnest-trading/node-registry";
 import type { AiMetadataOverrides } from "./types";
 
-function getResponse(result: AiStrategyBuilderResponse | AiStrategyDraftSession | null) {
+function getResponse(
+  result: AiStrategyBuilderResponse | AiStrategyDraftSession | null,
+) {
   if (!result) return null;
   return "response" in result ? result.response : result;
 }
@@ -35,7 +40,10 @@ function getUserEditableMissingInputs(
       ...entry.metadataFields,
       ...(entry.secretFieldKeys || []),
     ]);
-    if (input.field === "secretId" && (entry.secretFieldKeys || []).length > 0) {
+    if (
+      input.field === "secretId" &&
+      (entry.secretFieldKeys || []).length > 0
+    ) {
       return false;
     }
     return editableFields.has(input.field);
@@ -84,7 +92,10 @@ export function getGoogleSheetsVerificationErrorDetails(error: unknown): {
   ).trim();
   const lower = rawMessage.toLowerCase();
 
-  if (lower.includes("invalid google sheet url") || lower.includes("invalid url")) {
+  if (
+    lower.includes("invalid google sheet url") ||
+    lower.includes("invalid url")
+  ) {
     return {
       friendlyMessage: "Please paste a valid Google Sheet link.",
       serviceAccountEmail,
@@ -103,7 +114,8 @@ export function getGoogleSheetsVerificationErrorDetails(error: unknown): {
     lower.includes("permission denied")
   ) {
     return {
-      friendlyMessage: "Please add our service account email in Google Sheet Share settings (Editor access), then try again.",
+      friendlyMessage:
+        "Please add our service account email in Google Sheet Share settings (Editor access), then try again.",
       serviceAccountEmail,
     };
   }
@@ -116,7 +128,8 @@ export function getGoogleSheetsVerificationErrorDetails(error: unknown): {
     lower.includes("decoder")
   ) {
     return {
-      friendlyMessage: "Google Sheets setup is temporarily unavailable. Please try again in a few minutes.",
+      friendlyMessage:
+        "Google Sheets setup is temporarily unavailable. Please try again in a few minutes.",
       serviceAccountEmail,
     };
   }
@@ -127,9 +140,26 @@ export function getGoogleSheetsVerificationErrorDetails(error: unknown): {
   };
 }
 
-export function getFieldType(field: string, secret?: boolean): "text" | "password" | "number" {
-  if (["accountIndex", "apiKeyIndex", "targetPrice", "breakoutLevel", "retestTolerancePct", "confirmationMovePct", "retestWindowMinutes", "confirmationWindowMinutes", "durationSeconds"].includes(field)) return "number";
-  if (field === "slackBotToken" || field === "telegramBotToken") return "password";
+export function getFieldType(
+  field: string,
+  secret?: boolean,
+): "text" | "password" | "number" {
+  if (
+    [
+      "accountIndex",
+      "apiKeyIndex",
+      "targetPrice",
+      "breakoutLevel",
+      "retestTolerancePct",
+      "confirmationMovePct",
+      "retestWindowMinutes",
+      "confirmationWindowMinutes",
+      "durationSeconds",
+    ].includes(field)
+  )
+    return "number";
+  if (field === "slackBotToken" || field === "telegramBotToken")
+    return "password";
   if (secret) return "password";
   return "text";
 }
@@ -159,7 +189,9 @@ export function collectSetupErrors(
   );
 
   for (const input of getUserEditableMissingInputs(response, true)) {
-    const node = response.plan.nodes.find((entry) => entry.nodeId === input.nodeId);
+    const node = response.plan.nodes.find(
+      (entry) => entry.nodeId === input.nodeId,
+    );
     if (!node) continue;
 
     const nodeType = String(node.type).toLowerCase();
@@ -171,14 +203,17 @@ export function collectSetupErrors(
     }
 
     const value = metadata[input.field];
-    const isPresent = input.field === "aiConsent"
-      ? value === true
-      : typeof value === "number"
-        ? Number.isFinite(value)
-        : String(value ?? "").trim().length > 0;
+    const isPresent =
+      input.field === "aiConsent"
+        ? value === true
+        : typeof value === "number"
+          ? Number.isFinite(value)
+          : String(value ?? "").trim().length > 0;
 
     if (!isPresent) {
-      errors.push(`${getNodeLabel(nodeType)}: ${input.label || getFieldLabel(input.field)} is required.`);
+      errors.push(
+        `${getNodeLabel(nodeType)}: ${input.label || getFieldLabel(input.field)} is required.`,
+      );
     }
   }
 
@@ -189,7 +224,9 @@ export function collectSetupErrors(
     const mergedMetadata = mergedNodeMetadata.get(node.nodeId) || {};
 
     if (["zerodha", "groww", "lighter"].includes(nodeType)) {
-      errors.push(...getTradingValidationErrors(nodeType as any, mergedMetadata as any));
+      errors.push(
+        ...getTradingValidationErrors(nodeType as any, mergedMetadata as any),
+      );
     } else {
       errors.push(...getActionValidationErrors(nodeType, mergedMetadata));
     }
@@ -204,7 +241,9 @@ export function groupMissingInputs(
   const response = getResponse(result);
   if (!response) return {};
 
-  return getUserEditableMissingInputs(response, false).reduce<Record<string, typeof response.plan.missingInputs>>((acc, input) => {
+  return getUserEditableMissingInputs(response, false).reduce<
+    Record<string, typeof response.plan.missingInputs>
+  >((acc, input) => {
     acc[input.nodeId] = [...(acc[input.nodeId] || []), input];
     return acc;
   }, {});
@@ -223,10 +262,10 @@ export function propagateActionCredentialsToAllNodes(
   // Group action nodes by their reusableSecretService
   for (const node of response.plan.nodes) {
     if (String(node.data.kind).toLowerCase() !== "action") continue;
-    
+
     const nodeType = String(node.type).toLowerCase();
     const service = getReusableSecretServiceForNodeType(nodeType);
-    
+
     // Only propagate for actions with a reusable secret service
     if (!service) continue;
 
@@ -237,18 +276,22 @@ export function propagateActionCredentialsToAllNodes(
   }
 
   // For each service with multiple nodes, propagate credentials from first to all others
-  for (const [_service, nodeIds] of nodesByService.entries()) {
+  for (const nodeIds of nodesByService.values()) {
     if (nodeIds.length <= 1) continue; // No need to propagate if only one node
 
     const firstNodeId = nodeIds[0];
-    const firstNodeType = response.plan.nodes.find((n) => n.nodeId === firstNodeId)?.type;
+    const firstNodeType = response.plan.nodes.find(
+      (n) => n.nodeId === firstNodeId,
+    )?.type;
     if (!firstNodeType) continue;
 
     const firstNodeOverrides = nextOverrides[firstNodeId] || {};
-    
+
     // Get the fields that should be propagated (secret fields for this service)
-    const secretFields = getSecretBackedFieldsForNodeType(String(firstNodeType));
-    
+    const secretFields = getSecretBackedFieldsForNodeType(
+      String(firstNodeType),
+    );
+
     // Apply first node's credentials to all other nodes of the same service
     for (let i = 1; i < nodeIds.length; i++) {
       const targetNodeId = nodeIds[i];
@@ -264,7 +307,9 @@ export function propagateActionCredentialsToAllNodes(
       }
 
       // Copy secret ID if present
-      if (Object.prototype.hasOwnProperty.call(firstNodeOverrides, "secretId")) {
+      if (
+        Object.prototype.hasOwnProperty.call(firstNodeOverrides, "secretId")
+      ) {
         nextOverrides[targetNodeId].secretId = firstNodeOverrides.secretId;
       }
     }
@@ -273,7 +318,9 @@ export function propagateActionCredentialsToAllNodes(
   return nextOverrides;
 }
 
-export function getReusableSecretServiceForNodeType(nodeType: string): ReusableSecretService | null {
+export function getReusableSecretServiceForNodeType(
+  nodeType: string,
+): ReusableSecretService | null {
   const normalizedNodeType = String(nodeType).trim().toLowerCase();
   const entry = getNodeRegistryEntry(normalizedNodeType);
 
@@ -281,7 +328,9 @@ export function getReusableSecretServiceForNodeType(nodeType: string): ReusableS
     return null;
   }
 
-  return (entry?.reusableSecretService as ReusableSecretService | undefined) || null;
+  return (
+    (entry?.reusableSecretService as ReusableSecretService | undefined) || null
+  );
 }
 
 export function getReusableSecretServiceForNode(
@@ -290,7 +339,9 @@ export function getReusableSecretServiceForNode(
 ): ReusableSecretService | null {
   const normalizedNodeType = String(nodeType).trim().toLowerCase();
   if (normalizedNodeType === "portfolio-pnl-drawdown-trigger") {
-    const broker = String(metadata?.broker || "").trim().toLowerCase();
+    const broker = String(metadata?.broker || "")
+      .trim()
+      .toLowerCase();
     if (broker === "zerodha" || broker === "groww" || broker === "lighter") {
       return broker as ReusableSecretService;
     }
@@ -320,19 +371,21 @@ export function suggestReusableSecretId(
   if (!secrets.length || !missingInputs.length) return null;
 
   const preferredFields = new Set(
-    missingInputs
-      .filter((input) => input.secret)
-      .map((input) => input.field),
+    missingInputs.filter((input) => input.secret).map((input) => input.field),
   );
 
   const fallbackFields = new Set(missingInputs.map((input) => input.field));
-  const activeFields = preferredFields.size > 0 ? preferredFields : fallbackFields;
+  const activeFields =
+    preferredFields.size > 0 ? preferredFields : fallbackFields;
 
   let bestId: string | null = null;
   let bestScore = 0;
 
   for (const secret of secrets) {
-    const score = secret.fieldKeys.reduce((count, key) => count + (activeFields.has(key) ? 1 : 0), 0);
+    const score = secret.fieldKeys.reduce(
+      (count, key) => count + (activeFields.has(key) ? 1 : 0),
+      0,
+    );
     if (score > bestScore) {
       bestScore = score;
       bestId = secret.id;

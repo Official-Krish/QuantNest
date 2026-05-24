@@ -13,7 +13,13 @@ COPY packages/executor-utils/package.json packages/executor-utils/package.json
 
 RUN bun install
 
-COPY . .
+COPY apps/backend/ apps/backend/
+COPY packages/db/ packages/db/
+COPY packages/market/ packages/market/
+COPY packages/node-registry/ packages/node-registry/
+COPY packages/plan-guards/ packages/plan-guards/
+COPY packages/types/ packages/types/
+COPY packages/executor-utils/ packages/executor-utils/
 
 FROM oven/bun:1 AS runtime
 

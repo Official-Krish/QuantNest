@@ -6,7 +6,9 @@ import { EXECUTION_COOLDOWN_MS } from "../config/constants";
 
 export async function canExecute(workflowId: string): Promise<boolean> {
     const lastExecution = await ExecutionModel.findOne({ workflowId })
-        .sort({ startTime: -1 });
+        .sort({ startTime: -1 })
+        .select({ startTime: 1, _id: 0 })
+        .lean();
 
     if (!lastExecution) return true;
 
@@ -38,7 +40,8 @@ export async function executeWorkflowSafe(workflow: WorkflowType, condition?: bo
         );
         execution.status = res.status;
         execution.set("steps", res.steps);
-    } catch (err: any) {
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown error";
         console.error(`Execution error (${workflow.workflowName})`, err);
         execution.status = "Failed";
         execution.set("steps", [{
@@ -46,14 +49,16 @@ export async function executeWorkflowSafe(workflow: WorkflowType, condition?: bo
             nodeId: "",
             nodeType: "",
             status: "Failed",
-            message: err.message || "Unknown error",
+            message,
         }]);
     } finally {
         execution.endTime = new Date();
         await execution.save();
 
         if (execution.status === "Success" && workflow.triggerType && workflow.triggerType !== "timer") {
-            const persistedWorkflow = await WorkflowModel.findById(workflow._id);
+            const persistedWorkflow = await WorkflowModel.findById(workflow._id)
+                .select({ status: 1, _id: 0 })
+                .lean();
             if (persistedWorkflow?.status !== "paused") {
                 await pauseWorkflow(workflow._id.toString());
                 await createUserNotification({
@@ -74,7 +79,9 @@ export async function executeWorkflowSafe(workflow: WorkflowType, condition?: bo
         if (execution.status === "Failed") {
             const recentExecutions = await ExecutionModel.find({ workflowId: workflow._id })
                 .sort({ startTime: -1 })
-                .limit(5);
+                .limit(5)
+                .select({ status: 1, _id: 0 })
+                .lean();
 
             const nonFailureIndex = recentExecutions.findIndex((item) => item.status !== "Failed");
             const failureCount = nonFailureIndex === -1 ? recentExecutions.length : nonFailureIndex;
@@ -95,7 +102,9 @@ export async function executeWorkflowSafe(workflow: WorkflowType, condition?: bo
             }
 
             if (failureCount >= 5) {
-                const persistedWorkflow = await WorkflowModel.findById(workflow._id);
+                const persistedWorkflow = await WorkflowModel.findById(workflow._id)
+                    .select({ status: 1, _id: 0 })
+                    .lean();
                 if (persistedWorkflow?.status !== "paused") {
                     await pauseWorkflow(workflow._id.toString());
                     await createUserNotification({

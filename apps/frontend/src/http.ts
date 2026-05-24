@@ -156,10 +156,10 @@ export async function apiSaveProfile(body: {
 
 export async function apiUploadAvatar(file: File): Promise<{ avatarUrl: string }> {
   const formData = new FormData();
-  formData.append("image", file);
+  formData.append("avatar", file);
 
   const res = await api.post<{ message: string; avatarUrl: string }>(
-    "/user/avatar-upload",
+    "/user/avatar/upload",
     formData,
     {
       headers: {

@@ -25,8 +25,8 @@ export const whatsappAction = ({
           <ServiceLogo service="whatsapp" size={14} />
           WhatsApp
         </span>
-        <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
-          MSG
+        <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[9px] font-medium text-amber-400">
+          Coming soon
         </span>
       </div>
       <div className="mt-2 text-sm font-medium text-neutral-100">

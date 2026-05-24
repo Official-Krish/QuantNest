@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -48,10 +49,7 @@ export const CardContainer = ({
   return (
     <MouseEnterContext.Provider value={[isMouseEntered, setIsMouseEntered]}>
       <div
-        className={cn(
-          "",
-          containerClassName
-        )}
+        className={cn("", containerClassName)}
         style={{
           perspective: "1000px",
         }}
@@ -63,7 +61,7 @@ export const CardContainer = ({
           onMouseLeave={handleMouseLeave}
           className={cn(
             "relative transition-all duration-200 ease-linear",
-            className
+            className,
           )}
           style={{
             transformStyle: "preserve-3d",
@@ -87,7 +85,7 @@ export const CardBody = ({
     <div
       className={cn(
         "[transform-style:preserve-3d]  [&>*]:[transform-style:preserve-3d]",
-        className
+        className,
       )}
     >
       {children}
@@ -122,17 +120,21 @@ export const CardItem = ({
   const [isMouseEntered] = useMouseEnter();
 
   useEffect(() => {
-    handleAnimations();
-  }, [isMouseEntered]);
-
-  const handleAnimations = () => {
     if (!ref.current) return;
     if (isMouseEntered) {
       ref.current.style.transform = `translateX(${translateX}px) translateY(${translateY}px) translateZ(${translateZ}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg)`;
     } else {
       ref.current.style.transform = `translateX(0px) translateY(0px) translateZ(0px) rotateX(0deg) rotateY(0deg) rotateZ(0deg)`;
     }
-  };
+  }, [
+    isMouseEntered,
+    translateX,
+    translateY,
+    translateZ,
+    rotateX,
+    rotateY,
+    rotateZ,
+  ]);
 
   return (
     <Tag

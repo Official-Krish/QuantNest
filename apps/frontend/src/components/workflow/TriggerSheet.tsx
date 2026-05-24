@@ -1,7 +1,4 @@
-import {
-  type NodeKind,
-  type NodeMetadata,
-} from "@quantnest-trading/types";
+import { type NodeKind, type NodeMetadata } from "@quantnest-trading/types";
 import {
   Sheet,
   SheetContent,
@@ -21,9 +18,22 @@ import { MarketStatusBadge } from "./sheets/MarketStatusBadge";
 import { renderBuilderForm } from "./builderRegistry";
 import { getPortfolioRiskValidationErrors } from "@/lib/validation";
 
-type SupportedTriggerKind = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session" | "portfolio-pnl-drawdown-trigger";
+type SupportedTriggerKind =
+  | "timer"
+  | "price-trigger"
+  | "breakout-retest-trigger"
+  | "conditional-trigger"
+  | "market-session"
+  | "portfolio-pnl-drawdown-trigger";
 
-const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = ["timer", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session", "portfolio-pnl-drawdown-trigger"];
+const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = [
+  "timer",
+  "price-trigger",
+  "breakout-retest-trigger",
+  "conditional-trigger",
+  "market-session",
+  "portfolio-pnl-drawdown-trigger",
+];
 
 const isSupportedTriggerKind = (kind: string): kind is SupportedTriggerKind => {
   return SUPPORTED_TRIGGER_KINDS.includes(kind as SupportedTriggerKind);
@@ -49,21 +59,30 @@ export const TriggerSheet = ({
   submitLabel?: string;
   title?: string;
   marketType: "Indian" | "Crypto" | null;
-  setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
+  setMarketType: React.Dispatch<
+    React.SetStateAction<"Indian" | "Crypto" | null>
+  >;
   onPreviewTriggerChange?: (kind: SupportedTriggerKind | null) => void;
 }) => {
-  const [metadata, setMetadata] = useState<NodeMetadata | {}>({});
-  const [selectedTrigger, setSelectedTrigger] = useState<SupportedTriggerKind | "">("");
+  const [metadata, setMetadata] = useState<
+    NodeMetadata | Record<string, unknown>
+  >({});
+  const [selectedTrigger, setSelectedTrigger] = useState<
+    SupportedTriggerKind | ""
+  >("");
   const [activeStep, setActiveStep] = useState<1 | 2>(1);
   const [transitionDirection, setTransitionDirection] = useState<1 | -1>(1);
   const focusAnchorRef = useRef<HTMLDivElement | null>(null);
 
-  const selectedTriggerConfig = SUPPORTED_TRIGGERS.find((trigger) => trigger.id === selectedTrigger);
+  const selectedTriggerConfig = SUPPORTED_TRIGGERS.find(
+    (trigger) => trigger.id === selectedTrigger,
+  );
   const portfolioValidationErrors =
     selectedTrigger === "portfolio-pnl-drawdown-trigger"
       ? getPortfolioRiskValidationErrors(metadata as Record<string, unknown>)
       : [];
-  const canCreateTrigger = Boolean(selectedTrigger) && portfolioValidationErrors.length === 0;
+  const canCreateTrigger =
+    Boolean(selectedTrigger) && portfolioValidationErrors.length === 0;
 
   useEffect(() => {
     if (!open) return;
@@ -73,25 +92,40 @@ export const TriggerSheet = ({
         ? (initialKind as SupportedTriggerKind)
         : "";
 
-    setSelectedTrigger(nextSelectedTrigger);
-    onPreviewTriggerChange?.(nextSelectedTrigger || null);
-    setActiveStep(nextSelectedTrigger ? 2 : 1);
-    setTransitionDirection(1);
-    setMetadata(
-      (initialMetadata ? { ...(initialMetadata as NodeMetadata | {}) } : {}) as NodeMetadata | {},
-    );
+    const timeout = setTimeout(() => {
+      setSelectedTrigger(nextSelectedTrigger);
+      onPreviewTriggerChange?.(nextSelectedTrigger || null);
+      setActiveStep(nextSelectedTrigger ? 2 : 1);
+      setTransitionDirection(1);
+      setMetadata(
+        (initialMetadata
+          ? { ...(initialMetadata as NodeMetadata | Record<string, unknown>) }
+          : {}) as NodeMetadata | Record<string, unknown>,
+      );
+    }, 0);
 
-    const nextMarketType = String((initialMetadata as any)?.marketType || "").toLowerCase();
+    const nextMarketType = String(
+      (initialMetadata as any)?.marketType || "",
+    ).toLowerCase();
     if (nextMarketType === "indian") {
       setMarketType("Indian");
     } else if (nextMarketType === "crypto" || nextMarketType === "web3") {
       setMarketType("Crypto");
     }
-  }, [open, initialKind, initialMetadata, onPreviewTriggerChange, setMarketType]);
+
+    return () => clearTimeout(timeout);
+  }, [
+    open,
+    initialKind,
+    initialMetadata,
+    onPreviewTriggerChange,
+    setMarketType,
+  ]);
 
   useEffect(() => {
     if (!open) {
-      onPreviewTriggerChange?.(null);
+      const timeout = setTimeout(() => onPreviewTriggerChange?.(null), 0);
+      return () => clearTimeout(timeout);
     }
   }, [open, onPreviewTriggerChange]);
 
@@ -118,13 +152,20 @@ export const TriggerSheet = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         className="border-l border-neutral-800 bg-black text-neutral-50 overflow-auto"
-        style={{ width: "min(480px, calc(100vw - 1rem))", maxWidth: "min(480px, calc(100vw - 1rem))" }}
+        style={{
+          width: "min(480px, calc(100vw - 1rem))",
+          maxWidth: "min(480px, calc(100vw - 1rem))",
+        }}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           focusAnchorRef.current?.focus();
         }}
       >
-        <div className="flex h-full min-h-0 flex-col" ref={focusAnchorRef} tabIndex={-1}>
+        <div
+          className="flex h-full min-h-0 flex-col"
+          ref={focusAnchorRef}
+          tabIndex={-1}
+        >
           <SheetHeader className="gap-4 p-5 pb-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
@@ -145,8 +186,12 @@ export const TriggerSheet = ({
                 )}
 
                 <div className="flex items-center gap-1.5">
-                  <span className={`h-2 w-2 rounded-full ${activeStep === 1 ? "bg-[#f17463]" : "bg-neutral-700"}`} />
-                  <span className={`h-2 w-2 rounded-full ${activeStep === 2 ? "bg-[#f17463]" : "bg-neutral-700"}`} />
+                  <span
+                    className={`h-2 w-2 rounded-full ${activeStep === 1 ? "bg-[#f17463]" : "bg-neutral-700"}`}
+                  />
+                  <span
+                    className={`h-2 w-2 rounded-full ${activeStep === 2 ? "bg-[#f17463]" : "bg-neutral-700"}`}
+                  />
                 </div>
               </div>
 
@@ -172,7 +217,10 @@ export const TriggerSheet = ({
                 {activeStep === 1 ? (
                   <motion.div
                     key="trigger-step-select"
-                    initial={{ opacity: 0, x: transitionDirection > 0 ? 28 : -28 }}
+                    initial={{
+                      opacity: 0,
+                      x: transitionDirection > 0 ? 28 : -28,
+                    }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: transitionDirection > 0 ? -18 : 18 }}
                     transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
@@ -187,13 +235,19 @@ export const TriggerSheet = ({
                 ) : (
                   <motion.div
                     key="trigger-step-options"
-                    initial={{ opacity: 0, x: transitionDirection > 0 ? 28 : -28 }}
+                    initial={{
+                      opacity: 0,
+                      x: transitionDirection > 0 ? 28 : -28,
+                    }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: transitionDirection > 0 ? -18 : 18 }}
                     transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                     className="space-y-4"
                   >
-                    <MarketStatusBadge marketType={marketType} showDeferredHint />
+                    <MarketStatusBadge
+                      marketType={marketType}
+                      showDeferredHint
+                    />
 
                     <div className="rounded-2xl border border-[#f17463]/45 border-l-4 border-l-[#f17463] bg-[#f17463]/8 p-3 shadow-[0_0_0_1px_rgba(241,116,99,0.1)]">
                       <div className="min-w-0">
@@ -204,7 +258,8 @@ export const TriggerSheet = ({
                           {selectedTriggerConfig?.title ?? "Trigger"}
                         </h3>
                         <p className="mt-1 text-sm leading-6 text-neutral-300">
-                          {selectedTriggerConfig?.description ?? "Selected trigger options"}
+                          {selectedTriggerConfig?.description ??
+                            "Selected trigger options"}
                         </p>
 
                         <span className="mt-2 inline-flex rounded-full border border-[#f17463]/45 bg-[#f17463]/12 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ffb8ad]">

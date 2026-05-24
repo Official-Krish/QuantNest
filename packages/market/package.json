@@ -13,7 +13,7 @@
     "@quantnest-trading/types": "workspace:^"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "yahoo-finance2": "^3.13.2"
