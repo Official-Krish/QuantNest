@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: quantnest-frontend
-          image: krishanand01/quantnest-frontend:v1.2.5
+          image: krishanand01/quantnest-frontend:v1.2.6
           imagePullPolicy: Always
           ports:
             - containerPort: 80
