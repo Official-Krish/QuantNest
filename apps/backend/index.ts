@@ -1,17 +1,17 @@
-import express from 'express';
-import crypto from 'crypto';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import rateLimit from 'express-rate-limit';
-import notificationRouter from './routes/notification';
-import aiRouter from './routes/ai';
-import userRouter from './routes/user';
-import workFlowRouter from './routes/workflow';
-import examplesRouter from './routes/examples';
-import mongoose from 'mongoose';
-import ZerodhaTokenRouter from './routes/token';
-import { getMarketStatus } from '@quantnest-trading/executor-utils';
-import { getAllMarketAssets, getMarketAssets } from '@quantnest-trading/market';
+import express from "express";
+import crypto from "crypto";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
+import notificationRouter from "./routes/notification";
+import aiRouter from "./routes/ai";
+import userRouter from "./routes/user";
+import workFlowRouter from "./routes/workflow";
+import examplesRouter from "./routes/examples";
+import ZerodhaTokenRouter from "./routes/token";
+import { getMarketStatus } from "@quantnest-trading/executor-utils";
+import { getAllMarketAssets, getMarketAssets } from "@quantnest-trading/market";
+import { connectMongoWithRetry } from "@quantnest-trading/db/client";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -38,27 +38,29 @@ const authLimiter = rateLimit({
 app.use("/api/v1/user/signin", authLimiter);
 app.use("/api/v1/user/signup", authLimiter);
 
-const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "http://localhost:5173")
+const allowedOrigins = (
+  process.env.CORS_ORIGIN ||
+  process.env.FRONTEND_URL ||
+  "http://localhost:5173"
+)
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-    callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
 
-mongoose.connect(process.env.MONGO_URL || 'mongodb://localhost:27017/myapp')
-  .catch((err) => {
-    console.error("MongoDB connection failed:", err);
-    process.exit(1);
-  });
+void connectMongoWithRetry({ serviceName: "backend" });
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/ai", aiRouter);
@@ -67,20 +69,29 @@ app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/zerodha-token", ZerodhaTokenRouter);
 app.use("/api/v1/examples", examplesRouter);
 
-const handleMarketStatus = async (req: express.Request, res: express.Response) => {
+const handleMarketStatus = async (
+  req: express.Request,
+  res: express.Response,
+) => {
   try {
     const marketStatus = getMarketStatus();
-    res.status(200).json({ success: true, marketStatus });  
+    res.status(200).json({ success: true, marketStatus });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Internal server error", error });
+    res
+      .status(500)
+      .json({ success: false, message: "Internal server error", error });
   }
 };
 
-const handleMarketAssets = async (req: express.Request, res: express.Response) => {
+const handleMarketAssets = async (
+  req: express.Request,
+  res: express.Response,
+) => {
   try {
     const marketQuery = String(req.query.market || "").trim();
     const limit = Number(req.query.limit || 50);
-    const forceRefresh = String(req.query.forceRefresh || "").toLowerCase() === "true";
+    const forceRefresh =
+      String(req.query.forceRefresh || "").toLowerCase() === "true";
 
     if (marketQuery === "Indian" || marketQuery === "Crypto") {
       const assets = await getMarketAssets(marketQuery, {
@@ -97,7 +108,13 @@ const handleMarketAssets = async (req: express.Request, res: express.Response) =
     });
     res.status(200).json({ success: true, assets });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch market assets", error });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch market assets",
+        error,
+      });
   }
 };
 
@@ -107,5 +124,5 @@ app.get("/market/assets", handleMarketAssets);
 app.get("/api/v1/market/assets", handleMarketAssets);
 
 app.listen(3000, () => {
-  console.log('Server is running on port 3000');
+  console.log("Server is running on port 3000");
 });
