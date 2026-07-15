@@ -1,5 +1,44 @@
 import mongoose, { Schema } from "mongoose";
-import crypto from "crypto";
+import * as crypto from "crypto";
+
+const DEFAULT_MONGO_URL = "mongodb://localhost:27017/myapp";
+const DEFAULT_MONGO_RETRY_DELAY_MS = 5000;
+
+export type ConnectMongoOptions = {
+  serviceName?: string;
+  uri?: string;
+  retryDelayMs?: number;
+};
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function connectMongoWithRetry(options: ConnectMongoOptions = {}) {
+  const serviceName = options.serviceName ?? "service";
+  const uri = options.uri ?? process.env.MONGO_URL ?? DEFAULT_MONGO_URL;
+  const retryDelayMs = options.retryDelayMs ?? DEFAULT_MONGO_RETRY_DELAY_MS;
+
+  for (;;) {
+    if (mongoose.connection.readyState === 1) {
+      return;
+    }
+
+    try {
+      await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: retryDelayMs,
+      } as any);
+      console.log(`[${serviceName}] Connected to MongoDB`);
+      return;
+    } catch (error) {
+      console.error(
+        `[${serviceName}] MongoDB connection failed; retrying in ${retryDelayMs}ms`,
+        error,
+      );
+      await wait(retryDelayMs);
+    }
+  }
+}
 
 export const REUSABLE_SECRET_SERVICES = [
   "zerodha",
@@ -797,7 +836,6 @@ export const ExecutionTraceModel = mongoose.model(
   "ExecutionTraces",
   ExecutionTraceSchema,
 );
-
 export const ZerodhaTokenModel = mongoose.model(
   "ZerodhaTokens",
   ZerodhaTokenSchema,

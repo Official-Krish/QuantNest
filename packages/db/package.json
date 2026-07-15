@@ -11,7 +11,8 @@
     "./seed": "./seed.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node": "^25.9.1"
   },
   "peerDependencies": {
     "typescript": "^6.0.3"
