@@ -777,7 +777,6 @@ const ExecutionTraceSchema = new Schema({
   endTime: Date,
 });
 
-ExecutionTraceSchema.index({ executionId: 1 }, { unique: true });
 ExecutionTraceSchema.index({ workflowId: 1, startTime: -1 });
 
 // Compound unique index for userId + workflowId

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bot, Loader2, Send, X } from "lucide-react";
 import { apiExplainExecution } from "@/http";
 import type { AiDebugQueryResponse } from "@quantnest-trading/types/ai";
@@ -32,11 +32,6 @@ export const ExecutionDebugger = ({
   const [loading, setLoading] = useState(false);
   const [traceLoaded, setTraceLoaded] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   useEffect(() => {
     if (executionId && !traceLoaded) {
@@ -44,7 +39,7 @@ export const ExecutionDebugger = ({
       setMessages([
         {
           role: "assistant",
-          content: `I'm analyzing execution **${executionId.slice(-6)}**. Ask me anything about what happened during this run.`,
+          content: `I'm analyzing **${workflowName}**. Ask me anything about what happened during this run.`,
         },
       ]);
     }
@@ -93,7 +88,7 @@ export const ExecutionDebugger = ({
   };
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-white/6 bg-[#0d0f13]">
+    <div className="flex flex-col rounded-2xl border border-white/6 bg-[#0d0f13]">
       <div className="flex items-center justify-between border-b border-white/6 px-4 py-3">
         <div className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-[#f17463]" />
@@ -110,7 +105,7 @@ export const ExecutionDebugger = ({
         </button>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+      <div className="h-[400px] space-y-3 overflow-y-auto px-4 py-3">
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -182,8 +177,6 @@ export const ExecutionDebugger = ({
             ))}
           </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
       <form

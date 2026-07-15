@@ -1,33 +1,37 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
-    CreateReusableSecretSchema,
-    SigninSchema,
-    SignupSchema,
-    UpdateReusableSecretSchema,
-    UpdateUserProfileSchema,
+  CreateReusableSecretSchema,
+  SigninSchema,
+  SignupSchema,
+  UpdateReusableSecretSchema,
+  UpdateUserProfileSchema,
 } from "@quantnest-trading/types/metadata";
-import { UserModel } from '@quantnest-trading/db/client';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { authMiddleware } from '../middleware';
-import type { CookieOptions } from 'express';
-import { createEmailVerificationToken, getEmailVerificationExpiry, sendEmailVerificationEmail } from '../services/emailVerification';
-import { uploadAvatarToS3 } from '../services/avatarUpload';
-import { getJwtSecret } from '../utils/security';
-import multer from 'multer';
+import { UserModel } from "@quantnest-trading/db/client";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { authMiddleware } from "../middleware";
+import type { CookieOptions } from "express";
 import {
-    createReusableSecret,
-    deleteReusableSecret,
-    getReusableSecretForEdit,
-    listReusableSecrets,
-    updateReusableSecret,
-} from '../services/reusableSecrets';
-import { getTelegramChats } from '../services/telegram';
+  createEmailVerificationToken,
+  getEmailVerificationExpiry,
+  sendEmailVerificationEmail,
+} from "../services/emailVerification";
+import { uploadAvatarToS3 } from "../services/avatarUpload";
+import { getJwtSecret } from "../utils/security";
+import multer from "multer";
 import {
-    getUserProfilePayload,
-    updateUserProfilePayload,
-} from '../services/userProfile';
-import { getUserUsageSnapshot } from '../services/subscription';
+  createReusableSecret,
+  deleteReusableSecret,
+  getReusableSecretForEdit,
+  listReusableSecrets,
+  updateReusableSecret,
+} from "../services/reusableSecrets";
+import { getTelegramChats } from "../services/telegram";
+import {
+  getUserProfilePayload,
+  updateUserProfilePayload,
+} from "../services/userProfile";
+import { getUserUsageSnapshot } from "../services/subscription";
 
 const userRouter = Router();
 const JWT_SECRET = getJwtSecret();
@@ -37,460 +41,527 @@ const cookieName = process.env.AUTH_COOKIE_NAME || "quantnest_auth";
 const isProduction = process.env.NODE_ENV === "production";
 
 function getAuthCookieOptions(): CookieOptions {
-    return {
-        httpOnly: true,
-        secure: isProduction || process.env.COOKIE_SECURE === "true",
-        sameSite: (process.env.COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined)
-            || (isProduction ? "none" : "lax"),
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
-    };
+  return {
+    httpOnly: true,
+    secure: isProduction || process.env.COOKIE_SECURE === "true",
+    sameSite:
+      (process.env.COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined) ||
+      (isProduction ? "none" : "lax"),
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    ...(isProduction && process.env.COOKIE_DOMAIN
+      ? { domain: process.env.COOKIE_DOMAIN }
+      : {}),
+  };
 }
 
-userRouter.post('/signup', async (req, res) => {
-    const parsedData = SignupSchema.safeParse(req.body);
+userRouter.post("/signup", async (req, res) => {
+  const parsedData = SignupSchema.safeParse(req.body);
 
-    if (!parsedData.success) {
-        res.status(400).json({ message: "Invalid request body", issues: parsedData.error.issues });
-        return;
+  if (!parsedData.success) {
+    res
+      .status(400)
+      .json({
+        message: "Invalid request body",
+        issues: parsedData.error.issues,
+      });
+    return;
+  }
+
+  try {
+    const username = parsedData.data.username.trim();
+    const email = parsedData.data.email.trim().toLowerCase();
+
+    const existingUser = await UserModel.findOne({
+      $or: [{ username }, { email }],
+    });
+    if (existingUser) {
+      res
+        .status(409)
+        .json({
+          message:
+            existingUser.email === email
+              ? "Email already exists"
+              : "User already exists",
+        });
+      return;
     }
 
-    try {
-        const username = parsedData.data.username.trim();
-        const email = parsedData.data.email.trim().toLowerCase();
-
-        const existingUser = await UserModel.findOne({
-            $or: [
-                { username },
-                { email },
-            ],
-        });
-        if (existingUser) {
-            res.status(409).json({ message: existingUser.email === email ? "Email already exists" : "User already exists" });
-            return;
-        }
-
-        const emailVerificationToken = createEmailVerificationToken();
-        const emailVerificationExpiresAt = getEmailVerificationExpiry();
-        const hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
-        const user = await UserModel.create({
-            username,
-            password: hashedPassword,
-            email,
-            emailVerified: false,
-            emailVerificationToken,
-            emailVerificationExpiresAt,
-            createdAt: new Date(),
-        });
-
-        try {
-            await sendEmailVerificationEmail({
-                email: user.email,
-                username: user.username,
-                token: emailVerificationToken,
-            });
-        } catch (emailError) {
-            await UserModel.deleteOne({ _id: user._id });
-            throw emailError;
-        }
-
-        res.status(200).json({
-            message: "Account created. Please verify your email before signing in.",
-            requiresEmailVerification: true,
-            email: user.email,
-        });
-    } catch (error) {
-        console.error("Error during signup:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
-
-userRouter.post('/signin', async (req, res) => {
-    const parsedData = SigninSchema.safeParse(req.body);
-    if (!parsedData.success) {
-        res.status(400).json({ message: "Invalid request body", issues: parsedData.error.issues });
-        return;
-    }
-    UserModel.findOne({ username: parsedData.data.username.trim() }).then(async (user) => {
-        if (!user) {
-            res.status(401).json({ message: "Invalid credentials" });
-            return;
-        }
-        if (user.emailVerified === false) {
-            res.status(403).json({
-                message: "Email not verified. Please verify your email before signing in.",
-                code: "EMAIL_NOT_VERIFIED",
-                email: user.email,
-            });
-            return;
-        }
-        const isPasswordValid = await bcrypt.compare(parsedData.data.password, user.password);
-        if (!isPasswordValid) {
-            res.status(401).json({ message: "Invalid credentials" });
-            return;
-        }
-        const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1w' });
-        res.cookie(cookieName, token, getAuthCookieOptions());
-        res.status(200).json({ message: "Signin successful", userId: user._id, avatarUrl: user.avatarUrl});
-    }).catch((error) => {
-        res.status(500).json({ message: "Internal server error", error });
+    const emailVerificationToken = createEmailVerificationToken();
+    const emailVerificationExpiresAt = getEmailVerificationExpiry();
+    const hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
+    const user = await UserModel.create({
+      username,
+      password: hashedPassword,
+      email,
+      emailVerified: false,
+      emailVerificationToken,
+      emailVerificationExpiresAt,
+      createdAt: new Date(),
     });
 
-});
-
-userRouter.get('/verify-email', async (req, res) => {
-    const token = String(req.query.token || "").trim();
-
-    if (!token) {
-        res.status(400).json({ message: "Verification token is required" });
-        return;
+    try {
+      await sendEmailVerificationEmail({
+        email: user.email,
+        username: user.username,
+        token: emailVerificationToken,
+      });
+    } catch (emailError) {
+      await UserModel.deleteOne({ _id: user._id });
+      throw emailError;
     }
 
-    try {
-        const user = await UserModel.findOne({
-            emailVerificationToken: token,
-            emailVerificationExpiresAt: { $gt: new Date() },
+    res.status(200).json({
+      message: "Account created. Please verify your email before signing in.",
+      requiresEmailVerification: true,
+      email: user.email,
+    });
+  } catch (error) {
+    console.error("Error during signup:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+userRouter.post("/signin", async (req, res) => {
+  const parsedData = SigninSchema.safeParse(req.body);
+  if (!parsedData.success) {
+    res
+      .status(400)
+      .json({
+        message: "Invalid request body",
+        issues: parsedData.error.issues,
+      });
+    return;
+  }
+  UserModel.findOne({ username: parsedData.data.username.trim() })
+    .then(async (user) => {
+      if (!user) {
+        res.status(401).json({ message: "Invalid credentials" });
+        return;
+      }
+      if (user.emailVerified === false) {
+        res.status(403).json({
+          message:
+            "Email not verified. Please verify your email before signing in.",
+          code: "EMAIL_NOT_VERIFIED",
+          email: user.email,
         });
-
-        if (!user) {
-            res.status(400).json({ message: "Verification link is invalid or expired" });
-            return;
-        }
-
-        user.emailVerified = true;
-        user.emailVerificationToken = undefined;
-        user.emailVerificationExpiresAt = undefined;
-        await user.save();
-
-        res.status(200).json({ message: "Email verified successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
-});
-
-userRouter.post('/resend-verification', async (req, res) => {
-    const email = String(req.body?.email || "").trim().toLowerCase();
-
-    if (!email) {
-        res.status(400).json({ message: "Email is required" });
         return;
-    }
-
-    try {
-        const user = await UserModel.findOne({ email });
-        if (!user) {
-            res.status(200).json({ message: "If the email exists, a verification link has been sent." });
-            return;
-        }
-        if (user.emailVerified !== false) {
-            res.status(200).json({ message: "Email is already verified." });
-            return;
-        }
-
-        user.emailVerificationToken = createEmailVerificationToken();
-        user.emailVerificationExpiresAt = getEmailVerificationExpiry();
-        await user.save();
-
-        await sendEmailVerificationEmail({
-            email: user.email,
-            username: user.username,
-            token: user.emailVerificationToken,
+      }
+      const isPasswordValid = await bcrypt.compare(
+        parsedData.data.password,
+        user.password,
+      );
+      if (!isPasswordValid) {
+        res.status(401).json({ message: "Invalid credentials" });
+        return;
+      }
+      const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
+        expiresIn: "1w",
+      });
+      res.cookie(cookieName, token, getAuthCookieOptions());
+      res
+        .status(200)
+        .json({
+          message: "Signin successful",
+          userId: user._id,
+          avatarUrl: user.avatarUrl,
         });
-
-        res.status(200).json({ message: "Verification email sent." });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
+    })
+    .catch((error) => {
+      res.status(500).json({ message: "Internal server error", error });
+    });
 });
 
-userRouter.get('/secrets', authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
+userRouter.get("/verify-email", async (req, res) => {
+  const token = String(req.query.token || "").trim();
+
+  if (!token) {
+    res.status(400).json({ message: "Verification token is required" });
+    return;
+  }
+
+  try {
+    const user = await UserModel.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      res
+        .status(400)
+        .json({ message: "Verification link is invalid or expired" });
+      return;
     }
 
-    try {
-        const service = typeof req.query.service === "string" ? req.query.service : undefined;
-        const secrets = await listReusableSecrets(userId, service as any);
-        res.status(200).json({ message: "Reusable secrets retrieved", secrets });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiresAt = undefined;
+    await user.save();
+
+    res.status(200).json({ message: "Email verified successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+  }
 });
 
-userRouter.get('/secrets/:secretId', authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
-    }
+userRouter.post("/resend-verification", async (req, res) => {
+  const email = String(req.body?.email || "")
+    .trim()
+    .toLowerCase();
 
-    try {
-        const secretId = String(req.params.secretId || "");
-        const secret = await getReusableSecretForEdit(userId, secretId);
-        if (!secret) {
-            res.status(404).json({ message: "Secret not found" });
-            return;
-        }
-        res.status(200).json({ message: "Reusable secret retrieved", secret });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
-});
+  if (!email) {
+    res.status(400).json({ message: "Email is required" });
+    return;
+  }
 
-userRouter.post('/secrets', authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
-    }
-
-    const parsed = CreateReusableSecretSchema.safeParse(req.body);
-    if (!parsed.success) {
-        res.status(400).json({ message: "Invalid request body", issues: parsed.error.issues });
-        return;
-    }
-
-    try {
-        const secret = await createReusableSecret({
-            userId,
-            name: parsed.data.name,
-            service: parsed.data.service,
-            payload: parsed.data.payload,
+  try {
+    const user = await UserModel.findOne({ email });
+    if (!user) {
+      res
+        .status(200)
+        .json({
+          message: "If the email exists, a verification link has been sent.",
         });
-        res.status(200).json({ message: "Reusable secret created", secret });
-    } catch (error: any) {
-        if (error?.code === 11000) {
-            res.status(409).json({ message: "A secret with this name already exists for that service." });
-            return;
-        }
-        res.status(500).json({ message: "Internal server error", error });
+      return;
     }
+    if (user.emailVerified !== false) {
+      res.status(200).json({ message: "Email is already verified." });
+      return;
+    }
+
+    user.emailVerificationToken = createEmailVerificationToken();
+    user.emailVerificationExpiresAt = getEmailVerificationExpiry();
+    await user.save();
+
+    await sendEmailVerificationEmail({
+      email: user.email,
+      username: user.username,
+      token: user.emailVerificationToken,
+    });
+
+    res.status(200).json({ message: "Verification email sent." });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+  }
 });
 
-userRouter.patch('/secrets/:secretId', authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
-    }
+userRouter.get("/secrets", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
-    const parsed = UpdateReusableSecretSchema.safeParse(req.body);
-    if (!parsed.success) {
-        res.status(400).json({ message: "Invalid request body", issues: parsed.error.issues });
-        return;
-    }
+  try {
+    const service =
+      typeof req.query.service === "string" ? req.query.service : undefined;
+    const secrets = await listReusableSecrets(userId, service as any);
+    res.status(200).json({ message: "Reusable secrets retrieved", secrets });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+  }
+});
 
-    try {
-        const secretId = String(req.params.secretId || "");
-        const secret = await updateReusableSecret({
-            userId,
-            secretId,
-            name: parsed.data.name,
-            payload: parsed.data.payload,
+userRouter.get("/secrets/:secretId", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const secretId = String(req.params.secretId || "");
+    const secret = await getReusableSecretForEdit(userId, secretId);
+    if (!secret) {
+      res.status(404).json({ message: "Secret not found" });
+      return;
+    }
+    res.status(200).json({ message: "Reusable secret retrieved", secret });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+  }
+});
+
+userRouter.post("/secrets", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const parsed = CreateReusableSecretSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ message: "Invalid request body", issues: parsed.error.issues });
+    return;
+  }
+
+  try {
+    const secret = await createReusableSecret({
+      userId,
+      name: parsed.data.name,
+      service: parsed.data.service,
+      payload: parsed.data.payload,
+    });
+    res.status(200).json({ message: "Reusable secret created", secret });
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      res
+        .status(409)
+        .json({
+          message: "A secret with this name already exists for that service.",
         });
-        if (!secret) {
-            res.status(404).json({ message: "Secret not found" });
-            return;
-        }
-        res.status(200).json({ message: "Reusable secret updated", secret });
-    } catch (error: any) {
-        if (error?.code === 11000) {
-            res.status(409).json({ message: "A secret with this name already exists for that service." });
-            return;
-        }
-        res.status(500).json({ message: "Internal server error", error });
+      return;
     }
+    res.status(500).json({ message: "Internal server error", error });
+  }
 });
 
-userRouter.delete('/secrets/:secretId', authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
-    }
+userRouter.patch("/secrets/:secretId", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
-    try {
-        const secretId = String(req.params.secretId || "");
-        const deleted = await deleteReusableSecret(userId, secretId);
-        if (!deleted.deleted) {
-            res.status(404).json({ message: "Secret not found" });
-            return;
-        }
-        res.status(200).json({
-            message: "Reusable secret deleted",
-            pausedWorkflowCount: deleted.pausedWorkflowCount,
+  const parsed = UpdateReusableSecretSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ message: "Invalid request body", issues: parsed.error.issues });
+    return;
+  }
+
+  try {
+    const secretId = String(req.params.secretId || "");
+    const secret = await updateReusableSecret({
+      userId,
+      secretId,
+      name: parsed.data.name,
+      payload: parsed.data.payload,
+    });
+    if (!secret) {
+      res.status(404).json({ message: "Secret not found" });
+      return;
+    }
+    res.status(200).json({ message: "Reusable secret updated", secret });
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      res
+        .status(409)
+        .json({
+          message: "A secret with this name already exists for that service.",
         });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
+      return;
     }
+    res.status(500).json({ message: "Internal server error", error });
+  }
 });
 
-userRouter.post('/telegram/chats', authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
-    }
+userRouter.delete("/secrets/:secretId", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
-    const botToken = String(req.body?.botToken || "").trim();
-    if (!botToken) {
-        res.status(400).json({ message: "Telegram bot token is required" });
-        return;
+  try {
+    const secretId = String(req.params.secretId || "");
+    const deleted = await deleteReusableSecret(userId, secretId);
+    if (!deleted.deleted) {
+      res.status(404).json({ message: "Secret not found" });
+      return;
     }
-
-    try {
-        const chats = await getTelegramChats(botToken);
-        res.status(200).json({ message: "Telegram chats retrieved", chats });
-    } catch (error: any) {
-        const description = error?.response?.data?.description;
-        res.status(500).json({
-            message: description || "Failed to fetch Telegram chats. Ask the user to start the bot and send it a message first.",
-        });
-    }
+    res.status(200).json({
+      message: "Reusable secret deleted",
+      pausedWorkflowCount: deleted.pausedWorkflowCount,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+  }
 });
 
-userRouter.get('/profile', authMiddleware, async (req, res) => {
-    const userId = req.userId;
+userRouter.post("/telegram/chats", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
-    }
+  const botToken = String(req.body?.botToken || "").trim();
+  if (!botToken) {
+    res.status(400).json({ message: "Telegram bot token is required" });
+    return;
+  }
 
-    try {
-        const payload = await getUserProfilePayload(userId);
-        if (!payload) {
-            res.status(404).json({ message: "User not found" });
-            return;
-        }
-        res.status(200).json(payload);
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
+  try {
+    const chats = await getTelegramChats(botToken);
+    res.status(200).json({ message: "Telegram chats retrieved", chats });
+  } catch (error: any) {
+    const description = error?.response?.data?.description;
+    res.status(500).json({
+      message:
+        description ||
+        "Failed to fetch Telegram chats. Ask the user to start the bot and send it a message first.",
+    });
+  }
 });
 
-userRouter.get('/usage', authMiddleware, async (req, res) => {
-    const userId = req.userId;
+userRouter.get("/profile", authMiddleware, async (req, res) => {
+  const userId = req.userId;
 
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
-    }
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
-    try {
-        const snapshot = await getUserUsageSnapshot(userId);
-        res.status(200).json({
-            message: "Usage retrieved",
-            ...snapshot,
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
+  try {
+    const payload = await getUserProfilePayload(userId);
+    if (!payload) {
+      res.status(404).json({ message: "User not found" });
+      return;
     }
+    res.status(200).json(payload);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+  }
 });
 
-userRouter.patch('/profile', authMiddleware, async (req, res) => {
-    const userId = req.userId;
+userRouter.get("/usage", authMiddleware, async (req, res) => {
+  const userId = req.userId;
 
-    if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
-    }
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 
-    const parsedData = UpdateUserProfileSchema.safeParse(req.body);
-
-    if (!parsedData.success) {
-        res.status(400).json({ message: "Invalid request body", issues: parsedData.error.issues });
-        return;
-    }
-
-    try {
-        const payload = await updateUserProfilePayload({
-            userId,
-            displayName: parsedData.data.displayName,
-            preferences: parsedData.data.preferences,
-            notifications: parsedData.data.notifications,
-        });
-
-        if (!payload) {
-            res.status(404).json({ message: "User not found" });
-            return;
-        }
-
-        res.status(200).json(payload);
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error", error });
-    }
+  try {
+    const snapshot = await getUserUsageSnapshot(userId);
+    res.status(200).json({
+      message: "Usage retrieved",
+      ...snapshot,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+  }
 });
 
-userRouter.post("/avatar/upload", authMiddleware, upload.single("avatar"), async (req, res) => {
+userRouter.patch("/profile", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const parsedData = UpdateUserProfileSchema.safeParse(req.body);
+
+  if (!parsedData.success) {
+    res
+      .status(400)
+      .json({
+        message: "Invalid request body",
+        issues: parsedData.error.issues,
+      });
+    return;
+  }
+
+  try {
+    const payload = await updateUserProfilePayload({
+      userId,
+      displayName: parsedData.data.displayName,
+      preferences: parsedData.data.preferences,
+      notifications: parsedData.data.notifications,
+    });
+
+    if (!payload) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json(payload);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error });
+  }
+});
+
+userRouter.post(
+  "/avatar/upload",
+  authMiddleware,
+  upload.single("avatar"),
+  async (req, res) => {
     const userId = req.userId;
 
     if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
-        return;
+      res.status(401).json({ message: "Unauthorized" });
+      return;
     }
 
     if (!req.file) {
-        res.status(400).send('Missing file');
-        return;
+      res.status(400).send("Missing file");
+      return;
     }
 
     const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowedMimes.includes(req.file.mimetype)) {
-        res.status(400).json({ message: "Invalid file type. Allowed: jpeg, png, webp, gif" });
-        return;
+      res
+        .status(400)
+        .json({ message: "Invalid file type. Allowed: jpeg, png, webp, gif" });
+      return;
     }
 
     try {
-        const uploadResult = await uploadAvatarToS3({
-            userId,
-            mimeType: req.file.mimetype,
-            fileBuffer: req.file.buffer,
-        });
+      const uploadResult = await uploadAvatarToS3({
+        userId,
+        mimeType: req.file.mimetype,
+        fileBuffer: req.file.buffer,
+      });
 
-        if (uploadResult.error) {
-            res.status(503).json({ message: uploadResult.message });
-            return;
-        }
+      if (uploadResult.error) {
+        res.status(503).json({ message: uploadResult.message });
+        return;
+      }
 
-        const user = await UserModel.findByIdAndUpdate(
-            userId,
-            { avatarUrl: uploadResult.avatarUrl },
-            { new: true },
-        );
+      const user = await UserModel.findByIdAndUpdate(
+        userId,
+        { avatarUrl: uploadResult.avatarUrl },
+        { new: true },
+      );
 
-        if (!user) {
-            res.status(404).json({ message: "User not found" });
-            return;
-        }
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
 
-        res.status(200).json({
-            message: "Avatar uploaded",
-            avatarUrl: user.avatarUrl
-        });
+      res.status(200).json({
+        message: "Avatar uploaded",
+        avatarUrl: user.avatarUrl,
+      });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Avatar upload failed";
-        res.status(500).json({ message });
+      const message =
+        error instanceof Error ? error.message : "Avatar upload failed";
+      res.status(500).json({ message });
     }
+  },
+);
+
+userRouter.get("/verify", authMiddleware, (req, res) => {
+  res.status(200).json({ message: "Token is valid" });
 });
 
-userRouter.get('/verify', authMiddleware, (req, res) => {
-    res.status(200).json({ message: "Token is valid" });
-});
-
-userRouter.post('/signout', (_req, res) => {
-    res.clearCookie(cookieName, {
-        httpOnly: true,
-        secure: isProduction || process.env.COOKIE_SECURE === "true",
-        sameSite: (process.env.COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined)
-            || (isProduction ? "none" : "lax"),
-        path: "/",
-        ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
-    });
-    res.status(200).json({ message: "Signout successful" });
+userRouter.post("/signout", (_req, res) => {
+  res.clearCookie(cookieName, {
+    httpOnly: true,
+    secure: isProduction || process.env.COOKIE_SECURE === "true",
+    sameSite:
+      (process.env.COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined) ||
+      (isProduction ? "none" : "lax"),
+    path: "/",
+    ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
+  });
+  res.status(200).json({ message: "Signout successful" });
 });
 
 export default userRouter;

@@ -171,9 +171,7 @@ export const Executions = () => {
         />
 
         <div className="grid items-start gap-6 lg:grid-cols-10">
-          <div
-            className={`space-y-5 ${debuggerExecutionId ? "lg:col-span-5" : "lg:col-span-7"}`}
-          >
+          <div className="space-y-5 lg:col-span-7">
             <ExecutionHistory
               loading={loading}
               executions={filteredExecutions}
@@ -196,9 +194,7 @@ export const Executions = () => {
             />
           </div>
 
-          <div
-            className={debuggerExecutionId ? "lg:col-span-3" : "lg:col-span-3"}
-          >
+          <div className="lg:col-span-3">
             {debuggerExecutionId ? (
               <ExecutionDebugger
                 executionId={debuggerExecutionId}
