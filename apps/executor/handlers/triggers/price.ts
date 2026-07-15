@@ -1,11 +1,16 @@
 import { getCurrentPrice, getHistoricalChart } from "@quantnest-trading/market";
+import type { TriggerEvaluationSnapshot } from "@quantnest-trading/types";
 import type { NodeType, WorkflowType } from "../../types";
-import { getChartIntervalForWindow, isSupportedAssetForMarket, normalizeTriggerMarket } from "./shared";
+import {
+  getChartIntervalForWindow,
+  isSupportedAssetForMarket,
+  normalizeTriggerMarket,
+} from "./shared";
 
 export async function handlePriceTrigger(
   workflow: WorkflowType,
   trigger: NodeType,
-): Promise<boolean> {
+): Promise<{ shouldExecute: boolean; snapshot: TriggerEvaluationSnapshot }> {
   const {
     condition,
     targetPrice,
@@ -18,9 +23,21 @@ export async function handlePriceTrigger(
     changeWindowMinutes,
   } = trigger.data?.metadata || {};
 
+  const snapshot: TriggerEvaluationSnapshot = {
+    triggerType: "price-trigger",
+    symbol: asset,
+    marketType: marketType || "Indian",
+    targetPrice: typeof targetPrice === "number" ? targetPrice : undefined,
+    condition,
+    currentPrice: null,
+    baselinePrice: null,
+    priceChange: null,
+    priceChangePercent: null,
+  };
+
   if (!asset) {
     console.error("Invalid price trigger metadata");
-    return false;
+    return { shouldExecute: false, snapshot };
   }
 
   const market = normalizeTriggerMarket(
@@ -30,10 +47,11 @@ export async function handlePriceTrigger(
 
   if (!isSupportedAssetForMarket(normalizedAsset, market)) {
     console.error(`Unsupported asset ${normalizedAsset}`);
-    return false;
+    return { shouldExecute: false, snapshot };
   }
 
   const currentPrice = await getCurrentPrice(normalizedAsset, market);
+  snapshot.currentPrice = currentPrice;
 
   if (mode === "change") {
     const normalizedDirection = String(changeDirection || "").toLowerCase();
@@ -50,7 +68,7 @@ export async function handlePriceTrigger(
       windowMinutes <= 0
     ) {
       console.error("Invalid price-change trigger metadata");
-      return false;
+      return { shouldExecute: false, snapshot };
     }
 
     const periodStart = new Date(Date.now() - windowMinutes * 60 * 1000);
@@ -62,7 +80,8 @@ export async function handlePriceTrigger(
     );
 
     const baselineCandle = candles.find(
-      (candle) => typeof candle?.close === "number" && Number.isFinite(candle.close),
+      (candle) =>
+        typeof candle?.close === "number" && Number.isFinite(candle.close),
     );
     const baselinePriceRaw = baselineCandle?.close;
     if (
@@ -70,34 +89,41 @@ export async function handlePriceTrigger(
       !Number.isFinite(baselinePriceRaw) ||
       baselinePriceRaw <= 0
     ) {
-      return false;
+      return { shouldExecute: false, snapshot };
     }
 
     const delta = currentPrice - baselinePriceRaw;
-    const directionalMatch = normalizedDirection === "increase" ? delta >= 0 : delta <= 0;
+    snapshot.baselinePrice = baselinePriceRaw;
+    snapshot.priceChange = delta;
+    snapshot.priceChangePercent = (delta / baselinePriceRaw) * 100;
+
+    const directionalMatch =
+      normalizedDirection === "increase" ? delta >= 0 : delta <= 0;
     if (!directionalMatch) {
-      return false;
+      return { shouldExecute: false, snapshot };
     }
 
     const magnitude = Math.abs(delta);
     const observedChange =
-      normalizedType === "percent" ? (magnitude / baselinePriceRaw) * 100 : magnitude;
+      normalizedType === "percent"
+        ? (magnitude / baselinePriceRaw) * 100
+        : magnitude;
 
-    return observedChange >= requiredChange;
+    return { shouldExecute: observedChange >= requiredChange, snapshot };
   }
 
   if (!condition || typeof targetPrice !== "number") {
     console.error("Invalid threshold price trigger metadata");
-    return false;
+    return { shouldExecute: false, snapshot };
   }
 
   if (condition === "above") {
-    return currentPrice > targetPrice;
+    return { shouldExecute: currentPrice > targetPrice, snapshot };
   }
 
   if (condition === "below") {
-    return currentPrice < targetPrice;
+    return { shouldExecute: currentPrice < targetPrice, snapshot };
   }
 
-  return false;
+  return { shouldExecute: false, snapshot };
 }

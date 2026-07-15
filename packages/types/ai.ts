@@ -70,10 +70,7 @@ export type StrategyBuilderGoal =
   | "execution"
   | "reporting"
   | "journaling";
-export type StrategyRiskPreference =
-  | "conservative"
-  | "balanced"
-  | "aggressive";
+export type StrategyRiskPreference = "conservative" | "balanced" | "aggressive";
 
 export type StrategyBuilderActionType =
   | "zerodha"
@@ -254,30 +251,130 @@ export interface AiStrategyDraftEditRequest {
   model?: AiModelRequestOptions;
 }
 
-export const AI_NODE_KIND_VALUES = getAiPromptNodeTypes() as [string, ...string[]];
+// ---- Debug Query types ----
 
-export const AI_ALLOWED_NODE_TYPE_VALUES = getAiAllowedNodeTypes() as [string, ...string[]];
+export interface AiDebugQueryRequest {
+  question: string;
+  workflowName: string;
+  triggerType: string;
+  triggerSnapshot: Record<string, unknown>;
+  branchDecisions: Array<{
+    nodeId: string;
+    nodeType: string;
+    evaluatedCondition: boolean;
+    selectedBranch: string | null;
+    availableBranches: string[];
+  }>;
+  nodeSteps: Array<{
+    nodeType: string;
+    status: string;
+    message: string;
+  }>;
+  indicatorSnapshot: Array<{
+    symbol: string;
+    indicator: string;
+    timeframe: string;
+    period?: number;
+    value: number | null;
+  }>;
+  executionStatus: "Success" | "Failed" | "InProgress";
+  marketDataAtExecution?: Record<string, unknown>;
+}
 
-export const AI_PREFERRED_ACTION_VALUES = getAiPreferredActionOptions() as [string, ...string[]];
+export interface AiDebugQueryResponse {
+  answer: string;
+  reasoning: string;
+  confidence: "Low" | "Medium" | "High";
+  supportingIndicators: string[];
+  relevantNodes: string[];
+}
 
-const nodeKindSet = new Set(AI_NODE_KIND_VALUES.map((value) => String(value).toLowerCase()));
-const allowedNodeTypeSet = new Set(AI_ALLOWED_NODE_TYPE_VALUES.map((value) => String(value).toLowerCase()));
-const preferredActionSet = new Set(AI_PREFERRED_ACTION_VALUES.map((value) => String(value).toLowerCase()));
+export const aiDebugQueryRequestSchema = z.object({
+  question: z.string().trim().min(3),
+  workflowName: z.string().trim().min(1),
+  triggerType: z.string().trim().min(1),
+  triggerSnapshot: z.record(z.string(), z.unknown()),
+  branchDecisions: z.array(
+    z.object({
+      nodeId: z.string(),
+      nodeType: z.string(),
+      evaluatedCondition: z.boolean(),
+      selectedBranch: z.string().nullable(),
+      availableBranches: z.array(z.string()),
+    }),
+  ),
+  nodeSteps: z.array(
+    z.object({
+      nodeType: z.string(),
+      status: z.string(),
+      message: z.string(),
+    }),
+  ),
+  indicatorSnapshot: z.array(
+    z.object({
+      symbol: z.string(),
+      indicator: z.string(),
+      timeframe: z.string(),
+      period: z.number().optional(),
+      value: z.number().nullable(),
+    }),
+  ),
+  executionStatus: z.enum(["Success", "Failed", "InProgress"]),
+  marketDataAtExecution: z.record(z.string(), z.unknown()).optional(),
+}) satisfies z.ZodType<AiDebugQueryRequest>;
+
+export const aiDebugQueryResponseSchema = z.object({
+  answer: z.string(),
+  reasoning: z.string(),
+  confidence: z.enum(["Low", "Medium", "High"]),
+  supportingIndicators: z.array(z.string()),
+  relevantNodes: z.array(z.string()),
+}) satisfies z.ZodType<AiDebugQueryResponse>;
+
+export const AI_NODE_KIND_VALUES = getAiPromptNodeTypes() as [
+  string,
+  ...string[],
+];
+
+export const AI_ALLOWED_NODE_TYPE_VALUES = getAiAllowedNodeTypes() as [
+  string,
+  ...string[],
+];
+
+export const AI_PREFERRED_ACTION_VALUES = getAiPreferredActionOptions() as [
+  string,
+  ...string[],
+];
+
+const nodeKindSet = new Set(
+  AI_NODE_KIND_VALUES.map((value) => String(value).toLowerCase()),
+);
+const allowedNodeTypeSet = new Set(
+  AI_ALLOWED_NODE_TYPE_VALUES.map((value) => String(value).toLowerCase()),
+);
+const preferredActionSet = new Set(
+  AI_PREFERRED_ACTION_VALUES.map((value) => String(value).toLowerCase()),
+);
 
 export const strategyNodeKindSchema = z.custom<NodeKind | Lowercase<NodeKind>>(
   (value) => typeof value === "string" && nodeKindSet.has(value.toLowerCase()),
   "Unsupported AI node kind",
 );
 
-export const strategyAllowedNodeTypeSchema = z.custom<NodeKind | Lowercase<NodeKind>>(
-  (value) => typeof value === "string" && allowedNodeTypeSet.has(value.toLowerCase()),
+export const strategyAllowedNodeTypeSchema = z.custom<
+  NodeKind | Lowercase<NodeKind>
+>(
+  (value) =>
+    typeof value === "string" && allowedNodeTypeSet.has(value.toLowerCase()),
   "Unsupported allowed node type",
 );
 
-export const strategyPreferredActionSchema = z.custom<StrategyBuilderActionType>(
-  (value) => typeof value === "string" && preferredActionSet.has(value.toLowerCase()),
-  "Unsupported preferred action",
-);
+export const strategyPreferredActionSchema =
+  z.custom<StrategyBuilderActionType>(
+    (value) =>
+      typeof value === "string" && preferredActionSet.has(value.toLowerCase()),
+    "Unsupported preferred action",
+  );
 
 export const aiModelRequestOptionsSchema = z.object({
   provider: z.string().trim().min(1).optional(),
@@ -401,7 +498,9 @@ export const aiStrategyConversationMessageSchema = z.object({
 
 export const aiStrategySetupStateSchema = z.object({
   workflowName: z.string().trim().min(1).optional(),
-  metadataOverrides: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+  metadataOverrides: z
+    .record(z.string(), z.record(z.string(), z.unknown()))
+    .optional(),
   executionMode: z.enum(["live", "dry-run"]).optional(),
 }) satisfies z.ZodType<AiStrategySetupState>;
 

@@ -1,5 +1,10 @@
 import type { EdgeType, NodeType } from "@quantnest-trading/types";
-import type { IndicatorConditionGroup, IndicatorKind, IndicatorMarket, IndicatorTimeframe } from "@quantnest-trading/types";
+import type {
+  IndicatorConditionGroup,
+  IndicatorKind,
+  IndicatorMarket,
+  IndicatorTimeframe,
+} from "@quantnest-trading/types";
 import type {
   AiModelDescriptor,
   AiStrategyDraftCreateResponse,
@@ -12,6 +17,7 @@ import type {
   AiStrategyWorkflowVersion,
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,
+  AiDebugQueryResponse,
 } from "@quantnest-trading/types/ai";
 
 export interface IdResponse {
@@ -27,7 +33,11 @@ export interface SigninResponse {
 }
 
 export type ProfileMarketPreference = "Indian" | "US" | "Crypto";
-export type ProfileBrokerPreference = "Zerodha" | "Groww" | "Lighter" | "Paper Trading";
+export type ProfileBrokerPreference =
+  | "Zerodha"
+  | "Groww"
+  | "Lighter"
+  | "Paper Trading";
 export type ProfileThemePreference = "Dark" | "Light";
 
 export interface UserProfilePreferences {
@@ -126,7 +136,11 @@ export interface WorkflowPreviewSnapshotEntry {
 export interface WorkflowLivePreview {
   currentPrice?: number;
   conditionMet?: boolean;
-  triggerStage?: "waiting-breakout" | "breakout-detected" | "retest-zone" | "confirmed";
+  triggerStage?:
+    | "waiting-breakout"
+    | "breakout-detected"
+    | "retest-zone"
+    | "confirmed";
   triggerStageLabel?: string;
   distanceToTarget?: number | null;
   baselinePrice?: number | null;
@@ -194,7 +208,7 @@ export type marketStatus = {
   isOpen: boolean;
   message: string;
   nextOpenTime?: string;
-}
+};
 
 export interface MarketAssetOption {
   symbol: string;
@@ -220,7 +234,42 @@ export interface UsageSnapshot {
   };
 }
 
+export interface ExecutionTraceResponse {
+  execution: {
+    _id: string;
+    workflowId: string;
+    status: string;
+    steps: Array<{
+      step: number;
+      nodeId: string;
+      nodeType: string;
+      status: string;
+      message: string;
+    }>;
+    startTime: string;
+    endTime?: string;
+  };
+  trace: {
+    trigger: Record<string, unknown>;
+    nodes: Array<{
+      nodeId: string;
+      nodeType: string;
+      nodeKind: string;
+      status: string;
+      message?: string;
+    }>;
+    branchDecisions: Array<{
+      nodeId: string;
+      nodeType: string;
+      evaluatedCondition: boolean;
+      selectedBranch: string | null;
+      availableBranches: string[];
+    }>;
+  } | null;
+}
+
 export type {
+  AiDebugQueryResponse,
   AiModelDescriptor,
   AiStrategyBuilderRequest,
   AiStrategyBuilderResponse,

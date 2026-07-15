@@ -7,10 +7,14 @@ import {
   apiGetZerodhaTokenStatus,
   apiUpdateWorkflowStatus,
 } from "@/http";
+import { ExecutionDebugger } from "../components/executions/ExecutionDebugger";
 import { ExecutionHistory } from "../components/executions/ExecutionHistory";
 import { ExecutionHealthSidebar } from "../components/executions/ExecutionHealthSidebar";
 import { ExecutionsPageHeader } from "../components/executions/ExecutionsPageHeader";
-import type { Execution, ExecutionStatusFilter } from "../components/executions/types";
+import type {
+  Execution,
+  ExecutionStatusFilter,
+} from "../components/executions/types";
 import {
   calculateDuration,
   computeMetrics,
@@ -26,16 +30,23 @@ export const Executions = () => {
 
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [workflowName, setWorkflowName] = useState("Workflow");
-  const [workflowStatus, setWorkflowStatus] = useState<"active" | "paused">("active");
+  const [workflowStatus, setWorkflowStatus] = useState<"active" | "paused">(
+    "active",
+  );
   const [loading, setLoading] = useState(true);
   const [hasZerodha, setHasZerodha] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<any>(null);
   const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [statusFilter, setStatusFilter] = useState<ExecutionStatusFilter>("All");
+  const [statusFilter, setStatusFilter] =
+    useState<ExecutionStatusFilter>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [isUpdatingWorkflowStatus, setIsUpdatingWorkflowStatus] = useState(false);
+  const [isUpdatingWorkflowStatus, setIsUpdatingWorkflowStatus] =
+    useState(false);
+  const [debuggerExecutionId, setDebuggerExecutionId] = useState<string | null>(
+    null,
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -84,30 +95,32 @@ export const Executions = () => {
     [executions],
   );
 
-  const filteredExecutions = useMemo(
-    () => {
-      const byDate = sortedExecutions.filter((execution) => {
-        if (!dateFrom && !dateTo) return true;
+  const filteredExecutions = useMemo(() => {
+    const byDate = sortedExecutions.filter((execution) => {
+      if (!dateFrom && !dateTo) return true;
 
-        const executionTime = new Date(execution.startTime).getTime();
-        const fromTime = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
-        const toTime = dateTo ? new Date(`${dateTo}T23:59:59`).getTime() : null;
+      const executionTime = new Date(execution.startTime).getTime();
+      const fromTime = dateFrom
+        ? new Date(`${dateFrom}T00:00:00`).getTime()
+        : null;
+      const toTime = dateTo ? new Date(`${dateTo}T23:59:59`).getTime() : null;
 
-        if (fromTime && executionTime < fromTime) return false;
-        if (toTime && executionTime > toTime) return false;
-        return true;
-      });
+      if (fromTime && executionTime < fromTime) return false;
+      if (toTime && executionTime > toTime) return false;
+      return true;
+    });
 
-      return filterExecutions(byDate, statusFilter, searchTerm);
-    },
-    [dateFrom, dateTo, searchTerm, sortedExecutions, statusFilter],
-  );
+    return filterExecutions(byDate, statusFilter, searchTerm);
+  }, [dateFrom, dateTo, searchTerm, sortedExecutions, statusFilter]);
 
   const metrics = useMemo(() => computeMetrics(executions), [executions]);
 
   const avgDurationLabel =
     metrics.avgDurationMs > 0
-      ? calculateDuration(new Date(0).toISOString(), new Date(metrics.avgDurationMs).toISOString())
+      ? calculateDuration(
+          new Date(0).toISOString(),
+          new Date(metrics.avgDurationMs).toISOString(),
+        )
       : "0s";
 
   const lastExecutionLabel = useMemo(() => {
@@ -132,7 +145,8 @@ export const Executions = () => {
   const handleToggleWorkflowStatus = useCallback(async () => {
     if (!workflowId || isUpdatingWorkflowStatus) return;
 
-    const nextStatus: "active" | "paused" = workflowStatus === "active" ? "paused" : "active";
+    const nextStatus: "active" | "paused" =
+      workflowStatus === "active" ? "paused" : "active";
 
     try {
       setIsUpdatingWorkflowStatus(true);
@@ -157,7 +171,9 @@ export const Executions = () => {
         />
 
         <div className="grid items-start gap-6 lg:grid-cols-10">
-          <div className="space-y-5 lg:col-span-7">
+          <div
+            className={`space-y-5 ${debuggerExecutionId ? "lg:col-span-5" : "lg:col-span-7"}`}
+          >
             <ExecutionHistory
               loading={loading}
               executions={filteredExecutions}
@@ -171,20 +187,38 @@ export const Executions = () => {
               onDateToChange={setDateTo}
               formatDate={formatDate}
               calculateDuration={calculateDuration}
+              onExplain={(executionId) =>
+                setDebuggerExecutionId(
+                  debuggerExecutionId === executionId ? null : executionId,
+                )
+              }
+              activeExplainId={debuggerExecutionId}
             />
           </div>
 
-          <ExecutionHealthSidebar
-            metrics={metrics}
-            avgDurationLabel={avgDurationLabel}
-            lastExecutionLabel={lastExecutionLabel}
-            workflowStatus={workflowStatus}
-            onToggleWorkflowStatus={handleToggleWorkflowStatus}
-            isUpdatingWorkflowStatus={isUpdatingWorkflowStatus}
-            hasZerodha={hasZerodha}
-            tokenStatus={tokenStatus}
-            marketStatus={marketStatus}
-          />
+          <div
+            className={debuggerExecutionId ? "lg:col-span-3" : "lg:col-span-3"}
+          >
+            {debuggerExecutionId ? (
+              <ExecutionDebugger
+                executionId={debuggerExecutionId}
+                workflowName={workflowName}
+                onClose={() => setDebuggerExecutionId(null)}
+              />
+            ) : (
+              <ExecutionHealthSidebar
+                metrics={metrics}
+                avgDurationLabel={avgDurationLabel}
+                lastExecutionLabel={lastExecutionLabel}
+                workflowStatus={workflowStatus}
+                onToggleWorkflowStatus={handleToggleWorkflowStatus}
+                isUpdatingWorkflowStatus={isUpdatingWorkflowStatus}
+                hasZerodha={hasZerodha}
+                tokenStatus={tokenStatus}
+                marketStatus={marketStatus}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

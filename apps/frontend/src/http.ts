@@ -25,6 +25,8 @@ import type {
   WorkflowLivePreview,
   WorkflowPreviewRequest,
   WorkflowExample,
+  ExecutionTraceResponse,
+  AiDebugQueryResponse,
 } from "./types/api";
 
 const API_BASE =
@@ -85,9 +87,18 @@ export function setAvatarUrl(avatarUrl?: string) {
 
 // AUTH
 
-export async function apiSignup(body: { username: string; password: string; email: string }): Promise<(IdResponse & { requiresEmailVerification?: boolean; email?: string }) | { status: number }> {
+export async function apiSignup(body: {
+  username: string;
+  password: string;
+  email: string;
+}): Promise<
+  | (IdResponse & { requiresEmailVerification?: boolean; email?: string })
+  | { status: number }
+> {
   try {
-    const res = await api.post<IdResponse & { requiresEmailVerification?: boolean; email?: string }>("/user/signup", body);
+    const res = await api.post<
+      IdResponse & { requiresEmailVerification?: boolean; email?: string }
+    >("/user/signup", body);
     return res.data;
   } catch (error: any) {
     if (error?.response?.status === 409) {
@@ -97,7 +108,10 @@ export async function apiSignup(body: { username: string; password: string; emai
   }
 }
 
-export async function apiSignin(body: { username: string; password: string }): Promise<SigninResponse> {
+export async function apiSignin(body: {
+  username: string;
+  password: string;
+}): Promise<SigninResponse> {
   const res = await api.post<SigninResponse>("/user/signin", body);
   setAuthSession();
   setAvatarUrl(res.data.avatarUrl);
@@ -154,7 +168,9 @@ export async function apiSaveProfile(body: {
   return res.data;
 }
 
-export async function apiUploadAvatar(file: File): Promise<{ avatarUrl: string }> {
+export async function apiUploadAvatar(
+  file: File,
+): Promise<{ avatarUrl: string }> {
   const formData = new FormData();
   formData.append("avatar", file);
 
@@ -173,15 +189,24 @@ export async function apiUploadAvatar(file: File): Promise<{ avatarUrl: string }
   };
 }
 
-export async function apiGetReusableSecrets(service?: ReusableSecretService): Promise<ReusableSecretSummary[]> {
-  const res = await api.get<{ message: string; secrets: ReusableSecretSummary[] }>("/user/secrets", {
+export async function apiGetReusableSecrets(
+  service?: ReusableSecretService,
+): Promise<ReusableSecretSummary[]> {
+  const res = await api.get<{
+    message: string;
+    secrets: ReusableSecretSummary[];
+  }>("/user/secrets", {
     params: service ? { service } : undefined,
   });
   return res.data.secrets;
 }
 
-export async function apiGetReusableSecret(secretId: string): Promise<ReusableSecretDetail> {
-  const res = await api.get<{ message: string; secret: ReusableSecretDetail }>(`/user/secrets/${secretId}`);
+export async function apiGetReusableSecret(
+  secretId: string,
+): Promise<ReusableSecretDetail> {
+  const res = await api.get<{ message: string; secret: ReusableSecretDetail }>(
+    `/user/secrets/${secretId}`,
+  );
   return res.data.secret;
 }
 
@@ -190,64 +215,109 @@ export async function apiCreateReusableSecret(body: {
   service: ReusableSecretService;
   payload: Record<string, string | number | boolean>;
 }): Promise<ReusableSecretSummary> {
-  const res = await api.post<{ message: string; secret: ReusableSecretSummary }>("/user/secrets", body);
+  const res = await api.post<{
+    message: string;
+    secret: ReusableSecretSummary;
+  }>("/user/secrets", body);
   return res.data.secret;
 }
 
-export async function apiUpdateReusableSecret(secretId: string, body: {
-  name?: string;
-  payload?: Record<string, string | number | boolean>;
-}): Promise<ReusableSecretSummary> {
-  const res = await api.patch<{ message: string; secret: ReusableSecretSummary }>(`/user/secrets/${secretId}`, body);
+export async function apiUpdateReusableSecret(
+  secretId: string,
+  body: {
+    name?: string;
+    payload?: Record<string, string | number | boolean>;
+  },
+): Promise<ReusableSecretSummary> {
+  const res = await api.patch<{
+    message: string;
+    secret: ReusableSecretSummary;
+  }>(`/user/secrets/${secretId}`, body);
   return res.data.secret;
 }
 
-export async function apiDeleteReusableSecret(secretId: string): Promise<{ message: string; pausedWorkflowCount: number }> {
-  const res = await api.delete<{ message: string; pausedWorkflowCount: number }>(`/user/secrets/${secretId}`);
+export async function apiDeleteReusableSecret(
+  secretId: string,
+): Promise<{ message: string; pausedWorkflowCount: number }> {
+  const res = await api.delete<{
+    message: string;
+    pausedWorkflowCount: number;
+  }>(`/user/secrets/${secretId}`);
   return res.data;
 }
 
-export async function apiGetTelegramChats(botToken: string): Promise<TelegramChatSummary[]> {
-  const res = await api.post<{ message: string; chats: TelegramChatSummary[] }>("/user/telegram/chats", {
-    botToken,
-  });
+export async function apiGetTelegramChats(
+  botToken: string,
+): Promise<TelegramChatSummary[]> {
+  const res = await api.post<{ message: string; chats: TelegramChatSummary[] }>(
+    "/user/telegram/chats",
+    {
+      botToken,
+    },
+  );
   return res.data.chats;
 }
 
-export async function apiVerifyEmailToken(token: string): Promise<{ message: string }> {
-  const res = await api.get<{ message: string }>(`/user/verify-email?token=${encodeURIComponent(token)}`);
+export async function apiVerifyEmailToken(
+  token: string,
+): Promise<{ message: string }> {
+  const res = await api.get<{ message: string }>(
+    `/user/verify-email?token=${encodeURIComponent(token)}`,
+  );
   return res.data;
 }
 
-export async function apiResendVerificationEmail(email: string): Promise<{ message: string }> {
-  const res = await api.post<{ message: string }>("/user/resend-verification", { email });
+export async function apiResendVerificationEmail(
+  email: string,
+): Promise<{ message: string }> {
+  const res = await api.post<{ message: string }>("/user/resend-verification", {
+    email,
+  });
   return res.data;
 }
 
 // WORKFLOW
 
 export async function apiCreateWorkflow(body: any): Promise<IdResponse> {
-  const res = await api.post<IdResponse>("/workflow", normalizeWorkflowPayload(body));
+  const res = await api.post<IdResponse>(
+    "/workflow",
+    normalizeWorkflowPayload(body),
+  );
   return res.data;
 }
 
-export async function apiUpdateWorkflow(workflowId: string, body: any): Promise<IdResponse> {
-  const res = await api.put<IdResponse>(`/workflow/${workflowId}`, normalizeWorkflowPayload(body));
+export async function apiUpdateWorkflow(
+  workflowId: string,
+  body: any,
+): Promise<IdResponse> {
+  const res = await api.put<IdResponse>(
+    `/workflow/${workflowId}`,
+    normalizeWorkflowPayload(body),
+  );
   return res.data;
 }
 
 export async function apiGetWorkflow(workflowId: string): Promise<Workflow> {
-  const res = await api.get<{ message: string; workflow: Workflow }>(`/workflow/${workflowId}`);
+  const res = await api.get<{ message: string; workflow: Workflow }>(
+    `/workflow/${workflowId}`,
+  );
   return res.data.workflow;
 }
 
-export async function apiPreviewWorkflowMetrics(body: WorkflowPreviewRequest): Promise<WorkflowLivePreview> {
-  const res = await api.post<{ message: string; preview: WorkflowLivePreview }>("/workflow/preview-metrics", body);
+export async function apiPreviewWorkflowMetrics(
+  body: WorkflowPreviewRequest,
+): Promise<WorkflowLivePreview> {
+  const res = await api.post<{ message: string; preview: WorkflowLivePreview }>(
+    "/workflow/preview-metrics",
+    body,
+  );
   return res.data.preview;
 }
 
 export async function apiGetAllWorkflows(): Promise<{ workflows: Workflow[] }> {
-  const res = await api.get<{ message: string; workflows: Workflow[] }>("/workflow/getAll");
+  const res = await api.get<{ message: string; workflows: Workflow[] }>(
+    "/workflow/getAll",
+  );
   return res.data;
 }
 
@@ -256,7 +326,29 @@ export async function apiGetExecution(workflowId: string) {
   return res.data;
 }
 
-export async function apiDeleteWorkflow(workflowId: string): Promise<{ message: string }> {
+export async function apiGetExecutionTrace(
+  executionId: string,
+): Promise<ExecutionTraceResponse> {
+  const res = await api.get(`/workflow/executions/${executionId}/trace`);
+  return res.data;
+}
+
+export async function apiExplainExecution(
+  executionId: string,
+  question: string,
+  workflowName?: string,
+): Promise<{ success: boolean; data: AiDebugQueryResponse }> {
+  const res = await api.post("/ai/debug/explain", {
+    executionId,
+    question,
+    workflowName,
+  });
+  return res.data;
+}
+
+export async function apiDeleteWorkflow(
+  workflowId: string,
+): Promise<{ message: string }> {
   const res = await api.delete<{ message: string }>(`/workflow/${workflowId}`);
   return res.data;
 }
@@ -283,28 +375,55 @@ export async function apiUpdateWorkflowExecutionMode(
   return res.data;
 }
 
-export async function apiCreateZerodhaToken(body: { workflowId: string; accessToken: string }): Promise<{ success: boolean; message: string; tokenStatus: any }> {
-  const res = await api.post<{ success: boolean; message: string; tokenStatus: any }>("/zerodha-token/create", body);
+export async function apiCreateZerodhaToken(body: {
+  workflowId: string;
+  accessToken: string;
+}): Promise<{ success: boolean; message: string; tokenStatus: any }> {
+  const res = await api.post<{
+    success: boolean;
+    message: string;
+    tokenStatus: any;
+  }>("/zerodha-token/create", body);
   return res.data;
 }
 
-export async function apiGetZerodhaTokenStatus(workflowId: string): Promise<{ success: boolean; tokenStatus: any }> {
-  const res = await api.get<{ success: boolean; tokenStatus: any }>(`/zerodha-token/status/${workflowId}`);
+export async function apiGetZerodhaTokenStatus(
+  workflowId: string,
+): Promise<{ success: boolean; tokenStatus: any }> {
+  const res = await api.get<{ success: boolean; tokenStatus: any }>(
+    `/zerodha-token/status/${workflowId}`,
+  );
   return res.data;
 }
 
-export async function apiDeleteZerodhaToken(workflowId: string): Promise<{ success: boolean; message: string }> {
-  const res = await api.delete<{ success: boolean; message: string }>(`/zerodha-token/${workflowId}`);
+export async function apiDeleteZerodhaToken(
+  workflowId: string,
+): Promise<{ success: boolean; message: string }> {
+  const res = await api.delete<{ success: boolean; message: string }>(
+    `/zerodha-token/${workflowId}`,
+  );
   return res.data;
 }
 
-export async function apiUpdateZerodhaToken(body: { workflowId: string; accessToken: string }): Promise<{ success: boolean; message: string; tokenStatus: any }> {
-  const res = await api.put<{ success: boolean; message: string; tokenStatus: any }>("/zerodha-token/update", body);
+export async function apiUpdateZerodhaToken(body: {
+  workflowId: string;
+  accessToken: string;
+}): Promise<{ success: boolean; message: string; tokenStatus: any }> {
+  const res = await api.put<{
+    success: boolean;
+    message: string;
+    tokenStatus: any;
+  }>("/zerodha-token/update", body);
   return res.data;
 }
 
-export async function apiGetMarketStatus(): Promise<{ success: boolean; marketStatus: marketStatus }> {
-  const res = await api.get<{ success: boolean; marketStatus: marketStatus }>("/market-status");
+export async function apiGetMarketStatus(): Promise<{
+  success: boolean;
+  marketStatus: marketStatus;
+}> {
+  const res = await api.get<{ success: boolean; marketStatus: marketStatus }>(
+    "/market-status",
+  );
   return res.data;
 }
 
@@ -358,17 +477,17 @@ export type VerifyGoogleSheetsBody = {
 };
 
 export async function apiVerifyBrokerCredentials(
-  body: VerifyBrokerCredentialsBody
+  body: VerifyBrokerCredentialsBody,
 ): Promise<{ success: boolean; message: string }> {
   const res = await api.post<{ success: boolean; message: string }>(
     "/workflow/verify-broker-credentials",
-    body
+    body,
   );
   return res.data;
 }
 
 export async function apiVerifyGoogleSheets(
-  body: VerifyGoogleSheetsBody
+  body: VerifyGoogleSheetsBody,
 ): Promise<{
   success: boolean;
   message: string;
@@ -392,7 +511,9 @@ export async function apiVerifyGoogleSheets(
   return res.data;
 }
 
-export async function apiGetGoogleSheetsServiceAccount(): Promise<{ serviceAccountEmail: string }> {
+export async function apiGetGoogleSheetsServiceAccount(): Promise<{
+  serviceAccountEmail: string;
+}> {
   const res = await api.get<{
     success: boolean;
     serviceAccountEmail: string;
@@ -400,28 +521,47 @@ export async function apiGetGoogleSheetsServiceAccount(): Promise<{ serviceAccou
   return { serviceAccountEmail: res.data.serviceAccountEmail };
 }
 
-export async function apiGetNotifications(): Promise<{ notifications: UserNotification[] }> {
-  const res = await api.get<{ message: string; notifications: UserNotification[] }>("/notification");
+export async function apiGetNotifications(): Promise<{
+  notifications: UserNotification[];
+}> {
+  const res = await api.get<{
+    message: string;
+    notifications: UserNotification[];
+  }>("/notification");
   return { notifications: res.data.notifications };
 }
 
-export async function apiMarkNotificationRead(notificationId: string): Promise<{ message: string }> {
-  const res = await api.patch<{ message: string }>(`/notification/${notificationId}/read`);
+export async function apiMarkNotificationRead(
+  notificationId: string,
+): Promise<{ message: string }> {
+  const res = await api.patch<{ message: string }>(
+    `/notification/${notificationId}/read`,
+  );
   return res.data;
 }
 
-export async function apiMarkAllNotificationsRead(): Promise<{ message: string }> {
+export async function apiMarkAllNotificationsRead(): Promise<{
+  message: string;
+}> {
   const res = await api.patch<{ message: string }>("/notification/read-all");
   return res.data;
 }
 
-export async function apiGetExamples(): Promise<{ examples: WorkflowExample[] }> {
-  const res = await api.get<{ message: string; examples: WorkflowExample[] }>("/examples");
+export async function apiGetExamples(): Promise<{
+  examples: WorkflowExample[];
+}> {
+  const res = await api.get<{ message: string; examples: WorkflowExample[] }>(
+    "/examples",
+  );
   return { examples: res.data.examples };
 }
 
-export async function apiGetPracticalAlgos(): Promise<{ examples: WorkflowExample[] }> {
-  const res = await api.get<{ message: string; examples: WorkflowExample[] }>("/examples/practical-algos");
+export async function apiGetPracticalAlgos(): Promise<{
+  examples: WorkflowExample[];
+}> {
+  const res = await api.get<{ message: string; examples: WorkflowExample[] }>(
+    "/examples/practical-algos",
+  );
   return { examples: res.data.examples };
 }
 
@@ -439,44 +579,52 @@ export async function apiCreateWorkflowFromExample(
   return res.data;
 }
 
-export async function apiGetAiModels(): Promise<{ models: AiModelDescriptor[] }> {
-  const res = await api.get<{ success: boolean; models: AiModelDescriptor[] }>("/ai/models");
+export async function apiGetAiModels(): Promise<{
+  models: AiModelDescriptor[];
+}> {
+  const res = await api.get<{ success: boolean; models: AiModelDescriptor[] }>(
+    "/ai/models",
+  );
   return { models: res.data.models };
 }
 
 export async function apiGenerateAiStrategyPlan(
   body: AiStrategyBuilderRequest,
 ): Promise<AiStrategyBuilderResponse> {
-  const res = await api.post<{ success: boolean; data: AiStrategyBuilderResponse }>(
-    "/ai/strategy/plan",
-    body,
-  );
+  const res = await api.post<{
+    success: boolean;
+    data: AiStrategyBuilderResponse;
+  }>("/ai/strategy/plan", body);
   return res.data.data;
 }
 
 export async function apiCreateAiStrategyDraft(
   body: AiStrategyBuilderRequest,
 ): Promise<AiStrategyDraftSession> {
-  const res = await api.post<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
-    "/ai/strategy/drafts",
-    body,
-  );
+  const res = await api.post<{
+    success: boolean;
+    data: { draft: AiStrategyDraftSession };
+  }>("/ai/strategy/drafts", body);
   return res.data.data.draft;
 }
 
-export async function apiListAiStrategyDrafts(): Promise<AiStrategyDraftSummary[]> {
-  const res = await api.get<{ success: boolean; data: { drafts: AiStrategyDraftSummary[] } }>(
-    "/ai/strategy/drafts",
-  );
+export async function apiListAiStrategyDrafts(): Promise<
+  AiStrategyDraftSummary[]
+> {
+  const res = await api.get<{
+    success: boolean;
+    data: { drafts: AiStrategyDraftSummary[] };
+  }>("/ai/strategy/drafts");
   return res.data.data.drafts;
 }
 
 export async function apiGetAiStrategyDraft(
   draftId: string,
 ): Promise<AiStrategyDraftSession> {
-  const res = await api.get<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
-    `/ai/strategy/drafts/${draftId}`,
-  );
+  const res = await api.get<{
+    success: boolean;
+    data: { draft: AiStrategyDraftSession };
+  }>(`/ai/strategy/drafts/${draftId}`);
   return res.data.data.draft;
 }
 
@@ -484,10 +632,10 @@ export async function apiEditAiStrategyDraft(
   draftId: string,
   body: AiStrategyDraftEditRequest,
 ): Promise<AiStrategyDraftSession> {
-  const res = await api.post<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
-    `/ai/strategy/drafts/${draftId}/edit`,
-    body,
-  );
+  const res = await api.post<{
+    success: boolean;
+    data: { draft: AiStrategyDraftSession };
+  }>(`/ai/strategy/drafts/${draftId}/edit`, body);
   return res.data.data.draft;
 }
 
@@ -495,9 +643,10 @@ export async function apiGetAiStrategyDraftVersion(
   draftId: string,
   versionId: string,
 ): Promise<AiStrategyDraftVersionPayload> {
-  const res = await api.get<{ success: boolean; data: AiStrategyDraftVersionPayload }>(
-    `/ai/strategy/drafts/${draftId}/versions/${versionId}`,
-  );
+  const res = await api.get<{
+    success: boolean;
+    data: AiStrategyDraftVersionPayload;
+  }>(`/ai/strategy/drafts/${draftId}/versions/${versionId}`);
   return res.data.data;
 }
 
@@ -506,13 +655,12 @@ export async function apiSaveAiStrategyDraftSetup(
   body: AiStrategySetupState,
   versionId?: string,
 ): Promise<AiStrategyDraftSession> {
-  const res = await api.put<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
-    `/ai/strategy/drafts/${draftId}/setup`,
-    body,
-    {
-      params: versionId ? { versionId } : undefined,
-    },
-  );
+  const res = await api.put<{
+    success: boolean;
+    data: { draft: AiStrategyDraftSession };
+  }>(`/ai/strategy/drafts/${draftId}/setup`, body, {
+    params: versionId ? { versionId } : undefined,
+  });
   return res.data.data.draft;
 }
 
@@ -529,9 +677,9 @@ export async function apiRenameAiStrategyDraft(
   draftId: string,
   title: string,
 ): Promise<AiStrategyDraftSession> {
-  const res = await api.patch<{ success: boolean; data: { draft: AiStrategyDraftSession } }>(
-    `/ai/strategy/drafts/${draftId}/title`,
-    { title },
-  );
+  const res = await api.patch<{
+    success: boolean;
+    data: { draft: AiStrategyDraftSession };
+  }>(`/ai/strategy/drafts/${draftId}/title`, { title });
   return res.data.data.draft;
 }

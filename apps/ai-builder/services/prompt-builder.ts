@@ -1,4 +1,5 @@
 import type {
+  AiDebugQueryRequest,
   AiStrategyBuilderRequest,
   AiStrategyWorkflowPlan,
 } from "@quantnest-trading/types/ai";
@@ -15,10 +16,13 @@ const ACTION_METADATA_REFERENCE = getActionMetadataReference();
 
 const TRIGGER_METADATA_REFERENCE = getTriggerMetadataReference();
 
-export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): string {
-  const allowedNodeTypes = (input.allowedNodeTypes?.length
-    ? input.allowedNodeTypes
-    : DEFAULT_ALLOWED_NODE_TYPES
+export function buildStrategyPlannerPrompt(
+  input: AiStrategyBuilderRequest,
+): string {
+  const allowedNodeTypes = (
+    input.allowedNodeTypes?.length
+      ? input.allowedNodeTypes
+      : DEFAULT_ALLOWED_NODE_TYPES
   ).join(", ");
 
   const preferredActions = input.preferredActions?.length
@@ -44,6 +48,70 @@ export function buildStrategyPlannerPrompt(input: AiStrategyBuilderRequest): str
     actionMetadataGuide,
     triggerMetadataGuide,
   }).join("\n");
+}
+
+export function buildDebugPrompt(input: AiDebugQueryRequest): string {
+  const indicatorLines =
+    input.indicatorSnapshot.length > 0
+      ? input.indicatorSnapshot
+          .map(
+            (i) =>
+              `  - ${i.symbol} ${i.indicator}(${i.period || ""}) ${i.timeframe}: ${i.value ?? "N/A"}`,
+          )
+          .join("\n")
+      : "  - No indicator snapshots recorded";
+
+  const branchLines =
+    input.branchDecisions.length > 0
+      ? input.branchDecisions
+          .map(
+            (b) =>
+              `  - Node "${b.nodeType}" evaluated condition=${b.evaluatedCondition}, took branch="${b.selectedBranch || "none"}"`,
+          )
+          .join("\n")
+      : "  - No branch decisions";
+
+  const stepLines =
+    input.nodeSteps.length > 0
+      ? input.nodeSteps
+          .map((s) => `  - ${s.nodeType}: ${s.status} — ${s.message}`)
+          .join("\n")
+      : "  - No steps recorded";
+
+  return [
+    `You are a trading strategy debugger. Given the following workflow execution trace,`,
+    `answer the user's question in plain English. Be precise, reference specific values,`,
+    `and explain why each outcome occurred.`,
+    ``,
+    `Workflow: ${input.workflowName}`,
+    `Trigger type: ${input.triggerType}`,
+    `Execution status: ${input.executionStatus}`,
+    ``,
+    `## Trigger Evaluation`,
+    `\`\`\`json`,
+    `${JSON.stringify(input.triggerSnapshot, null, 2)}`,
+    `\`\`\``,
+    ``,
+    `## Branch Decisions`,
+    branchLines,
+    ``,
+    `## Node Execution Steps`,
+    stepLines,
+    ``,
+    `## Indicator Values at Execution Time`,
+    indicatorLines,
+    ``,
+    `User's question: ${input.question}`,
+    ``,
+    `Respond in JSON with this exact shape:`,
+    `{`,
+    `  "answer": "concise direct answer to the user's question",`,
+    `  "reasoning": "step-by-step reasoning referencing specific indicator values and trigger parameters",`,
+    `  "confidence": "Low" | "Medium" | "High",`,
+    `  "supportingIndicators": ["indicator1", "indicator2"],`,
+    `  "relevantNodes": ["nodeType1", "nodeType2"]`,
+    `}`,
+  ].join("\n");
 }
 
 export function buildStrategyEditPrompt(

@@ -1,6 +1,17 @@
-import { ExecutionModel, WorkflowModel } from "@quantnest-trading/db/client";
-import { createUserNotification, deriveWorkflowTriggerState, saveZerodhaToken } from "@quantnest-trading/executor-utils";
-import { isBrokerVerificationError, verifyBrokerCredentialsForNodes } from "./brokerVerification";
+import {
+  ExecutionModel,
+  ExecutionTraceModel,
+  WorkflowModel,
+} from "@quantnest-trading/db/client";
+import {
+  createUserNotification,
+  deriveWorkflowTriggerState,
+  saveZerodhaToken,
+} from "@quantnest-trading/executor-utils";
+import {
+  isBrokerVerificationError,
+  verifyBrokerCredentialsForNodes,
+} from "./brokerVerification";
 import { resolveNodeMetadataSecrets } from "./reusableSecrets";
 import { assertWorkflowCreationAllowed } from "./subscription";
 
@@ -31,7 +42,9 @@ export async function createWorkflowForUser(params: {
     ...deriveWorkflowTriggerState(params.nodes as any),
   });
 
-  const zerodhaNode = params.nodes.find((node) => String(node?.type || "").toLowerCase() === "zerodha");
+  const zerodhaNode = params.nodes.find(
+    (node) => String(node?.type || "").toLowerCase() === "zerodha",
+  );
   if (executionMode === "live" && zerodhaNode) {
     const resolvedMetadata = await resolveNodeMetadataSecrets({
       userId: params.userId,
@@ -57,7 +70,8 @@ export async function updateWorkflowForUser(params: {
     userId: params.userId,
   }).select({ executionMode: 1 });
 
-  const effectiveExecutionMode = params.executionMode || existingWorkflow?.executionMode || "live";
+  const effectiveExecutionMode =
+    params.executionMode || existingWorkflow?.executionMode || "live";
   if (effectiveExecutionMode === "live") {
     await verifyBrokerCredentialsForNodes(params.nodes as any, params.userId);
   }
@@ -101,7 +115,9 @@ export async function updateWorkflowStatusForUser(params: {
     {
       $set: {
         status: params.status,
-        ...(params.status === "active" ? deriveWorkflowTriggerState(existingWorkflow.nodes as any) : {}),
+        ...(params.status === "active"
+          ? deriveWorkflowTriggerState(existingWorkflow.nodes as any)
+          : {}),
       },
     },
     { new: true },
@@ -131,16 +147,40 @@ export async function listWorkflowsForUser(userId?: string) {
   return WorkflowModel.find({ userId });
 }
 
-export async function getWorkflowForUser(userId: string | undefined, workflowId: string) {
+export async function getWorkflowForUser(
+  userId: string | undefined,
+  workflowId: string,
+) {
   return WorkflowModel.findOne({ _id: workflowId, userId });
 }
 
-export async function listExecutionsForWorkflow(userId: string | undefined, workflowId: string) {
+export async function listExecutionsForWorkflow(
+  userId: string | undefined,
+  workflowId: string,
+) {
   return ExecutionModel.find({ workflowId, userId }).sort({ startTime: -1 });
 }
 
-export async function deleteWorkflowForUser(userId: string | undefined, workflowId: string) {
+export async function deleteWorkflowForUser(
+  userId: string | undefined,
+  workflowId: string,
+) {
   return WorkflowModel.findOneAndDelete({ _id: workflowId, userId });
+}
+
+export async function getExecutionTrace(executionId: string, userId?: string) {
+  const execution = await ExecutionModel.findOne({
+    _id: executionId,
+    userId,
+  }).lean();
+  if (!execution) return null;
+
+  const trace = await ExecutionTraceModel.findOne({ executionId }).lean();
+  if (!trace) {
+    return { execution, trace: null };
+  }
+
+  return { execution, trace };
 }
 
 export async function handleWorkflowBrokerVerificationFailure(params: {
@@ -155,7 +195,9 @@ export async function handleWorkflowBrokerVerificationFailure(params: {
   }
 
   const message =
-    params.error instanceof Error ? params.error.message : "Broker verification failed";
+    params.error instanceof Error
+      ? params.error.message
+      : "Broker verification failed";
 
   await createUserNotification({
     userId: params.userId,
