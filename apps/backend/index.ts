@@ -1,8 +1,11 @@
 import express from "express";
 import crypto from "crypto";
 import cors from "cors";
+import helmet from "helmet";
+import hpp from "hpp";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
+import slowDown from "express-slow-down";
 import notificationRouter from "./routes/notification";
 import aiRouter from "./routes/ai";
 import userRouter from "./routes/user";
@@ -17,37 +20,18 @@ import { idempotencyMiddleware } from "./middleware/idempotency";
 
 const app = express();
 app.set("trust proxy", 1);
-app.use(express.json());
 
-const cookieSecret = process.env.COOKIE_SECRET || crypto.randomUUID();
-app.use(cookieParser(cookieSecret));
-app.use(idempotencyMiddleware);
+// Security headers
+app.use(helmet());
 
-const limiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Too many attempts. Try again later." },
-});
-app.use("/api/v1/user/signin", authLimiter);
-app.use("/api/v1/user/signup", authLimiter);
-
+// CORS
 const allowedOrigins = (
   process.env.CORS_ORIGIN ||
   process.env.FRONTEND_URL ||
   "http://localhost:5173"
 )
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin: string) => origin.trim())
   .filter(Boolean);
 
 app.use(
@@ -62,6 +46,64 @@ app.use(
     credentials: true,
   }),
 );
+
+// Body parsing with size limit
+app.use(express.json({ limit: "100kb" }));
+
+// HTTP parameter pollution protection
+app.use(hpp());
+
+const cookieSecret = process.env.COOKIE_SECRET || crypto.randomUUID();
+app.use(cookieParser(cookieSecret));
+
+// CSRF protection — require custom header on mutating requests
+app.use((req, res, next) => {
+  if (
+    req.method === "GET" ||
+    req.method === "HEAD" ||
+    req.method === "OPTIONS"
+  ) {
+    next();
+    return;
+  }
+  const requestedWith = req.headers["x-requested-with"];
+  const csrfToken = req.headers["x-csrf-token"];
+  if (requestedWith === "XMLHttpRequest" || csrfToken) {
+    next();
+    return;
+  }
+  res.status(403).json({ message: "CSRF validation failed" });
+});
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
+
+// Slow down after 40 requests in 1 minute
+const speedLimiter = slowDown({
+  windowMs: 60 * 1000,
+  delayAfter: 40,
+  delayMs: 500,
+});
+app.use(speedLimiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many attempts. Try again later." },
+});
+app.use("/api/v1/user/signin", authLimiter);
+app.use("/api/v1/user/signup", authLimiter);
+
+// Idempotency middleware
+app.use(idempotencyMiddleware);
 
 void connectMongoWithRetry({ serviceName: "backend" });
 void initRedis();

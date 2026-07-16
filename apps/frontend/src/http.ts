@@ -37,6 +37,7 @@ export const AUTH_STATE_EVENT = "quantnest-auth-state";
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
+  headers: { "X-Requested-With": "XMLHttpRequest" },
 });
 
 let isRefreshing = false;

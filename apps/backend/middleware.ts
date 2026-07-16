@@ -2,12 +2,15 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "./utils/security";
 
-declare module "express" {
-  interface Request {
-    userId?: string;
-    user?: {
-      email: string;
-    };
+/* eslint-disable @typescript-eslint/no-namespace */
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+      user?: {
+        email: string;
+      };
+    }
   }
 }
 
