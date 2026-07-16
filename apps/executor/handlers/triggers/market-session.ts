@@ -1,61 +1,98 @@
+import type { TriggerEvaluationSnapshot } from "@quantnest-trading/types";
+
 export async function handleMarketSessionTrigger(
-  event: "market-open" | "market-close" | "at-time" | "pause-at-time" | "session-window",
+  event:
+    | "market-open"
+    | "market-close"
+    | "at-time"
+    | "pause-at-time"
+    | "session-window",
   lastTriggeredAt: Date | null | undefined,
   lastEvaluatedAt: Date | null | undefined,
   triggerTime?: string,
   endTime?: string,
   marketType?: string,
-): Promise<boolean> {
+): Promise<{ shouldExecute: boolean; snapshot: TriggerEvaluationSnapshot }> {
   const now = new Date();
-  const istTime = new Date(now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }));
+  const istTime = new Date(
+    now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+  );
   const currentHours = istTime.getHours();
   const currentMinutes = istTime.getMinutes();
   const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-  const normalizedMarketType = String(marketType || "indian").trim().toLowerCase();
-  const isCryptoMarket = normalizedMarketType === "crypto" || normalizedMarketType === "web3";
+  const normalizedMarketType = String(marketType || "indian")
+    .trim()
+    .toLowerCase();
+  const isCryptoMarket =
+    normalizedMarketType === "crypto" || normalizedMarketType === "web3";
+
+  const snapshot: TriggerEvaluationSnapshot = {
+    triggerType: "market-session",
+    sessionEvent: event,
+    marketType: normalizedMarketType,
+    sessionTriggered: false,
+  };
 
   void lastEvaluatedAt;
 
   if (event === "market-open") {
     const marketOpenTimeMinutes = isCryptoMarket ? 0 : 9 * 60 + 15;
     const wasNotTriggeredToday =
-      !lastTriggeredAt || lastTriggeredAt.toDateString() !== istTime.toDateString();
+      !lastTriggeredAt ||
+      lastTriggeredAt.toDateString() !== istTime.toDateString();
     const isNowAfterOpen = currentTimeInMinutes >= marketOpenTimeMinutes;
-    const isWithinGraceWindow = currentTimeInMinutes < marketOpenTimeMinutes + 1;
-    return wasNotTriggeredToday && isNowAfterOpen && isWithinGraceWindow;
+    const isWithinGraceWindow =
+      currentTimeInMinutes < marketOpenTimeMinutes + 1;
+    const shouldExecute =
+      wasNotTriggeredToday && isNowAfterOpen && isWithinGraceWindow;
+    snapshot.sessionTriggered = shouldExecute;
+    return { shouldExecute, snapshot };
   }
 
   if (event === "market-close") {
     const marketCloseTimeMinutes = isCryptoMarket ? 23 * 60 + 59 : 15 * 60 + 30;
     const wasNotTriggeredToday =
-      !lastTriggeredAt || lastTriggeredAt.toDateString() !== istTime.toDateString();
+      !lastTriggeredAt ||
+      lastTriggeredAt.toDateString() !== istTime.toDateString();
     const isNowAfterClose = currentTimeInMinutes >= marketCloseTimeMinutes;
-    const isWithinGraceWindow = currentTimeInMinutes < marketCloseTimeMinutes + 1;
-    return wasNotTriggeredToday && isNowAfterClose && isWithinGraceWindow;
+    const isWithinGraceWindow =
+      currentTimeInMinutes < marketCloseTimeMinutes + 1;
+    const shouldExecute =
+      wasNotTriggeredToday && isNowAfterClose && isWithinGraceWindow;
+    snapshot.sessionTriggered = shouldExecute;
+    return { shouldExecute, snapshot };
   }
 
   if ((event === "at-time" || event === "pause-at-time") && triggerTime) {
     const triggerParts = triggerTime.split(":");
     if (triggerParts.length !== 2) {
-      return false;
+      return { shouldExecute: false, snapshot };
     }
 
     const triggerHours = Number(triggerParts[0]);
     const triggerMinutes = Number(triggerParts[1]);
     if (!Number.isFinite(triggerHours) || !Number.isFinite(triggerMinutes)) {
-      return false;
+      return { shouldExecute: false, snapshot };
     }
-    if (triggerHours < 0 || triggerHours > 23 || triggerMinutes < 0 || triggerMinutes > 59) {
-      return false;
+    if (
+      triggerHours < 0 ||
+      triggerHours > 23 ||
+      triggerMinutes < 0 ||
+      triggerMinutes > 59
+    ) {
+      return { shouldExecute: false, snapshot };
     }
 
     const triggerTimeInMinutes = triggerHours * 60 + triggerMinutes;
     const wasNotTriggeredToday =
-      !lastTriggeredAt || lastTriggeredAt.toDateString() !== istTime.toDateString();
+      !lastTriggeredAt ||
+      lastTriggeredAt.toDateString() !== istTime.toDateString();
     const isNowAfterTrigger = currentTimeInMinutes >= triggerTimeInMinutes;
     const isWithinGraceWindow = currentTimeInMinutes < triggerTimeInMinutes + 1;
-
-    return wasNotTriggeredToday && isNowAfterTrigger && isWithinGraceWindow;
+    const shouldExecute =
+      wasNotTriggeredToday && isNowAfterTrigger && isWithinGraceWindow;
+    snapshot.sessionTriggered = shouldExecute;
+    return { shouldExecute, snapshot };
   }
 
   if (event === "session-window" && triggerTime && endTime) {
@@ -74,16 +111,19 @@ export async function handleMarketSessionTrigger(
     const startMinutes = parseTime(triggerTime);
     const endMinutes = parseTime(endTime);
     if (startMinutes === null || endMinutes === null) {
-      return false;
+      return { shouldExecute: false, snapshot };
     }
 
     const isWithinWindow =
       startMinutes <= endMinutes
-        ? currentTimeInMinutes >= startMinutes && currentTimeInMinutes < endMinutes
-        : currentTimeInMinutes >= startMinutes || currentTimeInMinutes < endMinutes;
+        ? currentTimeInMinutes >= startMinutes &&
+          currentTimeInMinutes < endMinutes
+        : currentTimeInMinutes >= startMinutes ||
+          currentTimeInMinutes < endMinutes;
 
-    return isWithinWindow;
+    snapshot.sessionTriggered = isWithinWindow;
+    return { shouldExecute: isWithinWindow, snapshot };
   }
 
-  return false;
+  return { shouldExecute: false, snapshot };
 }

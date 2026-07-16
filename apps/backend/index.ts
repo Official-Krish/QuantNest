@@ -108,13 +108,11 @@ const handleMarketAssets = async (
     });
     res.status(200).json({ success: true, assets });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to fetch market assets",
-        error,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch market assets",
+      error,
+    });
   }
 };
 

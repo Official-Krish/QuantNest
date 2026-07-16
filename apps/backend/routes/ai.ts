@@ -1,7 +1,16 @@
 import axios from "axios";
 import { Router } from "express";
-import { AiStrategyDraftVersionModel, AiStrategySessionModel } from "@quantnest-trading/db/client";
-import { aiStrategyDraftSessionSchema, type AiModelDescriptor } from "@quantnest-trading/types/ai";
+import {
+  AiStrategyDraftVersionModel,
+  AiStrategySessionModel,
+  ExecutionModel,
+  ExecutionTraceModel,
+} from "@quantnest-trading/db/client";
+import {
+  aiStrategyDraftSessionSchema,
+  type AiDebugQueryRequest,
+  type AiModelDescriptor,
+} from "@quantnest-trading/types/ai";
 import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware";
 import { getUserAiDraft, listUserAiDraftSummaries } from "../services/aiDrafts";
@@ -22,9 +31,16 @@ function getAiBuilderBaseUrl(): string {
 }
 
 function getAiServiceJwtSecret(): string {
-  const secret = process.env.AI_SERVICE_JWT_SECRET || process.env.AI_SERVICE_TOKEN;
-  if (!secret || secret === "AI_SERVICE_TOKEN" || secret === "AI_SERVICE_JWT_SECRET") {
-    throw new Error("AI service JWT secret must be configured and must not use the default placeholder value.");
+  const secret =
+    process.env.AI_SERVICE_JWT_SECRET || process.env.AI_SERVICE_TOKEN;
+  if (
+    !secret ||
+    secret === "AI_SERVICE_TOKEN" ||
+    secret === "AI_SERVICE_JWT_SECRET"
+  ) {
+    throw new Error(
+      "AI service JWT secret must be configured and must not use the default placeholder value.",
+    );
   }
   return secret;
 }
@@ -87,7 +103,10 @@ aiRouter.get("/models", authMiddleware, async (req, res) => {
 
     if (result.status >= 200 && result.status < 300 && result.data?.models) {
       const plan = await getUserPlan(userId);
-      const nextModels = annotateModelsForPlan(result.data.models as AiModelDescriptor[], plan);
+      const nextModels = annotateModelsForPlan(
+        result.data.models as AiModelDescriptor[],
+        plan,
+      );
 
       res.status(result.status).json({
         ...result.data,
@@ -101,7 +120,8 @@ aiRouter.get("/models", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to load AI models.",
+      message:
+        error instanceof Error ? error.message : "Failed to load AI models.",
     });
   }
 });
@@ -142,7 +162,106 @@ aiRouter.post("/strategy/plan", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to generate AI strategy plan.",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to generate AI strategy plan.",
+    });
+  }
+});
+
+aiRouter.post("/debug/explain", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const executionId = String(req.body?.executionId || "").trim();
+    const question = String(req.body?.question || "").trim();
+    if (!executionId || !question) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_REQUEST",
+        message: "executionId and question are required.",
+      });
+      return;
+    }
+
+    const execution = await ExecutionModel.findOne({
+      _id: executionId,
+      userId,
+    }).lean();
+    if (!execution) {
+      res.status(404).json({
+        success: false,
+        code: "EXECUTION_NOT_FOUND",
+        message: "Execution not found.",
+      });
+      return;
+    }
+
+    const trace = await ExecutionTraceModel.findOne({ executionId }).lean();
+    if (!trace) {
+      res.status(404).json({
+        success: false,
+        code: "TRACE_NOT_FOUND",
+        message:
+          "Execution trace not found. This execution ran before the trace feature was added.",
+      });
+      return;
+    }
+
+    const debugRequest: AiDebugQueryRequest = {
+      question,
+      workflowName: req.body?.workflowName || "Workflow",
+      triggerType: (trace.trigger as any)?.triggerType || "unknown",
+      triggerSnapshot: trace.trigger as Record<string, unknown>,
+      branchDecisions: (trace.branchDecisions || []).map((bd: any) => ({
+        nodeId: bd.nodeId,
+        nodeType: bd.nodeType,
+        evaluatedCondition: bd.evaluatedCondition,
+        selectedBranch: bd.selectedBranch,
+        availableBranches: bd.availableBranches || [],
+      })),
+      nodeSteps: (execution.steps || []).map((step: any) => ({
+        nodeType: step.nodeType,
+        status: step.status,
+        message: step.message,
+      })),
+      indicatorSnapshot: ((trace.trigger as any)?.indicatorSnapshot || []).map(
+        (is: any) => ({
+          symbol: is.symbol,
+          indicator: is.indicator,
+          timeframe: is.timeframe,
+          period: is.period,
+          value: is.value,
+        }),
+      ),
+      executionStatus: execution.status as "Success" | "Failed" | "InProgress",
+      marketDataAtExecution: trace.marketDataSnapshot as
+        | Record<string, unknown>
+        | undefined,
+    };
+
+    const result = await proxyAiBuilder("/api/v1/debug/explain", {
+      method: "POST",
+      userId,
+      data: debugRequest,
+    });
+
+    res.status(result.status).json(result.data);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "AI_PROXY_ERROR",
+      message:
+        error instanceof Error ? error.message : "Failed to explain execution.",
     });
   }
 });
@@ -185,7 +304,8 @@ aiRouter.post("/strategy/drafts", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to create AI draft.",
+      message:
+        error instanceof Error ? error.message : "Failed to create AI draft.",
     });
   }
 });
@@ -212,7 +332,8 @@ aiRouter.get("/strategy/drafts", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to list AI drafts.",
+      message:
+        error instanceof Error ? error.message : "Failed to list AI drafts.",
     });
   }
 });
@@ -229,7 +350,10 @@ aiRouter.get("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
       return;
     }
 
-    const draftResult = await getUserAiDraft(userId, String(req.params.draftId));
+    const draftResult = await getUserAiDraft(
+      userId,
+      String(req.params.draftId),
+    );
     if (draftResult.status === "not_found") {
       res.status(404).json({
         success: false,
@@ -256,229 +380,273 @@ aiRouter.get("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to load AI draft.",
+      message:
+        error instanceof Error ? error.message : "Failed to load AI draft.",
     });
   }
 });
 
-aiRouter.post("/strategy/drafts/:draftId/edit", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.userId;
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        code: "UNAUTHORIZED",
-        message: "Unauthorized",
-      });
-      return;
-    }
+aiRouter.post(
+  "/strategy/drafts/:draftId/edit",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
+        return;
+      }
 
-    await enforceAiRateLimit(userId);
+      await enforceAiRateLimit(userId);
 
-    const draftResult = await getUserAiDraft(userId, String(req.params.draftId));
-    if (draftResult.status === "not_found") {
-      res.status(404).json({
-        success: false,
-        code: "DRAFT_NOT_FOUND",
-        message: "AI draft session was not found.",
-      });
-      return;
-    }
-    if (draftResult.status === "invalid") {
-      res.status(500).json({
-        success: false,
-        code: "INVALID_DRAFT_DATA",
-        message: "Stored draft session data is invalid.",
-        details: draftResult.issues,
-      });
-      return;
-    }
+      const draftResult = await getUserAiDraft(
+        userId,
+        String(req.params.draftId),
+      );
+      if (draftResult.status === "not_found") {
+        res.status(404).json({
+          success: false,
+          code: "DRAFT_NOT_FOUND",
+          message: "AI draft session was not found.",
+        });
+        return;
+      }
+      if (draftResult.status === "invalid") {
+        res.status(500).json({
+          success: false,
+          code: "INVALID_DRAFT_DATA",
+          message: "Stored draft session data is invalid.",
+          details: draftResult.issues,
+        });
+        return;
+      }
 
-    await assertAiIterationsAllowed(userId, draftResult.draft.edits.length);
+      await assertAiIterationsAllowed(userId, draftResult.draft.edits.length);
 
-    const payload = await enforcePlanModelAccess(userId, req.body);
+      const payload = await enforcePlanModelAccess(userId, req.body);
 
-    const result = await proxyAiBuilder(`/api/v1/strategy/drafts/${req.params.draftId}/edit`, {
-      method: "POST",
-      userId,
-      data: payload,
-    });
-
-    res.status(result.status).json(result.data);
-  } catch (error) {
-    if (isPlanLimitError(error)) {
-      res.status(error.statusCode).json({
-        success: false,
-        code: error.code,
-        message: error.message,
-        details: error.details,
-      });
-      return;
-    }
-
-    res.status(500).json({
-      success: false,
-      code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to edit AI draft.",
-    });
-  }
-});
-
-aiRouter.get("/strategy/drafts/:draftId/versions/:versionId", authMiddleware, async (req, res) => {
-  try {
-    const result = await proxyAiBuilder(
-      `/api/v1/strategy/drafts/${req.params.draftId}/versions/${req.params.versionId}`,
-      {
-        method: "GET",
-        userId: req.userId || undefined,
-      },
-    );
-
-    res.status(result.status).json(result.data);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to load AI draft version.",
-    });
-  }
-});
-
-aiRouter.put("/strategy/drafts/:draftId/setup", authMiddleware, async (req, res) => {
-  try {
-    const versionId = typeof req.query.versionId === "string" ? req.query.versionId.trim() : "";
-    const setupPath = versionId
-      ? `/api/v1/strategy/drafts/${req.params.draftId}/setup?versionId=${encodeURIComponent(versionId)}`
-      : `/api/v1/strategy/drafts/${req.params.draftId}/setup`;
-    const result = await proxyAiBuilder(setupPath, {
-      method: "PUT",
-      userId: req.userId || undefined,
-      data: req.body,
-    });
-
-    res.status(result.status).json(result.data);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to save AI draft setup.",
-    });
-  }
-});
-
-aiRouter.delete("/strategy/drafts/:draftId", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.userId;
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        code: "UNAUTHORIZED",
-        message: "Unauthorized",
-      });
-      return;
-    }
-
-    const draftId = String(req.params.draftId);
-    const deletedSession = await AiStrategySessionModel.findOneAndDelete({
-      _id: draftId,
-      userId,
-    });
-
-    if (!deletedSession) {
-      res.status(404).json({
-        success: false,
-        code: "DRAFT_NOT_FOUND",
-        message: "AI draft session was not found.",
-      });
-      return;
-    }
-
-    await AiStrategyDraftVersionModel.deleteMany({ userId, draftId });
-
-    res.status(200).json({
-      success: true,
-      data: { draftId },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to delete AI draft.",
-    });
-  }
-});
-
-aiRouter.patch("/strategy/drafts/:draftId/title", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.userId;
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        code: "UNAUTHORIZED",
-        message: "Unauthorized",
-      });
-      return;
-    }
-
-    const draftId = String(req.params.draftId);
-    const title = String(req.body?.title || "").trim();
-    if (title.length < 3 || title.length > 120) {
-      res.status(400).json({
-        success: false,
-        code: "INVALID_REQUEST",
-        message: "Draft title must be between 3 and 120 characters.",
-      });
-      return;
-    }
-
-    const doc = await AiStrategySessionModel.findOne({ _id: draftId, userId }).lean();
-    if (!doc) {
-      res.status(404).json({
-        success: false,
-        code: "DRAFT_NOT_FOUND",
-        message: "AI draft session was not found.",
-      });
-      return;
-    }
-
-    const parsedDraft = aiStrategyDraftSessionSchema.safeParse(doc.sessionData);
-    if (!parsedDraft.success) {
-      res.status(500).json({
-        success: false,
-        code: "INVALID_DRAFT_DATA",
-        message: "Stored draft session data is invalid.",
-      });
-      return;
-    }
-
-    const draft = {
-      ...parsedDraft.data,
-      title,
-      updatedAt: new Date().toISOString(),
-    };
-
-    await AiStrategySessionModel.updateOne(
-      { _id: draftId, userId },
-      {
-        $set: {
-          title,
-          status: parsedDraft.data.status,
-          sessionData: draft,
+      const result = await proxyAiBuilder(
+        `/api/v1/strategy/drafts/${req.params.draftId}/edit`,
+        {
+          method: "POST",
+          userId,
+          data: payload,
         },
-      },
-    );
+      );
 
-    res.status(200).json({
-      success: true,
-      data: { draft },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      code: "AI_PROXY_ERROR",
-      message: error instanceof Error ? error.message : "Failed to rename AI draft.",
-    });
-  }
-});
+      res.status(result.status).json(result.data);
+    } catch (error) {
+      if (isPlanLimitError(error)) {
+        res.status(error.statusCode).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        code: "AI_PROXY_ERROR",
+        message:
+          error instanceof Error ? error.message : "Failed to edit AI draft.",
+      });
+    }
+  },
+);
+
+aiRouter.get(
+  "/strategy/drafts/:draftId/versions/:versionId",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const result = await proxyAiBuilder(
+        `/api/v1/strategy/drafts/${req.params.draftId}/versions/${req.params.versionId}`,
+        {
+          method: "GET",
+          userId: req.userId || undefined,
+        },
+      );
+
+      res.status(result.status).json(result.data);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        code: "AI_PROXY_ERROR",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to load AI draft version.",
+      });
+    }
+  },
+);
+
+aiRouter.put(
+  "/strategy/drafts/:draftId/setup",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const versionId =
+        typeof req.query.versionId === "string"
+          ? req.query.versionId.trim()
+          : "";
+      const setupPath = versionId
+        ? `/api/v1/strategy/drafts/${req.params.draftId}/setup?versionId=${encodeURIComponent(versionId)}`
+        : `/api/v1/strategy/drafts/${req.params.draftId}/setup`;
+      const result = await proxyAiBuilder(setupPath, {
+        method: "PUT",
+        userId: req.userId || undefined,
+        data: req.body,
+      });
+
+      res.status(result.status).json(result.data);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        code: "AI_PROXY_ERROR",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to save AI draft setup.",
+      });
+    }
+  },
+);
+
+aiRouter.delete(
+  "/strategy/drafts/:draftId",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
+        return;
+      }
+
+      const draftId = String(req.params.draftId);
+      const deletedSession = await AiStrategySessionModel.findOneAndDelete({
+        _id: draftId,
+        userId,
+      });
+
+      if (!deletedSession) {
+        res.status(404).json({
+          success: false,
+          code: "DRAFT_NOT_FOUND",
+          message: "AI draft session was not found.",
+        });
+        return;
+      }
+
+      await AiStrategyDraftVersionModel.deleteMany({ userId, draftId });
+
+      res.status(200).json({
+        success: true,
+        data: { draftId },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        code: "AI_PROXY_ERROR",
+        message:
+          error instanceof Error ? error.message : "Failed to delete AI draft.",
+      });
+    }
+  },
+);
+
+aiRouter.patch(
+  "/strategy/drafts/:draftId/title",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
+        return;
+      }
+
+      const draftId = String(req.params.draftId);
+      const title = String(req.body?.title || "").trim();
+      if (title.length < 3 || title.length > 120) {
+        res.status(400).json({
+          success: false,
+          code: "INVALID_REQUEST",
+          message: "Draft title must be between 3 and 120 characters.",
+        });
+        return;
+      }
+
+      const doc = await AiStrategySessionModel.findOne({
+        _id: draftId,
+        userId,
+      }).lean();
+      if (!doc) {
+        res.status(404).json({
+          success: false,
+          code: "DRAFT_NOT_FOUND",
+          message: "AI draft session was not found.",
+        });
+        return;
+      }
+
+      const parsedDraft = aiStrategyDraftSessionSchema.safeParse(
+        doc.sessionData,
+      );
+      if (!parsedDraft.success) {
+        res.status(500).json({
+          success: false,
+          code: "INVALID_DRAFT_DATA",
+          message: "Stored draft session data is invalid.",
+        });
+        return;
+      }
+
+      const draft = {
+        ...parsedDraft.data,
+        title,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await AiStrategySessionModel.updateOne(
+        { _id: draftId, userId },
+        {
+          $set: {
+            title,
+            status: parsedDraft.data.status,
+            sessionData: draft,
+          },
+        },
+      );
+
+      res.status(200).json({
+        success: true,
+        data: { draft },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        code: "AI_PROXY_ERROR",
+        message:
+          error instanceof Error ? error.message : "Failed to rename AI draft.",
+      });
+    }
+  },
+);
 
 export default aiRouter;

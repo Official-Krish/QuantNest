@@ -1,3 +1,4 @@
+import type { TriggerEvaluationSnapshot } from "@quantnest-trading/types";
 import { WorkflowModel } from "@quantnest-trading/db/client";
 import { canExecute, executeWorkflowSafe } from "../services/execution.service";
 import {
@@ -29,7 +30,10 @@ export async function processTimerWorkflows(now: Date) {
         continue;
       }
 
-      const intervalSeconds = getTimerIntervalSeconds(workflow as unknown as WorkflowType, trigger);
+      const intervalSeconds = getTimerIntervalSeconds(
+        workflow as unknown as WorkflowType,
+        trigger,
+      );
       if (!intervalSeconds) {
         continue;
       }
@@ -64,7 +68,10 @@ export async function processPriceWorkflows(now: Date) {
       if (!trigger) continue;
       if (!(await canExecute(workflow._id.toString()))) continue;
 
-      const shouldExecute = await handlePriceTrigger(workflow as unknown as WorkflowType, trigger);
+      const { shouldExecute, snapshot } = await handlePriceTrigger(
+        workflow as unknown as WorkflowType,
+        trigger,
+      );
 
       await WorkflowModel.updateOne(
         { _id: workflow._id },
@@ -77,7 +84,11 @@ export async function processPriceWorkflows(now: Date) {
       );
 
       if (shouldExecute) {
-        await executeWorkflowSafe(workflow as unknown as WorkflowType);
+        await executeWorkflowSafe(
+          workflow as unknown as WorkflowType,
+          undefined,
+          snapshot,
+        );
       }
     } catch (err) {
       console.error(`Price workflow error (${workflow.workflowName})`, err);
@@ -117,10 +128,17 @@ export async function processBreakoutRetestWorkflows(now: Date) {
       );
 
       if (result.shouldExecute) {
-        await executeWorkflowSafe(workflow as unknown as WorkflowType);
+        await executeWorkflowSafe(
+          workflow as unknown as WorkflowType,
+          undefined,
+          result.snapshot,
+        );
       }
     } catch (err) {
-      console.error(`Breakout retest workflow error (${workflow.workflowName})`, err);
+      console.error(
+        `Breakout retest workflow error (${workflow.workflowName})`,
+        err,
+      );
     }
   }
 }
@@ -137,9 +155,11 @@ export async function processConditionalWorkflows(now: Date) {
       if (!trigger) continue;
       if (!(await canExecute(workflow._id.toString()))) continue;
 
-      const shouldEvaluate = await handleConditionalTrigger(
+      const { shouldEvaluate } = await handleConditionalTrigger(
         trigger.data?.metadata?.timeWindowMinutes,
-        trigger.data?.metadata?.startTime ? new Date(trigger.data.metadata.startTime) : undefined,
+        trigger.data?.metadata?.startTime
+          ? new Date(trigger.data.metadata.startTime)
+          : undefined,
       );
 
       await WorkflowModel.updateOne(
@@ -155,8 +175,9 @@ export async function processConditionalWorkflows(now: Date) {
         continue;
       }
 
-      const condition = await evaluateConditionalMetadata(trigger.data?.metadata);
-      if (!condition) {
+      const { evaluatedCondition, snapshot } =
+        await evaluateConditionalMetadata(trigger.data?.metadata);
+      if (!evaluatedCondition) {
         continue;
       }
 
@@ -169,9 +190,16 @@ export async function processConditionalWorkflows(now: Date) {
         },
       );
 
-      await executeWorkflowSafe(workflow as unknown as WorkflowType, condition);
+      await executeWorkflowSafe(
+        workflow as unknown as WorkflowType,
+        evaluatedCondition,
+        snapshot as TriggerEvaluationSnapshot,
+      );
     } catch (err) {
-      console.error(`Conditional workflow error (${workflow.workflowName})`, err);
+      console.error(
+        `Conditional workflow error (${workflow.workflowName})`,
+        err,
+      );
     }
   }
 }
@@ -188,14 +216,16 @@ export async function processMarketSessionWorkflows(now: Date) {
       if (!trigger) continue;
       if (!(await canExecute(workflow._id.toString()))) continue;
 
-      const event = String(trigger.data?.metadata?.event || "market-open").toLowerCase() as
+      const event = String(
+        trigger.data?.metadata?.event || "market-open",
+      ).toLowerCase() as
         | "market-open"
         | "market-close"
         | "at-time"
         | "pause-at-time"
         | "session-window";
 
-      const shouldExecute = await handleMarketSessionTrigger(
+      const { shouldExecute, snapshot } = await handleMarketSessionTrigger(
         event,
         workflow.lastTriggeredAt ?? null,
         workflow.lastEvaluatedAt ?? null,
@@ -221,10 +251,17 @@ export async function processMarketSessionWorkflows(now: Date) {
         if (shouldPauseWorkflow) {
           continue;
         }
-        await executeWorkflowSafe(workflow as unknown as WorkflowType);
+        await executeWorkflowSafe(
+          workflow as unknown as WorkflowType,
+          undefined,
+          snapshot,
+        );
       }
     } catch (err) {
-      console.error(`Market session workflow error (${workflow.workflowName})`, err);
+      console.error(
+        `Market session workflow error (${workflow.workflowName})`,
+        err,
+      );
     }
   }
 }
@@ -267,10 +304,17 @@ export async function processPortfolioPnlDrawdownWorkflows(now: Date) {
       );
 
       if (result.shouldExecute) {
-        await executeWorkflowSafe(workflow as unknown as WorkflowType);
+        await executeWorkflowSafe(
+          workflow as unknown as WorkflowType,
+          undefined,
+          result.snapshot,
+        );
       }
     } catch (err) {
-      console.error(`Portfolio PnL / drawdown workflow error (${workflow.workflowName})`, err);
+      console.error(
+        `Portfolio PnL / drawdown workflow error (${workflow.workflowName})`,
+        err,
+      );
     }
   }
 }

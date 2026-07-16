@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Clock3,
   Hourglass,
+  MessageSquare,
   Play,
   Search,
   Timer,
@@ -26,6 +27,8 @@ interface ExecutionHistoryProps {
   onDateToChange: (value: string) => void;
   formatDate: (dateString: string) => string;
   calculateDuration: (startTime: string, endTime?: string) => string;
+  onExplain?: (executionId: string) => void;
+  activeExplainId?: string | null;
 }
 
 function getStatusIcon(status: string) {
@@ -62,10 +65,14 @@ function getStatusBadgeStyle(status: string): string {
 
 function getExecutionDotColor(status: string): string {
   switch (status) {
-    case "Success":   return "bg-emerald-400";
-    case "Failed":    return "bg-red-400";
-    case "InProgress": return "bg-blue-400";
-    default:          return "bg-zinc-600";
+    case "Success":
+      return "bg-emerald-400";
+    case "Failed":
+      return "bg-red-400";
+    case "InProgress":
+      return "bg-blue-400";
+    default:
+      return "bg-zinc-600";
   }
 }
 
@@ -73,11 +80,19 @@ function getDateRangePreset(preset: string): { from: string; to: string } {
   const today = new Date();
   const from = new Date();
   switch (preset) {
-    case "today":  from.setDate(today.getDate()); break;
-    case "7d":     from.setDate(today.getDate() - 7); break;
-    case "30d":    from.setDate(today.getDate() - 30); break;
-    case "all":    return { from: "", to: "" };
-    default:       return { from: "", to: "" };
+    case "today":
+      from.setDate(today.getDate());
+      break;
+    case "7d":
+      from.setDate(today.getDate() - 7);
+      break;
+    case "30d":
+      from.setDate(today.getDate() - 30);
+      break;
+    case "all":
+      return { from: "", to: "" };
+    default:
+      return { from: "", to: "" };
   }
   return {
     from: from.toISOString().split("T")[0],
@@ -98,6 +113,8 @@ export const ExecutionHistory = ({
   onDateToChange,
   formatDate,
   calculateDuration,
+  onExplain,
+  activeExplainId,
 }: ExecutionHistoryProps) => {
   const [expandedRuns, setExpandedRuns] = useState<Record<string, boolean>>({});
   const [datePresetOpen, setDatePresetOpen] = useState(false);
@@ -105,8 +122,14 @@ export const ExecutionHistory = ({
   const getDatePresetLabel = () => {
     if (!dateFrom && !dateTo) return "All time";
     const fmt = (d: string) => {
-      try { return new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
-      catch { return d; }
+      try {
+        return new Date(`${d}T00:00:00`).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+      } catch {
+        return d;
+      }
     };
     return `${fmt(dateFrom)} – ${fmt(dateTo)}`;
   };
@@ -142,20 +165,22 @@ export const ExecutionHistory = ({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           {/* Status filters */}
           <div className="inline-flex flex-nowrap gap-1.5 overflow-x-auto">
-            {(["All", "Success", "Failed", "InProgress"] as const).map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => onStatusFilterChange(status)}
-                className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-all ${
-                  statusFilter === status
-                    ? "border-white/25 bg-white/10 text-white"
-                    : "border-white/[0.07] bg-transparent text-zinc-500 hover:border-white/15 hover:text-zinc-300"
-                }`}
-              >
-                {status === "InProgress" ? "In Progress" : status}
-              </button>
-            ))}
+            {(["All", "Success", "Failed", "InProgress"] as const).map(
+              (status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => onStatusFilterChange(status)}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-all ${
+                    statusFilter === status
+                      ? "border-white/25 bg-white/10 text-white"
+                      : "border-white/[0.07] bg-transparent text-zinc-500 hover:border-white/15 hover:text-zinc-300"
+                  }`}
+                >
+                  {status === "InProgress" ? "In Progress" : status}
+                </button>
+              ),
+            )}
           </div>
 
           {/* Date + search */}
@@ -168,7 +193,9 @@ export const ExecutionHistory = ({
               >
                 <Clock3 className="h-3.5 w-3.5" />
                 <span>{getDatePresetLabel()}</span>
-                <ChevronDown className={`h-3 w-3 transition-transform ${datePresetOpen ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`h-3 w-3 transition-transform ${datePresetOpen ? "rotate-180" : ""}`}
+                />
               </button>
               {datePresetOpen && (
                 <div className="absolute top-full left-0 z-10 mt-2 w-44 rounded-xl border border-white/[0.07] bg-[#0d0f13] shadow-2xl shadow-black/60">
@@ -218,9 +245,12 @@ export const ExecutionHistory = ({
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-orange-400/20 bg-orange-500/8">
               <Zap className="h-5 w-5 text-[#f17463]" />
             </div>
-            <p className="mt-4 text-base font-semibold text-white">No executions yet</p>
+            <p className="mt-4 text-base font-semibold text-white">
+              No executions yet
+            </p>
             <p className="mt-1.5 text-xs text-zinc-500">
-              This workflow hasn't run yet. Once it does, you'll see a history of all executions here, along with details for each run.
+              This workflow hasn't run yet. Once it does, you'll see a history
+              of all executions here, along with details for each run.
             </p>
           </div>
         </div>
@@ -228,9 +258,16 @@ export const ExecutionHistory = ({
         <div className="space-y-3 px-4 py-4 md:px-5">
           {executions.map((execution) => {
             const steps = execution.steps || [];
-            const terminalSteps = steps.filter((s) => s.terminalFailure !== false);
-            const successSteps = terminalSteps.filter((s) => s.status === "Success").length;
-            const completion = terminalSteps.length === 0 ? 0 : Math.round((successSteps / terminalSteps.length) * 100);
+            const terminalSteps = steps.filter(
+              (s) => s.terminalFailure !== false,
+            );
+            const successSteps = terminalSteps.filter(
+              (s) => s.status === "Success",
+            ).length;
+            const completion =
+              terminalSteps.length === 0
+                ? 0
+                : Math.round((successSteps / terminalSteps.length) * 100);
             const isExpanded = !!expandedRuns[execution._id];
             const runNum = runsById[execution._id];
 
@@ -252,30 +289,61 @@ export const ExecutionHistory = ({
                         <Play className="h-3.5 w-3.5 fill-[#f17463] text-[#f17463]" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white">Run #{runNum}</p>
-                        <p className="text-[11px] text-zinc-500">{formatDate(execution.startTime)}</p>
+                        <p className="text-sm font-semibold text-white">
+                          Run #{runNum}
+                        </p>
+                        <p className="text-[11px] text-zinc-500">
+                          {formatDate(execution.startTime)}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Right: timer + status badge + chevron */}
-                    <div className="flex items-center gap-3">
+                    {/* Right: timer + status badge + explain + chevron */}
+                    <div className="flex items-center gap-2">
                       <span className="hidden items-center gap-1.5 text-[11px] text-zinc-500 sm:inline-flex">
                         <Timer className="h-3 w-3" />
-                        {calculateDuration(execution.startTime, execution.endTime)}
+                        {calculateDuration(
+                          execution.startTime,
+                          execution.endTime,
+                        )}
                       </span>
                       {execution.executionMode === "dry-run" ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/35 bg-amber-500/12 px-2.5 py-0.5 text-[11px] font-medium text-amber-300">
                           Dry Run
                         </span>
                       ) : null}
-                      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${getStatusBadgeStyle(execution.status)}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${getExecutionDotColor(execution.status)}`} />
-                        {execution.status === "InProgress" ? "In Progress" : execution.status.toUpperCase()}
+                      {onExplain && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onExplain(execution._id);
+                          }}
+                          className={`rounded-lg border p-1.5 transition-colors ${
+                            activeExplainId === execution._id
+                              ? "border-[#f17463]/50 bg-[#f17463]/15 text-[#f17463]"
+                              : "border-white/8 text-zinc-600 hover:border-white/15 hover:text-zinc-400"
+                          }`}
+                          title="Explain this run"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                        </button>
+                      )}
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${getStatusBadgeStyle(execution.status)}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${getExecutionDotColor(execution.status)}`}
+                        />
+                        {execution.status === "InProgress"
+                          ? "In Progress"
+                          : execution.status.toUpperCase()}
                       </span>
-                      {isExpanded
-                        ? <ChevronDown className="h-4 w-4 text-zinc-600 transition-transform duration-300" />
-                        : <ChevronRight className="h-4 w-4 text-zinc-600 transition-transform duration-300" />
-                      }
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-zinc-600 transition-transform duration-300" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-zinc-600 transition-transform duration-300" />
+                      )}
                     </div>
                   </div>
                 </button>
@@ -291,31 +359,41 @@ export const ExecutionHistory = ({
                       <div className="space-y-4">
                         {steps.length > 0 ? (
                           steps.map((step, idx) => (
-                            <div key={idx} className="relative flex gap-3 pl-12 md:pl-14">
+                            <div
+                              key={idx}
+                              className="relative flex gap-3 pl-12 md:pl-14"
+                            >
                               {/* Timeline dot */}
-                              <div className={`absolute left-2 top-2 h-4 w-4 rounded-full border-2 md:left-3 ${
-                                step.status === "Success" 
-                                  ? "border-emerald-500 bg-emerald-500/20" 
-                                  : step.status === "Failed"
-                                  ? "border-red-500 bg-red-500/20"
-                                  : "border-zinc-600 bg-zinc-700/30"
-                              }`} />
-                              
+                              <div
+                                className={`absolute left-2 top-2 h-4 w-4 rounded-full border-2 md:left-3 ${
+                                  step.status === "Success"
+                                    ? "border-emerald-500 bg-emerald-500/20"
+                                    : step.status === "Failed"
+                                      ? "border-red-500 bg-red-500/20"
+                                      : "border-zinc-600 bg-zinc-700/30"
+                                }`}
+                              />
+
                               {/* Node card */}
                               <div className="flex-1 overflow-hidden rounded-xl border border-white/[0.07] bg-[#0a0b0d] transition-all duration-200">
                                 {/* Card header */}
                                 <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
                                   <div className="flex items-center gap-2">
-                                    <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${
-                                      step.nodeType.toLowerCase().includes("trigger")
-                                        ? "text-[#f17463]"
-                                        : "text-zinc-500"
-                                    }`}>
+                                    <span
+                                      className={`text-[10px] font-bold uppercase tracking-[0.12em] ${
+                                        step.nodeType
+                                          .toLowerCase()
+                                          .includes("trigger")
+                                          ? "text-[#f17463]"
+                                          : "text-zinc-500"
+                                      }`}
+                                    >
                                       {step.nodeType.replaceAll("_", " ")}
                                     </span>
                                     {typeof step.attempt === "number" ? (
                                       <span className="rounded-full border border-white/8 bg-white/3 px-2 py-0.5 text-[10px] font-medium text-zinc-300">
-                                        Attempt {step.attempt}/{step.maxAttempts || step.attempt}
+                                        Attempt {step.attempt}/
+                                        {step.maxAttempts || step.attempt}
                                       </span>
                                     ) : null}
                                     {step.simulated ? (
@@ -325,7 +403,9 @@ export const ExecutionHistory = ({
                                     ) : null}
                                   </div>
                                   <span className="text-[11px] text-zinc-500">
-                                    {new Date(execution.startTime).toLocaleTimeString("en-US", {
+                                    {new Date(
+                                      execution.startTime,
+                                    ).toLocaleTimeString("en-US", {
                                       hour: "numeric",
                                       minute: "2-digit",
                                       second: "2-digit",
@@ -342,18 +422,26 @@ export const ExecutionHistory = ({
                                   {/* Metric tiles — STATUS + RESPONSE TIME */}
                                   <div className="mt-3 grid grid-cols-2 gap-2">
                                     <div className="rounded-lg border border-white/6 bg-[#080a0c] px-3 py-2.5 transition-all duration-200 hover:bg-[#0a0c0e] hover:border-white/10">
-                                      <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Status</p>
+                                      <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                                        Status
+                                      </p>
                                       <div className="mt-1 flex items-center gap-1.5">
                                         {getStatusIcon(step.status)}
                                         <p className="text-sm font-medium text-white">
-                                          {step.status === "Success" ? "Delivered" : step.status}
+                                          {step.status === "Success"
+                                            ? "Delivered"
+                                            : step.status}
                                         </p>
                                       </div>
                                     </div>
                                     <div className="rounded-lg border border-white/6 bg-[#080a0c] px-3 py-2.5 transition-all duration-200 hover:bg-[#0a0c0e] hover:border-white/10">
-                                      <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Response Time</p>
+                                      <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                                        Response Time
+                                      </p>
                                       <p className="mt-1 text-sm font-medium text-white">
-                                        {extractDurationFromMessage(step.message)}
+                                        {extractDurationFromMessage(
+                                          step.message,
+                                        )}
                                       </p>
                                     </div>
                                   </div>
@@ -370,9 +458,15 @@ export const ExecutionHistory = ({
 
                                   {step.simulatedPayload ? (
                                     <div className="mt-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2">
-                                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-300">Simulated payload</p>
+                                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-300">
+                                        Simulated payload
+                                      </p>
                                       <pre className="mt-1 max-h-52 overflow-auto text-[11px] text-amber-100/90">
-                                        {JSON.stringify(step.simulatedPayload, null, 2)}
+                                        {JSON.stringify(
+                                          step.simulatedPayload,
+                                          null,
+                                          2,
+                                        )}
                                       </pre>
                                     </div>
                                   ) : null}
@@ -381,7 +475,9 @@ export const ExecutionHistory = ({
                             </div>
                           ))
                         ) : (
-                          <p className="pl-12 text-xs text-zinc-600 md:pl-14">No execution steps available.</p>
+                          <p className="pl-12 text-xs text-zinc-600 md:pl-14">
+                            No execution steps available.
+                          </p>
                         )}
                       </div>
                     </div>

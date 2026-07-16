@@ -738,6 +738,86 @@ const UserReusableSecretSchema = new Schema(
   { timestamps: true },
 );
 
+// ---- Execution Trace Schema (for debugger) ----
+const IndicatorSnapshotEntrySchema = new Schema(
+  {
+    symbol: String,
+    marketType: String,
+    timeframe: String,
+    indicator: String,
+    period: Number,
+    value: Schema.Types.Mixed,
+  },
+  { _id: false },
+);
+
+const TriggerEvaluationSnapshotSchema = new Schema(
+  {
+    triggerType: String,
+    symbol: String,
+    marketType: String,
+    targetPrice: Number,
+    condition: String,
+    evaluatedCondition: Boolean,
+    currentPrice: Schema.Types.Mixed,
+    indicatorSnapshot: [IndicatorSnapshotEntrySchema],
+    expression: Schema.Types.Mixed,
+    crossoverPair: Schema.Types.Mixed,
+    baselinePrice: Schema.Types.Mixed,
+    priceChange: Schema.Types.Mixed,
+    priceChangePercent: Schema.Types.Mixed,
+    breakoutStage: String,
+    isInRetestZone: Boolean,
+    sessionEvent: String,
+    sessionTriggered: Boolean,
+  },
+  { _id: false },
+);
+
+const ExecutionTraceBranchDecisionSchema = new Schema(
+  {
+    nodeId: String,
+    nodeType: String,
+    evaluatedCondition: Boolean,
+    selectedBranch: String,
+    availableBranches: [String],
+  },
+  { _id: false },
+);
+
+const ExecutionTraceNodeEntrySchema = new Schema(
+  {
+    nodeId: String,
+    nodeType: String,
+    nodeKind: { type: String, enum: ["trigger", "action"] },
+    status: { type: String, enum: ["Success", "Failed", "Skipped"] },
+    triggerSnapshot: TriggerEvaluationSnapshotSchema,
+    branchDecision: ExecutionTraceBranchDecisionSchema,
+    resolvedMetadata: Schema.Types.Mixed,
+    message: String,
+  },
+  { _id: false },
+);
+
+const ExecutionTraceSchema = new Schema({
+  executionId: {
+    type: Schema.Types.ObjectId,
+    ref: "Executions",
+    required: true,
+    unique: true,
+  },
+  workflowId: { type: Schema.Types.ObjectId, ref: "Workflows", required: true },
+  userId: { type: Schema.Types.ObjectId, ref: "Users", required: true },
+  trigger: TriggerEvaluationSnapshotSchema,
+  nodes: [ExecutionTraceNodeEntrySchema],
+  branchDecisions: [ExecutionTraceBranchDecisionSchema],
+  marketDataSnapshot: Schema.Types.Mixed,
+  startTime: { type: Date, default: Date.now },
+  endTime: Date,
+});
+
+ExecutionTraceSchema.index({ workflowId: 1, startTime: -1 });
+
 // Compound unique index for userId + workflowId
 ZerodhaTokenSchema.index({ userId: 1, workflowId: 1 }, { unique: true });
 AiStrategySessionSchema.index({ userId: 1, updatedAt: -1 });
@@ -752,6 +832,10 @@ UserReusableSecretSchema.index(
   { unique: true },
 );
 
+export const ExecutionTraceModel = mongoose.model(
+  "ExecutionTraces",
+  ExecutionTraceSchema,
+);
 export const ZerodhaTokenModel = mongoose.model(
   "ZerodhaTokens",
   ZerodhaTokenSchema,

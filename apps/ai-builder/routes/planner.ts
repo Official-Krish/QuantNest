@@ -1,5 +1,10 @@
+import { GoogleGenAI } from "@google/genai";
 import { Router } from "express";
-import { aiStrategySetupStateSchema } from "@quantnest-trading/types/ai";
+import {
+  aiDebugQueryRequestSchema,
+  aiDebugQueryResponseSchema,
+  aiStrategySetupStateSchema,
+} from "@quantnest-trading/types/ai";
 import {
   annotateModelsForPlan,
   enforcePlanModelAccess,
@@ -18,7 +23,12 @@ import {
   parseStrategyBuilderRequest,
   parseStrategyDraftEditRequest,
 } from "../services/plan-schema";
-import { buildStrategyEditPrompt, buildStrategyPlannerPrompt } from "../services/prompt-builder";
+import {
+  buildDebugPrompt,
+  buildStrategyEditPrompt,
+  buildStrategyPlannerPrompt,
+} from "../services/prompt-builder";
+import { withTimeout } from "../services/timeout";
 import type { StrategyPlannerProvider } from "../types";
 
 const providers: StrategyPlannerProvider[] = [
@@ -31,7 +41,11 @@ const router = Router();
 
 function requireUserId(userId?: string): string {
   if (!userId) {
-    throw new AiBuilderError("USER_CONTEXT_MISSING", "User context is required for AI draft sessions.", 401);
+    throw new AiBuilderError(
+      "USER_CONTEXT_MISSING",
+      "User context is required for AI draft sessions.",
+      401,
+    );
   }
   return userId;
 }
@@ -42,8 +56,9 @@ async function generatePlanWithRetry(
   prompt: string,
 ) {
   let attemptPrompt = prompt;
-  const crossoverHint = /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(input.prompt)
-    ? `
+  const crossoverHint =
+    /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(input.prompt)
+      ? `
 
 Important correction for crossover requests:
 - Add a conditional-trigger node with metadata.expression.
@@ -54,9 +69,12 @@ Important correction for crossover requests:
 - Example clause shape:
   {"type":"clause","left":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"ema","params":{"period":20}}},"operator":"crosses_below","right":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"ema","params":{"period":50}}}}
 `
-    : "";
-  const volumeSpikeHint = /volume\s*(spike|surge)|spike\s+in\s+volume|high\s+volume|volume\s*above/i.test(input.prompt)
-    ? `
+      : "";
+  const volumeSpikeHint =
+    /volume\s*(spike|surge)|spike\s+in\s+volume|high\s+volume|volume\s*above/i.test(
+      input.prompt,
+    )
+      ? `
 
 Important correction for volume spike requests:
 - Add a conditional-trigger node with metadata.expression.
@@ -65,7 +83,7 @@ Important correction for volume spike requests:
 - Example clause shape:
   {"type":"clause","left":{"type":"indicator","indicator":{"symbol":"HDFC","timeframe":"5m","marketType":"Indian","indicator":"volume"}},"operator":">","right":{"type":"value","value":1000000}}
 `
-    : "";
+      : "";
   const conditionalGroupingHint = `
 
 Conditional grouping DO/DON'T:
@@ -82,9 +100,12 @@ Conditional grouping DO/DON'T:
       if (
         attempt === 0 &&
         isAiBuilderError(error) &&
-        ["INVALID_PROVIDER_JSON", "INVALID_GRAPH", "UNSUPPORTED_NODE_TYPE", "PROMPT_MISMATCH"].includes(
-          error.code,
-        )
+        [
+          "INVALID_PROVIDER_JSON",
+          "INVALID_GRAPH",
+          "UNSUPPORTED_NODE_TYPE",
+          "PROMPT_MISMATCH",
+        ].includes(error.code)
       ) {
         attemptPrompt = `${prompt}
 
@@ -100,7 +121,11 @@ Regenerate the workflow plan. Return only corrected JSON.`;
     }
   }
 
-  throw new AiBuilderError("PLAN_GENERATION_FAILED", "Failed to generate a valid strategy plan.", 502);
+  throw new AiBuilderError(
+    "PLAN_GENERATION_FAILED",
+    "Failed to generate a valid strategy plan.",
+    502,
+  );
 }
 
 router.get("/models", serviceAuthMiddleware, async (req, res) => {
@@ -124,7 +149,8 @@ router.get("/models", serviceAuthMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       code: "INTERNAL_ERROR",
-      message: error instanceof Error ? error.message : "Failed to load models.",
+      message:
+        error instanceof Error ? error.message : "Failed to load models.",
     });
   }
 });
@@ -173,7 +199,10 @@ router.post("/strategy/plan", serviceAuthMiddleware, async (req, res) => {
       return;
     }
 
-    const message = error instanceof Error ? error.message : "Failed to generate strategy plan.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to generate strategy plan.";
     res.status(500).json({
       success: false,
       code: "INTERNAL_ERROR",
@@ -227,7 +256,8 @@ router.post("/strategy/drafts", serviceAuthMiddleware, async (req, res) => {
       return;
     }
 
-    const message = error instanceof Error ? error.message : "Failed to create AI draft.";
+    const message =
+      error instanceof Error ? error.message : "Failed to create AI draft.";
     res.status(500).json({
       success: false,
       code: "INTERNAL_ERROR",
@@ -236,130 +266,253 @@ router.post("/strategy/drafts", serviceAuthMiddleware, async (req, res) => {
   }
 });
 
-router.post("/strategy/drafts/:draftId/edit", serviceAuthMiddleware, async (req, res) => {
+router.post(
+  "/strategy/drafts/:draftId/edit",
+  serviceAuthMiddleware,
+  async (req, res) => {
+    try {
+      const userId = requireUserId(req.userId);
+      await enforcePlanModelAccess(userId, req.body);
+      const edit = parseStrategyDraftEditRequest(req.body);
+      const existing = await aiDraftStore.get(
+        userId,
+        String(req.params.draftId),
+      );
+
+      const conversationHistory = existing.messages
+        .filter(
+          (msg) =>
+            (msg.role === "user" || msg.role === "assistant") &&
+            (msg.kind === "prompt" ||
+              msg.kind === "edit" ||
+              msg.kind === "result"),
+        )
+        .map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        }));
+
+      const input = {
+        ...existing.request,
+        model: edit.model ?? existing.request.model,
+        conversationHistory,
+      };
+      const { provider } = resolvePlannerProvider(providers, input.model);
+      const prompt = buildStrategyEditPrompt(
+        input,
+        existing.response.plan,
+        edit.instruction,
+      );
+      const response = await generatePlanWithRetry(provider, input, prompt);
+      const draft = await aiDraftStore.update(
+        userId,
+        existing.draftId,
+        input,
+        response,
+        edit.instruction,
+      );
+
+      res.status(200).json({
+        success: true,
+        data: { draft },
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({
+          success: false,
+          code: "INVALID_REQUEST",
+          message: "Invalid draft edit request.",
+          errors: error.flatten(),
+        });
+        return;
+      }
+
+      if (isPlanLimitError(error)) {
+        res.status(error.statusCode).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+        return;
+      }
+
+      if (isAiBuilderError(error)) {
+        res.status(error.statusCode).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+        return;
+      }
+
+      const message =
+        error instanceof Error ? error.message : "Failed to edit AI draft.";
+      res.status(500).json({
+        success: false,
+        code: "INTERNAL_ERROR",
+        message,
+      });
+    }
+  },
+);
+
+router.get(
+  "/strategy/drafts/:draftId/versions/:versionId",
+  serviceAuthMiddleware,
+  async (req, res) => {
+    try {
+      const userId = requireUserId(req.userId);
+      const payload = await aiDraftStore.getVersion(
+        userId,
+        String(req.params.draftId),
+        String(req.params.versionId),
+      );
+
+      res.status(200).json({
+        success: true,
+        data: payload,
+      });
+    } catch (error) {
+      if (isAiBuilderError(error)) {
+        res.status(error.statusCode).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+        return;
+      }
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to load AI draft version.";
+      res.status(500).json({
+        success: false,
+        code: "INTERNAL_ERROR",
+        message,
+      });
+    }
+  },
+);
+
+router.put(
+  "/strategy/drafts/:draftId/setup",
+  serviceAuthMiddleware,
+  async (req, res) => {
+    try {
+      const userId = requireUserId(req.userId);
+      const versionId =
+        typeof req.query.versionId === "string"
+          ? req.query.versionId.trim()
+          : "";
+      const setupState = aiStrategySetupStateSchema.parse(req.body);
+      const draft = await aiDraftStore.updateSetupState(
+        userId,
+        String(req.params.draftId),
+        setupState,
+        versionId || undefined,
+      );
+
+      res.status(200).json({
+        success: true,
+        data: { draft },
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({
+          success: false,
+          code: "INVALID_REQUEST",
+          message: "Invalid draft setup payload.",
+          errors: error,
+        });
+        return;
+      }
+
+      if (isAiBuilderError(error)) {
+        res.status(error.statusCode).json({
+          success: false,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+        });
+        return;
+      }
+
+      const message =
+        error instanceof Error ? error.message : "Failed to save draft setup.";
+      res.status(500).json({
+        success: false,
+        code: "INTERNAL_ERROR",
+        message,
+      });
+    }
+  },
+);
+
+router.post("/debug/explain", serviceAuthMiddleware, async (req, res) => {
   try {
-    const userId = requireUserId(req.userId);
-    await enforcePlanModelAccess(userId, req.body);
-    const edit = parseStrategyDraftEditRequest(req.body);
-    const existing = await aiDraftStore.get(userId, String(req.params.draftId));
-    
-    const conversationHistory = existing.messages
-      .filter((msg) => (msg.role === "user" || msg.role === "assistant") && (msg.kind === "prompt" || msg.kind === "edit" || msg.kind === "result"))
-      .map((msg) => ({
-        role: msg.role as "user" | "assistant",
-        content: msg.content,
-      }));
-    
-    const input = {
-      ...existing.request,
-      model: edit.model ?? existing.request.model,
-      conversationHistory, 
-    };
-    const { provider } = resolvePlannerProvider(providers, input.model);
-    const prompt = buildStrategyEditPrompt(input, existing.response.plan, edit.instruction);
-    const response = await generatePlanWithRetry(provider, input, prompt);
-    const draft = await aiDraftStore.update(userId, existing.draftId, input, response, edit.instruction);
+    const parsed = aiDebugQueryRequestSchema.parse(req.body);
+    const prompt = buildDebugPrompt(parsed);
 
-    res.status(200).json({
-      success: true,
-      data: { draft },
-    });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json({
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({
         success: false,
-        code: "INVALID_REQUEST",
-        message: "Invalid draft edit request.",
-        errors: error.flatten(),
+        code: "PROVIDER_NOT_CONFIGURED",
+        message: "Gemini is not configured. Set GOOGLE_API_KEY.",
       });
       return;
     }
 
-    if (isPlanLimitError(error)) {
-      res.status(error.statusCode).json({
-        success: false,
-        code: error.code,
-        message: error.message,
-        details: error.details,
-      });
-      return;
-    }
+    const client = new GoogleGenAI({ apiKey });
+    const modelName = process.env.GOOGLE_GENAI_MODEL || "gemini-2.5-flash";
 
-    if (isAiBuilderError(error)) {
-      res.status(error.statusCode).json({
-        success: false,
-        code: error.code,
-        message: error.message,
-        details: error.details,
-      });
-      return;
-    }
+    const response = await withTimeout(
+      client.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: { responseMimeType: "application/json" },
+      }),
+      30000,
+      "Gemini timed out while generating the debug explanation.",
+    );
 
-    const message = error instanceof Error ? error.message : "Failed to edit AI draft.";
-    res.status(500).json({
-      success: false,
-      code: "INTERNAL_ERROR",
-      message,
-    });
-  }
-});
-
-router.get("/strategy/drafts/:draftId/versions/:versionId", serviceAuthMiddleware, async (req, res) => {
-  try {
-    const userId = requireUserId(req.userId);
-    const payload = await aiDraftStore.getVersion(
-      userId,
-      String(req.params.draftId),
-      String(req.params.versionId),
+    const rawText = response.text || "{}";
+    const parsedResponse = aiDebugQueryResponseSchema.parse(
+      JSON.parse(rawText),
     );
 
     res.status(200).json({
       success: true,
-      data: payload,
-    });
-  } catch (error) {
-    if (isAiBuilderError(error)) {
-      res.status(error.statusCode).json({
-        success: false,
-        code: error.code,
-        message: error.message,
-        details: error.details,
-      });
-      return;
-    }
-
-    const message = error instanceof Error ? error.message : "Failed to load AI draft version.";
-    res.status(500).json({
-      success: false,
-      code: "INTERNAL_ERROR",
-      message,
-    });
-  }
-});
-
-router.put("/strategy/drafts/:draftId/setup", serviceAuthMiddleware, async (req, res) => {
-  try {
-    const userId = requireUserId(req.userId);
-    const versionId = typeof req.query.versionId === "string" ? req.query.versionId.trim() : "";
-    const setupState = aiStrategySetupStateSchema.parse(req.body);
-    const draft = await aiDraftStore.updateSetupState(
-      userId,
-      String(req.params.draftId),
-      setupState,
-      versionId || undefined,
-    );
-
-    res.status(200).json({
-      success: true,
-      data: { draft },
+      data: parsedResponse,
     });
   } catch (error) {
     if (error instanceof ZodError) {
-      res.status(400).json({
-        success: false,
-        code: "INVALID_REQUEST",
-        message: "Invalid draft setup payload.",
-        errors: error,
+      if (error.issues?.[0]?.path?.[0] === "question") {
+        res.status(400).json({
+          success: false,
+          code: "INVALID_REQUEST",
+          message: "Invalid debug query request.",
+          errors: error.flatten(),
+        });
+        return;
+      }
+
+      // Zod parse error on AI response — return fallback
+      res.status(200).json({
+        success: true,
+        data: {
+          answer:
+            "The AI could not generate a structured explanation for this execution trace. Please try rephrasing your question or selecting a different run.",
+          reasoning:
+            "The AI response could not be parsed into the expected format.",
+          confidence: "Low",
+          supportingIndicators: [],
+          relevantNodes: [],
+        },
       });
       return;
     }
@@ -374,7 +527,8 @@ router.put("/strategy/drafts/:draftId/setup", serviceAuthMiddleware, async (req,
       return;
     }
 
-    const message = error instanceof Error ? error.message : "Failed to save draft setup.";
+    const message =
+      error instanceof Error ? error.message : "Failed to explain execution.";
     res.status(500).json({
       success: false,
       code: "INTERNAL_ERROR",

@@ -1,4 +1,5 @@
 import { getCurrentPrice } from "@quantnest-trading/market";
+import type { TriggerEvaluationSnapshot } from "@quantnest-trading/types";
 import type { NodeType, WorkflowType } from "../../types";
 import {
   getConfirmationMoveValue,
@@ -20,6 +21,7 @@ export async function handleBreakoutRetestTrigger(
     retestPrice?: number;
   };
   currentPrice: number;
+  snapshot: TriggerEvaluationSnapshot;
 }> {
   const {
     asset,
@@ -66,12 +68,17 @@ export async function handleBreakoutRetestTrigger(
     !Number.isFinite(confirmationWindow) ||
     confirmationWindow <= 0
   ) {
-    throw new Error("Breakout retest windows and percentages must be greater than zero");
+    throw new Error(
+      "Breakout retest windows and percentages must be greater than zero",
+    );
   }
 
   const currentPrice = await getCurrentPrice(normalizedAsset, market);
   const toleranceValue = getRetestToleranceValue(level, tolerancePct);
-  const confirmationMoveValue = getConfirmationMoveValue(level, confirmationPct);
+  const confirmationMoveValue = getConfirmationMoveValue(
+    level,
+    confirmationPct,
+  );
   const now = new Date();
 
   const runtime = {
@@ -81,10 +88,14 @@ export async function handleBreakoutRetestTrigger(
       | "retested"
       | "confirmed",
     breakoutDetectedAt: workflow.triggerConfig?.runtime?.breakoutDetectedAt
-      ? new Date(workflow.triggerConfig.runtime.breakoutDetectedAt as string | Date).toISOString()
+      ? new Date(
+          workflow.triggerConfig.runtime.breakoutDetectedAt as string | Date,
+        ).toISOString()
       : undefined,
     retestDetectedAt: workflow.triggerConfig?.runtime?.retestDetectedAt
-      ? new Date(workflow.triggerConfig.runtime.retestDetectedAt as string | Date).toISOString()
+      ? new Date(
+          workflow.triggerConfig.runtime.retestDetectedAt as string | Date,
+        ).toISOString()
       : undefined,
     breakoutPrice:
       typeof workflow.triggerConfig?.runtime?.breakoutPrice === "number"
@@ -104,23 +115,30 @@ export async function handleBreakoutRetestTrigger(
     retestPrice: undefined,
   });
 
-  const isBreakout = normalizedDirection === "bullish" ? currentPrice > level : currentPrice < level;
+  const isBreakout =
+    normalizedDirection === "bullish"
+      ? currentPrice > level
+      : currentPrice < level;
   const isInRetestZone =
-    currentPrice >= level - toleranceValue && currentPrice <= level + toleranceValue;
+    currentPrice >= level - toleranceValue &&
+    currentPrice <= level + toleranceValue;
   const isConfirmed =
     normalizedDirection === "bullish"
       ? currentPrice >= level + confirmationMoveValue
       : currentPrice <= level - confirmationMoveValue;
 
   if (runtime.stage === "broken-out" && runtime.breakoutDetectedAt) {
-    const expiresAt = new Date(runtime.breakoutDetectedAt).getTime() + retestWindow * 60 * 1000;
+    const expiresAt =
+      new Date(runtime.breakoutDetectedAt).getTime() + retestWindow * 60 * 1000;
     if (Date.now() > expiresAt) {
       Object.assign(runtime, resetRuntime());
     }
   }
 
   if (runtime.stage === "retested" && runtime.retestDetectedAt) {
-    const expiresAt = new Date(runtime.retestDetectedAt).getTime() + confirmationWindow * 60 * 1000;
+    const expiresAt =
+      new Date(runtime.retestDetectedAt).getTime() +
+      confirmationWindow * 60 * 1000;
     if (Date.now() > expiresAt) {
       Object.assign(runtime, resetRuntime());
     }
@@ -138,12 +156,22 @@ export async function handleBreakoutRetestTrigger(
     runtime.retestPrice = currentPrice;
   }
 
+  const snapshot: TriggerEvaluationSnapshot = {
+    triggerType: "breakout-retest-trigger",
+    symbol: asset,
+    marketType: market,
+    currentPrice,
+    breakoutStage: runtime.stage,
+    isInRetestZone,
+  };
+
   if (runtime.stage === "retested" && isConfirmed) {
     runtime.stage = "confirmed";
     return {
       shouldExecute: true,
       runtime,
       currentPrice,
+      snapshot,
     };
   }
 
@@ -151,5 +179,6 @@ export async function handleBreakoutRetestTrigger(
     shouldExecute: false,
     runtime,
     currentPrice,
+    snapshot,
   };
 }
