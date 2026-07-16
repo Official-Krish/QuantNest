@@ -23,6 +23,38 @@ export async function canExecute(workflowId: string): Promise<boolean> {
   return Date.now() - lastExecution.startTime.getTime() > EXECUTION_COOLDOWN_MS;
 }
 
+let cooldownCache = new Map<string, boolean>();
+let cooldownCacheExpiry = 0;
+
+export async function batchCanExecute(
+  workflowIds: string[],
+  now: Date,
+): Promise<Map<string, boolean>> {
+  if (workflowIds.length === 0) return new Map();
+  if (now.getTime() < cooldownCacheExpiry && cooldownCache.size > 0) {
+    return cooldownCache;
+  }
+
+  const cutoff = new Date(now.getTime() - EXECUTION_COOLDOWN_MS);
+  const recent = await ExecutionModel.aggregate([
+    { $match: { workflowId: { $in: workflowIds.map((id) => id as any) } } },
+    { $sort: { startTime: -1 } },
+    { $group: { _id: "$workflowId", lastStart: { $first: "$startTime" } } },
+  ]);
+
+  const result = new Map<string, boolean>();
+  const recentMap = new Map(recent.map((r) => [r._id.toString(), r.lastStart]));
+
+  for (const id of workflowIds) {
+    const lastStart = recentMap.get(id);
+    result.set(id, !lastStart || lastStart < cutoff);
+  }
+
+  cooldownCache = result;
+  cooldownCacheExpiry = now.getTime() + 2000;
+  return result;
+}
+
 export async function executeWorkflowSafe(
   workflow: WorkflowType,
   condition?: boolean,

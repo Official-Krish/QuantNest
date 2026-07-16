@@ -324,7 +324,6 @@ const WorkflowSchema = new Schema({
       "portfolio-pnl-drawdown-trigger",
     ],
     required: false,
-    index: true,
   },
   triggerNodeId: {
     type: String,
@@ -337,7 +336,6 @@ const WorkflowSchema = new Schema({
   nextRunAt: {
     type: Date,
     required: false,
-    index: true,
   },
   lastTriggeredAt: {
     type: Date,
@@ -470,6 +468,8 @@ const ExecutionSchema = new Schema({
     type: Date,
   },
 });
+
+ExecutionSchema.index({ workflowId: 1, startTime: -1 });
 
 const NotificationSchema = new Schema({
   userId: {

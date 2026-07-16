@@ -1,4 +1,8 @@
-import { assetCompanyName, assetMapped, SUPPORTED_WEB3_ASSETS } from "@quantnest-trading/types";
+import {
+  assetCompanyName,
+  assetMapped,
+  SUPPORTED_WEB3_ASSETS,
+} from "@quantnest-trading/types";
 import YahooFinance from "yahoo-finance2";
 
 export * from "./utils";
@@ -8,15 +12,31 @@ const yahooFinance = new YahooFinance();
 
 type MarketType = "Indian" | "Crypto";
 type HistoricalInterval = "1d" | "1wk" | "1mo";
-type ChartInterval = "1m" | "2m" | "5m" | "15m" | "30m" | "60m" | "90m" | "1h" | "1d" | "5d" | "1wk" | "1mo" | "3mo";
+type ChartInterval =
+  | "1m"
+  | "2m"
+  | "5m"
+  | "15m"
+  | "30m"
+  | "60m"
+  | "90m"
+  | "1h"
+  | "1d"
+  | "5d"
+  | "1wk"
+  | "1mo"
+  | "3mo";
 type MarketAssetType = "equity" | "crypto";
 
 const MARKET_ASSET_CACHE_TTL_MS = 15 * 60 * 1000;
 
-const marketAssetCache = new Map<string, {
-  fetchedAt: number;
-  assets: MarketAsset[];
-}>();
+const marketAssetCache = new Map<
+  string,
+  {
+    fetchedAt: number;
+    assets: MarketAsset[];
+  }
+>();
 
 const INDIAN_SEARCH_QUERIES = [
   "NSE",
@@ -130,7 +150,9 @@ export interface HistoricalBar {
 }
 
 function resolveTicker(asset: string, market: MarketType) {
-  const normalizedAsset = String(asset || "").trim().toUpperCase();
+  const normalizedAsset = String(asset || "")
+    .trim()
+    .toUpperCase();
 
   if (market === "Indian") {
     if (!normalizedAsset) {
@@ -176,7 +198,9 @@ function buildFallbackIndianAssets(limit = 50): MarketAsset[] {
 }
 
 function buildFallbackCryptoAssets(limit = 50): MarketAsset[] {
-  const symbols = Array.from(new Set([...SUPPORTED_WEB3_ASSETS, ...DEFAULT_CRYPTO_FALLBACK_SYMBOLS]));
+  const symbols = Array.from(
+    new Set([...SUPPORTED_WEB3_ASSETS, ...DEFAULT_CRYPTO_FALLBACK_SYMBOLS]),
+  );
 
   return symbols
     .map((symbol) => ({
@@ -189,11 +213,17 @@ function buildFallbackCryptoAssets(limit = 50): MarketAsset[] {
     .slice(0, Math.max(limit, 1));
 }
 
-function mergeUniqueAssets(primary: MarketAsset[], fallback: MarketAsset[], limit: number): MarketAsset[] {
+function mergeUniqueAssets(
+  primary: MarketAsset[],
+  fallback: MarketAsset[],
+  limit: number,
+): MarketAsset[] {
   const uniqueBySymbol = new Map<string, MarketAsset>();
 
   for (const asset of primary) {
-    const symbol = String(asset.symbol || "").trim().toUpperCase();
+    const symbol = String(asset.symbol || "")
+      .trim()
+      .toUpperCase();
     if (!symbol) continue;
     uniqueBySymbol.set(symbol, {
       ...asset,
@@ -202,7 +232,9 @@ function mergeUniqueAssets(primary: MarketAsset[], fallback: MarketAsset[], limi
   }
 
   for (const asset of fallback) {
-    const symbol = String(asset.symbol || "").trim().toUpperCase();
+    const symbol = String(asset.symbol || "")
+      .trim()
+      .toUpperCase();
     if (!symbol || uniqueBySymbol.has(symbol)) continue;
     uniqueBySymbol.set(symbol, {
       ...asset,
@@ -271,7 +303,9 @@ async function searchYahooQuotes(
   }
 }
 
-async function fetchIndianAssetsFromYahoo(limit: number): Promise<MarketAsset[]> {
+async function fetchIndianAssetsFromYahoo(
+  limit: number,
+): Promise<MarketAsset[]> {
   const assetMap = new Map<string, MarketAsset>();
 
   for (const query of INDIAN_SEARCH_QUERIES) {
@@ -293,7 +327,8 @@ async function fetchIndianAssetsFromYahoo(limit: number): Promise<MarketAsset[]>
         ticker,
         market: "Indian",
         type: "equity",
-        name: String(quote.shortname || quote.longname || "").trim() || undefined,
+        name:
+          String(quote.shortname || quote.longname || "").trim() || undefined,
       });
 
       if (assetMap.size >= limit) {
@@ -305,7 +340,9 @@ async function fetchIndianAssetsFromYahoo(limit: number): Promise<MarketAsset[]>
   return Array.from(assetMap.values());
 }
 
-async function fetchCryptoAssetsFromYahoo(limit: number): Promise<MarketAsset[]> {
+async function fetchCryptoAssetsFromYahoo(
+  limit: number,
+): Promise<MarketAsset[]> {
   const assetMap = new Map<string, MarketAsset>();
 
   for (const query of CRYPTO_SEARCH_QUERIES) {
@@ -327,7 +364,8 @@ async function fetchCryptoAssetsFromYahoo(limit: number): Promise<MarketAsset[]>
         ticker,
         market: "Crypto",
         type: "crypto",
-        name: String(quote.shortname || quote.longname || symbol).trim() || symbol,
+        name:
+          String(quote.shortname || quote.longname || symbol).trim() || symbol,
       });
 
       if (assetMap.size >= limit) {
@@ -372,11 +410,20 @@ export async function getMarketAssets(
   return assets;
 }
 
-export async function getAllMarketAssets(options?: { limitPerMarket?: number; forceRefresh?: boolean }) {
+export async function getAllMarketAssets(options?: {
+  limitPerMarket?: number;
+  forceRefresh?: boolean;
+}) {
   const limitPerMarket = Math.max(1, Number(options?.limitPerMarket || 50));
   const [indian, crypto] = await Promise.all([
-    getMarketAssets("Indian", { limit: limitPerMarket, forceRefresh: options?.forceRefresh }),
-    getMarketAssets("Crypto", { limit: limitPerMarket, forceRefresh: options?.forceRefresh }),
+    getMarketAssets("Indian", {
+      limit: limitPerMarket,
+      forceRefresh: options?.forceRefresh,
+    }),
+    getMarketAssets("Crypto", {
+      limit: limitPerMarket,
+      forceRefresh: options?.forceRefresh,
+    }),
   ]);
 
   return {
@@ -385,10 +432,24 @@ export async function getAllMarketAssets(options?: { limitPerMarket?: number; fo
   };
 }
 
-export async function getCurrentPrice(asset: string, market: MarketType): Promise<number> {
+const priceCache = new Map<string, { price: number; expiresAt: number }>();
+const PRICE_CACHE_TTL_MS = 2000;
+
+export async function getCurrentPrice(
+  asset: string,
+  market: MarketType,
+): Promise<number> {
+  const key = `${market}:${asset}`;
+  const cached = priceCache.get(key);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.price;
+  }
+
   try {
     const quote = await yahooFinance.quote(resolveTicker(asset, market));
-    return quote.regularMarketPrice;
+    const price = quote.regularMarketPrice;
+    priceCache.set(key, { price, expiresAt: Date.now() + PRICE_CACHE_TTL_MS });
+    return price;
   } catch (error) {
     console.error("Failed to fetch price for", asset, error);
     throw new Error(`Failed to fetch current price for ${asset}`);
@@ -403,11 +464,14 @@ export async function getHistoricalPrice(
   interval: HistoricalInterval = "1d",
 ): Promise<HistoricalBar[]> {
   try {
-    const historicalData = await yahooFinance.historical(resolveTicker(asset, market), {
-      period1,
-      period2,
-      interval,
-    });
+    const historicalData = await yahooFinance.historical(
+      resolveTicker(asset, market),
+      {
+        period1,
+        period2,
+        interval,
+      },
+    );
 
     return historicalData.map((item) => ({
       date: item.date,
@@ -419,7 +483,9 @@ export async function getHistoricalPrice(
     }));
   } catch (error) {
     console.error("Failed to fetch historical price for", asset, error);
-    throw new Error(`Failed to fetch historical price for ${asset} from ${period1} to ${period2}`);
+    throw new Error(
+      `Failed to fetch historical price for ${asset} from ${period1} to ${period2}`,
+    );
   }
 }
 
@@ -430,10 +496,13 @@ export async function getHistoricalChart(
   interval: ChartInterval,
 ): Promise<HistoricalBar[]> {
   try {
-    const historicalChart = await yahooFinance.chart(resolveTicker(asset, market), {
-      period1,
-      interval,
-    });
+    const historicalChart = await yahooFinance.chart(
+      resolveTicker(asset, market),
+      {
+        period1,
+        interval,
+      },
+    );
 
     return historicalChart.quotes.map((quote) => ({
       date: quote.date,
@@ -445,11 +514,16 @@ export async function getHistoricalChart(
     }));
   } catch (error) {
     console.error("Failed to fetch historical chart for", asset, error);
-    throw new Error(`Failed to fetch historical chart for ${asset} from ${period1}`);
+    throw new Error(
+      `Failed to fetch historical chart for ${asset} from ${period1}`,
+    );
   }
 }
 
-export async function getVolume(asset: string, market: MarketType): Promise<number> {
+export async function getVolume(
+  asset: string,
+  market: MarketType,
+): Promise<number> {
   try {
     const quote = await yahooFinance.quote(resolveTicker(asset, market));
     return quote.regularMarketVolume;

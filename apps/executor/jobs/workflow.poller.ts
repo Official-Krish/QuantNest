@@ -1,50 +1,57 @@
-import { NODE_REGISTRY } from "@quantnest-trading/node-registry";
-import type { ExecutorTriggerProcessorId } from "@quantnest-trading/node-registry";
-import { indicatorEngine } from "../services/indicator.engine";
-import { DYNAMIC_STATE_REFRESH_INTERVAL_MS } from "../config/constants";
-import { backfillWorkflowTriggerState, registerConditionalExpressions } from "./poller.utils";
+import { WorkflowModel } from "@quantnest-trading/db/client";
+import type { WorkflowType } from "../types";
+import { refreshDynamicStateForWorkflow } from "../handlers/trigger.handler";
 import {
+  processTimerWorkflows,
+  processPriceWorkflows,
   processBreakoutRetestWorkflows,
   processConditionalWorkflows,
   processMarketSessionWorkflows,
   processPortfolioPnlDrawdownWorkflows,
-  processPriceWorkflows,
-  processTimerWorkflows,
 } from "./trigger-processors";
+import { ACTIVE_WORKFLOW_QUERY } from "./poller.utils";
 
-const triggerProcessorMap: Record<ExecutorTriggerProcessorId, (now: Date) => Promise<void>> = {
-  timer: processTimerWorkflows,
-  "price-trigger": processPriceWorkflows,
-  "breakout-retest-trigger": processBreakoutRetestWorkflows,
-  "conditional-trigger": processConditionalWorkflows,
-  "market-session": processMarketSessionWorkflows,
-  "portfolio-pnl-drawdown-trigger": processPortfolioPnlDrawdownWorkflows,
-};
+let firstPollDone = false;
 
-const registryTriggerProcessors = NODE_REGISTRY
-  .filter((entry) => entry.kind === "trigger" && entry.executorTriggerProcessorId)
-  .map((entry) => entry.executorTriggerProcessorId!) satisfies ExecutorTriggerProcessorId[];
-
-let lastDynamicStateRefreshAt = 0;
-
-async function refreshDynamicExecutorState(now: Date) {
-  const nowMs = now.getTime();
-  if (nowMs - lastDynamicStateRefreshAt < DYNAMIC_STATE_REFRESH_INTERVAL_MS) {
-    return;
-  }
-
-  lastDynamicStateRefreshAt = nowMs;
-
-  await backfillWorkflowTriggerState(now);
-  await Promise.all([registerConditionalExpressions(), indicatorEngine.refreshSubscribedSymbols()]);
-}
-
-export async function pollOnce() {
+export async function pollOnce(): Promise<number> {
   const now = new Date();
 
-  await refreshDynamicExecutorState(now);
+  if (!firstPollDone) {
+    firstPollDone = true;
+    void refreshDynamicStateForAllWorkflows();
+  }
 
-  for (const processorId of registryTriggerProcessors) {
-    await triggerProcessorMap[processorId](now);
+  const processors = [
+    processTimerWorkflows(now),
+    processPriceWorkflows(now),
+    processBreakoutRetestWorkflows(now),
+    processConditionalWorkflows(now),
+    processMarketSessionWorkflows(now),
+    processPortfolioPnlDrawdownWorkflows(now),
+  ];
+
+  const results = await Promise.all(processors);
+  return results.reduce((sum, r) => sum + r, 0);
+}
+
+async function refreshDynamicStateForAllWorkflows() {
+  try {
+    const workflows = await WorkflowModel.find(ACTIVE_WORKFLOW_QUERY)
+      .select({ _id: 1, nodes: 1, triggerType: 1, triggerConfig: 1 })
+      .lean();
+
+    for (const wf of workflows) {
+      try {
+        await refreshDynamicStateForWorkflow(wf as unknown as WorkflowType);
+      } catch (err) {
+        console.error(`State refresh failed for ${wf._id}:`, err);
+      }
+    }
+
+    console.log(
+      `Deferred state refresh completed for ${workflows.length} workflows`,
+    );
+  } catch (err) {
+    console.error("Deferred state refresh failed:", err);
   }
 }

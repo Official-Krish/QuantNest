@@ -1,53 +1,59 @@
 import * as dotenv from "dotenv";
 import { connectDB } from "./config/database";
-import { POLL_INTERVAL } from "./config/constants";
+import { POLL_INTERVAL, MAX_POLL_INTERVAL } from "./config/constants";
 import { pollOnce } from "./jobs/workflow.poller";
 
 dotenv.config();
 
+let consecutiveEmptyPolls = 0;
+const pollIntervalStep = 250;
+
 async function start() {
-    await connectDB();
+  await connectDB();
 
-    let shuttingDown = false;
-    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+  let shuttingDown = false;
+  let pollTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const scheduleNextPoll = () => {
-        if (shuttingDown) {
-            return;
-        }
+  const scheduleNextPoll = () => {
+    if (shuttingDown) return;
 
-        pollTimer = setTimeout(() => {
-            void runPoll();
-        }, POLL_INTERVAL);
-        pollTimer.unref?.();
-    };
+    const backoff = Math.min(
+      consecutiveEmptyPolls * pollIntervalStep,
+      MAX_POLL_INTERVAL - POLL_INTERVAL,
+    );
+    const interval = POLL_INTERVAL + backoff;
 
-    const stop = () => {
-        shuttingDown = true;
-        if (pollTimer) {
-            clearTimeout(pollTimer);
-            pollTimer = null;
-        }
-    };
+    pollTimer = setTimeout(() => {
+      void runPoll();
+    }, interval);
+    pollTimer.unref?.();
+  };
 
-    process.once("SIGTERM", stop);
-    process.once("SIGINT", stop);
+  const stop = () => {
+    shuttingDown = true;
+    if (pollTimer) {
+      clearTimeout(pollTimer);
+      pollTimer = null;
+    }
+  };
 
-    const runPoll = async () => {
-        if (shuttingDown) {
-            return;
-        }
+  process.once("SIGTERM", stop);
+  process.once("SIGINT", stop);
 
-        try {
-            await pollOnce();
-        } catch (err) {
-            console.error("Poller crash prevented", err);
-        } finally {
-            scheduleNextPoll();
-        }
-    };
+  const runPoll = async () => {
+    if (shuttingDown) return;
 
-    void runPoll();
+    try {
+      const executed = await pollOnce();
+      consecutiveEmptyPolls = executed === 0 ? consecutiveEmptyPolls + 1 : 0;
+    } catch (err) {
+      console.error("Poller crash prevented", err);
+    } finally {
+      scheduleNextPoll();
+    }
+  };
+
+  void runPoll();
 }
 
 start();
