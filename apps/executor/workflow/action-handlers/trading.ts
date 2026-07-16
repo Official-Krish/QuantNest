@@ -10,7 +10,27 @@ import { ExecuteLighter } from "../../executors/lighter";
 import { executeGrowwNode } from "../../executors/groww";
 import { executeZerodhaNode } from "../../executors/zerodha";
 import { shouldSkipActionByCondition } from "../execute.context";
-import { ActionConfigurationError, executeActionWithRetry, type ActionHandler } from "./shared";
+import {
+  ActionConfigurationError,
+  executeActionWithRetry,
+  type ActionHandler,
+} from "./shared";
+import { acquireLock } from "@quantnest-trading/redis/lock";
+
+const TRADE_IDEM_KEY_TTL_MS = 60_000;
+
+function getTradeIdempotencyKey(context: any, node: any): string {
+  return `idempotency:trade:${context.workflowId}:${node.nodeId}`;
+}
+
+async function checkTradeIdempotency(
+  context: any,
+  node: any,
+): Promise<boolean> {
+  const key = getTradeIdempotencyKey(context, node);
+  const value = `${context.workflowId}:${node.nodeId}:${Date.now()}`;
+  return acquireLock(key, value, TRADE_IDEM_KEY_TTL_MS);
+}
 
 export const zerodhaActionHandler: ActionHandler = async ({
   node,
@@ -19,7 +39,9 @@ export const zerodhaActionHandler: ActionHandler = async ({
   resolvedMetadata,
   steps,
 }) => {
-  if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+  if (
+    shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)
+  ) {
     return;
   }
 
@@ -57,7 +79,10 @@ export const zerodhaActionHandler: ActionHandler = async ({
         );
       }
 
-      const tokenStatus = await checkTokenStatus(context.userId || "", context.workflowId || "");
+      const tokenStatus = await checkTokenStatus(
+        context.userId || "",
+        context.workflowId || "",
+      );
       if (!tokenStatus.hasValidToken) {
         if (context.userId && context.workflowId) {
           await pauseWorkflow(context.workflowId);
@@ -85,9 +110,27 @@ export const zerodhaActionHandler: ActionHandler = async ({
         );
       }
 
-      const accessToken = await getZerodhaToken(context.userId || "", context.workflowId || "");
+      const accessToken = await getZerodhaToken(
+        context.userId || "",
+        context.workflowId || "",
+      );
       if (!accessToken) {
-        throw new ActionConfigurationError("Workflow paused: Access token not available. Please provide your Zerodha access token.");
+        throw new ActionConfigurationError(
+          "Workflow paused: Access token not available. Please provide your Zerodha access token.",
+        );
+      }
+
+      const idempotent = await checkTradeIdempotency(context, node);
+      if (!idempotent) {
+        context.eventType = "trade_skipped";
+        context.details = {
+          symbol: (resolvedMetadata as any)?.symbol,
+          quantity: (resolvedMetadata as any)?.qty,
+          exchange: (resolvedMetadata as any)?.exchange || "NSE",
+          reason: "Duplicate trade prevented by idempotency check",
+          aiContext: context.details?.aiContext,
+        };
+        return "Trade skipped: already executed in this window";
       }
 
       const result = await executeZerodhaNode(
@@ -116,10 +159,13 @@ export const zerodhaActionHandler: ActionHandler = async ({
         quantity: (resolvedMetadata as any)?.qty,
         exchange: (resolvedMetadata as any)?.exchange || "NSE",
         tradeType: (resolvedMetadata as any)?.type,
-        failureReason: "Trade execution failed. Please check your broker account and credentials.",
+        failureReason:
+          "Trade execution failed. Please check your broker account and credentials.",
         aiContext: context.details?.aiContext,
       };
-      throw new Error(`Trade execution failed for ${(resolvedMetadata as any)?.symbol}`);
+      throw new Error(
+        `Trade execution failed for ${(resolvedMetadata as any)?.symbol}`,
+      );
     },
     onFinalFailure: async (error) => {
       console.error("Zerodha execution error:", error);
@@ -129,7 +175,10 @@ export const zerodhaActionHandler: ActionHandler = async ({
         quantity: (resolvedMetadata as any)?.qty,
         exchange: (resolvedMetadata as any)?.exchange || "NSE",
         tradeType: (resolvedMetadata as any)?.type,
-        failureReason: error instanceof Error ? error.message : "Unknown error occurred during trade execution.",
+        failureReason:
+          error instanceof Error
+            ? error.message
+            : "Unknown error occurred during trade execution.",
         aiContext: context.details?.aiContext,
       };
     },
@@ -143,7 +192,9 @@ export const growwActionHandler: ActionHandler = async ({
   resolvedMetadata,
   steps,
 }) => {
-  if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+  if (
+    shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)
+  ) {
     return;
   }
 
@@ -174,6 +225,19 @@ export const growwActionHandler: ActionHandler = async ({
         };
       }
 
+      const idempotent = await checkTradeIdempotency(context, node);
+      if (!idempotent) {
+        context.eventType = "trade_skipped";
+        context.details = {
+          symbol: (resolvedMetadata as any)?.symbol,
+          quantity: (resolvedMetadata as any)?.qty,
+          exchange: (resolvedMetadata as any)?.exchange || "NSE",
+          reason: "Duplicate trade prevented by idempotency check",
+          aiContext: context.details?.aiContext,
+        };
+        return "Trade skipped: already executed in this window";
+      }
+
       const result = await executeGrowwNode(
         (resolvedMetadata as any)?.symbol,
         (resolvedMetadata as any)?.qty,
@@ -199,10 +263,13 @@ export const growwActionHandler: ActionHandler = async ({
         quantity: (resolvedMetadata as any)?.qty,
         exchange: (resolvedMetadata as any)?.exchange || "NSE",
         tradeType: (resolvedMetadata as any)?.type,
-        failureReason: "Trade execution failed. Please check your broker account and credentials.",
+        failureReason:
+          "Trade execution failed. Please check your broker account and credentials.",
         aiContext: context.details?.aiContext,
       };
-      throw new Error(`Trade execution failed for ${(resolvedMetadata as any)?.symbol}`);
+      throw new Error(
+        `Trade execution failed for ${(resolvedMetadata as any)?.symbol}`,
+      );
     },
     onFinalFailure: async (error) => {
       console.error("Groww execution error:", error);
@@ -212,7 +279,10 @@ export const growwActionHandler: ActionHandler = async ({
         quantity: (resolvedMetadata as any)?.qty,
         exchange: (resolvedMetadata as any)?.exchange || "NSE",
         tradeType: (resolvedMetadata as any)?.type,
-        failureReason: error instanceof Error ? error.message : "Unknown error occurred during trade execution.",
+        failureReason:
+          error instanceof Error
+            ? error.message
+            : "Unknown error occurred during trade execution.",
         aiContext: context.details?.aiContext,
       };
     },
@@ -226,7 +296,9 @@ export const lighterActionHandler: ActionHandler = async ({
   steps,
   context,
 }) => {
-  if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+  if (
+    shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)
+  ) {
     return;
   }
 
@@ -256,6 +328,19 @@ export const lighterActionHandler: ActionHandler = async ({
             apiKeyIndex: (resolvedMetadata as any)?.apiKeyIndex,
           },
         };
+      }
+
+      const idempotent = await checkTradeIdempotency(context, node);
+      if (!idempotent) {
+        context.eventType = "trade_skipped";
+        context.details = {
+          symbol: (resolvedMetadata as any)?.symbol,
+          quantity: (resolvedMetadata as any)?.amount,
+          exchange: "Lighter",
+          reason: "Duplicate trade prevented by idempotency check",
+          aiContext: context.details?.aiContext,
+        };
+        return "Trade skipped: already executed in this window";
       }
 
       await ExecuteLighter(

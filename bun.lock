@@ -250,6 +250,15 @@
         "typescript": "^6.0.3",
       },
     },
+    "packages/redis": {
+      "name": "@quantnest-trading/redis",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "packages/types": {
       "name": "@quantnest-trading/types",
       "dependencies": {
@@ -557,6 +566,8 @@
     "@quantnest-trading/node-registry": ["@quantnest-trading/node-registry@workspace:packages/node-registry"],
 
     "@quantnest-trading/plan-guards": ["@quantnest-trading/plan-guards@workspace:packages/plan-guards"],
+
+    "@quantnest-trading/redis": ["@quantnest-trading/redis@workspace:packages/redis"],
 
     "@quantnest-trading/types": ["@quantnest-trading/types@workspace:packages/types"],
 

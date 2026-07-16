@@ -738,6 +738,38 @@ const UserReusableSecretSchema = new Schema(
   { timestamps: true },
 );
 
+const RefreshTokenSchema = new Schema({
+  userId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Users",
+    required: true,
+    index: true,
+  },
+  tokenHash: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  familyId: {
+    type: String,
+    required: true,
+  },
+  expiresAt: {
+    type: Date,
+    required: true,
+  },
+  revokedAt: {
+    type: Date,
+    required: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+RefreshTokenSchema.index({ userId: 1, createdAt: -1 });
+
 // ---- Execution Trace Schema (for debugger) ----
 const IndicatorSnapshotEntrySchema = new Schema(
   {
@@ -863,4 +895,8 @@ export const AiStrategyDraftVersionModel = mongoose.model(
 export const UserReusableSecretModel = mongoose.model(
   "UserReusableSecrets",
   UserReusableSecretSchema,
+);
+export const RefreshTokenModel = mongoose.model(
+  "RefreshTokens",
+  RefreshTokenSchema,
 );

@@ -4,6 +4,7 @@ import {
   SUPPORTED_WEB3_ASSETS,
 } from "@quantnest-trading/types";
 import YahooFinance from "yahoo-finance2";
+import { redisCache, redisGet, redisSet } from "@quantnest-trading/redis";
 
 export * from "./utils";
 export * from "./indicators";
@@ -29,14 +30,7 @@ type ChartInterval =
 type MarketAssetType = "equity" | "crypto";
 
 const MARKET_ASSET_CACHE_TTL_MS = 15 * 60 * 1000;
-
-const marketAssetCache = new Map<
-  string,
-  {
-    fetchedAt: number;
-    assets: MarketAsset[];
-  }
->();
+const PRICE_CACHE_TTL_MS = 2000;
 
 const INDIAN_SEARCH_QUERIES = [
   "NSE",
@@ -252,7 +246,6 @@ function isValidIndianQuote(quote: any): boolean {
   }
 
   const baseSymbol = normalizeIndianSymbol(symbol);
-  // Keep plain equity-like symbols and skip derivative-style variants.
   if (!/^[A-Z0-9]+$/.test(baseSymbol)) {
     return false;
   }
@@ -382,13 +375,11 @@ export async function getMarketAssets(
   options?: { limit?: number; forceRefresh?: boolean },
 ): Promise<MarketAsset[]> {
   const limit = Math.max(1, Number(options?.limit || 50));
-  const cacheKey = `${market}:${limit}`;
+  const cacheKey = `market-assets:${market}:${limit}`;
 
   if (!options?.forceRefresh) {
-    const cached = marketAssetCache.get(cacheKey);
-    if (cached && Date.now() - cached.fetchedAt < MARKET_ASSET_CACHE_TTL_MS) {
-      return cached.assets;
-    }
+    const cached = await redisGet<MarketAsset[]>(cacheKey);
+    if (cached) return cached;
   }
 
   let assets: MarketAsset[] = [];
@@ -402,11 +393,7 @@ export async function getMarketAssets(
     assets = mergeUniqueAssets(yahooAssets, fallbackAssets, limit);
   }
 
-  marketAssetCache.set(cacheKey, {
-    fetchedAt: Date.now(),
-    assets,
-  });
-
+  await redisSet(cacheKey, assets, MARKET_ASSET_CACHE_TTL_MS);
   return assets;
 }
 
@@ -432,28 +419,20 @@ export async function getAllMarketAssets(options?: {
   };
 }
 
-const priceCache = new Map<string, { price: number; expiresAt: number }>();
-const PRICE_CACHE_TTL_MS = 2000;
-
 export async function getCurrentPrice(
   asset: string,
   market: MarketType,
 ): Promise<number> {
-  const key = `${market}:${asset}`;
-  const cached = priceCache.get(key);
-  if (cached && Date.now() < cached.expiresAt) {
-    return cached.price;
-  }
+  const key = `price:${market}:${asset}`;
 
-  try {
-    const quote = await yahooFinance.quote(resolveTicker(asset, market));
-    const price = quote.regularMarketPrice;
-    priceCache.set(key, { price, expiresAt: Date.now() + PRICE_CACHE_TTL_MS });
-    return price;
-  } catch (error) {
-    console.error("Failed to fetch price for", asset, error);
-    throw new Error(`Failed to fetch current price for ${asset}`);
-  }
+  return redisCache(
+    key,
+    async () => {
+      const quote = await yahooFinance.quote(resolveTicker(asset, market));
+      return quote.regularMarketPrice;
+    },
+    PRICE_CACHE_TTL_MS,
+  );
 }
 
 export async function getHistoricalPrice(

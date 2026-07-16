@@ -12,6 +12,7 @@ export interface ExecutionContext {
     | "sell"
     | "price_trigger"
     | "trade_failed"
+    | "trade_skipped"
     | "Long"
     | "Short";
   userId?: string;
@@ -29,6 +30,7 @@ export interface ExecutionContext {
     condition?: "above" | "below";
     tradeType?: "buy" | "sell";
     failureReason?: string;
+    reason?: string;
     aiContext?: {
       triggerType?: string;
       marketType?: "Indian" | "Crypto";

@@ -8,7 +8,6 @@ import {
 } from "@quantnest-trading/types/metadata";
 import { UserModel } from "@quantnest-trading/db/client";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware";
 import type { CookieOptions } from "express";
 import {
@@ -17,7 +16,12 @@ import {
   sendEmailVerificationEmail,
 } from "../services/emailVerification";
 import { uploadAvatarToS3 } from "../services/avatarUpload";
-import { getJwtSecret } from "../utils/security";
+import {
+  generateAccessToken,
+  createRefreshTokenRecord,
+  rotateRefreshToken,
+  revokeRefreshToken,
+} from "../utils/tokens";
 import multer from "multer";
 import {
   createReusableSecret,
@@ -34,10 +38,10 @@ import {
 import { getUserUsageSnapshot } from "../services/subscription";
 
 const userRouter = Router();
-const JWT_SECRET = getJwtSecret();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const cookieName = process.env.AUTH_COOKIE_NAME || "quantnest_auth";
+const refreshCookieName = "quantnest_refresh";
 const isProduction = process.env.NODE_ENV === "production";
 
 function getAuthCookieOptions(): CookieOptions {
@@ -48,6 +52,21 @@ function getAuthCookieOptions(): CookieOptions {
       (process.env.COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined) ||
       (isProduction ? "none" : "lax"),
     path: "/",
+    maxAge: 15 * 60 * 1000,
+    ...(isProduction && process.env.COOKIE_DOMAIN
+      ? { domain: process.env.COOKIE_DOMAIN }
+      : {}),
+  };
+}
+
+function getRefreshCookieOptions(): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: isProduction || process.env.COOKIE_SECURE === "true",
+    sameSite:
+      (process.env.COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined) ||
+      (isProduction ? "none" : "lax"),
+    path: "/api/v1/user/refresh",
     maxAge: 7 * 24 * 60 * 60 * 1000,
     ...(isProduction && process.env.COOKIE_DOMAIN
       ? { domain: process.env.COOKIE_DOMAIN }
@@ -59,12 +78,10 @@ userRouter.post("/signup", async (req, res) => {
   const parsedData = SignupSchema.safeParse(req.body);
 
   if (!parsedData.success) {
-    res
-      .status(400)
-      .json({
-        message: "Invalid request body",
-        issues: parsedData.error.issues,
-      });
+    res.status(400).json({
+      message: "Invalid request body",
+      issues: parsedData.error.issues,
+    });
     return;
   }
 
@@ -76,14 +93,12 @@ userRouter.post("/signup", async (req, res) => {
       $or: [{ username }, { email }],
     });
     if (existingUser) {
-      res
-        .status(409)
-        .json({
-          message:
-            existingUser.email === email
-              ? "Email already exists"
-              : "User already exists",
-        });
+      res.status(409).json({
+        message:
+          existingUser.email === email
+            ? "Email already exists"
+            : "User already exists",
+      });
       return;
     }
 
@@ -125,12 +140,10 @@ userRouter.post("/signup", async (req, res) => {
 userRouter.post("/signin", async (req, res) => {
   const parsedData = SigninSchema.safeParse(req.body);
   if (!parsedData.success) {
-    res
-      .status(400)
-      .json({
-        message: "Invalid request body",
-        issues: parsedData.error.issues,
-      });
+    res.status(400).json({
+      message: "Invalid request body",
+      issues: parsedData.error.issues,
+    });
     return;
   }
   UserModel.findOne({ username: parsedData.data.username.trim() })
@@ -156,21 +169,49 @@ userRouter.post("/signin", async (req, res) => {
         res.status(401).json({ message: "Invalid credentials" });
         return;
       }
-      const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-        expiresIn: "1w",
+      const accessToken = generateAccessToken(user._id.toString());
+      const refreshToken = await createRefreshTokenRecord(user._id.toString());
+
+      res.cookie(cookieName, accessToken, getAuthCookieOptions());
+      res.cookie(refreshCookieName, refreshToken, getRefreshCookieOptions());
+      res.status(200).json({
+        message: "Signin successful",
+        userId: user._id,
+        avatarUrl: user.avatarUrl,
       });
-      res.cookie(cookieName, token, getAuthCookieOptions());
-      res
-        .status(200)
-        .json({
-          message: "Signin successful",
-          userId: user._id,
-          avatarUrl: user.avatarUrl,
-        });
     })
     .catch((error) => {
       res.status(500).json({ message: "Internal server error", error });
     });
+});
+
+userRouter.post("/refresh", async (req, res) => {
+  try {
+    const rawToken = req.cookies?.[refreshCookieName];
+    if (!rawToken) {
+      res.status(401).json({ message: "No refresh token" });
+      return;
+    }
+
+    const result = await rotateRefreshToken(rawToken);
+    if (!result) {
+      res.clearCookie(refreshCookieName, getRefreshCookieOptions());
+      res.clearCookie(cookieName, getAuthCookieOptions());
+      res.status(403).json({ message: "Invalid or expired refresh token" });
+      return;
+    }
+
+    res.cookie(cookieName, result.accessToken, getAuthCookieOptions());
+    res.cookie(
+      refreshCookieName,
+      result.refreshToken,
+      getRefreshCookieOptions(),
+    );
+    res.status(200).json({ message: "Token refreshed" });
+  } catch (error) {
+    console.error("Refresh error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 userRouter.get("/verify-email", async (req, res) => {
@@ -218,11 +259,9 @@ userRouter.post("/resend-verification", async (req, res) => {
   try {
     const user = await UserModel.findOne({ email });
     if (!user) {
-      res
-        .status(200)
-        .json({
-          message: "If the email exists, a verification link has been sent.",
-        });
+      res.status(200).json({
+        message: "If the email exists, a verification link has been sent.",
+      });
       return;
     }
     if (user.emailVerified !== false) {
@@ -308,11 +347,9 @@ userRouter.post("/secrets", authMiddleware, async (req, res) => {
     res.status(200).json({ message: "Reusable secret created", secret });
   } catch (error: any) {
     if (error?.code === 11000) {
-      res
-        .status(409)
-        .json({
-          message: "A secret with this name already exists for that service.",
-        });
+      res.status(409).json({
+        message: "A secret with this name already exists for that service.",
+      });
       return;
     }
     res.status(500).json({ message: "Internal server error", error });
@@ -349,11 +386,9 @@ userRouter.patch("/secrets/:secretId", authMiddleware, async (req, res) => {
     res.status(200).json({ message: "Reusable secret updated", secret });
   } catch (error: any) {
     if (error?.code === 11000) {
-      res
-        .status(409)
-        .json({
-          message: "A secret with this name already exists for that service.",
-        });
+      res.status(409).json({
+        message: "A secret with this name already exists for that service.",
+      });
       return;
     }
     res.status(500).json({ message: "Internal server error", error });
@@ -459,12 +494,10 @@ userRouter.patch("/profile", authMiddleware, async (req, res) => {
   const parsedData = UpdateUserProfileSchema.safeParse(req.body);
 
   if (!parsedData.success) {
-    res
-      .status(400)
-      .json({
-        message: "Invalid request body",
-        issues: parsedData.error.issues,
-      });
+    res.status(400).json({
+      message: "Invalid request body",
+      issues: parsedData.error.issues,
+    });
     return;
   }
 
@@ -551,7 +584,12 @@ userRouter.get("/verify", authMiddleware, (req, res) => {
   res.status(200).json({ message: "Token is valid" });
 });
 
-userRouter.post("/signout", (_req, res) => {
+userRouter.post("/signout", authMiddleware, async (req, res) => {
+  try {
+    await revokeRefreshToken(req.userId!);
+  } catch (err) {
+    console.error("Signout revoke error:", err);
+  }
   res.clearCookie(cookieName, {
     httpOnly: true,
     secure: isProduction || process.env.COOKIE_SECURE === "true",
@@ -559,6 +597,15 @@ userRouter.post("/signout", (_req, res) => {
       (process.env.COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined) ||
       (isProduction ? "none" : "lax"),
     path: "/",
+    ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
+  });
+  res.clearCookie(refreshCookieName, {
+    httpOnly: true,
+    secure: isProduction || process.env.COOKIE_SECURE === "true",
+    sameSite:
+      (process.env.COOKIE_SAMESITE as "lax" | "strict" | "none" | undefined) ||
+      (isProduction ? "none" : "lax"),
+    path: "/api/v1/user/refresh",
     ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
   });
   res.status(200).json({ message: "Signout successful" });

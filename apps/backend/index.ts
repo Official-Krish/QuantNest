@@ -12,6 +12,8 @@ import ZerodhaTokenRouter from "./routes/token";
 import { getMarketStatus } from "@quantnest-trading/executor-utils";
 import { getAllMarketAssets, getMarketAssets } from "@quantnest-trading/market";
 import { connectMongoWithRetry } from "@quantnest-trading/db/client";
+import { initRedis } from "@quantnest-trading/redis";
+import { idempotencyMiddleware } from "./middleware/idempotency";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -19,6 +21,7 @@ app.use(express.json());
 
 const cookieSecret = process.env.COOKIE_SECRET || crypto.randomUUID();
 app.use(cookieParser(cookieSecret));
+app.use(idempotencyMiddleware);
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
@@ -61,6 +64,7 @@ app.use(
 );
 
 void connectMongoWithRetry({ serviceName: "backend" });
+void initRedis();
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/ai", aiRouter);

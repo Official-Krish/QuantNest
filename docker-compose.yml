@@ -1,6 +1,23 @@
 version: '3.8'
 
 services:
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: quantnest-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - quantnest-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   # MongoDB Database
   mongodb:
     image: mongo:7.0-alpine
@@ -40,9 +57,12 @@ services:
       GOOGLE_SHEETS_CLIENT_EMAIL: ${GOOGLE_SHEETS_CLIENT_EMAIL:-}
       GOOGLE_SHEETS_PROJECT_ID: ${GOOGLE_SHEETS_PROJECT_ID:-}
       AI_BUILDER_URL: http://ai-builder:3001
+      REDIS_HOST: redis
     depends_on:
       mongodb:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - quantnest-network
     restart: unless-stopped
@@ -71,9 +91,12 @@ services:
     environment:
       NODE_ENV: production
       MONGO_URL: mongodb://quantnest:quantnest_dev_password@mongodb:27017/quantnest?authSource=admin
+      REDIS_HOST: redis
     depends_on:
       mongodb:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - quantnest-network
     restart: unless-stopped
@@ -101,4 +124,6 @@ volumes:
   mongodb_data:
     driver: local
   mongodb_config:
+    driver: local
+  redis_data:
     driver: local
