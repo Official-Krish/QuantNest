@@ -88,7 +88,7 @@ app.use(limiter);
 const speedLimiter = slowDown({
   windowMs: 60 * 1000,
   delayAfter: 40,
-  delayMs: 500,
+  delayMs: () => 500,
 });
 app.use(speedLimiter);
 

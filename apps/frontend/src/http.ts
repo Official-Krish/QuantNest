@@ -29,7 +29,7 @@ import type {
   AiDebugQueryResponse,
 } from "./types/api";
 
-const API_BASE = "https://api.quantnest.krishlabs.tech";
+const API_BASE = "https://api.quantnest.krishlabs.tech/api/v1";
 
 const SESSION_KEY = "quantnest_session";
 export const AUTH_STATE_EVENT = "quantnest-auth-state";
