@@ -10,6 +10,7 @@ COPY packages/node-registry/package.json packages/node-registry/package.json
 COPY packages/types/package.json packages/types/package.json
 COPY packages/executor-utils/package.json packages/executor-utils/package.json
 COPY packages/lighter-sdk-ts/package.json packages/lighter-sdk-ts/package.json
+COPY packages/redis/package.json packages/redis/package.json
 
 RUN bun install
 
@@ -20,6 +21,7 @@ COPY packages/node-registry/ packages/node-registry/
 COPY packages/types/ packages/types/
 COPY packages/executor-utils/ packages/executor-utils/
 COPY packages/lighter-sdk-ts/ packages/lighter-sdk-ts/
+COPY packages/redis/ packages/redis/
 
 FROM oven/bun:1 AS runtime
 
