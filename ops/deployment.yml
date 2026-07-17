@@ -88,7 +88,7 @@ spec:
     spec:
       containers:
         - name: quantnest-backend
-          image: krishanand01/quantnest-backend:v1.2.12
+          image: krishanand01/quantnest-backend:v1.2.14
           imagePullPolicy: Always
 
           ports:
@@ -144,7 +144,7 @@ spec:
 
       containers:
         - name: quantnest-executor
-          image: krishanand01/quantnest-executor:v1.2.12
+          image: krishanand01/quantnest-executor:v1.2.14
           imagePullPolicy: Always
 
           resources:
