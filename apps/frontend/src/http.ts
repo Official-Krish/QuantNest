@@ -29,9 +29,7 @@ import type {
   AiDebugQueryResponse,
 } from "./types/api";
 
-const API_BASE =
-  (import.meta as any).env?.VITE_BACKEND_URL?.toString?.() ??
-  "http://localhost:3000/api/v1";
+const API_BASE = "https://api.quantnest.krishlabs.tech/api/v1";
 
 const SESSION_KEY = "quantnest_session";
 export const AUTH_STATE_EVENT = "quantnest-auth-state";
@@ -39,7 +37,54 @@ export const AUTH_STATE_EVENT = "quantnest-auth-state";
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
+  headers: { "X-Requested-With": "XMLHttpRequest" },
 });
+
+let isRefreshing = false;
+let refreshQueue: Array<{
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/user/signin") &&
+      !originalRequest.url?.includes("/user/refresh")
+    ) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({ resolve, reject });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        await api.post("/user/refresh");
+        const retry = await api(originalRequest);
+        return retry;
+      } catch {
+        clearAuthSession();
+        const returnUrl = encodeURIComponent(
+          window.location.pathname + window.location.search,
+        );
+        window.location.href = `/signin?redirect=${returnUrl}`;
+        return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
+        refreshQueue.forEach(({ resolve: qResolve }) => qResolve(undefined));
+        refreshQueue = [];
+      }
+    }
+    return Promise.reject(error);
+  },
+);
 
 function normalizeWorkflowPayload(body: any) {
   return {

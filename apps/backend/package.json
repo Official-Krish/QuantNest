@@ -13,6 +13,7 @@
     "@quantnest-trading/executor-utils": "workspace:^",
     "@quantnest-trading/types": "workspace:^",
     "@types/bun": "latest",
+    "@types/hpp": "^0.2.7",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.0.1",
     "typescript-eslint": "^8.46.4"
@@ -36,11 +37,15 @@
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "express-rate-limit": "^8.5.2",
+    "express-slow-down": "^3.1.0",
     "googleapis": "^171.4.0",
+    "helmet": "^8.3.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
     "kiteconnect": "^5.1.0",
     "mongoose": "^9.1.5",
     "multer": "^2.1.1",
+    "rate-limit-redis": "^5.0.0",
     "resend": "^6.9.1"
   }
 }

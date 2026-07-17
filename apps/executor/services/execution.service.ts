@@ -11,8 +11,13 @@ import {
 import { executeWorkflow } from "../workflow/execute";
 import type { WorkflowType } from "../types";
 import { EXECUTION_COOLDOWN_MS } from "../config/constants";
+import { redisSet, redisGet } from "@quantnest-trading/redis";
+import { acquireLock, releaseLock } from "@quantnest-trading/redis/lock";
 
 export async function canExecute(workflowId: string): Promise<boolean> {
+  const cached = await redisGet<string>(`cooldown:${workflowId}`);
+  if (cached) return false;
+
   const lastExecution = await ExecutionModel.findOne({ workflowId })
     .sort({ startTime: -1 })
     .select({ startTime: 1, _id: 0 })
@@ -20,7 +25,55 @@ export async function canExecute(workflowId: string): Promise<boolean> {
 
   if (!lastExecution) return true;
 
-  return Date.now() - lastExecution.startTime.getTime() > EXECUTION_COOLDOWN_MS;
+  const canExec =
+    Date.now() - lastExecution.startTime.getTime() > EXECUTION_COOLDOWN_MS;
+  if (!canExec) {
+    await redisSet(`cooldown:${workflowId}`, "1", EXECUTION_COOLDOWN_MS);
+  }
+  return canExec;
+}
+
+export async function batchCanExecute(
+  workflowIds: string[],
+  now: Date,
+): Promise<Map<string, boolean>> {
+  if (workflowIds.length === 0) return new Map();
+
+  const result = new Map<string, boolean>();
+  const uncached: string[] = [];
+
+  for (const id of workflowIds) {
+    const cached = await redisGet<string>(`cooldown:${id}`);
+    if (cached) {
+      result.set(id, false);
+    } else {
+      uncached.push(id);
+    }
+  }
+
+  if (uncached.length > 0) {
+    const cutoff = new Date(now.getTime() - EXECUTION_COOLDOWN_MS);
+    const recent = await ExecutionModel.aggregate([
+      { $match: { workflowId: { $in: uncached.map((id) => id as any) } } },
+      { $sort: { startTime: -1 } },
+      { $group: { _id: "$workflowId", lastStart: { $first: "$startTime" } } },
+    ]);
+
+    const recentMap = new Map(
+      recent.map((r) => [r._id.toString(), r.lastStart]),
+    );
+
+    for (const id of uncached) {
+      const lastStart = recentMap.get(id);
+      const canExec = !lastStart || lastStart < cutoff;
+      result.set(id, canExec);
+      if (!canExec) {
+        await redisSet(`cooldown:${id}`, "1", EXECUTION_COOLDOWN_MS);
+      }
+    }
+  }
+
+  return result;
 }
 
 export async function executeWorkflowSafe(
@@ -28,6 +81,11 @@ export async function executeWorkflowSafe(
   condition?: boolean,
   triggerSnapshot?: TriggerEvaluationSnapshot,
 ) {
+  const lockKey = `lock:exec:${workflow._id}`;
+  const lockValue = `${workflow._id}:${Date.now()}`;
+  const acquired = await acquireLock(lockKey, lockValue, EXECUTION_COOLDOWN_MS);
+  if (!acquired) return;
+
   const executionMode = workflow.executionMode || "live";
   const execution = await ExecutionModel.create({
     workflowId: workflow._id,
@@ -79,6 +137,7 @@ export async function executeWorkflowSafe(
       },
     ]);
   } finally {
+    await releaseLock(lockKey, lockValue);
     execution.endTime = new Date();
     await execution.save();
 

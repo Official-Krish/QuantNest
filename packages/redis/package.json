@@ -1,0 +1,16 @@
+{
+  "name": "@quantnest-trading/redis",
+  "main": "index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./index.ts",
+    "./lock": "./src/lock.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

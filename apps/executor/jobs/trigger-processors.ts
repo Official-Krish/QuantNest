@@ -1,6 +1,9 @@
 import type { TriggerEvaluationSnapshot } from "@quantnest-trading/types";
 import { WorkflowModel } from "@quantnest-trading/db/client";
-import { canExecute, executeWorkflowSafe } from "../services/execution.service";
+import {
+  batchCanExecute,
+  executeWorkflowSafe,
+} from "../services/execution.service";
 import {
   evaluateConditionalMetadata,
   handleBreakoutRetestTrigger,
@@ -15,306 +18,389 @@ import {
   findWorkflowTrigger,
   getTimerIntervalSeconds,
 } from "./poller.utils";
+import pLimit from "p-limit";
 
-export async function processTimerWorkflows(now: Date) {
+const CONCURRENCY = 5;
+const limit = pLimit(CONCURRENCY);
+
+export async function processTimerWorkflows(now: Date): Promise<number> {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "timer",
     nextRunAt: { $lte: now },
   }).lean();
 
-  for (const workflow of workflows) {
-    try {
-      const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
-      if (!trigger) {
-        continue;
-      }
+  const updates: any[] = [];
+  let executed = 0;
 
-      const intervalSeconds = getTimerIntervalSeconds(
-        workflow as unknown as WorkflowType,
-        trigger,
-      );
-      if (!intervalSeconds) {
-        continue;
-      }
+  await Promise.allSettled(
+    workflows.map((workflow) =>
+      limit(async () => {
+        const trigger = findWorkflowTrigger(
+          workflow as unknown as WorkflowType,
+        );
+        if (!trigger) return;
 
-      await WorkflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            lastEvaluatedAt: now,
-            lastTriggeredAt: now,
-            nextRunAt: new Date(now.getTime() + intervalSeconds * 1000),
+        const intervalSeconds = getTimerIntervalSeconds(
+          workflow as unknown as WorkflowType,
+          trigger,
+        );
+        if (!intervalSeconds) return;
+
+        updates.push({
+          updateOne: {
+            filter: { _id: workflow._id },
+            update: {
+              $set: {
+                lastEvaluatedAt: now,
+                lastTriggeredAt: now,
+                nextRunAt: new Date(now.getTime() + intervalSeconds * 1000),
+              },
+            },
           },
-        },
-      );
+        });
 
-      await executeWorkflowSafe(workflow as unknown as WorkflowType);
-    } catch (err) {
-      console.error(`Timer workflow error (${workflow.workflowName})`, err);
-    }
+        await executeWorkflowSafe(workflow as unknown as WorkflowType);
+        executed++;
+      }),
+    ),
+  );
+
+  if (updates.length > 0) {
+    await WorkflowModel.bulkWrite(updates);
   }
+
+  return executed;
 }
 
-export async function processPriceWorkflows(now: Date) {
+export async function processPriceWorkflows(now: Date): Promise<number> {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "price-trigger",
   }).lean();
 
-  for (const workflow of workflows) {
-    try {
-      const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
-      if (!trigger) continue;
-      if (!(await canExecute(workflow._id.toString()))) continue;
+  const cooldown = await batchCanExecute(
+    workflows.map((w) => w._id.toString()),
+    now,
+  );
+  const updates: any[] = [];
+  let executed = 0;
 
-      const { shouldExecute, snapshot } = await handlePriceTrigger(
-        workflow as unknown as WorkflowType,
-        trigger,
-      );
-
-      await WorkflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            lastEvaluatedAt: now,
-            ...(shouldExecute ? { lastTriggeredAt: now } : {}),
-          },
-        },
-      );
-
-      if (shouldExecute) {
-        await executeWorkflowSafe(
+  await Promise.allSettled(
+    workflows.map((workflow) =>
+      limit(async () => {
+        const trigger = findWorkflowTrigger(
           workflow as unknown as WorkflowType,
-          undefined,
-          snapshot,
         );
-      }
-    } catch (err) {
-      console.error(`Price workflow error (${workflow.workflowName})`, err);
-    }
+        if (!trigger) return;
+        if (!cooldown.get(workflow._id.toString())) return;
+
+        const { shouldExecute, snapshot } = await handlePriceTrigger(
+          workflow as unknown as WorkflowType,
+          trigger,
+        );
+
+        updates.push({
+          updateOne: {
+            filter: { _id: workflow._id },
+            update: {
+              $set: {
+                lastEvaluatedAt: now,
+                ...(shouldExecute ? { lastTriggeredAt: now } : {}),
+              },
+            },
+          },
+        });
+
+        if (shouldExecute) {
+          await executeWorkflowSafe(
+            workflow as unknown as WorkflowType,
+            undefined,
+            snapshot,
+          );
+          executed++;
+        }
+      }),
+    ),
+  );
+
+  if (updates.length > 0) {
+    await WorkflowModel.bulkWrite(updates);
   }
+
+  return executed;
 }
 
-export async function processBreakoutRetestWorkflows(now: Date) {
+export async function processBreakoutRetestWorkflows(
+  now: Date,
+): Promise<number> {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "breakout-retest-trigger",
   }).lean();
 
-  for (const workflow of workflows) {
-    try {
-      const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
-      if (!trigger) continue;
-      if (!(await canExecute(workflow._id.toString()))) continue;
+  const cooldown = await batchCanExecute(
+    workflows.map((w) => w._id.toString()),
+    now,
+  );
+  const updates: any[] = [];
+  let executed = 0;
 
-      const result = await handleBreakoutRetestTrigger(
-        workflow as unknown as WorkflowType,
-        trigger,
-      );
-
-      await WorkflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            lastEvaluatedAt: now,
-            triggerConfig: {
-              ...(workflow.triggerConfig || {}),
-              runtime: result.runtime,
-            },
-            ...(result.shouldExecute ? { lastTriggeredAt: now } : {}),
-          },
-        },
-      );
-
-      if (result.shouldExecute) {
-        await executeWorkflowSafe(
+  await Promise.allSettled(
+    workflows.map((workflow) =>
+      limit(async () => {
+        const trigger = findWorkflowTrigger(
           workflow as unknown as WorkflowType,
-          undefined,
-          result.snapshot,
         );
-      }
-    } catch (err) {
-      console.error(
-        `Breakout retest workflow error (${workflow.workflowName})`,
-        err,
-      );
-    }
+        if (!trigger) return;
+        if (!cooldown.get(workflow._id.toString())) return;
+
+        const result = await handleBreakoutRetestTrigger(
+          workflow as unknown as WorkflowType,
+          trigger,
+        );
+
+        updates.push({
+          updateOne: {
+            filter: { _id: workflow._id },
+            update: {
+              $set: {
+                lastEvaluatedAt: now,
+                triggerConfig: {
+                  ...(workflow.triggerConfig || {}),
+                  runtime: result.runtime,
+                },
+                ...(result.shouldExecute ? { lastTriggeredAt: now } : {}),
+              },
+            },
+          },
+        });
+
+        if (result.shouldExecute) {
+          await executeWorkflowSafe(
+            workflow as unknown as WorkflowType,
+            undefined,
+            result.snapshot,
+          );
+          executed++;
+        }
+      }),
+    ),
+  );
+
+  if (updates.length > 0) {
+    await WorkflowModel.bulkWrite(updates);
   }
+
+  return executed;
 }
 
-export async function processConditionalWorkflows(now: Date) {
+export async function processConditionalWorkflows(now: Date): Promise<number> {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "conditional-trigger",
   }).lean();
 
-  for (const workflow of workflows) {
-    try {
-      const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
-      if (!trigger) continue;
-      if (!(await canExecute(workflow._id.toString()))) continue;
+  const cooldown = await batchCanExecute(
+    workflows.map((w) => w._id.toString()),
+    now,
+  );
+  const updates: any[] = [];
+  let executed = 0;
 
-      const { shouldEvaluate } = await handleConditionalTrigger(
-        trigger.data?.metadata?.timeWindowMinutes,
-        trigger.data?.metadata?.startTime
-          ? new Date(trigger.data.metadata.startTime)
-          : undefined,
-      );
+  await Promise.allSettled(
+    workflows.map((workflow) =>
+      limit(async () => {
+        const trigger = findWorkflowTrigger(
+          workflow as unknown as WorkflowType,
+        );
+        if (!trigger) return;
+        if (!cooldown.get(workflow._id.toString())) return;
 
-      await WorkflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            lastEvaluatedAt: now,
+        const { shouldEvaluate } = await handleConditionalTrigger(
+          trigger.data?.metadata?.timeWindowMinutes,
+          trigger.data?.metadata?.startTime
+            ? new Date(trigger.data.metadata.startTime)
+            : undefined,
+        );
+
+        if (!shouldEvaluate) return;
+
+        const { evaluatedCondition, snapshot } =
+          await evaluateConditionalMetadata(trigger.data?.metadata);
+        if (!evaluatedCondition) return;
+
+        updates.push({
+          updateOne: {
+            filter: { _id: workflow._id },
+            update: {
+              $set: {
+                lastEvaluatedAt: now,
+                lastTriggeredAt: now,
+              },
+            },
           },
-        },
-      );
+        });
 
-      if (!shouldEvaluate) {
-        continue;
-      }
+        await executeWorkflowSafe(
+          workflow as unknown as WorkflowType,
+          evaluatedCondition,
+          snapshot as TriggerEvaluationSnapshot,
+        );
+        executed++;
+      }),
+    ),
+  );
 
-      const { evaluatedCondition, snapshot } =
-        await evaluateConditionalMetadata(trigger.data?.metadata);
-      if (!evaluatedCondition) {
-        continue;
-      }
-
-      await WorkflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            lastTriggeredAt: now,
-          },
-        },
-      );
-
-      await executeWorkflowSafe(
-        workflow as unknown as WorkflowType,
-        evaluatedCondition,
-        snapshot as TriggerEvaluationSnapshot,
-      );
-    } catch (err) {
-      console.error(
-        `Conditional workflow error (${workflow.workflowName})`,
-        err,
-      );
-    }
+  if (updates.length > 0) {
+    await WorkflowModel.bulkWrite(updates);
   }
+
+  return executed;
 }
 
-export async function processMarketSessionWorkflows(now: Date) {
+export async function processMarketSessionWorkflows(
+  now: Date,
+): Promise<number> {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "market-session",
   }).lean();
 
-  for (const workflow of workflows) {
-    try {
-      const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
-      if (!trigger) continue;
-      if (!(await canExecute(workflow._id.toString()))) continue;
+  const cooldown = await batchCanExecute(
+    workflows.map((w) => w._id.toString()),
+    now,
+  );
+  const updates: any[] = [];
+  let executed = 0;
 
-      const event = String(
-        trigger.data?.metadata?.event || "market-open",
-      ).toLowerCase() as
-        | "market-open"
-        | "market-close"
-        | "at-time"
-        | "pause-at-time"
-        | "session-window";
-
-      const { shouldExecute, snapshot } = await handleMarketSessionTrigger(
-        event,
-        workflow.lastTriggeredAt ?? null,
-        workflow.lastEvaluatedAt ?? null,
-        trigger.data?.metadata?.triggerTime,
-        trigger.data?.metadata?.endTime,
-        trigger.data?.metadata?.marketType,
-      );
-
-      const shouldPauseWorkflow = shouldExecute && event === "pause-at-time";
-
-      await WorkflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            lastEvaluatedAt: now,
-            ...(shouldExecute ? { lastTriggeredAt: now } : {}),
-            ...(shouldPauseWorkflow ? { status: "paused" } : {}),
-          },
-        },
-      );
-
-      if (shouldExecute) {
-        if (shouldPauseWorkflow) {
-          continue;
-        }
-        await executeWorkflowSafe(
+  await Promise.allSettled(
+    workflows.map((workflow) =>
+      limit(async () => {
+        const trigger = findWorkflowTrigger(
           workflow as unknown as WorkflowType,
-          undefined,
-          snapshot,
         );
-      }
-    } catch (err) {
-      console.error(
-        `Market session workflow error (${workflow.workflowName})`,
-        err,
-      );
-    }
+        if (!trigger) return;
+        if (!cooldown.get(workflow._id.toString())) return;
+
+        const event = String(
+          trigger.data?.metadata?.event || "market-open",
+        ).toLowerCase() as
+          | "market-open"
+          | "market-close"
+          | "at-time"
+          | "pause-at-time"
+          | "session-window";
+
+        const { shouldExecute, snapshot } = await handleMarketSessionTrigger(
+          event,
+          workflow.lastTriggeredAt ?? null,
+          workflow.lastEvaluatedAt ?? null,
+          trigger.data?.metadata?.triggerTime,
+          trigger.data?.metadata?.endTime,
+          trigger.data?.metadata?.marketType,
+        );
+
+        const shouldPauseWorkflow = shouldExecute && event === "pause-at-time";
+
+        updates.push({
+          updateOne: {
+            filter: { _id: workflow._id },
+            update: {
+              $set: {
+                lastEvaluatedAt: now,
+                ...(shouldExecute ? { lastTriggeredAt: now } : {}),
+                ...(shouldPauseWorkflow ? { status: "paused" } : {}),
+              },
+            },
+          },
+        });
+
+        if (shouldExecute && !shouldPauseWorkflow) {
+          await executeWorkflowSafe(
+            workflow as unknown as WorkflowType,
+            undefined,
+            snapshot,
+          );
+          executed++;
+        }
+      }),
+    ),
+  );
+
+  if (updates.length > 0) {
+    await WorkflowModel.bulkWrite(updates);
   }
+
+  return executed;
 }
 
-export async function processPortfolioPnlDrawdownWorkflows(now: Date) {
+export async function processPortfolioPnlDrawdownWorkflows(
+  now: Date,
+): Promise<number> {
   const workflows = await WorkflowModel.find({
     ...ACTIVE_WORKFLOW_QUERY,
     triggerType: "portfolio-pnl-drawdown-trigger",
   }).lean();
 
-  for (const workflow of workflows) {
-    try {
-      const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
-      if (!trigger) continue;
-      if (!(await canExecute(workflow._id.toString()))) continue;
+  const cooldown = await batchCanExecute(
+    workflows.map((w) => w._id.toString()),
+    now,
+  );
+  const updates: any[] = [];
+  let executed = 0;
 
-      const result = await handlePortfolioPnlDrawdownTrigger(
-        workflow as unknown as WorkflowType,
-        trigger,
-      );
+  await Promise.allSettled(
+    workflows.map((workflow) =>
+      limit(async () => {
+        const trigger = findWorkflowTrigger(
+          workflow as unknown as WorkflowType,
+        );
+        if (!trigger) return;
+        if (!cooldown.get(workflow._id.toString())) return;
 
-      await WorkflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            lastEvaluatedAt: now,
-            triggerConfig: {
-              ...(workflow.triggerConfig || {}),
-              runtime: result.runtime,
-              lastMeasurement: {
-                mode: result.mode,
-                measuredValue: result.measuredValue,
-                measuredUnit: result.measuredUnit,
-                metrics: result.metrics,
+        const result = await handlePortfolioPnlDrawdownTrigger(
+          workflow as unknown as WorkflowType,
+          trigger,
+        );
+
+        updates.push({
+          updateOne: {
+            filter: { _id: workflow._id },
+            update: {
+              $set: {
+                lastEvaluatedAt: now,
+                triggerConfig: {
+                  ...(workflow.triggerConfig || {}),
+                  runtime: result.runtime,
+                  lastMeasurement: {
+                    mode: result.mode,
+                    measuredValue: result.measuredValue,
+                    measuredUnit: result.measuredUnit,
+                    metrics: result.metrics,
+                  },
+                },
+                ...(result.shouldExecute ? { lastTriggeredAt: now } : {}),
               },
             },
-            ...(result.shouldExecute ? { lastTriggeredAt: now } : {}),
           },
-        },
-      );
+        });
 
-      if (result.shouldExecute) {
-        await executeWorkflowSafe(
-          workflow as unknown as WorkflowType,
-          undefined,
-          result.snapshot,
-        );
-      }
-    } catch (err) {
-      console.error(
-        `Portfolio PnL / drawdown workflow error (${workflow.workflowName})`,
-        err,
-      );
-    }
+        if (result.shouldExecute) {
+          await executeWorkflowSafe(
+            workflow as unknown as WorkflowType,
+            undefined,
+            result.snapshot,
+          );
+          executed++;
+        }
+      }),
+    ),
+  );
+
+  if (updates.length > 0) {
+    await WorkflowModel.bulkWrite(updates);
   }
+
+  return executed;
 }
