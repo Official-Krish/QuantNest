@@ -28,6 +28,10 @@ export async function connectMongoWithRetry(options: ConnectMongoOptions = {}) {
       await mongoose.connect(uri, {
         serverSelectionTimeoutMS: retryDelayMs,
       } as any);
+      mongoose.connection.on("error", () => {});
+      mongoose.connection.on("reconnected", () => {
+        console.log(`[${serviceName}] Reconnected to MongoDB`);
+      });
       console.log(`[${serviceName}] Connected to MongoDB`);
       return;
     } catch (error) {

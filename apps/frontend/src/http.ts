@@ -71,6 +71,9 @@ api.interceptors.response.use(
         return retry;
       } catch {
         clearAuthSession();
+        if (window.location.pathname.startsWith("/signin")) {
+          return Promise.reject(error);
+        }
         const returnUrl = encodeURIComponent(
           window.location.pathname + window.location.search,
         );
