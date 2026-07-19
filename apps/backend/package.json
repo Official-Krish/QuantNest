@@ -12,6 +12,7 @@
     "@quantnest-trading/db": "workspace:^",
     "@quantnest-trading/executor-utils": "workspace:^",
     "@quantnest-trading/types": "workspace:^",
+    "@quantnest-trading/redis": "workspace:^",
     "@types/bun": "latest",
     "@types/hpp": "^0.2.7",
     "eslint": "^9.39.1",
