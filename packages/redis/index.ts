@@ -1,26 +1,31 @@
-const host = process.env.REDIS_HOST ?? "localhost";
+import { createClient } from "redis";
 
-const redis = Bun.redis;
+const host = process.env.REDIS_HOST ?? "redis";
+
+export const redisSubscriber = createClient({
+  url: `redis://${host}:6379`,
+});
 
 let _connected = false;
 
 export async function initRedis() {
   if (_connected) return;
-  await redis.connect();
+  redisSubscriber.on("error", (err) => console.error("[redis] error:", err));
+  await redisSubscriber.connect();
   _connected = true;
   console.log(`[redis] connected to ${host}:6379`);
 }
 
 export function getRedis() {
-  return redis;
+  return redisSubscriber;
 }
 
 export async function redisGet<T = string>(key: string): Promise<T | null> {
   try {
-    const val = await redis.get(key);
+    const val = await redisSubscriber.get(key);
     if (val === null) return null;
     try {
-      return JSON.parse(val as string) as T;
+      return JSON.parse(val) as T;
     } catch {
       return val as T;
     }
@@ -38,9 +43,9 @@ export async function redisSet(
   try {
     const str = typeof value === "string" ? value : JSON.stringify(value);
     if (ttlMs !== undefined) {
-      await redis.set(key, str, "PX", ttlMs);
+      await redisSubscriber.set(key, str, { PX: ttlMs });
     } else {
-      await redis.set(key, str);
+      await redisSubscriber.set(key, str);
     }
   } catch (err) {
     console.error("[redis] set error:", err);
@@ -49,7 +54,7 @@ export async function redisSet(
 
 export async function redisDel(key: string): Promise<void> {
   try {
-    await redis.del(key);
+    await redisSubscriber.del(key);
   } catch (err) {
     console.error("[redis] del error:", err);
   }

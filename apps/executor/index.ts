@@ -57,4 +57,7 @@ async function start() {
   void runPoll();
 }
 
-start();
+start().catch((err) => {
+  console.error("[executor] Fatal init error, restarting in 5s", err);
+  setTimeout(() => process.exit(1), 5000);
+});

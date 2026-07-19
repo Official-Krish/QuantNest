@@ -7,7 +7,7 @@ export async function acquireLock(
 ): Promise<boolean> {
   try {
     const redis = getRedis();
-    const result = await redis.set(key, value, "NX", "PX", String(ttlMs));
+    const result = await redis.set(key, value, { NX: true, PX: ttlMs });
     return result === "OK";
   } catch (err) {
     console.error("[redis] acquireLock error:", err);
@@ -21,7 +21,7 @@ export async function releaseLock(
 ): Promise<boolean> {
   try {
     const redis = getRedis();
-    const stored = await redis.getdel(key);
+    const stored = await redis.getDel(key);
     return stored === value;
   } catch (err) {
     console.error("[redis] releaseLock error:", err);
