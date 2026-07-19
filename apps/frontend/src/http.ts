@@ -44,6 +44,7 @@ let isRefreshing = false;
 let refreshQueue: Array<{
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
+  request: any;
 }> = [];
 
 api.interceptors.response.use(
@@ -51,25 +52,27 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     if (
-      error.response?.status === 401 &&
+      (error.response?.status === 401 || error.response?.status === 403) &&
       !originalRequest._retry &&
       !originalRequest.url?.includes("/user/signin") &&
       !originalRequest.url?.includes("/user/refresh")
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          refreshQueue.push({ resolve, reject });
+          refreshQueue.push({ resolve, reject, request: originalRequest });
         });
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
+      let refreshSucceeded = false;
       try {
         await api.post("/user/refresh");
+        refreshSucceeded = true;
         const retry = await api(originalRequest);
         return retry;
-      } catch {
+      } catch (refreshError) {
         clearAuthSession();
         if (window.location.pathname.startsWith("/signin")) {
           return Promise.reject(error);
@@ -81,7 +84,13 @@ api.interceptors.response.use(
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
-        refreshQueue.forEach(({ resolve: qResolve }) => qResolve(undefined));
+        if (refreshSucceeded) {
+          refreshQueue.forEach(({ resolve, reject, request }) => {
+            api(request).then(resolve).catch(reject);
+          });
+        } else {
+          refreshQueue.forEach(({ reject }) => reject(error));
+        }
         refreshQueue = [];
       }
     }

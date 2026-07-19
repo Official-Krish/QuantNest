@@ -217,7 +217,7 @@ jobs:
 
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:v2.0.${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:v${{ github.sha }}
 
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -234,7 +234,7 @@ jobs:
       - name: Save Version
         run: |
           mkdir -p version
-          echo "v2.0.${{ github.run_number }}" > version/version.txt
+          echo "v${{ github.sha }}" > version/version.txt
 
       - name: Upload Version
         uses: actions/upload-artifact@v4
