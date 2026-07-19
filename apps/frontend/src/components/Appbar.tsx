@@ -42,6 +42,10 @@ export const Appbar = () => {
   useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 40));
 
   useEffect(() => {
+    if (!hasAuthSession()) {
+      return;
+    }
+
     const sync = async () => {
       try {
         await apiVerifyToken();
