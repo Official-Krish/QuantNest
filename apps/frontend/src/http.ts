@@ -33,6 +33,19 @@ const API_BASE = "https://api.quantnest.krishlabs.tech/api/v1";
 
 const SESSION_KEY = "quantnest_session";
 export const AUTH_STATE_EVENT = "quantnest-auth-state";
+export const MAINTENANCE_EVENT = "quantnest-maintenance";
+
+let _maintenanceMode = false;
+
+export function isMaintenanceMode() {
+  return _maintenanceMode;
+}
+
+export function enableMaintenanceMode() {
+  if (_maintenanceMode) return;
+  _maintenanceMode = true;
+  window.dispatchEvent(new CustomEvent(MAINTENANCE_EVENT, { detail: true }));
+}
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -44,29 +57,36 @@ let isRefreshing = false;
 let refreshQueue: Array<{
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
+  request: any;
 }> = [];
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (!error.response) {
+      enableMaintenanceMode();
+    }
+
     const originalRequest = error.config;
     if (
-      error.response?.status === 401 &&
+      (error.response?.status === 401 || error.response?.status === 403) &&
       !originalRequest._retry &&
       !originalRequest.url?.includes("/user/signin") &&
       !originalRequest.url?.includes("/user/refresh")
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          refreshQueue.push({ resolve, reject });
+          refreshQueue.push({ resolve, reject, request: originalRequest });
         });
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
+      let refreshSucceeded = false;
       try {
         await api.post("/user/refresh");
+        refreshSucceeded = true;
         const retry = await api(originalRequest);
         return retry;
       } catch {
@@ -81,7 +101,13 @@ api.interceptors.response.use(
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
-        refreshQueue.forEach(({ resolve: qResolve }) => qResolve(undefined));
+        if (refreshSucceeded) {
+          refreshQueue.forEach(({ resolve, reject, request }) => {
+            api(request).then(resolve).catch(reject);
+          });
+        } else {
+          refreshQueue.forEach(({ reject }) => reject(error));
+        }
         refreshQueue = [];
       }
     }

@@ -24,25 +24,9 @@ app.set("trust proxy", 1);
 // Security headers
 app.use(helmet());
 
-// CORS
-const allowedOrigins = (
-  process.env.CORS_ORIGIN ||
-  process.env.FRONTEND_URL ||
-  "http://localhost:5173"
-)
-  .split(",")
-  .map((origin: string) => origin.trim())
-  .filter(Boolean);
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-      callback(new Error("Not allowed by CORS"));
-    },
+    origin: "https://quantnest.krishlabs.tech",
     credentials: true,
   }),
 );

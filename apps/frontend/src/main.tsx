@@ -3,6 +3,7 @@ import "./index.css";
 import App from "./App.tsx";
 import { BrowserRouter, useLocation } from "react-router-dom";
 import { Appbar } from "./components/Appbar.tsx";
+import { MaintenanceBanner } from "./components/MaintenanceBanner";
 import Footer from "./components/Footer.tsx";
 import { Toaster } from "sonner";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
@@ -13,6 +14,7 @@ function AppShell() {
 
   return (
     <ErrorBoundary>
+      <MaintenanceBanner />
       {!hideGlobalChrome ? <Appbar /> : null}
       <App />
       <Footer />
