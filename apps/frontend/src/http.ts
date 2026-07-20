@@ -89,7 +89,7 @@ api.interceptors.response.use(
         refreshSucceeded = true;
         const retry = await api(originalRequest);
         return retry;
-      } catch (refreshError) {
+      } catch {
         clearAuthSession();
         if (window.location.pathname.startsWith("/signin")) {
           return Promise.reject(error);
