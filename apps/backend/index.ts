@@ -24,13 +24,9 @@ app.set("trust proxy", 1);
 // Security headers
 app.use(helmet());
 
-// CORS
-const allowedOrigin =
-  process.env.CORS_ORIGINS || "https://quantnest.krishlabs.tech";
-
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: "https://quantnest.krishlabs.tech",
     credentials: true,
   }),
 );

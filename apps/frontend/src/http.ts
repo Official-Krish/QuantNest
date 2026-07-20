@@ -33,6 +33,19 @@ const API_BASE = "https://api.quantnest.krishlabs.tech/api/v1";
 
 const SESSION_KEY = "quantnest_session";
 export const AUTH_STATE_EVENT = "quantnest-auth-state";
+export const MAINTENANCE_EVENT = "quantnest-maintenance";
+
+let _maintenanceMode = false;
+
+export function isMaintenanceMode() {
+  return _maintenanceMode;
+}
+
+export function enableMaintenanceMode() {
+  if (_maintenanceMode) return;
+  _maintenanceMode = true;
+  window.dispatchEvent(new CustomEvent(MAINTENANCE_EVENT, { detail: true }));
+}
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -50,6 +63,10 @@ let refreshQueue: Array<{
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (!error.response) {
+      enableMaintenanceMode();
+    }
+
     const originalRequest = error.config;
     if (
       (error.response?.status === 401 || error.response?.status === 403) &&

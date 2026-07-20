@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import "@xyflow/react/dist/style.css";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { CreateWorkflow } from "./pages/CreateWorkflow";
 import { CreateWorkflowOnboarding } from "./pages/CreateWorkflowOnboarding";
 import { Auth } from "./pages/Auth";
@@ -18,6 +19,24 @@ import { Examples } from "./pages/Examples";
 import { Algorithms } from "./pages/Algorithms";
 import { AiStrategyChatBuilder } from "./pages/AiStrategyChatBuilder";
 import { BillingUsage } from "./pages/BillingUsage";
+import { MAINTENANCE_EVENT, isMaintenanceMode } from "./http";
+
+function MaintenanceGuard({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const [maintenance, setMaintenance] = useState(isMaintenanceMode());
+
+  useEffect(() => {
+    const handler = () => setMaintenance(true);
+    window.addEventListener(MAINTENANCE_EVENT, handler);
+    return () => window.removeEventListener(MAINTENANCE_EVENT, handler);
+  }, []);
+
+  if (maintenance && location.pathname !== "/") {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
 
 export function App() {
   return (
@@ -27,116 +46,160 @@ export function App() {
       <Route path="/signup" element={<Auth mode="signup" />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/coming-soon/:feature" element={<ComingSoon />} />
-      <Route path="/pricing" element={<StaticContentPage pageKey="pricing" />} />
+      <Route
+        path="/pricing"
+        element={<StaticContentPage pageKey="pricing" />}
+      />
       <Route path="/about" element={<About />} />
-      <Route path="/careers" element={<StaticContentPage pageKey="careers" />} />
+      <Route
+        path="/careers"
+        element={<StaticContentPage pageKey="careers" />}
+      />
       <Route path="/blog" element={<Blog />} />
       <Route path="/docs" element={<StaticContentPage pageKey="docs" />} />
-      <Route path="/changelog" element={<StaticContentPage pageKey="changelog" />} />
-      <Route path="/contact" element={<StaticContentPage pageKey="contact" />} />
-      <Route path="/privacy-policy" element={<StaticContentPage pageKey="privacy" />} />
-      <Route path="/terms-of-service" element={<StaticContentPage pageKey="terms" />} />
-      <Route path="/cookie-policy" element={<StaticContentPage pageKey="cookie" />} />
+      <Route
+        path="/changelog"
+        element={<StaticContentPage pageKey="changelog" />}
+      />
+      <Route
+        path="/contact"
+        element={<StaticContentPage pageKey="contact" />}
+      />
+      <Route
+        path="/privacy-policy"
+        element={<StaticContentPage pageKey="privacy" />}
+      />
+      <Route
+        path="/terms-of-service"
+        element={<StaticContentPage pageKey="terms" />}
+      />
+      <Route
+        path="/cookie-policy"
+        element={<StaticContentPage pageKey="cookie" />}
+      />
       <Route path="/examples" element={<Examples />} />
       <Route
         path="/algorithms"
         element={
-          <ProtectedRoute>
-            <Algorithms />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <Algorithms />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/create"
         element={
-          <ProtectedRoute>
-            <CreateWorkflowOnboarding />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <CreateWorkflowOnboarding />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/create/onboarding"
         element={
-          <ProtectedRoute>
-            <CreateWorkflowOnboarding />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <CreateWorkflowOnboarding />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/create/builder"
         element={
-          <ProtectedRoute>
-            <CreateWorkflow />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <CreateWorkflow />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/create/ai-chat"
         element={
-          <ProtectedRoute>
-            <AiStrategyChatBuilder />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <AiStrategyChatBuilder />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/workflow/:workflowId"
         element={
-          <ProtectedRoute>
-            <CreateWorkflow />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <CreateWorkflow />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/notifications"
         element={
-          <ProtectedRoute>
-            <Notifications />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/billing"
         element={
-          <ProtectedRoute>
-            <BillingUsage defaultTab="billing" />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <BillingUsage defaultTab="billing" />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/usage"
         element={
-          <ProtectedRoute>
-            <BillingUsage defaultTab="usage" />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <BillingUsage defaultTab="usage" />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route
         path="/workflow/:workflowId/executions"
         element={
-          <ProtectedRoute>
-            <Executions />
-          </ProtectedRoute>
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <Executions />
+            </ProtectedRoute>
+          </MaintenanceGuard>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-    
   );
 }
 
