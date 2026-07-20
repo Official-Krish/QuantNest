@@ -3,12 +3,14 @@
 QuantNest is a workflow-first trading automation platform. It lets users design visual strategies (trigger -> decision -> action), execute them continuously, and receive guided notifications with AI-generated reasoning.
 
 This repository is a Bun/Turbo monorepo containing:
+
 - a React frontend workflow builder,
 - an Express backend API,
 - an executor service that polls workflows and performs actions,
 - shared packages for types, DB models, and executor utilities.
 
 ## Table of Contents
+
 - [Overview](#overview)
 - [Key Capabilities](#key-capabilities)
 - [Architecture](#architecture)
@@ -27,7 +29,9 @@ This repository is a Bun/Turbo monorepo containing:
 - [License](#license)
 
 ## Overview
+
 QuantNest provides an end-to-end loop for automated trading workflows:
+
 1. Define workflow graph in the frontend.
 2. Persist workflows and credentials via backend APIs.
 3. Poll and evaluate triggers in executor.
@@ -35,6 +39,7 @@ QuantNest provides an end-to-end loop for automated trading workflows:
 5. Record run history and show it in dashboard/executions UI.
 
 ## Key Capabilities
+
 - Visual workflow builder with drag-and-connect node graph.
 - Trigger support:
   - Timer trigger
@@ -51,6 +56,7 @@ QuantNest provides an end-to-end loop for automated trading workflows:
   - Confidence level + numeric score
 
 ## Architecture
+
 ```mermaid
 flowchart LR
   U["User"] --> F["Frontend (React/Vite)"]
@@ -67,11 +73,13 @@ flowchart LR
 ```
 
 ### Service Responsibilities
+
 - Frontend (`apps/frontend`): workflow authoring, dashboard, profile, executions view.
 - Backend (`apps/backend`): auth, workflow CRUD, execution retrieval, token management.
 - Executor (`apps/executor`): polling, trigger evaluation, branch routing, action execution, AI reasoning.
 
 ## Repository Layout
+
 ```text
 apps/
   frontend/      React app (workflow builder + dashboard)
@@ -85,6 +93,7 @@ packages/
 ```
 
 ## Tech Stack
+
 - Runtime: Bun, Node.js >= 18
 - Monorepo orchestration: Turbo
 - Frontend: React 19, Vite, Tailwind, React Flow (`@xyflow/react`)
@@ -93,39 +102,47 @@ packages/
 - Database: MongoDB
 
 ## Getting Started
+
 ### 1. Install dependencies
+
 ```bash
 bun install
 ```
 
 ### 2. Create env files
+
 Create env files for backend, executor, and frontend (see [Environment Variables](#environment-variables)).
 
 ### 3. Start each service
+
 Run each service in a dedicated terminal (see [Running the Platform](#running-the-platform)).
 
 ## Environment Variables
 
 ### Backend (`apps/backend/.env`)
-| Variable | Required | Description |
-|---|---:|---|
-| `MONGO_URL` | Yes | MongoDB connection string |
-| `JWT_SECRET` | Yes | JWT signing/verification secret |
-| `NODE_ENV` | No | Runtime mode (`development`/`production`) |
+
+| Variable     | Required | Description                               |
+| ------------ | -------: | ----------------------------------------- |
+| `MONGO_URL`  |      Yes | MongoDB connection string                 |
+| `JWT_SECRET` |      Yes | JWT signing/verification secret           |
+| `NODE_ENV`   |       No | Runtime mode (`development`/`production`) |
 
 ### Executor (`apps/executor/.env`)
-| Variable | Required | Description |
-|---|---:|---|
-| `MONGO_URL` | Yes | MongoDB connection string |
-| `RESEND_API_KEY` | Yes (for Gmail notifications) | Resend API key |
-| `GOOGLE_API_KEY` | Recommended (for AI reasoning) | Gemini API key |
+
+| Variable         |                       Required | Description               |
+| ---------------- | -----------------------------: | ------------------------- |
+| `MONGO_URL`      |                            Yes | MongoDB connection string |
+| `RESEND_API_KEY` |  Yes (for Gmail notifications) | Resend API key            |
+| `GOOGLE_API_KEY` | Recommended (for AI reasoning) | Gemini API key            |
 
 ### Frontend (`apps/frontend/.env` or `.env.local`)
-| Variable | Required | Description |
-|---|---:|---|
+
+| Variable           |    Required | Description                                   |
+| ------------------ | ----------: | --------------------------------------------- |
 | `VITE_BACKEND_URL` | Recommended | Backend base URL used by frontend HTTP client |
 
 Example:
+
 ```env
 # apps/frontend/.env.local
 VITE_BACKEND_URL=http://localhost:3000/api/v1
@@ -134,25 +151,30 @@ VITE_BACKEND_URL=http://localhost:3000/api/v1
 ## Running the Platform
 
 ### Option A: Run services explicitly (recommended)
+
 Terminal 1 (Backend):
+
 ```bash
 cd apps/backend
 bun run index.ts
 ```
 
 Terminal 2 (Executor):
+
 ```bash
 cd apps/executor
 bun run index.ts
 ```
 
 Terminal 3 (Frontend):
+
 ```bash
 cd apps/frontend
 bun run dev
 ```
 
 ### Option B: Turbo commands from root
+
 ```bash
 bun run dev
 bun run build
@@ -160,23 +182,29 @@ bun run lint
 ```
 
 ## Workflow Model
+
 A workflow is a graph of:
+
 - `nodes`: trigger/action/conditional units
 - `edges`: directed links between nodes (including branch handles)
 
 ### Trigger types
+
 - `timer`
 - `price-trigger`
 - `conditional-trigger`
 
 ### Action types
+
 - Trading: `zerodha`, `groww`, `lighter`
 - Notifications: `gmail`, `discord`
 
 ### Conditional Branching
+
 Conditional nodes expose `true` and `false` source handles. The executor evaluates condition metadata and traverses only matching branch edges.
 
 ## Execution Lifecycle
+
 1. Executor starts and connects to MongoDB.
 2. Poll loop runs every `POLL_INTERVAL` (currently 2000ms).
 3. For each workflow:
@@ -188,19 +216,23 @@ Conditional nodes expose `true` and `false` source handles. The executor evaluat
 5. Frontend executions page displays run history and details.
 
 ### Cooldown / Poll controls
+
 - `apps/executor/config/constants.ts`
   - `POLL_INTERVAL = 2000`
   - `EXECUTION_COOLDOWN_MS = 5000`
 
 ## AI Notification Reasoning
+
 QuantNest enriches notifications with guided context.
 
 ### What users receive
+
 - concise reasoning for the setup,
 - key risks,
 - confidence label + score.
 
 ### How it works
+
 1. Executor collects trigger context (`triggerType`, symbol, market, branches, timer interval).
 2. If conditional expression exists, indicator references are registered.
 3. For simple workflows, default indicator references are synthesized.
@@ -209,6 +241,7 @@ QuantNest enriches notifications with guided context.
 6. If AI or parsing fails, deterministic fallback insight is used.
 
 ### Relevant modules
+
 - `apps/executor/ai-models/gemini.ts`
 - `apps/executor/services/indicator.engine.ts`
 - `apps/executor/executors/gmail.ts`
@@ -216,12 +249,15 @@ QuantNest enriches notifications with guided context.
 - `apps/executor/executors/notificationContent.ts`
 
 ## API Surface
+
 Base backend routes:
+
 - `/api/v1/user`
 - `/api/v1/workflow`
 - `/api/v1/zerodha-token`
 
 Examples:
+
 - `POST /api/v1/user/signup`
 - `POST /api/v1/user/signin`
 - `GET /api/v1/user/profile`
@@ -234,9 +270,11 @@ Examples:
 - `GET /api/v1/zerodha-token/status/:workflowId`
 
 Market status endpoint is exposed by backend as:
+
 - `GET /market-status`
 
 ## Operational Notes
+
 - Mongo is used by both backend and executor.
 - Auth uses Bearer token (`Authorization: Bearer <token>`).
 - Zerodha token lifecycle is managed per workflow/user.
@@ -246,29 +284,57 @@ Market status endpoint is exposed by backend as:
 ## Troubleshooting
 
 ### Frontend cannot reach backend
+
 - Verify `VITE_BACKEND_URL` points to running backend.
 - Confirm backend is listening on expected port.
 
 ### Executor runs but does not execute workflows
+
 - Check Mongo connectivity (`MONGO_URL`).
 - Ensure workflows contain a valid trigger node.
 - Check cooldown and trigger conditions.
 
 ### Notifications not delivered
+
 - Gmail path: verify `RESEND_API_KEY` and sender setup.
 - Discord path: validate webhook URL.
 
 ### AI reasoning missing or generic
+
 - Set `GOOGLE_API_KEY` in `apps/executor/.env`.
 - Verify logs for Gemini failures.
 - For simple workflows, ensure at least one symbol is discoverable or let fallback symbol path run.
 
 ## Contributing
+
 1. Create a feature branch.
 2. Keep changes scoped per service/module.
 3. Run lint/build for affected apps.
 4. Include migration/config notes in PR description when env/runtime behavior changes.
 5. Prefer shared types in `packages/types` for cross-app contracts.
 
+## Benchmarks
+
+Benchmark scripts are in `benchmarks/`. Results below are from a local Mac ARM dev environment (Docker MongoDB + Redis).
+
+| Metric                          | p50   | p95   | Mean  |
+| ------------------------------- | ----- | ----- | ----- |
+| API request (no DB)             | 1.0ms | 1.8ms | ~1ms  |
+| Burst (50 concurrent)           | 1.9ms | 17ms  | 4ms   |
+| Signin (bcrypt+MongoDB+JWT)     | 89ms  | 104ms | 90ms  |
+| Concurrent signins (1000 users) | 8.4s  | 14.6s | 8.4s  |
+| Redis SET                       | 3.7ms | 5.3ms | 4.0ms |
+| Redis GET                       | 3.5ms | 4.1ms | 3.5ms |
+| AI framework overhead           | —     | —     | 61µs  |
+
+**Run all:**
+
+```bash
+bash benchmarks/run-all.sh
+```
+
+See [benchmarks/README.md](benchmarks/README.md) for details.
+
 ## License
+
 See `LICENSE` at repo root.
