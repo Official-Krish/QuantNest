@@ -1,5 +1,6 @@
 import type { AiModelRequestOptions } from "@quantnest-trading/types/ai";
 import type { AiReasoningProvider } from "./types";
+import { env } from "../config/env";
 
 type ProviderConstructor = new (config?: {
   model?: string;
@@ -32,7 +33,5 @@ export function createProvider(
 }
 
 export function resolveProviderName(provider?: string): string {
-  return (provider || process.env.AI_MODEL_PROVIDER || "gemini")
-    .trim()
-    .toLowerCase();
+  return (provider || env.AI.PROVIDER).trim().toLowerCase();
 }

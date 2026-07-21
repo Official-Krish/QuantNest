@@ -1,11 +1,12 @@
 import { Redis } from "ioredis";
+import { env } from "./env";
 
 export const EXECUTION_QUEUE_NAME = "workflow-execution";
 export const DLQ_QUEUE_NAME = "workflow-dlq";
 
 export function createBullConnection() {
   return new Redis({
-    host: process.env.REDIS_HOST ?? "redis",
+    host: env.REDIS.HOST,
     port: 6379,
     maxRetriesPerRequest: null,
     enableOfflineQueue: false,

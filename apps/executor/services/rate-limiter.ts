@@ -1,4 +1,5 @@
 import { Redis } from "ioredis";
+import { env } from "../config/env";
 import { AppError } from "./errors/base.error";
 import { ErrorCode } from "./errors/codes";
 
@@ -17,20 +18,20 @@ export class RateLimitedError extends AppError {
 const WINDOW_SECONDS = 60;
 
 const DEFAULT_LIMITS: Record<string, number> = {
-  zerodha: 50,
-  groww: 60,
-  lighter: 100,
-  gemini: 60,
-  discord: 30,
-  slack: 30,
-  telegram: 20,
-  whatsapp: 20,
-  gmail: 10,
-  notion: 30,
-  "google-drive": 30,
-  "google-sheets": 30,
-  postgres: 200,
-  "market-data": 100,
+  zerodha: env.RATE_LIMITS.ZERODHA,
+  groww: env.RATE_LIMITS.GROWW,
+  lighter: env.RATE_LIMITS.LIGHTER,
+  gemini: env.RATE_LIMITS.GEMINI,
+  discord: env.RATE_LIMITS.DISCORD,
+  slack: env.RATE_LIMITS.SLACK,
+  telegram: env.RATE_LIMITS.TELEGRAM,
+  whatsapp: env.RATE_LIMITS.WHATSAPP,
+  gmail: env.RATE_LIMITS.GMAIL,
+  notion: env.RATE_LIMITS.NOTION,
+  "google-drive": env.RATE_LIMITS.GOOGLE_DRIVE,
+  "google-sheets": env.RATE_LIMITS.GOOGLE_SHEETS,
+  postgres: env.RATE_LIMITS.POSTGRES,
+  "market-data": env.RATE_LIMITS.MARKET_DATA,
 };
 
 export class RateLimiter {
@@ -40,8 +41,8 @@ export class RateLimiter {
     this.redis =
       redis ??
       new Redis({
-        host: process.env.REDIS_HOST ?? "redis",
-        port: 6379,
+        host: env.REDIS.HOST,
+        port: env.REDIS.PORT,
         maxRetriesPerRequest: null,
         enableOfflineQueue: false,
       });
@@ -56,6 +57,11 @@ export class RateLimiter {
 
     if (count === 1) {
       await this.redis.expire(key, WINDOW_SECONDS);
+    } else {
+      const ttl = await this.redis.ttl(key);
+      if (ttl === -1) {
+        await this.redis.expire(key, WINDOW_SECONDS);
+      }
     }
 
     if (count > limit) {
@@ -64,12 +70,6 @@ export class RateLimiter {
   }
 
   private resolveLimit(service: string): number {
-    const envKey = `RATE_LIMIT_${service.toUpperCase().replace(/-/g, "_")}`;
-    const envVal = process.env[envKey];
-    if (envVal) {
-      const parsed = parseInt(envVal, 10);
-      if (Number.isFinite(parsed) && parsed > 0) return parsed;
-    }
     return DEFAULT_LIMITS[service] ?? 0;
   }
 }

@@ -24,6 +24,7 @@ import {
 } from "../prompts";
 import { marketContextBuilder } from "../market-context.builder";
 import { circuitBreaker } from "../../services/circuit-breaker";
+import { env } from "../../config/env";
 import type { RawInsightResponse } from "../normalization";
 
 export class GeminiReasoningProvider implements AiReasoningProvider {
@@ -32,9 +33,8 @@ export class GeminiReasoningProvider implements AiReasoningProvider {
   private readonly ai: GoogleGenAI | null;
 
   constructor(config?: { apiKey?: string; model?: string }) {
-    const apiKey = config?.apiKey ?? process.env.GOOGLE_API_KEY;
-    this.modelName =
-      config?.model ?? process.env.GOOGLE_GENAI_MODEL ?? "gemini-2.5-flash";
+    const apiKey = config?.apiKey ?? env.AI.GOOGLE_API_KEY;
+    this.modelName = config?.model ?? env.AI.GOOGLE_MODEL;
     this.ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
   }
 

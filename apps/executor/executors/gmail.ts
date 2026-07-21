@@ -4,8 +4,9 @@ import { appendAiInsight, getNotificationContent } from "./notificationContent";
 import type { EventType, NotificationDetails } from "../types";
 import { generateTradeReasoning } from "../ai-models";
 import { NotificationFailedError } from "../services/errors";
+import { env } from "../config/env";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(env.NOTIFICATIONS.RESEND_API_KEY);
 
 export async function sendEmail(
   recipientEmail: string,
