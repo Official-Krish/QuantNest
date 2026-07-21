@@ -2,3 +2,4 @@ export const POLL_INTERVAL = 2000;
 export const MAX_POLL_INTERVAL = 10000;
 export const EXECUTION_COOLDOWN_MS = 5000;
 export const DYNAMIC_STATE_REFRESH_INTERVAL_MS = 60_000;
+export const QUEUE_CONCURRENCY = 5;

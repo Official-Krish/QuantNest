@@ -1,9 +1,7 @@
 import type { TriggerEvaluationSnapshot } from "@quantnest-trading/types";
 import { WorkflowModel } from "@quantnest-trading/db/client";
-import {
-  batchCanExecute,
-  executeWorkflowSafe,
-} from "../services/execution.service";
+import { batchCanExecute } from "../services/execution.service";
+import { enqueueExecution } from "./workflow.queue";
 import {
   evaluateConditionalMetadata,
   handleBreakoutRetestTrigger,
@@ -15,6 +13,7 @@ import {
 import type { WorkflowType } from "../types";
 import {
   ACTIVE_WORKFLOW_QUERY,
+  buildDedupeKey,
   findWorkflowTrigger,
   getTimerIntervalSeconds,
 } from "./poller.utils";
@@ -60,7 +59,12 @@ export async function processTimerWorkflows(now: Date): Promise<number> {
           },
         });
 
-        await executeWorkflowSafe(workflow as unknown as WorkflowType);
+        await enqueueExecution({
+          workflowId: workflow._id.toString(),
+          userId: workflow.userId.toString(),
+          executionMode: workflow.executionMode,
+          dedupeKey: buildDedupeKey(workflow._id.toString(), now),
+        });
         executed++;
       }),
     ),
@@ -113,11 +117,13 @@ export async function processPriceWorkflows(now: Date): Promise<number> {
         });
 
         if (shouldExecute) {
-          await executeWorkflowSafe(
-            workflow as unknown as WorkflowType,
-            undefined,
-            snapshot,
-          );
+          await enqueueExecution({
+            workflowId: workflow._id.toString(),
+            userId: workflow.userId.toString(),
+            triggerSnapshot: snapshot,
+            executionMode: workflow.executionMode,
+            dedupeKey: buildDedupeKey(workflow._id.toString(), now),
+          });
           executed++;
         }
       }),
@@ -177,11 +183,13 @@ export async function processBreakoutRetestWorkflows(
         });
 
         if (result.shouldExecute) {
-          await executeWorkflowSafe(
-            workflow as unknown as WorkflowType,
-            undefined,
-            result.snapshot,
-          );
+          await enqueueExecution({
+            workflowId: workflow._id.toString(),
+            userId: workflow.userId.toString(),
+            triggerSnapshot: result.snapshot,
+            executionMode: workflow.executionMode,
+            dedupeKey: buildDedupeKey(workflow._id.toString(), now),
+          });
           executed++;
         }
       }),
@@ -242,11 +250,14 @@ export async function processConditionalWorkflows(now: Date): Promise<number> {
           },
         });
 
-        await executeWorkflowSafe(
-          workflow as unknown as WorkflowType,
-          evaluatedCondition,
-          snapshot as TriggerEvaluationSnapshot,
-        );
+        await enqueueExecution({
+          workflowId: workflow._id.toString(),
+          userId: workflow.userId.toString(),
+          condition: evaluatedCondition,
+          triggerSnapshot: snapshot as TriggerEvaluationSnapshot,
+          executionMode: workflow.executionMode,
+          dedupeKey: buildDedupeKey(workflow._id.toString(), now),
+        });
         executed++;
       }),
     ),
@@ -317,11 +328,13 @@ export async function processMarketSessionWorkflows(
         });
 
         if (shouldExecute && !shouldPauseWorkflow) {
-          await executeWorkflowSafe(
-            workflow as unknown as WorkflowType,
-            undefined,
-            snapshot,
-          );
+          await enqueueExecution({
+            workflowId: workflow._id.toString(),
+            userId: workflow.userId.toString(),
+            triggerSnapshot: snapshot,
+            executionMode: workflow.executionMode,
+            dedupeKey: buildDedupeKey(workflow._id.toString(), now),
+          });
           executed++;
         }
       }),
@@ -387,11 +400,13 @@ export async function processPortfolioPnlDrawdownWorkflows(
         });
 
         if (result.shouldExecute) {
-          await executeWorkflowSafe(
-            workflow as unknown as WorkflowType,
-            undefined,
-            result.snapshot,
-          );
+          await enqueueExecution({
+            workflowId: workflow._id.toString(),
+            userId: workflow.userId.toString(),
+            triggerSnapshot: result.snapshot,
+            executionMode: workflow.executionMode,
+            dedupeKey: buildDedupeKey(workflow._id.toString(), now),
+          });
           executed++;
         }
       }),

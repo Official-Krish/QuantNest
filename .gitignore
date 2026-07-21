@@ -38,3 +38,4 @@ yarn-error.log*
 *.pem
 secrets.yml
 seed-debug-data.ts
+plan.md

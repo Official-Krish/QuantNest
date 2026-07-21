@@ -3,6 +3,7 @@ import { connectDB } from "./config/database";
 import { POLL_INTERVAL, MAX_POLL_INTERVAL } from "./config/constants";
 import { pollOnce } from "./jobs/workflow.poller";
 import { initRedis } from "@quantnest-trading/redis";
+import { initQueue, closeQueue } from "./jobs/workflow.queue";
 
 dotenv.config();
 
@@ -11,6 +12,7 @@ const pollIntervalStep = 250;
 
 async function start() {
   await Promise.all([connectDB(), initRedis()]);
+  await initQueue();
 
   let shuttingDown = false;
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
@@ -36,6 +38,7 @@ async function start() {
       clearTimeout(pollTimer);
       pollTimer = null;
     }
+    void closeQueue();
   };
 
   process.once("SIGTERM", stop);
