@@ -6,6 +6,8 @@ import type {
 } from "@quantnest-trading/types";
 import { getCurrentPrice } from "@quantnest-trading/market";
 import { indicatorEngine } from "../../services/indicator.engine";
+import type { IWorkflowHandler } from "../../processors/types";
+import type { NodeType, WorkflowType } from "../../types";
 
 export async function handleConditionalTrigger(
   timeWindowMinutes?: number,
@@ -107,3 +109,33 @@ export async function evaluateConditionalMetadata(
 
   return { evaluatedCondition: false, snapshot };
 }
+
+export const conditionalHandler: IWorkflowHandler = {
+  async evaluate(workflow: WorkflowType, trigger: NodeType) {
+    const metadata = trigger.data?.metadata as
+      | Record<string, unknown>
+      | undefined;
+
+    const timeWindow = metadata?.timeWindowMinutes as number | undefined;
+    const startTime = metadata?.startTime
+      ? new Date(metadata.startTime as string)
+      : undefined;
+
+    const { shouldEvaluate, snapshot: timeSnapshot } =
+      await handleConditionalTrigger(timeWindow, startTime);
+
+    if (!shouldEvaluate) {
+      return { shouldExecute: false, snapshot: timeSnapshot };
+    }
+
+    const { evaluatedCondition, snapshot } = await evaluateConditionalMetadata(
+      metadata as any,
+    );
+
+    return {
+      shouldExecute: evaluatedCondition,
+      snapshot: snapshot as any,
+      condition: evaluatedCondition,
+    };
+  },
+};

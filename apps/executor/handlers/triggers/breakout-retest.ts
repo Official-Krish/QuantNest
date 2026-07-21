@@ -7,6 +7,7 @@ import {
   isSupportedAssetForMarket,
   normalizeTriggerMarket,
 } from "./shared";
+import type { IWorkflowHandler } from "../../processors/types";
 
 export async function handleBreakoutRetestTrigger(
   workflow: WorkflowType,
@@ -182,3 +183,19 @@ export async function handleBreakoutRetestTrigger(
     snapshot,
   };
 }
+
+export const breakoutRetestHandler: IWorkflowHandler = {
+  async evaluate(workflow, trigger) {
+    const result = await handleBreakoutRetestTrigger(workflow, trigger);
+    return {
+      shouldExecute: result.shouldExecute,
+      snapshot: result.snapshot,
+      extraUpdates: {
+        triggerConfig: {
+          ...(workflow.triggerConfig || {}),
+          runtime: result.runtime,
+        },
+      },
+    };
+  },
+};

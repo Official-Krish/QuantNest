@@ -4,6 +4,7 @@ import {
   getBrokerAccountMetrics,
   type BrokerAccountMetrics,
 } from "../../services/accountMetrics";
+import type { IWorkflowHandler } from "../../processors/types";
 
 type RiskMode = "daily-loss-cap" | "profit-target" | "drawdown-limit";
 type ThresholdUnit = "absolute" | "percent";
@@ -206,3 +207,25 @@ export async function handlePortfolioPnlDrawdownTrigger(
     snapshot,
   };
 }
+
+export const portfolioPnlDrawdownHandler: IWorkflowHandler = {
+  async evaluate(workflow, trigger) {
+    const result = await handlePortfolioPnlDrawdownTrigger(workflow, trigger);
+    return {
+      shouldExecute: result.shouldExecute,
+      snapshot: result.snapshot,
+      extraUpdates: {
+        triggerConfig: {
+          ...(workflow.triggerConfig || {}),
+          runtime: result.runtime,
+          lastMeasurement: {
+            mode: result.mode,
+            measuredValue: result.measuredValue,
+            measuredUnit: result.measuredUnit,
+            metrics: result.metrics,
+          },
+        },
+      },
+    };
+  },
+};

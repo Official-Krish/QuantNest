@@ -6,6 +6,7 @@ import {
   isSupportedAssetForMarket,
   normalizeTriggerMarket,
 } from "./shared";
+import type { IWorkflowHandler } from "../../processors/types";
 
 export async function handlePriceTrigger(
   workflow: WorkflowType,
@@ -127,3 +128,9 @@ export async function handlePriceTrigger(
 
   return { shouldExecute: false, snapshot };
 }
+
+export const priceHandler: IWorkflowHandler = {
+  async evaluate(workflow, trigger) {
+    return handlePriceTrigger(workflow, trigger);
+  },
+};
