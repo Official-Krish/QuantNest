@@ -39,13 +39,26 @@ export interface IIndicatorCalculator {
   calculateSma(candles: Candle[], period: number): number | null;
   calculateEma(candles: Candle[], period: number): number | null;
   calculateRsi(candles: Candle[], period: number): number | null;
-  calculateMacd(candles: Candle[]): {
-    macd: number | null;
-    signal: number | null;
-    histogram: number | null;
-  };
+  calculateMacd(
+    candles: Candle[],
+    fastPeriod?: number,
+    slowPeriod?: number,
+    signalPeriod?: number,
+  ): number | null;
+  calculateMacdSignal(
+    candles: Candle[],
+    fastPeriod?: number,
+    slowPeriod?: number,
+    signalPeriod?: number,
+  ): number | null;
+  calculateMacdHistogram(
+    candles: Candle[],
+    fastPeriod?: number,
+    slowPeriod?: number,
+    signalPeriod?: number,
+  ): number | null;
   calculateVolume(candles: Candle[]): number | null;
-  calculatePctChange(current: number, previous: number): number;
+  calculatePctChange(candles: Candle[], period?: number): number | null;
   calculatePrice(candles: Candle[]): number | null;
 }
 
