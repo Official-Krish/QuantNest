@@ -1,361 +1,197 @@
 import {
   checkTokenStatus,
   createUserNotification,
-  getMarketStatus,
   getZerodhaToken,
   pauseWorkflow,
 } from "@quantnest-trading/executor-utils";
-import { isMarketOpen } from "@quantnest-trading/market";
 import { ExecuteLighter } from "../../executors/lighter";
 import { executeGrowwNode } from "../../executors/groww";
 import { executeZerodhaNode } from "../../executors/zerodha";
-import { shouldSkipActionByCondition } from "../execute.context";
-import {
-  ActionConfigurationError,
-  executeActionWithRetry,
-  type ActionHandler,
-} from "./shared";
-import { acquireLock } from "@quantnest-trading/redis/lock";
+import { BrokerHandler } from "./base.handler";
+import { ActionConfigurationError } from "./shared";
+import type { IActionHandler } from "./base.handler";
 
-const TRADE_IDEM_KEY_TTL_MS = 60_000;
+class ZerodhaHandler extends BrokerHandler {
+  readonly handlerId = "zerodha" as const;
+  brokerName = "Zerodha";
+  private zerodhaAccessToken = "";
 
-function getTradeIdempotencyKey(context: any, node: any): string {
-  return `idempotency:trade:${context.workflowId}:${node.nodeId}`;
-}
-
-async function checkTradeIdempotency(
-  context: any,
-  node: any,
-): Promise<boolean> {
-  const key = getTradeIdempotencyKey(context, node);
-  const value = `${context.workflowId}:${node.nodeId}:${Date.now()}`;
-  return acquireLock(key, value, TRADE_IDEM_KEY_TTL_MS);
-}
-
-export const zerodhaActionHandler: ActionHandler = async ({
-  node,
-  context,
-  nextCondition,
-  resolvedMetadata,
-  steps,
-}) => {
-  if (
-    shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)
-  ) {
-    return;
+  protected override isMarketRequired(): boolean {
+    return true;
   }
 
-  await executeActionWithRetry({
-    node,
-    context,
-    steps,
-    nodeTypeLabel: "Zerodha Action",
-    retryPolicy: (resolvedMetadata as any)?.retryPolicy,
-    operation: async () => {
-      if (context.executionMode === "dry-run") {
-        context.eventType = (resolvedMetadata as any)?.type;
-        context.details = {
-          symbol: (resolvedMetadata as any)?.symbol,
-          quantity: (resolvedMetadata as any)?.qty,
-          exchange: (resolvedMetadata as any)?.exchange || "NSE",
-          aiContext: context.details?.aiContext,
-        };
-        return {
-          message: `[Dry Run] Would place ${String((resolvedMetadata as any)?.type || "").toUpperCase()} order for ${(resolvedMetadata as any)?.symbol}`,
-          simulatedPayload: {
+  protected override async validateTokens(context: any): Promise<void> {
+    const tokenStatus = await checkTokenStatus(
+      context.userId || "",
+      context.workflowId || "",
+    );
+    if (!tokenStatus.hasValidToken) {
+      if (context.userId && context.workflowId) {
+        await pauseWorkflow(context.workflowId);
+        await createUserNotification({
+          userId: context.userId,
+          workflowId: context.workflowId,
+          type: tokenStatus.message.toLowerCase().includes("expired")
+            ? "broker_token_expired"
+            : "broker_credentials_invalid",
+          severity: "error",
+          title: tokenStatus.message.toLowerCase().includes("expired")
+            ? "Zerodha token expired"
+            : "Zerodha credentials unavailable",
+          message: `${tokenStatus.message} Workflow has been paused until the issue is fixed.`,
+          metadata: {
             broker: "zerodha",
-            symbol: (resolvedMetadata as any)?.symbol,
-            qty: (resolvedMetadata as any)?.qty,
-            side: (resolvedMetadata as any)?.type,
-            exchange: (resolvedMetadata as any)?.exchange || "NSE",
+            tokenRequestId: tokenStatus.tokenRequestId,
           },
-        };
+          dedupeKey: `zerodha-token-status:${context.workflowId}:${tokenStatus.message}`,
+          dedupeWindowHours: 24,
+        });
       }
-
-      if (!isMarketOpen()) {
-        const marketStatus = getMarketStatus();
-        throw new ActionConfigurationError(
-          `Cannot execute trade: ${marketStatus.message}. ${marketStatus.nextOpenTime ? `Next opening: ${marketStatus.nextOpenTime}` : ""}`,
-        );
-      }
-
-      const tokenStatus = await checkTokenStatus(
-        context.userId || "",
-        context.workflowId || "",
+      throw new ActionConfigurationError(
+        `Workflow paused: ${tokenStatus.message}${tokenStatus.tokenRequestId ? ` (Request ID: ${tokenStatus.tokenRequestId})` : ""}`,
       );
-      if (!tokenStatus.hasValidToken) {
-        if (context.userId && context.workflowId) {
-          await pauseWorkflow(context.workflowId);
-          await createUserNotification({
-            userId: context.userId,
-            workflowId: context.workflowId,
-            type: tokenStatus.message.toLowerCase().includes("expired")
-              ? "broker_token_expired"
-              : "broker_credentials_invalid",
-            severity: "error",
-            title: tokenStatus.message.toLowerCase().includes("expired")
-              ? "Zerodha token expired"
-              : "Zerodha credentials unavailable",
-            message: `${tokenStatus.message} Workflow has been paused until the issue is fixed.`,
-            metadata: {
-              broker: "zerodha",
-              tokenRequestId: tokenStatus.tokenRequestId,
-            },
-            dedupeKey: `zerodha-token-status:${context.workflowId}:${tokenStatus.message}`,
-            dedupeWindowHours: 24,
-          });
-        }
-        throw new ActionConfigurationError(
-          `Workflow paused: ${tokenStatus.message}${tokenStatus.tokenRequestId ? ` (Request ID: ${tokenStatus.tokenRequestId})` : ""}`,
-        );
-      }
+    }
 
-      const accessToken = await getZerodhaToken(
-        context.userId || "",
-        context.workflowId || "",
+    const accessToken = await getZerodhaToken(
+      context.userId || "",
+      context.workflowId || "",
+    );
+    if (!accessToken) {
+      throw new ActionConfigurationError(
+        "Workflow paused: Access token not available. Please provide your Zerodha access token.",
       );
-      if (!accessToken) {
-        throw new ActionConfigurationError(
-          "Workflow paused: Access token not available. Please provide your Zerodha access token.",
-        );
-      }
-
-      const idempotent = await checkTradeIdempotency(context, node);
-      if (!idempotent) {
-        context.eventType = "trade_skipped";
-        context.details = {
-          symbol: (resolvedMetadata as any)?.symbol,
-          quantity: (resolvedMetadata as any)?.qty,
-          exchange: (resolvedMetadata as any)?.exchange || "NSE",
-          reason: "Duplicate trade prevented by idempotency check",
-          aiContext: context.details?.aiContext,
-        };
-        return "Trade skipped: already executed in this window";
-      }
-
-      const result = await executeZerodhaNode(
-        node.data?.metadata?.symbol,
-        (resolvedMetadata as any)?.qty,
-        (resolvedMetadata as any)?.type,
-        (resolvedMetadata as any)?.apiKey,
-        accessToken,
-        (resolvedMetadata as any)?.exchange || "NSE",
-      );
-
-      if (result === "SUCCESS") {
-        context.eventType = (resolvedMetadata as any)?.type;
-        context.details = {
-          symbol: (resolvedMetadata as any)?.symbol,
-          quantity: (resolvedMetadata as any)?.qty,
-          exchange: (resolvedMetadata as any)?.exchange || "NSE",
-          aiContext: context.details?.aiContext,
-        };
-        return `${String((resolvedMetadata as any)?.type || "").toUpperCase()} order executed for ${(resolvedMetadata as any)?.symbol}`;
-      }
-
-      context.eventType = "trade_failed";
-      context.details = {
-        symbol: (resolvedMetadata as any)?.symbol,
-        quantity: (resolvedMetadata as any)?.qty,
-        exchange: (resolvedMetadata as any)?.exchange || "NSE",
-        tradeType: (resolvedMetadata as any)?.type,
-        failureReason:
-          "Trade execution failed. Please check your broker account and credentials.",
-        aiContext: context.details?.aiContext,
-      };
-      throw new Error(
-        `Trade execution failed for ${(resolvedMetadata as any)?.symbol}`,
-      );
-    },
-    onFinalFailure: async (error) => {
-      console.error("Zerodha execution error:", error);
-      context.eventType = "trade_failed";
-      context.details = {
-        symbol: (resolvedMetadata as any)?.symbol,
-        quantity: (resolvedMetadata as any)?.qty,
-        exchange: (resolvedMetadata as any)?.exchange || "NSE",
-        tradeType: (resolvedMetadata as any)?.type,
-        failureReason:
-          error instanceof Error
-            ? error.message
-            : "Unknown error occurred during trade execution.",
-        aiContext: context.details?.aiContext,
-      };
-    },
-  });
-};
-
-export const growwActionHandler: ActionHandler = async ({
-  node,
-  context,
-  nextCondition,
-  resolvedMetadata,
-  steps,
-}) => {
-  if (
-    shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)
-  ) {
-    return;
+    }
+    this.zerodhaAccessToken = accessToken;
   }
 
-  await executeActionWithRetry({
-    node,
-    context,
-    steps,
-    nodeTypeLabel: "Groww Action",
-    retryPolicy: (resolvedMetadata as any)?.retryPolicy,
-    operation: async () => {
-      if (context.executionMode === "dry-run") {
-        context.eventType = (resolvedMetadata as any)?.type;
-        context.details = {
-          symbol: (resolvedMetadata as any)?.symbol,
-          quantity: (resolvedMetadata as any)?.qty,
-          exchange: (resolvedMetadata as any)?.exchange || "NSE",
-          aiContext: context.details?.aiContext,
-        };
-        return {
-          message: `[Dry Run] Would place ${String((resolvedMetadata as any)?.type || "").toUpperCase()} order for ${(resolvedMetadata as any)?.symbol}`,
-          simulatedPayload: {
-            broker: "groww",
-            symbol: (resolvedMetadata as any)?.symbol,
-            qty: (resolvedMetadata as any)?.qty,
-            side: (resolvedMetadata as any)?.type,
-            exchange: (resolvedMetadata as any)?.exchange || "NSE",
-          },
-        };
-      }
+  protected async executeTrade(
+    resolvedMetadata: Record<string, unknown>,
+    context: any,
+  ): Promise<string> {
+    const result = await executeZerodhaNode(
+      (resolvedMetadata as any)?.symbol,
+      (resolvedMetadata as any)?.qty,
+      (resolvedMetadata as any)?.type,
+      (resolvedMetadata as any)?.apiKey,
+      this.zerodhaAccessToken,
+      (resolvedMetadata as any)?.exchange || "NSE",
+    );
 
-      const idempotent = await checkTradeIdempotency(context, node);
-      if (!idempotent) {
-        context.eventType = "trade_skipped";
-        context.details = {
-          symbol: (resolvedMetadata as any)?.symbol,
-          quantity: (resolvedMetadata as any)?.qty,
-          exchange: (resolvedMetadata as any)?.exchange || "NSE",
-          reason: "Duplicate trade prevented by idempotency check",
-          aiContext: context.details?.aiContext,
-        };
-        return "Trade skipped: already executed in this window";
-      }
-
-      const result = await executeGrowwNode(
-        (resolvedMetadata as any)?.symbol,
-        (resolvedMetadata as any)?.qty,
-        (resolvedMetadata as any)?.type,
-        (resolvedMetadata as any)?.exchange || "NSE",
-        (resolvedMetadata as any)?.accessToken,
-      );
-
-      if (result === "SUCCESS") {
-        context.eventType = (resolvedMetadata as any)?.type;
-        context.details = {
-          symbol: (resolvedMetadata as any)?.symbol,
-          quantity: (resolvedMetadata as any)?.qty,
-          exchange: (resolvedMetadata as any)?.exchange || "NSE",
-          aiContext: context.details?.aiContext,
-        };
-        return `${String((resolvedMetadata as any)?.type || "").toUpperCase()} order executed for ${(resolvedMetadata as any)?.symbol}`;
-      }
-
-      context.eventType = "trade_failed";
+    if (result === "SUCCESS") {
+      context.eventType = (resolvedMetadata as any)?.type;
       context.details = {
         symbol: (resolvedMetadata as any)?.symbol,
         quantity: (resolvedMetadata as any)?.qty,
         exchange: (resolvedMetadata as any)?.exchange || "NSE",
-        tradeType: (resolvedMetadata as any)?.type,
-        failureReason:
-          "Trade execution failed. Please check your broker account and credentials.",
         aiContext: context.details?.aiContext,
       };
-      throw new Error(
-        `Trade execution failed for ${(resolvedMetadata as any)?.symbol}`,
-      );
-    },
-    onFinalFailure: async (error) => {
-      console.error("Groww execution error:", error);
-      context.eventType = "trade_failed";
+      return `${String((resolvedMetadata as any)?.type || "").toUpperCase()} order executed for ${(resolvedMetadata as any)?.symbol}`;
+    }
+
+    context.eventType = "trade_failed";
+    context.details = {
+      symbol: (resolvedMetadata as any)?.symbol,
+      quantity: (resolvedMetadata as any)?.qty,
+      exchange: (resolvedMetadata as any)?.exchange || "NSE",
+      tradeType: (resolvedMetadata as any)?.type,
+      failureReason:
+        "Trade execution failed. Please check your broker account and credentials.",
+      aiContext: context.details?.aiContext,
+    };
+    throw new Error(
+      `Trade execution failed for ${(resolvedMetadata as any)?.symbol}`,
+    );
+  }
+}
+
+class GrowwHandler extends BrokerHandler {
+  readonly handlerId = "groww" as const;
+  brokerName = "Groww";
+
+  protected async executeTrade(
+    resolvedMetadata: Record<string, unknown>,
+    context: any,
+  ): Promise<string> {
+    const result = await executeGrowwNode(
+      (resolvedMetadata as any)?.symbol,
+      (resolvedMetadata as any)?.qty,
+      (resolvedMetadata as any)?.type,
+      (resolvedMetadata as any)?.exchange || "NSE",
+      (resolvedMetadata as any)?.accessToken,
+    );
+
+    if (result === "SUCCESS") {
+      context.eventType = (resolvedMetadata as any)?.type;
       context.details = {
         symbol: (resolvedMetadata as any)?.symbol,
         quantity: (resolvedMetadata as any)?.qty,
         exchange: (resolvedMetadata as any)?.exchange || "NSE",
-        tradeType: (resolvedMetadata as any)?.type,
-        failureReason:
-          error instanceof Error
-            ? error.message
-            : "Unknown error occurred during trade execution.",
         aiContext: context.details?.aiContext,
       };
-    },
-  });
-};
+      return `${String((resolvedMetadata as any)?.type || "").toUpperCase()} order executed for ${(resolvedMetadata as any)?.symbol}`;
+    }
 
-export const lighterActionHandler: ActionHandler = async ({
-  node,
-  nextCondition,
-  resolvedMetadata,
-  steps,
-  context,
-}) => {
-  if (
-    shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)
-  ) {
-    return;
+    context.eventType = "trade_failed";
+    context.details = {
+      symbol: (resolvedMetadata as any)?.symbol,
+      quantity: (resolvedMetadata as any)?.qty,
+      exchange: (resolvedMetadata as any)?.exchange || "NSE",
+      tradeType: (resolvedMetadata as any)?.type,
+      failureReason:
+        "Trade execution failed. Please check your broker account and credentials.",
+      aiContext: context.details?.aiContext,
+    };
+    throw new Error(
+      `Trade execution failed for ${(resolvedMetadata as any)?.symbol}`,
+    );
+  }
+}
+
+class LighterHandler extends BrokerHandler {
+  readonly handlerId = "lighter" as const;
+  brokerName = "Lighter";
+
+  protected async executeTrade(
+    resolvedMetadata: Record<string, unknown>,
+    context: any,
+  ): Promise<string> {
+    await ExecuteLighter(
+      (resolvedMetadata as any)?.symbol,
+      (resolvedMetadata as any)?.amount,
+      (resolvedMetadata as any)?.type,
+      (resolvedMetadata as any)?.apiKey,
+      (resolvedMetadata as any)?.accountIndex,
+      (resolvedMetadata as any)?.apiKeyIndex,
+    );
+
+    return "Lighter action executed (placeholder)";
   }
 
-  await executeActionWithRetry({
-    node,
-    context,
-    steps,
-    nodeTypeLabel: "Lighter Action",
-    retryPolicy: (resolvedMetadata as any)?.retryPolicy,
-    operation: async () => {
-      if (context.executionMode === "dry-run") {
-        context.eventType = (resolvedMetadata as any)?.type;
-        context.details = {
-          symbol: (resolvedMetadata as any)?.symbol,
-          quantity: (resolvedMetadata as any)?.amount,
-          exchange: "Lighter",
-          aiContext: context.details?.aiContext,
-        };
-        return {
-          message: `[Dry Run] Would place ${String((resolvedMetadata as any)?.type || "").toUpperCase()} position for ${(resolvedMetadata as any)?.symbol}`,
-          simulatedPayload: {
-            broker: "lighter",
-            symbol: (resolvedMetadata as any)?.symbol,
-            amount: (resolvedMetadata as any)?.amount,
-            side: (resolvedMetadata as any)?.type,
-            accountIndex: (resolvedMetadata as any)?.accountIndex,
-            apiKeyIndex: (resolvedMetadata as any)?.apiKeyIndex,
-          },
-        };
-      }
+  protected override simulateTrade(
+    resolvedMetadata: Record<string, unknown>,
+    context: any,
+  ) {
+    context.eventType = (resolvedMetadata as any)?.type;
+    context.details = {
+      symbol: (resolvedMetadata as any)?.symbol,
+      quantity: (resolvedMetadata as any)?.amount,
+      exchange: "Lighter",
+      aiContext: context.details?.aiContext,
+    };
+    return {
+      message: `[Dry Run] Would place ${String((resolvedMetadata as any)?.type || "").toUpperCase()} position for ${(resolvedMetadata as any)?.symbol}`,
+      simulatedPayload: {
+        broker: "lighter",
+        symbol: (resolvedMetadata as any)?.symbol,
+        amount: (resolvedMetadata as any)?.amount,
+        side: (resolvedMetadata as any)?.type,
+        accountIndex: (resolvedMetadata as any)?.accountIndex,
+        apiKeyIndex: (resolvedMetadata as any)?.apiKeyIndex,
+      },
+    };
+  }
+}
 
-      const idempotent = await checkTradeIdempotency(context, node);
-      if (!idempotent) {
-        context.eventType = "trade_skipped";
-        context.details = {
-          symbol: (resolvedMetadata as any)?.symbol,
-          quantity: (resolvedMetadata as any)?.amount,
-          exchange: "Lighter",
-          reason: "Duplicate trade prevented by idempotency check",
-          aiContext: context.details?.aiContext,
-        };
-        return "Trade skipped: already executed in this window";
-      }
-
-      await ExecuteLighter(
-        (resolvedMetadata as any)?.symbol,
-        (resolvedMetadata as any)?.amount,
-        (resolvedMetadata as any)?.type,
-        (resolvedMetadata as any)?.apiKey,
-        (resolvedMetadata as any)?.accountIndex,
-        (resolvedMetadata as any)?.apiKeyIndex,
-      );
-
-      return "Lighter action executed (placeholder)";
-    },
-    onFinalFailure: async (error) => {
-      console.error("Lighter execution error:", error);
-    },
-  });
-};
+export const zerodhaHandler: IActionHandler = new ZerodhaHandler();
+export const growwHandler: IActionHandler = new GrowwHandler();
+export const lighterHandler: IActionHandler = new LighterHandler();

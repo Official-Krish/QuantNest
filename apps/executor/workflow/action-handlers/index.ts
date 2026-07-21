@@ -1,40 +1,44 @@
-import type { ExecutorActionHandlerId } from "@quantnest-trading/node-registry";
-import { delayActionHandler, noopActionHandler, recheckActionHandler } from "./flow-control";
+import { ActionHandlerFactory, type IActionHandler } from "./base.handler";
+import { noopHandler, delayHandler, recheckHandler } from "./flow-control";
 import {
-  discordActionHandler,
-  gmailActionHandler,
-  slackActionHandler,
-  telegramActionHandler,
-  whatsappActionHandler,
+  gmailHandler,
+  discordHandler,
+  slackHandler,
+  telegramHandler,
+  whatsappHandler,
 } from "./notifications";
 import {
-  googleDriveActionHandler,
-  googleSheetsActionHandler,
-  notionActionHandler,
+  googleDriveHandler,
+  googleSheetsHandler,
+  notionHandler,
 } from "./reporting";
-import {
-  growwActionHandler,
-  lighterActionHandler,
-  zerodhaActionHandler,
-} from "./trading";
-import { postgresActionHandler } from "./database";
+import { zerodhaHandler, growwHandler, lighterHandler } from "./trading";
+import { postgresHandler } from "./database";
 
-export const actionHandlerMap: Record<ExecutorActionHandlerId, any> = {
-  noop: noopActionHandler,
-  delay: delayActionHandler,
-  recheck: recheckActionHandler,
-  zerodha: zerodhaActionHandler,
-  groww: growwActionHandler,
-  lighter: lighterActionHandler,
-  gmail: gmailActionHandler,
-  slack: slackActionHandler,
-  telegram: telegramActionHandler,
-  discord: discordActionHandler,
-  whatsapp: whatsappActionHandler,
-  "notion-daily-report": notionActionHandler,
-  "google-drive-daily-csv": googleDriveActionHandler,
-  "google-sheets-report": googleSheetsActionHandler,
-  postgres: postgresActionHandler,
-};
+export const actionHandlerFactory = new ActionHandlerFactory();
 
-export type { ActionHandler, ActionHandlerParams, ExecuteActionNodeParams } from "./shared";
+function register(handler: IActionHandler): void {
+  actionHandlerFactory.register(handler);
+}
+
+register(noopHandler);
+register(delayHandler);
+register(recheckHandler);
+register(zerodhaHandler);
+register(growwHandler);
+register(lighterHandler);
+register(gmailHandler);
+register(slackHandler);
+register(telegramHandler);
+register(discordHandler);
+register(whatsappHandler);
+register(notionHandler);
+register(googleDriveHandler);
+register(googleSheetsHandler);
+register(postgresHandler);
+
+export type {
+  ActionHandler,
+  ActionHandlerParams,
+  ExecuteActionNodeParams,
+} from "./shared";
