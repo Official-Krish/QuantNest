@@ -2,6 +2,7 @@ import {
   getHistoricalChart,
   type MarketCandle,
 } from "@quantnest-trading/market";
+import { circuitBreaker } from "./circuit-breaker";
 import type {
   IndicatorMarket,
   IndicatorReference,
@@ -268,11 +269,8 @@ export class CandleManager implements ICandleManager {
     const barsBack = Math.max(maxPeriod * 4, 120);
     const period1 = new Date(Date.now() - timeframeMs[timeframe] * barsBack);
     const interval = timeframeToChartInterval(timeframe);
-    const chart = await getHistoricalChart(
-      symbol,
-      marketType,
-      period1,
-      interval,
+    const chart = await circuitBreaker.wrap("market-data", () =>
+      getHistoricalChart(symbol, marketType, period1, interval),
     );
 
     if (!chart.length) return;

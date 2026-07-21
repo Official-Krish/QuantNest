@@ -29,6 +29,7 @@ class NotionHandler implements IActionHandler {
       node,
       context,
       steps,
+      source: "notion",
       nodeTypeLabel: "Notion Daily Report",
       retryPolicy: (resolvedMetadata as any)?.retryPolicy,
       operation: async () => {
@@ -116,6 +117,7 @@ class GoogleDriveHandler implements IActionHandler {
       node,
       context,
       steps,
+      source: "google-drive",
       nodeTypeLabel: "Google Drive Daily CSV",
       retryPolicy: (resolvedMetadata as any)?.retryPolicy,
       operation: async () => {
@@ -215,6 +217,7 @@ class GoogleSheetsHandler implements IActionHandler {
       node,
       context,
       steps,
+      source: "google-sheets",
       nodeTypeLabel: "Google Sheets Report",
       retryPolicy: (resolvedMetadata as any)?.retryPolicy,
       operation: async () => {

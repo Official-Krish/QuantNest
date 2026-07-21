@@ -23,6 +23,7 @@ import {
   buildTradeReasoningPrompt,
 } from "../prompts";
 import { marketContextBuilder } from "../market-context.builder";
+import { circuitBreaker } from "../../services/circuit-breaker";
 import type { RawInsightResponse } from "../normalization";
 
 export class GeminiReasoningProvider implements AiReasoningProvider {
@@ -82,17 +83,21 @@ export class GeminiReasoningProvider implements AiReasoningProvider {
       };
       const prompt = buildTradeReasoningPrompt(payload);
 
-      const response = await this.ai.models.generateContent({
-        model: this.modelName,
-        contents: prompt,
-      });
+      const response = await circuitBreaker.wrap("gemini", () =>
+        this.ai!.models.generateContent({
+          model: this.modelName,
+          contents: prompt,
+        }),
+      );
 
+      circuitBreaker.recordSuccess("gemini");
       const jsonText = extractJsonBlock(response.text || "{}");
       const parsed = JSON.parse(jsonText) as RawInsightResponse;
       return (
         normalizeInsight(parsed) || buildFallbackInsight(eventType, details)
       );
     } catch (error) {
+      circuitBreaker.recordFailure("gemini");
       console.error("Gemini reasoning generation failed:", error);
       return buildFallbackInsight(eventType, details);
     }
@@ -107,16 +112,20 @@ export class GeminiReasoningProvider implements AiReasoningProvider {
     try {
       const prompt = buildDailyPerformancePrompt(input);
 
-      const response = await this.ai.models.generateContent({
-        model: this.modelName,
-        contents: prompt,
-      });
+      const response = await circuitBreaker.wrap("gemini", () =>
+        this.ai!.models.generateContent({
+          model: this.modelName,
+          contents: prompt,
+        }),
+      );
 
+      circuitBreaker.recordSuccess("gemini");
       const raw = JSON.parse(
         extractJsonBlock(response.text || "{}"),
       ) as Partial<DailyPerformanceAnalysis>;
       return normalizeDailyPerformanceAnalysis(raw, fallback);
     } catch (error) {
+      circuitBreaker.recordFailure("gemini");
       console.error("Gemini daily performance generation failed:", error);
       return fallback;
     }

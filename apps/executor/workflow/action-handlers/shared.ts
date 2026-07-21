@@ -1,8 +1,16 @@
-import type { ExecutionStep, RetryPolicyMetadata } from "@quantnest-trading/types";
+import type {
+  ExecutionStep,
+  RetryPolicyMetadata,
+} from "@quantnest-trading/types";
 import { createUserNotification } from "@quantnest-trading/executor-utils";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 import { shouldSkipActionByCondition } from "../execute.context";
+import {
+  circuitBreaker,
+  CircuitBreakerOpenError,
+} from "../../services/circuit-breaker";
+import { rateLimiter } from "../../services/rate-limiter";
 
 export class ActionConfigurationError extends Error {
   constructor(message: string) {
@@ -31,11 +39,16 @@ export function resolveRetryPolicy(rawPolicy: unknown): ResolvedRetryPolicy {
   return {
     enabled: Boolean(policy.enabled),
     maxAttempts: Math.max(1, Math.floor(Number(policy.maxAttempts || 1)) || 1),
-    backoffType: String(policy.backoffType || "fixed").toLowerCase() === "exponential" ? "exponential" : "fixed",
+    backoffType:
+      String(policy.backoffType || "fixed").toLowerCase() === "exponential"
+        ? "exponential"
+        : "fixed",
     delaySeconds: Math.max(0, Number(policy.delaySeconds || 0) || 0),
-    onFinalFailure: String(policy.onFinalFailure || "fail-workflow").toLowerCase() === "continue"
-      ? "continue"
-      : "fail-workflow",
+    onFinalFailure:
+      String(policy.onFinalFailure || "fail-workflow").toLowerCase() ===
+      "continue"
+        ? "continue"
+        : "fail-workflow",
   };
 }
 
@@ -47,24 +60,17 @@ function getErrorMessage(error: unknown): string {
 }
 
 export function isRetryableActionError(error: unknown): boolean {
-  if (!error) {
-    return true;
-  }
+  if (!error) return true;
 
-  if (error instanceof ActionConfigurationError) {
-    return false;
+  if (error instanceof ActionConfigurationError) return false;
+
+  if ((error as any)?.retryable !== undefined) {
+    return (error as any).retryable !== false;
   }
 
   const message = getErrorMessage(error).toLowerCase();
   const name = error instanceof Error ? error.name.toLowerCase() : "";
-
-  if (name === "validationerror") {
-    return false;
-  }
-
-  if ((error as any)?.retryable === false) {
-    return false;
-  }
+  if (name === "validationerror") return false;
 
   return !(
     message.includes("required") ||
@@ -86,7 +92,10 @@ export function isRetryableActionError(error: unknown): boolean {
   );
 }
 
-function getBackoffDelaySeconds(policy: ResolvedRetryPolicy, attempt: number): number {
+function getBackoffDelaySeconds(
+  policy: ResolvedRetryPolicy,
+  attempt: number,
+): number {
   if (!policy.enabled || attempt >= policy.maxAttempts) {
     return 0;
   }
@@ -107,18 +116,36 @@ export async function executeActionWithRetry(params: {
   context: ExecutionContext;
   steps: ExecutionStep[];
   nodeTypeLabel: string;
+  source?: string;
   retryPolicy?: RetryPolicyMetadata;
-  operation: (attempt: { attempt: number; maxAttempts: number }) => Promise<ActionOperationResult>;
-  onFinalFailure?: (error: unknown, attempt: { attempt: number; maxAttempts: number; terminalFailure: boolean }) => Promise<void> | void;
+  operation: (attempt: {
+    attempt: number;
+    maxAttempts: number;
+  }) => Promise<ActionOperationResult>;
+  onFinalFailure?: (
+    error: unknown,
+    attempt: { attempt: number; maxAttempts: number; terminalFailure: boolean },
+  ) => Promise<void> | void;
 }) {
   const resolvedPolicy = resolveRetryPolicy(params.retryPolicy);
   const maxAttempts = resolvedPolicy.enabled ? resolvedPolicy.maxAttempts : 1;
+  const source = params.source;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      const result = await params.operation({ attempt, maxAttempts });
-      const successMessage = typeof result === "string" ? result : result.message;
-      const simulatedPayload = typeof result === "string" ? undefined : result.simulatedPayload;
+      if (source) {
+        await rateLimiter.acquire(source);
+      }
+      const result = source
+        ? await circuitBreaker.wrap(source, () =>
+            params.operation({ attempt, maxAttempts }),
+          )
+        : await params.operation({ attempt, maxAttempts });
+      if (source) circuitBreaker.recordSuccess(source);
+      const successMessage =
+        typeof result === "string" ? result : result.message;
+      const simulatedPayload =
+        typeof result === "string" ? undefined : result.simulatedPayload;
       pushStep(params.steps, {
         nodeId: params.node.nodeId,
         nodeType: params.nodeTypeLabel,
@@ -134,8 +161,14 @@ export async function executeActionWithRetry(params: {
       });
       return;
     } catch (error: any) {
+      if (source) circuitBreaker.recordFailure(source);
+      const isCircuitOpen = error instanceof CircuitBreakerOpenError;
       const message = getErrorMessage(error);
-      const canRetry = resolvedPolicy.enabled && attempt < maxAttempts && isRetryableActionError(error);
+      const canRetry =
+        !isCircuitOpen &&
+        resolvedPolicy.enabled &&
+        attempt < maxAttempts &&
+        isRetryableActionError(error);
 
       if (canRetry) {
         const backoffSeconds = getBackoffDelaySeconds(resolvedPolicy, attempt);
@@ -158,15 +191,22 @@ export async function executeActionWithRetry(params: {
         continue;
       }
 
-      const terminalFailure = resolvedPolicy.onFinalFailure !== "continue";
-      await params.onFinalFailure?.(error, { attempt, maxAttempts, terminalFailure });
+      const terminalFailure =
+        resolvedPolicy.onFinalFailure !== "continue" && !isCircuitOpen;
+      await params.onFinalFailure?.(error, {
+        attempt,
+        maxAttempts,
+        terminalFailure,
+      });
       pushStep(params.steps, {
         nodeId: params.node.nodeId,
         nodeType: params.nodeTypeLabel,
         status: "Failed",
-        message: resolvedPolicy.enabled && maxAttempts > 1
-          ? `Final failure after ${attempt}/${maxAttempts} attempts: ${message}${terminalFailure ? "" : " (continuing per retry policy)"}`
-          : message,
+        message: isCircuitOpen
+          ? `Circuit breaker is open for "${source}". Skipped execution.`
+          : resolvedPolicy.enabled && maxAttempts > 1
+            ? `Final failure after ${attempt}/${maxAttempts} attempts: ${message}${terminalFailure ? "" : " (continuing per retry policy)"}`
+            : message,
         attempt,
         maxAttempts,
         retryPolicy: resolvedPolicy,
@@ -218,12 +258,17 @@ export function getNotificationDetailsFallback(
 
 export async function executeNotificationAction(
   params: ActionHandlerParams & {
+    source?: string;
     nodeTypeLabel: string;
     successMessage: string;
     failureType: string;
     failureTitle: string;
     failureMessage: string;
-    send: (metadata: Record<string, unknown>, eventType: string, details: any) => Promise<void>;
+    send: (
+      metadata: Record<string, unknown>,
+      eventType: string,
+      details: any,
+    ) => Promise<void>;
   },
 ) {
   const {
@@ -232,6 +277,7 @@ export async function executeNotificationAction(
     nextCondition,
     steps,
     resolvedMetadata,
+    source,
     nodeTypeLabel,
     successMessage,
     failureType,
@@ -240,7 +286,9 @@ export async function executeNotificationAction(
     send,
   } = params;
 
-  if (shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)) {
+  if (
+    shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)
+  ) {
     return;
   }
 
@@ -249,6 +297,7 @@ export async function executeNotificationAction(
     context,
     steps,
     nodeTypeLabel,
+    source,
     retryPolicy: (node.data?.metadata as any)?.retryPolicy,
     operation: async () => {
       const eventType = context.eventType || "notification";

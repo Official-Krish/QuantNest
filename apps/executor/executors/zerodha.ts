@@ -1,4 +1,5 @@
 import { KiteConnect } from "kiteconnect";
+import { BrokerTimeoutError, BrokerAuthError } from "../services/errors";
 
 export async function executeZerodhaNode(
   asset: string,
@@ -8,13 +9,13 @@ export async function executeZerodhaNode(
   accessToken: string,
   exchange: string,
 ): Promise<string> {
+  const kc = new KiteConnect({ api_key: apiKey });
+  kc.setAccessToken(accessToken);
+  if (!exchange.includes("NSE") && !exchange.includes("BSE")) {
+    throw new BrokerAuthError("zerodha", `Invalid exchange: ${exchange}`);
+  }
+  const exchangeTyped = exchange as "NSE" | "BSE";
   try {
-    const kc = new KiteConnect({ api_key: apiKey });
-    kc.setAccessToken(accessToken);
-    if (!exchange.includes("NSE") && !exchange.includes("BSE")) {
-      throw new Error(`Invalid exchange: ${exchange}`);
-    }
-    const exchangeTyped = exchange as "NSE" | "BSE";
     await kc.placeOrder("regular", {
       exchange: exchangeTyped,
       tradingsymbol: asset,
@@ -25,6 +26,9 @@ export async function executeZerodhaNode(
     });
     return "SUCCESS";
   } catch (error) {
-    return "FAILURE";
+    throw new BrokerTimeoutError(
+      "zerodha",
+      `Failed to place order: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }

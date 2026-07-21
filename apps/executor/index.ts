@@ -4,6 +4,7 @@ import { POLL_INTERVAL, MAX_POLL_INTERVAL } from "./config/constants";
 import { pollOnce } from "./jobs/workflow.poller";
 import { initRedis } from "@quantnest-trading/redis";
 import { initQueue, closeQueue } from "./jobs/workflow.queue";
+import { initDlqWorker } from "./jobs/dlq.queue";
 import { syncTimerWorkflows } from "./jobs/timer.sync";
 
 dotenv.config();
@@ -14,6 +15,7 @@ const pollIntervalStep = 250;
 async function start() {
   await Promise.all([connectDB(), initRedis()]);
   await initQueue();
+  initDlqWorker();
   void syncTimerWorkflows();
 
   let shuttingDown = false;

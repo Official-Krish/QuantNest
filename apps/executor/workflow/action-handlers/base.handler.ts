@@ -49,6 +49,7 @@ export abstract class BrokerHandler implements IActionHandler {
       node,
       context,
       steps,
+      source: this.brokerName.toLowerCase(),
       nodeTypeLabel: `${this.brokerName} Action`,
       retryPolicy: (resolvedMetadata as any)?.retryPolicy,
       operation: async () => {

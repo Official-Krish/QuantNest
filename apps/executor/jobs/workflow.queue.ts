@@ -1,9 +1,11 @@
 import { Queue, Worker } from "bullmq";
 import { WorkflowModel } from "@quantnest-trading/db/client";
 import {
+  DLQ_QUEUE_NAME,
   EXECUTION_QUEUE_NAME,
   createBullConnection,
   defaultJobOptions,
+  dlqJobOptions,
 } from "../config/queue";
 import { executeWorkflowSafe } from "../services/execution.service";
 import type { WorkflowType } from "../types";
@@ -76,8 +78,30 @@ export async function initQueue() {
     },
   );
 
-  executionWorker.on("failed", (job, err) => {
-    console.error(`[queue] Job ${job?.id} failed:`, err);
+  executionWorker.on("failed", async (job, err) => {
+    if (!job) return;
+    console.error(
+      `[queue] Job ${job.id} failed (attempt ${job.attemptsMade}/${job.opts.attempts}):`,
+      err,
+    );
+
+    if (job.attemptsMade >= (job.opts.attempts ?? 1)) {
+      try {
+        const dlqQueue = new Queue<IExecutionJobData>(DLQ_QUEUE_NAME, {
+          connection,
+        });
+        await dlqQueue.add(DLQ_QUEUE_NAME, job.data, {
+          jobId: `dlq:${job.id}`,
+          ...dlqJobOptions,
+        });
+        console.log(`[queue] Job ${job.id} forwarded to DLQ`);
+      } catch (dlqErr) {
+        console.error(
+          `[queue] Failed to forward job ${job.id} to DLQ:`,
+          dlqErr,
+        );
+      }
+    }
   });
 
   executionWorker.on("completed", (job) => {

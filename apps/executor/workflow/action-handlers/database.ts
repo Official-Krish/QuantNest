@@ -35,6 +35,7 @@ class PostgresHandler implements IActionHandler {
       node,
       context,
       steps,
+      source: "postgres",
       nodeTypeLabel: "Postgres",
       retryPolicy: (resolvedMetadata as any)?.retryPolicy,
       operation: async () => {

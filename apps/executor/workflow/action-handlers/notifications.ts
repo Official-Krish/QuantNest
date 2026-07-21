@@ -14,6 +14,7 @@ abstract class BaseNotificationHandler implements IActionHandler {
   abstract readonly failureType: string;
   abstract readonly failureTitle: string;
   abstract readonly failureMessage: string;
+  abstract readonly source: string;
 
   abstract send(
     metadata: Record<string, unknown>,
@@ -24,6 +25,7 @@ abstract class BaseNotificationHandler implements IActionHandler {
   async execute(params: any): Promise<void> {
     return executeNotificationAction({
       ...params,
+      source: this.source,
       nodeTypeLabel: this.nodeTypeLabel,
       successMessage: this.successMessage,
       failureType: this.failureType,
@@ -37,6 +39,7 @@ abstract class BaseNotificationHandler implements IActionHandler {
 
 class GmailHandler extends BaseNotificationHandler {
   readonly handlerId = "gmail" as const;
+  readonly source = "gmail";
   readonly nodeTypeLabel = "Gmail Action";
   readonly successMessage = "Email notification sent";
   readonly failureType = "gmail_delivery_failed";
@@ -59,6 +62,7 @@ class GmailHandler extends BaseNotificationHandler {
 
 class DiscordHandler extends BaseNotificationHandler {
   readonly handlerId = "discord" as const;
+  readonly source = "discord";
   readonly nodeTypeLabel = "Discord Action";
   readonly successMessage = "Discord notification sent";
   readonly failureType = "discord_webhook_failed";
@@ -81,6 +85,7 @@ class DiscordHandler extends BaseNotificationHandler {
 
 class SlackHandler extends BaseNotificationHandler {
   readonly handlerId = "slack" as const;
+  readonly source = "slack";
   readonly nodeTypeLabel = "Slack Action";
   readonly successMessage = "Slack direct message sent";
   readonly failureType = "slack_delivery_failed";
@@ -104,6 +109,7 @@ class SlackHandler extends BaseNotificationHandler {
 
 class TelegramHandler extends BaseNotificationHandler {
   readonly handlerId = "telegram" as const;
+  readonly source = "telegram";
   readonly nodeTypeLabel = "Telegram Action";
   readonly successMessage = "Telegram message sent";
   readonly failureType = "telegram_delivery_failed";
@@ -127,6 +133,7 @@ class TelegramHandler extends BaseNotificationHandler {
 
 class WhatsAppHandler extends BaseNotificationHandler {
   readonly handlerId = "whatsapp" as const;
+  readonly source = "whatsapp";
   readonly nodeTypeLabel = "WhatsApp Action";
   readonly successMessage = "WhatsApp notification sent";
   readonly failureType = "whatsapp_send_failed";

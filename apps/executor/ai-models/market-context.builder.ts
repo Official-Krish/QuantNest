@@ -16,6 +16,7 @@ import {
   getVolume,
 } from "@quantnest-trading/market";
 import { indicatorEngine } from "../services/indicator.engine";
+import { circuitBreaker } from "../services/circuit-breaker";
 import type { NotificationDetails } from "../types";
 
 export interface MarketDataContext {
@@ -38,26 +39,25 @@ export class MarketContextBuilder {
   ): Promise<MarketDataContext> {
     const fallback = this.emptyContext(symbol, market);
     try {
-      const currentPrice = await getCurrentPrice(symbol, market);
-      const volume = await getVolume(symbol, market);
+      const currentPrice = await circuitBreaker.wrap("market-data", () =>
+        getCurrentPrice(symbol, market),
+      );
+      const volume = await circuitBreaker.wrap("market-data", () =>
+        getVolume(symbol, market),
+      );
 
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
 
-      const candles5m = await getHistoricalChart(
-        symbol,
-        market,
-        oneHourAgo,
-        "5m",
+      const candles5m = await circuitBreaker.wrap("market-data", () =>
+        getHistoricalChart(symbol, market, oneHourAgo, "5m"),
       );
-      const candles200 = await getHistoricalChart(
-        symbol,
-        market,
-        fiveDaysAgo,
-        "1d",
+      const candles200 = await circuitBreaker.wrap("market-data", () =>
+        getHistoricalChart(symbol, market, fiveDaysAgo, "1d"),
       );
 
+      circuitBreaker.recordSuccess("market-data");
       return {
         symbol,
         market,
@@ -71,6 +71,7 @@ export class MarketContextBuilder {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
+      circuitBreaker.recordFailure("market-data");
       console.error("Failed to build market data context for", symbol, error);
       return fallback;
     }
