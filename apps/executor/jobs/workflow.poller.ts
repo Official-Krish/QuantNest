@@ -2,7 +2,6 @@ import { WorkflowModel } from "@quantnest-trading/db/client";
 import type { WorkflowType } from "../types";
 import { refreshDynamicStateForWorkflow } from "../handlers/trigger.handler";
 import {
-  processTimerWorkflows,
   processPriceWorkflows,
   processBreakoutRetestWorkflows,
   processConditionalWorkflows,
@@ -22,7 +21,6 @@ export async function pollOnce(): Promise<number> {
   }
 
   const processors = [
-    processTimerWorkflows(now),
     processPriceWorkflows(now),
     processBreakoutRetestWorkflows(now),
     processConditionalWorkflows(now),
