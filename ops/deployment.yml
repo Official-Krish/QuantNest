@@ -144,7 +144,7 @@ spec:
 
       containers:
         - name: quantnest-executor
-          image: krishanand01/quantnest-executor:vc52c7ebdb66ac04779cc6ccecb9f2426ba79ad7d
+          image: krishanand01/quantnest-executor:vee90bd548beed54a22f737fd0509ec2d4d7576ff
           imagePullPolicy: Always
 
           resources:
