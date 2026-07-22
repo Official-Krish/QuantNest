@@ -129,12 +129,43 @@ jobs:
             echo "ai_builder=true" >> $GITHUB_OUTPUT
           fi
 
-          if echo "$CHANGED_FILES" | grep -q '^packages/'; then
+          # ── packages/ — map each package to services that consume it ──
+          if echo "$CHANGED_FILES" | grep -q '^packages/db/'; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "executor=true" >> $GITHUB_OUTPUT
+            echo "ai_builder=true" >> $GITHUB_OUTPUT
+          fi
+          if echo "$CHANGED_FILES" | grep -q '^packages/executor-utils/'; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "executor=true" >> $GITHUB_OUTPUT
+          fi
+          if echo "$CHANGED_FILES" | grep -q '^packages/types/'; then
             echo "backend=true" >> $GITHUB_OUTPUT
             echo "frontend=true" >> $GITHUB_OUTPUT
             echo "executor=true" >> $GITHUB_OUTPUT
             echo "ai_builder=true" >> $GITHUB_OUTPUT
           fi
+          if echo "$CHANGED_FILES" | grep -q '^packages/redis/'; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "executor=true" >> $GITHUB_OUTPUT
+          fi
+          if echo "$CHANGED_FILES" | grep -q '^packages/plan-guards/'; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "ai_builder=true" >> $GITHUB_OUTPUT
+          fi
+          if echo "$CHANGED_FILES" | grep -q '^packages/node-registry/'; then
+            echo "executor=true" >> $GITHUB_OUTPUT
+            echo "ai_builder=true" >> $GITHUB_OUTPUT
+            echo "frontend=true" >> $GITHUB_OUTPUT
+          fi
+          if echo "$CHANGED_FILES" | grep -q '^packages/market/'; then
+            echo "executor=true" >> $GITHUB_OUTPUT
+          fi
+          if echo "$CHANGED_FILES" | grep -q '^packages/lighter-sdk-ts/'; then
+            echo "executor=true" >> $GITHUB_OUTPUT
+          fi
+          # packages/ui, packages/eslint-config, packages/typescript-config
+          # are not consumed by any service — changes there intentionally skipped
 
       - name: Save Changed Services
         run: |
