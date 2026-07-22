@@ -1,4 +1,5 @@
 import axios from "axios";
+import { BrokerTimeoutError, OrderRejectedError } from "../services/errors";
 
 export async function executeGrowwNode(
   symbol: string,
@@ -7,19 +8,20 @@ export async function executeGrowwNode(
   exchange: string,
   accessToken: string,
 ): Promise<string> {
-  try {
-    const orderPayload = {
-      trading_symbol: symbol,
-      quantity: quantity,
-      validity: "DAY",
-      exchange: exchange,
-      segment: "CASH",
-      product: "CNC",
-      order_type: "SL",
-      transaction_type: type,
-    };
+  const orderPayload = {
+    trading_symbol: symbol,
+    quantity: quantity,
+    validity: "DAY",
+    exchange: exchange,
+    segment: "CASH",
+    product: "CNC",
+    order_type: "SL",
+    transaction_type: type,
+  };
 
-    const res = await axios.post(
+  let res;
+  try {
+    res = await axios.post(
       "https://api.groww.in/v1/order/create",
       orderPayload,
       {
@@ -31,12 +33,18 @@ export async function executeGrowwNode(
         },
       },
     );
-    if (res.status === 200) {
-      return "SUCCESS";
-    } else {
-      return "FAILURE";
-    }
   } catch (error) {
-    return "FAILURE";
+    throw new BrokerTimeoutError(
+      "groww",
+      `API request failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
+
+  if (res.status === 200) {
+    return "SUCCESS";
+  }
+  throw new OrderRejectedError(
+    "groww",
+    `Order rejected with status ${res.status}`,
+  );
 }

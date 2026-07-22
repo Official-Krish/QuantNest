@@ -1,4 +1,6 @@
 import type { TriggerEvaluationSnapshot } from "@quantnest-trading/types";
+import type { IWorkflowHandler } from "../../processors/types";
+import type { NodeType, WorkflowType } from "../../types";
 
 export async function handleMarketSessionTrigger(
   event:
@@ -127,3 +129,34 @@ export async function handleMarketSessionTrigger(
 
   return { shouldExecute: false, snapshot };
 }
+
+export const marketSessionHandler: IWorkflowHandler = {
+  async evaluate(workflow: WorkflowType, trigger: NodeType) {
+    const event = String(
+      trigger.data?.metadata?.event || "market-open",
+    ).toLowerCase() as
+      | "market-open"
+      | "market-close"
+      | "at-time"
+      | "pause-at-time"
+      | "session-window";
+
+    const { shouldExecute, snapshot } = await handleMarketSessionTrigger(
+      event,
+      workflow.lastTriggeredAt ?? null,
+      workflow.lastEvaluatedAt ?? null,
+      trigger.data?.metadata?.triggerTime as string | undefined,
+      trigger.data?.metadata?.endTime as string | undefined,
+      trigger.data?.metadata?.marketType as string | undefined,
+    );
+
+    const isPauseEvent = shouldExecute && event === "pause-at-time";
+
+    return {
+      shouldExecute,
+      snapshot,
+      skipEnqueue: isPauseEvent,
+      extraUpdates: isPauseEvent ? { status: "paused" } : undefined,
+    };
+  },
+};

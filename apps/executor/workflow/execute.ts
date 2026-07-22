@@ -5,45 +5,194 @@ import type {
   ExecutionTraceNodeEntry,
   TriggerEvaluationSnapshot,
 } from "@quantnest-trading/types";
-import { createUserNotification } from "@quantnest-trading/executor-utils";
-import { evaluateConditionalMetadata } from "../handlers/trigger.handler";
 import { executeActionNode } from "./execute.actions";
-import {
-  initializeExecutionContext,
-  registerMergeArrival,
-  resolveConditionalEdges,
-  type ExecutionContext,
-} from "./execute.context";
+import type { ExecutionContext } from "./execute.context";
+import { ExecutionContextBuilder } from "./context.builder";
+import { visitorRegistry } from "./visitors";
 import type { EdgeType, NodeType } from "../types";
 
-function buildRecheckEvaluationMetadata(
-  sourceNode: NodeType,
-  nodes: NodeType[],
-) {
-  const metadata = (sourceNode.data?.metadata || {}) as Record<string, unknown>;
-  const mode = String(metadata.recheckMode || "trigger").toLowerCase();
+export class WorkflowEngine {
+  async execute(
+    nodes: NodeType[],
+    edges: EdgeType[],
+    userId?: string,
+    workflowId?: string,
+    condition?: boolean,
+    executionMode?: "live" | "dry-run",
+    triggerSnapshot?: TriggerEvaluationSnapshot,
+  ): Promise<
+    ExecutionResponseType & {
+      trace?: {
+        triggerSnapshot?: TriggerEvaluationSnapshot;
+        nodeEntries: ExecutionTraceNodeEntry[];
+        branchDecisions: ExecutionTraceBranchDecision[];
+      };
+    }
+  > {
+    const trigger = nodes.find(
+      (node) =>
+        node?.data?.kind === "trigger" || node?.data?.kind === "TRIGGER",
+    );
 
-  if (mode === "custom") {
-    return metadata;
+    if (!trigger) {
+      return {
+        status: "Failed",
+        steps: [
+          {
+            step: 1,
+            nodeId: "unknown",
+            nodeType: "trigger",
+            status: "Failed",
+            message: "No trigger node found",
+          },
+        ],
+      };
+    }
+
+    const context = new ExecutionContextBuilder()
+      .setUser(userId)
+      .setWorkflow(workflowId)
+      .setExecutionMode(executionMode)
+      .setCondition(condition)
+      .setTrigger(trigger, nodes)
+      .build();
+
+    if (context.trace && triggerSnapshot) {
+      context.trace.triggerSnapshot = triggerSnapshot;
+    }
+
+    const result = await this.traverse(
+      trigger.id,
+      nodes,
+      edges,
+      context,
+      condition,
+    );
+
+    return {
+      ...result,
+      trace: context.trace
+        ? {
+            triggerSnapshot: context.trace.triggerSnapshot,
+            nodeEntries: context.trace.nodeEntries,
+            branchDecisions: context.trace.branchDecisions,
+          }
+        : undefined,
+    };
   }
 
-  const triggerNode = nodes.find(
-    (node) => String(node?.data?.kind || "").toLowerCase() === "trigger",
-  );
-  if (!triggerNode?.data?.metadata) {
-    return metadata;
-  }
+  private async traverse(
+    sourceId: string,
+    nodes: NodeType[],
+    edges: EdgeType[],
+    context: ExecutionContext = {},
+    condition?: boolean,
+    arrivedViaEdgeId?: string,
+  ): Promise<ExecutionResponseType> {
+    const sourceNode = nodes.find((node) => node.id === sourceId);
+    const localSteps: ExecutionStep[] = [];
 
-  const triggerType = String(triggerNode.type || "").toLowerCase();
-  if (
-    triggerType === "conditional-trigger" ||
-    triggerType === "price-trigger"
-  ) {
-    return triggerNode.data.metadata as Record<string, unknown>;
-  }
+    const outgoingEdges = edges.filter(({ source }) => source === sourceId);
 
-  return null;
+    let nextCondition = condition;
+    let targetEdges = outgoingEdges;
+
+    const visitor = sourceNode
+      ? visitorRegistry.get(String(sourceNode.type ?? ""))
+      : undefined;
+
+    if (visitor) {
+      const result = await visitor.visit({
+        node: sourceNode!,
+        nodes,
+        edges,
+        context,
+        condition,
+        arrivedViaEdgeId,
+      });
+
+      if (!result.shouldContinue) {
+        return { status: "Success", steps: [...localSteps, ...result.steps] };
+      }
+
+      localSteps.push(...result.steps);
+
+      if (result.resolvedCondition !== undefined) {
+        nextCondition = result.resolvedCondition;
+      }
+
+      if (result.targetEdges) {
+        targetEdges = result.targetEdges;
+      }
+    }
+
+    if (!targetEdges.length) {
+      return { status: "Success", steps: localSteps };
+    }
+
+    const steps: ExecutionStep[] = [];
+    await Promise.all(
+      targetEdges.map(async (edge) => {
+        const node = nodes.find((n) => n.id === edge.target);
+        if (!node) return;
+
+        await executeActionNode({
+          node,
+          nodes,
+          edges,
+          context,
+          nextCondition,
+          steps,
+        });
+
+        if (context.trace) {
+          const stepResult = steps[steps.length - 1];
+          context.trace.nodeEntries.push({
+            nodeId: node.nodeId || node.id,
+            nodeType: node.type || "unknown",
+            nodeKind:
+              (node.data?.kind || "").toLowerCase() === "trigger"
+                ? "trigger"
+                : "action",
+            status: stepResult?.status === "Failed" ? "Failed" : "Success",
+            message: stepResult?.message,
+            resolvedMetadata: node.data?.metadata as
+              | Record<string, unknown>
+              | undefined,
+          });
+        }
+      }),
+    );
+
+    const childResults = await Promise.all(
+      targetEdges.map((edge) =>
+        this.traverse(
+          edge.target,
+          nodes,
+          edges,
+          context,
+          nextCondition,
+          edge.id,
+        ),
+      ),
+    );
+
+    const childSteps = childResults.flatMap((result) => result.steps);
+    const allSteps = [...localSteps, ...steps, ...childSteps];
+
+    if (
+      allSteps.some(
+        (step) => step.status === "Failed" && step.terminalFailure !== false,
+      )
+    ) {
+      return { status: "Failed", steps: allSteps };
+    }
+
+    return { status: "Success", steps: allSteps };
+  }
 }
+
+export const workflowEngine = new WorkflowEngine();
 
 export async function executeWorkflow(
   nodes: NodeType[],
@@ -62,286 +211,13 @@ export async function executeWorkflow(
     };
   }
 > {
-  const trigger = nodes.find(
-    (node) => node?.data?.kind === "trigger" || node?.data?.kind === "TRIGGER",
-  );
-  if (!trigger) {
-    return {
-      status: "Failed",
-      steps: [
-        {
-          step: 1,
-          nodeId: "unknown",
-          nodeType: "trigger",
-          status: "Failed",
-          message: "No trigger node found",
-        },
-      ],
-    };
-  }
-
-  const context = initializeExecutionContext({
+  return workflowEngine.execute(
     nodes,
-    trigger,
+    edges,
     userId,
     workflowId,
     condition,
     executionMode,
-  });
-
-  if (context.trace && triggerSnapshot) {
-    context.trace.triggerSnapshot = triggerSnapshot;
-  }
-
-  const result = await executeRecursive(
-    trigger.id,
-    nodes,
-    edges,
-    context,
-    condition,
+    triggerSnapshot,
   );
-
-  return {
-    ...result,
-    trace: context.trace
-      ? {
-          triggerSnapshot: context.trace.triggerSnapshot,
-          nodeEntries: context.trace.nodeEntries,
-          branchDecisions: context.trace.branchDecisions,
-        }
-      : undefined,
-  };
-}
-
-export async function executeRecursive(
-  sourceId: string,
-  nodes: NodeType[],
-  edges: EdgeType[],
-  context: ExecutionContext = {},
-  condition?: boolean,
-  arrivedViaEdgeId?: string,
-): Promise<ExecutionResponseType> {
-  const sourceNode = nodes.find((node) => node.id === sourceId);
-  const localSteps: ExecutionStep[] = [];
-
-  if (sourceNode?.type === "merge") {
-    const incomingEdgeCount = edges.filter(
-      (edge) => edge.target === sourceId,
-    ).length;
-    const mergeState = registerMergeArrival({
-      context,
-      mergeNodeId: sourceId,
-      incomingEdgeCount,
-      arrivalEdgeId: arrivedViaEdgeId,
-    });
-
-    if (!mergeState.shouldContinue) {
-      return { status: "Success", steps: [] };
-    }
-
-    if (mergeState.releasedNow) {
-      localSteps.push({
-        step: 1,
-        nodeId: sourceNode.nodeId || sourceNode.id,
-        nodeType: "Merge Action",
-        status: "Success",
-        message:
-          incomingEdgeCount > 1
-            ? `Merged ${incomingEdgeCount} incoming branches`
-            : "Merge path continued",
-      });
-    }
-  }
-
-  const outgoingEdges = edges.filter(({ source }) => source === sourceId);
-  if (!outgoingEdges.length) {
-    return { status: "Success", steps: localSteps };
-  }
-
-  let nextCondition = condition;
-  let targetEdges = outgoingEdges;
-
-  if (
-    sourceNode?.type === "conditional-trigger" ||
-    sourceNode?.type === "if" ||
-    sourceNode?.type === "filter" ||
-    sourceNode?.type === "recheck"
-  ) {
-    const isRootTriggerNode =
-      String(sourceNode.data?.kind || "").toLowerCase() === "trigger" &&
-      sourceNode?.type === "conditional-trigger";
-    const evaluationMetadata =
-      sourceNode?.type === "recheck"
-        ? buildRecheckEvaluationMetadata(sourceNode, nodes)
-        : sourceNode.data?.metadata;
-    let evaluatedCondition: boolean;
-    let conditionalSnapshot: Partial<TriggerEvaluationSnapshot> | undefined;
-
-    if (typeof condition === "boolean" && isRootTriggerNode) {
-      evaluatedCondition = condition;
-    } else if (evaluationMetadata) {
-      const result = await evaluateConditionalMetadata(
-        evaluationMetadata as any,
-      );
-      evaluatedCondition = result.evaluatedCondition;
-      conditionalSnapshot = result.snapshot;
-    } else {
-      evaluatedCondition = true;
-    }
-
-    nextCondition = evaluatedCondition;
-    context.details = {
-      ...(context.details || {}),
-      aiContext: {
-        triggerType:
-          sourceNode?.type === "filter"
-            ? "filter"
-            : sourceNode?.type === "recheck"
-              ? "recheck"
-              : "conditional-trigger",
-        marketType:
-          (evaluationMetadata as any)?.marketType === "Crypto"
-            ? "Crypto"
-            : "Indian",
-        symbol: (evaluationMetadata as any)?.asset || context.details?.symbol,
-        connectedSymbols: context.details?.aiContext?.connectedSymbols,
-        targetPrice: (evaluationMetadata as any)?.targetPrice,
-        condition: (evaluationMetadata as any)?.condition,
-        timerIntervalSeconds: context.details?.aiContext?.timerIntervalSeconds,
-        expression: (evaluationMetadata as any)?.expression,
-        evaluatedCondition,
-      },
-    };
-
-    const availableBranches = outgoingEdges
-      .filter((e) => e.sourceHandle === "true" || e.sourceHandle === "false")
-      .map((e) => e.sourceHandle!);
-
-    targetEdges =
-      sourceNode?.type === "filter"
-        ? evaluatedCondition
-          ? outgoingEdges
-          : []
-        : resolveConditionalEdges({
-            sourceNode,
-            nodes,
-            outgoingEdges,
-            evaluatedCondition,
-          });
-
-    if (context.trace) {
-      const selectedBranch =
-        targetEdges.length > 0 && targetEdges[0]
-          ? targetEdges[0].sourceHandle || null
-          : null;
-      context.trace.branchDecisions.push({
-        nodeId: sourceNode.nodeId || sourceNode.id,
-        nodeType: sourceNode.type || "conditional",
-        evaluatedCondition,
-        selectedBranch,
-        availableBranches,
-      });
-
-      if (conditionalSnapshot) {
-        context.trace.triggerSnapshot = {
-          ...context.trace.triggerSnapshot,
-          ...conditionalSnapshot,
-          evaluatedCondition,
-        } as TriggerEvaluationSnapshot;
-      }
-    }
-
-    if (
-      !targetEdges.length &&
-      sourceNode?.type === "filter" &&
-      evaluatedCondition === false
-    ) {
-      return { status: "Success", steps: localSteps };
-    }
-
-    if (!targetEdges.length && context.userId && context.workflowId) {
-      const isGateOnlyNode = sourceNode?.type === "filter";
-      await createUserNotification({
-        userId: context.userId,
-        workflowId: context.workflowId,
-        type: "conditional_no_downstream_branch",
-        severity: "warning",
-        title: isGateOnlyNode
-          ? "Filter blocked downstream execution"
-          : "Conditional has no downstream branch",
-        message: isGateOnlyNode
-          ? "A gated node blocked execution because its condition did not pass."
-          : "A conditional node evaluated, but there was no valid true/false branch connected to continue execution.",
-        metadata: {
-          nodeId: sourceNode.nodeId || sourceNode.id,
-          evaluatedCondition,
-        },
-        dedupeKey: `${isGateOnlyNode ? "filter-blocked" : "conditional-no-branch"}:${context.workflowId}:${sourceNode.nodeId || sourceNode.id}:${evaluatedCondition}`,
-        dedupeWindowHours: 12,
-      });
-    }
-  }
-
-  const nodesToExecute = targetEdges.map(({ target }) => target);
-  if (!nodesToExecute.length) {
-    return { status: "Success", steps: [] };
-  }
-
-  const steps: ExecutionStep[] = [];
-  await Promise.all(
-    nodesToExecute.map(async (id) => {
-      const node = nodes.find((n) => n.id === id);
-      if (!node) return;
-      await executeActionNode({
-        node,
-        nodes,
-        edges,
-        context,
-        nextCondition,
-        steps,
-      });
-
-      if (context.trace) {
-        const stepResult = steps[steps.length - 1];
-        context.trace.nodeEntries.push({
-          nodeId: node.nodeId || node.id,
-          nodeType: node.type || "unknown",
-          nodeKind:
-            (node.data?.kind || "").toLowerCase() === "trigger"
-              ? "trigger"
-              : "action",
-          status: stepResult?.status === "Failed" ? "Failed" : "Success",
-          message: stepResult?.message,
-          resolvedMetadata: node.data?.metadata as
-            | Record<string, unknown>
-            | undefined,
-        });
-      }
-    }),
-  );
-
-  const childResults = await Promise.all(
-    targetEdges.map((edge) =>
-      executeRecursive(
-        edge.target,
-        nodes,
-        edges,
-        context,
-        nextCondition,
-        edge.id,
-      ),
-    ),
-  );
-
-  const childSteps = childResults.flatMap((result) => result.steps);
-  const allSteps = [...localSteps, ...steps, ...childSteps];
-
-  if (
-    allSteps.some(
-      (step) => step.status === "Failed" && step.terminalFailure !== false,
-    )
-  ) {
-    return { status: "Failed", steps: allSteps };
-  }
-  return { status: "Success", steps: allSteps };
 }

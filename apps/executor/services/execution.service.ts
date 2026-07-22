@@ -12,8 +12,6 @@ import { executeWorkflow } from "../workflow/execute";
 import type { WorkflowType } from "../types";
 import { EXECUTION_COOLDOWN_MS } from "../config/constants";
 import { redisSet, redisGet } from "@quantnest-trading/redis";
-import { acquireLock, releaseLock } from "@quantnest-trading/redis/lock";
-
 export async function canExecute(workflowId: string): Promise<boolean> {
   const cached = await redisGet<string>(`cooldown:${workflowId}`);
   if (cached) return false;
@@ -81,11 +79,6 @@ export async function executeWorkflowSafe(
   condition?: boolean,
   triggerSnapshot?: TriggerEvaluationSnapshot,
 ) {
-  const lockKey = `lock:exec:${workflow._id}`;
-  const lockValue = `${workflow._id}:${Date.now()}`;
-  const acquired = await acquireLock(lockKey, lockValue, EXECUTION_COOLDOWN_MS);
-  if (!acquired) return;
-
   const executionMode = workflow.executionMode || "live";
   const execution = await ExecutionModel.create({
     workflowId: workflow._id,
@@ -137,7 +130,6 @@ export async function executeWorkflowSafe(
       },
     ]);
   } finally {
-    await releaseLock(lockKey, lockValue);
     execution.endTime = new Date();
     await execution.save();
 

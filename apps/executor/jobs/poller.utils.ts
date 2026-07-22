@@ -1,17 +1,26 @@
 import { WorkflowModel } from "@quantnest-trading/db/client";
 import { deriveWorkflowTriggerState } from "@quantnest-trading/executor-utils";
 import { indicatorEngine } from "../services/indicator.engine";
+import { EXECUTION_COOLDOWN_MS } from "../config/constants";
 import type { NodeType, WorkflowType } from "../types";
 
 export const ACTIVE_WORKFLOW_QUERY = {
   $or: [{ status: "active" }, { status: { $exists: false } }],
 };
 
+export function buildDedupeKey(workflowId: string, now: Date): string {
+  const bucket =
+    Math.floor(now.getTime() / EXECUTION_COOLDOWN_MS) * EXECUTION_COOLDOWN_MS;
+  return `exec:${workflowId}:${bucket}`;
+}
+
 export function isTriggerNode(node: NodeType | null | undefined): boolean {
   return String(node?.data?.kind || "").toLowerCase() === "trigger";
 }
 
-export function findWorkflowTrigger(workflow: WorkflowType): NodeType | undefined {
+export function findWorkflowTrigger(
+  workflow: WorkflowType,
+): NodeType | undefined {
   if (workflow.triggerNodeId) {
     const storedTrigger = workflow.nodes.find((node) => {
       const candidateId = String(node?.nodeId || node?.id || "").trim();
@@ -23,15 +32,22 @@ export function findWorkflowTrigger(workflow: WorkflowType): NodeType | undefine
     }
   }
 
-  return workflow.nodes.find((node) => isTriggerNode(node)) as NodeType | undefined;
+  return workflow.nodes.find((node) => isTriggerNode(node)) as
+    | NodeType
+    | undefined;
 }
 
 export function getConditionalExpression(trigger: NodeType): unknown {
   return trigger.data?.metadata?.expression;
 }
 
-export function getTimerIntervalSeconds(workflow: WorkflowType, trigger: NodeType): number | null {
-  const interval = Number(workflow.triggerConfig?.intervalSeconds ?? trigger.data?.metadata?.time);
+export function getTimerIntervalSeconds(
+  workflow: WorkflowType,
+  trigger: NodeType,
+): number | null {
+  const interval = Number(
+    workflow.triggerConfig?.intervalSeconds ?? trigger.data?.metadata?.time,
+  );
   if (!Number.isFinite(interval) || interval <= 0) {
     return null;
   }
@@ -64,7 +80,10 @@ export async function backfillWorkflowTriggerState(now: Date) {
   }).limit(100);
 
   for (const workflow of workflowsMissingTriggerState) {
-    const nextState = deriveWorkflowTriggerState(workflow.nodes as NodeType[], now);
+    const nextState = deriveWorkflowTriggerState(
+      workflow.nodes as NodeType[],
+      now,
+    );
     if (!nextState.triggerType) {
       continue;
     }
@@ -82,7 +101,8 @@ export async function registerConditionalExpressions() {
   for (const workflow of workflows) {
     const trigger = findWorkflowTrigger(workflow as unknown as WorkflowType);
     const expression =
-      workflow.triggerConfig?.expression ?? (trigger ? getConditionalExpression(trigger) : undefined);
+      workflow.triggerConfig?.expression ??
+      (trigger ? getConditionalExpression(trigger) : undefined);
 
     if (expression) {
       indicatorEngine.registerExpression(

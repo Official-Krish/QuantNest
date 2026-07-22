@@ -1,14 +1,7 @@
 import { WorkflowModel } from "@quantnest-trading/db/client";
 import type { WorkflowType } from "../types";
 import { refreshDynamicStateForWorkflow } from "../handlers/trigger.handler";
-import {
-  processTimerWorkflows,
-  processPriceWorkflows,
-  processBreakoutRetestWorkflows,
-  processConditionalWorkflows,
-  processMarketSessionWorkflows,
-  processPortfolioPnlDrawdownWorkflows,
-} from "./trigger-processors";
+import { triggerProcessorFactory } from "../processors/factory";
 import { ACTIVE_WORKFLOW_QUERY } from "./poller.utils";
 
 let firstPollDone = false;
@@ -21,17 +14,9 @@ export async function pollOnce(): Promise<number> {
     void refreshDynamicStateForAllWorkflows();
   }
 
-  const processors = [
-    processTimerWorkflows(now),
-    processPriceWorkflows(now),
-    processBreakoutRetestWorkflows(now),
-    processConditionalWorkflows(now),
-    processMarketSessionWorkflows(now),
-    processPortfolioPnlDrawdownWorkflows(now),
-  ];
-
-  const results = await Promise.all(processors);
-  return results.reduce((sum, r) => sum + r, 0);
+  const processors = triggerProcessorFactory.getAll();
+  const results = await Promise.all(processors.map((p) => p.process(now)));
+  return results.reduce((sum, r) => sum + r.executed, 0);
 }
 
 async function refreshDynamicStateForAllWorkflows() {
