@@ -32,6 +32,7 @@ const DEFAULT_LIMITS: Record<string, number> = {
   "google-sheets": env.RATE_LIMITS.GOOGLE_SHEETS,
   postgres: env.RATE_LIMITS.POSTGRES,
   "market-data": env.RATE_LIMITS.MARKET_DATA,
+  solana: env.RATE_LIMITS.SOLANA,
 };
 
 export class RateLimiter {

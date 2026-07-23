@@ -11,6 +11,7 @@ export {
 } from "./triggers/conditional";
 export { handleMarketSessionTrigger } from "./triggers/market-session";
 export { handlePortfolioPnlDrawdownTrigger } from "./triggers/portfolio-pnl-drawdown";
+export { handleSolanaBalanceTrigger } from "./triggers/solana-balance";
 
 export async function refreshDynamicStateForWorkflow(workflow: WorkflowType) {
   const nextState = deriveWorkflowTriggerState(workflow.nodes, new Date());

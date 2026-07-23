@@ -25,6 +25,8 @@ import { notionDailyReportAction } from "@/components/nodes/actions/notionDailyR
 import { googleDriveDailyCsvAction } from "@/components/nodes/actions/googleDriveDailyCsvAction";
 import { googleSheetsReportAction } from "@/components/nodes/actions/googleSheetsReportAction";
 import { postgresAction } from "@/components/nodes/actions/postgresAction";
+import { solanaSwapAction } from "@/components/nodes/actions/solanaSwapAction";
+import { solanaBalanceAction } from "@/components/nodes/triggers/solanaBalanceAction";
 import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
@@ -43,6 +45,8 @@ import { NotionDailyReportForm } from "./sheets/NotionDailyReportForm";
 import { GoogleDriveDailyCsvForm } from "./sheets/GoogleDriveDailyCsvForm";
 import { GoogleSheetsReportForm } from "./sheets/GoogleSheetsReportForm";
 import { PostgresForm } from "./sheets/PostgresForm";
+import { SolanaBalanceForm } from "./sheets/SolanaBalanceForm";
+import { SolanaSwapForm } from "./sheets/SolanaSwapForm";
 import type { NodeMetadata } from "@quantnest-trading/types";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
@@ -80,6 +84,8 @@ export const builderNodeRenderers = {
   "google-drive-daily-csv": googleDriveDailyCsvAction,
   "google-sheets-report": googleSheetsReportAction,
   postgres: postgresAction,
+  "solana-swap": solanaSwapAction,
+  "solana-balance": solanaBalanceAction,
 } as const;
 
 export const builderFormRegistry = {
@@ -101,6 +107,8 @@ export const builderFormRegistry = {
   "google-drive-daily-csv": GoogleDriveDailyCsvForm,
   "google-sheets-report": GoogleSheetsReportForm,
   postgres: PostgresForm,
+  "solana-balance": SolanaBalanceForm,
+  "solana-swap": SolanaSwapForm,
 } as const;
 
 export function getBuilderFormComponent(nodeType: string) {
@@ -219,9 +227,7 @@ export function renderBuilderForm(
         />
       );
     case "whatsapp":
-      return (
-        <WhatsappForm/>
-      );
+      return <WhatsappForm />;
     case "delay":
       return (
         <DelayForm
@@ -262,6 +268,20 @@ export function renderBuilderForm(
     case "postgres":
       return (
         <PostgresForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
+    case "solana-balance":
+      return (
+        <SolanaBalanceForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
+    case "solana-swap":
+      return (
+        <SolanaSwapForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
         />

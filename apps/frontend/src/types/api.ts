@@ -89,7 +89,8 @@ export type ReusableSecretService =
   | "discord"
   | "whatsapp"
   | "notion-daily-report"
-  | "google-drive-daily-csv";
+  | "google-drive-daily-csv"
+  | "solana";
 
 export interface ReusableSecretSummary {
   id: string;

@@ -14,6 +14,7 @@ import {
 } from "./reporting";
 import { zerodhaHandler, growwHandler, lighterHandler } from "./trading";
 import { postgresHandler } from "./database";
+import { solanaSwapHandler } from "./solana";
 
 export const actionHandlerFactory = new ActionHandlerFactory();
 
@@ -36,6 +37,7 @@ register(notionHandler);
 register(googleDriveHandler);
 register(googleSheetsHandler);
 register(postgresHandler);
+register(solanaSwapHandler);
 
 export type {
   ActionHandler,

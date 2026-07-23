@@ -34,6 +34,11 @@ export const env = {
     WHATSAPP_PHONE_NUMBER_ID: process.env.WHATSAPP_PHONE_NUMBER_ID ?? "",
   },
 
+  SOLANA: {
+    RPC_URL: str("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com"),
+    RPC_WS_URL: process.env.SOLANA_RPC_WS_URL ?? "",
+  },
+
   RATE_LIMITS: {
     ZERODHA: int("RATE_LIMIT_ZERODHA", 50),
     GROWW: int("RATE_LIMIT_GROWW", 60),
@@ -49,5 +54,6 @@ export const env = {
     GOOGLE_SHEETS: int("RATE_LIMIT_GOOGLE_SHEETS", 30),
     POSTGRES: int("RATE_LIMIT_POSTGRES", 200),
     MARKET_DATA: int("RATE_LIMIT_MARKET_DATA", 100),
+    SOLANA: int("RATE_LIMIT_SOLANA", 50),
   },
 } as const;
