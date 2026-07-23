@@ -167,7 +167,7 @@ export const ActionSheet = ({
     );
 
   const handleCreate = () => {
-    if (!selectedAction) return;
+    if (!selectedAction || !canCreateAction) return;
     onSelect(selectedAction as NodeKind, metadata);
     onOpenChange(false);
   };

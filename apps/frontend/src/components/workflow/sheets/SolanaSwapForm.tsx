@@ -9,7 +9,7 @@ import {
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 import { ReliabilitySection } from "./ReliabilitySection";
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import { api } from "@/http";
 import bs58 from "bs58";
 
 const COMMON_TOKENS = [
@@ -18,11 +18,6 @@ const COMMON_TOKENS = [
   { symbol: "USDT", mint: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" },
   { symbol: "JitoSOL", mint: "J1toso1uCk3QLmjYXpTp3RnUeN4mAN4p8BbYfN1EFTP" },
   { symbol: "BONK", mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" },
-];
-
-const NETWORKS = [
-  { label: "Mainnet Beta", value: "mainnet-beta" },
-  { label: "Devnet", value: "devnet" },
 ];
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -50,44 +45,47 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
 
   const [derivedAddress, setDerivedAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  const [solPrice, setSolPrice] = useState<number | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
 
-  const fetchBalanceForAddress = useCallback(
-    (address: string) => {
-      const network = (metadata.network as string) || "mainnet-beta";
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+  useEffect(() => {
+    const ctrl = new AbortController();
+    api
+      .get<{ price: number }>("/solana/price", { signal: ctrl.signal })
+      .then((res) => setSolPrice(res.data.price))
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
 
-      axios
-        .get<{ balance: number }>(`/api/v1/onchain/solana/balance/${address}`, {
-          params: { network },
-          signal: controller.signal,
-        })
-        .then((res) => setBalance(res.data.balance))
-        .catch(() => {
-          if (!controller.signal.aborted) setBalance(null);
-        })
-        .finally(() => clearTimeout(timeout));
+  const fetchBalanceForAddress = useCallback((address: string) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
-      return () => {
-        clearTimeout(timeout);
-        controller.abort();
-      };
-    },
-    [metadata.network],
-  );
+    api
+      .get<{ balance: number }>(`/onchain/solana/balance/${address}`, {
+        signal: controller.signal,
+      })
+      .then((res) => setBalance(res.data.balance))
+      .catch(() => {
+        if (!controller.signal.aborted) setBalance(null);
+      })
+      .finally(() => clearTimeout(timeout));
+
+    return () => {
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (hasSecret && secretId) {
       setAddressError(null);
-      const network = (metadata.network as string) || "mainnet-beta";
       const controller = new AbortController();
 
-      axios
+      api
         .get<{ address: string; balance: number }>(
-          `/api/v1/onchain/solana/wallet/${secretId}`,
+          `/onchain/solana/wallet/${secretId}`,
           {
-            params: { network },
             signal: controller.signal,
           },
         )
@@ -105,7 +103,7 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
 
       return () => controller.abort();
     }
-  }, [hasSecret, secretId, metadata.network]);
+  }, [hasSecret, secretId]);
 
   useEffect(() => {
     if (!hasSecret) {
@@ -136,8 +134,16 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
     }));
   }, [setMetadata]);
 
+  useEffect(() => {
+    setMetadata((current: any) => ({ ...current, network: "mainnet-beta" }));
+  }, [setMetadata]);
+
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
+      <div className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900/40 px-3 py-2 text-xs text-neutral-400">
+        Network:{" "}
+        <span className="font-semibold text-neutral-200">Mainnet Beta</span>
+      </div>
       <ReusableSecretPicker
         service="solana"
         secretId={metadata.secretId as string | undefined}
@@ -203,33 +209,14 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
 
       {addressError && <p className="text-xs text-red-400">{addressError}</p>}
 
-      {/* Network */}
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Network
-        </p>
-        <Select
-          onValueChange={(value) =>
-            setMetadata((current: any) => ({ ...current, network: value }))
-          }
-          value={(metadata.network as string) || "mainnet-beta"}
-        >
-          <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
-            <SelectValue placeholder="Select network" />
-          </SelectTrigger>
-          <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            {NETWORKS.map((n) => (
-              <SelectItem
-                key={n.value}
-                value={n.value}
-                className="cursor-pointer text-sm"
-              >
-                {n.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {solPrice !== null && (
+        <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/40 px-3 py-2 text-xs text-neutral-400">
+          SOL Price:{" "}
+          <span className="font-semibold text-neutral-200">
+            ${solPrice.toFixed(2)}
+          </span>
+        </div>
+      )}
 
       {/* Sell (From) - locked to SOL */}
       <div className="space-y-2">

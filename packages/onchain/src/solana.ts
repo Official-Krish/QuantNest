@@ -13,7 +13,7 @@ export function createConnection(config: SolanaConfig): Connection {
 export async function getBalance(
   connection: Connection,
   walletAddress: string,
-  config: { network: "mainnet-beta" | "devnet" },
+  config: { network: "mainnet-beta" },
 ): Promise<BalanceSnapshot> {
   const pubkey = new PublicKey(walletAddress);
   const balanceLamports = await connection.getBalance(pubkey);
@@ -33,7 +33,7 @@ export async function getTokenBalance(
   connection: Connection,
   walletAddress: string,
   tokenMint: string,
-  config: { network: "mainnet-beta" | "devnet" },
+  config: { network: "mainnet-beta" },
 ): Promise<BalanceSnapshot> {
   const pubkey = new PublicKey(walletAddress);
   const mintPubkey = new PublicKey(tokenMint);

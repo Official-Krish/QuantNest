@@ -116,7 +116,7 @@ export function buildPlannerPromptSections({
     "- Always align marketType: use 'indian' for Indian requests, 'web3' for Crypto/Bitcoin requests.",
     "",
     "SOLANA NODES:",
-    "- For solana-balance: metadata must include walletAddress (Solana public key), condition ('above' or 'below'), threshold (number), and optional tokenMint (leave empty for SOL). network can be 'mainnet-beta' or 'devnet'.",
+    "- For solana-balance: metadata must include walletAddress (Solana public key), condition ('above' or 'below'), threshold (number), and optional tokenMint (leave empty for SOL). network is always 'mainnet-beta'.",
     "- For solana-swap: metadata must include fromToken (mint address), toToken (mint address), amount (number), secretId (references saved wallet key), slippageBps (number, default 100 = 1%). token symbols: SOL (So111111...), USDC (EPjFWdd5...), USDT (Es9vMFrz...), JitoSOL (J1toso1u...), BONK (DezXAZ8z...). Always use the mint address, not the symbol.",
     "- Common Solana patterns: 'Swap 5 SOL for USDC when SOL balance exceeds 10' → solana-balance trigger → solana-swap action. 'Take profit: swap 50% of SOL to USDC at $200 target' → price trigger (if price data available) or solana-balance → solana-swap. 'DCA: swap USDC to SOL weekly' → timer trigger → solana-swap action.",
     "",

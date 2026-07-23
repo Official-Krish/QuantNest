@@ -28,6 +28,7 @@ export const GOOGLE_SHEET_URL_REGEX =
 export const POSTGRES_CONNECTION_STRING_REGEX =
   /^(postgres|postgresql):\/\/.+/i;
 export const SQL_IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_$.]*$/;
+export const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 function isPlaceholderCredential(value: unknown): boolean {
   const normalized = String(value || "")
@@ -57,6 +58,10 @@ export function validateEmail(email: string): boolean {
 
 export function validateStrongPassword(password: string): boolean {
   return PASSWORD_REGEX.test(password);
+}
+
+export function isValidSolanaAddress(address: string): boolean {
+  return SOLANA_ADDRESS_REGEX.test(address.trim());
 }
 
 export function getActionValidationErrors(
@@ -246,6 +251,33 @@ export function getActionValidationErrors(
     }
   }
 
+  if (action === "solana-swap") {
+    const hasSecret = Boolean(String(metadata.secretId || "").trim());
+    const privateKey = String(metadata.privateKey || "").trim();
+
+    if (!hasSecret && !privateKey) {
+      errors.push("Select a saved wallet or enter a private key.");
+    }
+
+    if (
+      !hasSecret &&
+      privateKey &&
+      !/^[1-9A-HJ-NP-Za-km-z]{87,88}$/.test(privateKey)
+    ) {
+      errors.push("Private key format is invalid.");
+    }
+
+    const toToken = String(metadata.toToken || "").trim();
+    if (!toToken) {
+      errors.push("Select a token to swap to.");
+    }
+
+    const amount = Number(metadata.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      errors.push("Swap amount must be greater than 0.");
+    }
+  }
+
   return errors;
 }
 
@@ -424,6 +456,31 @@ export function getPortfolioRiskValidationErrors(
     if (!Number.isInteger(apiKeyIndex) || apiKeyIndex < 0) {
       errors.push("Enter a valid Lighter API key index.");
     }
+  }
+
+  return errors;
+}
+
+export function getSolanaBalanceValidationErrors(
+  metadata: Record<string, unknown>,
+): string[] {
+  const errors: string[] = [];
+  const walletAddress = String(metadata.walletAddress || "").trim();
+
+  if (!walletAddress) {
+    errors.push("Enter a Solana wallet address.");
+  } else if (!isValidSolanaAddress(walletAddress)) {
+    errors.push("Solana wallet address format is invalid.");
+  }
+
+  const threshold = Number(metadata.threshold);
+  if (!Number.isFinite(threshold) || threshold <= 0) {
+    errors.push("Threshold must be greater than 0.");
+  }
+
+  const condition = String(metadata.condition || "").trim();
+  if (!["above", "below"].includes(condition)) {
+    errors.push("Select a condition (above or below).");
   }
 
   return errors;

@@ -1,4 +1,6 @@
 import { Handle, Position } from "@xyflow/react";
+import { useEffect, useState } from "react";
+import { api } from "@/http";
 
 export const solanaBalanceAction = ({
   data,
@@ -12,6 +14,31 @@ export const solanaBalanceAction = ({
   };
 }) => {
   const { walletAddress, condition, threshold } = data.metadata || {};
+  const [liveBalance, setLiveBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!walletAddress) {
+      setLiveBalance(null);
+      return;
+    }
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
+
+    api
+      .get<{ balance: number }>(`/onchain/solana/balance/${walletAddress}`, {
+        signal: ctrl.signal,
+      })
+      .then((res) => setLiveBalance(res.data.balance))
+      .catch(() => {
+        if (!ctrl.signal.aborted) setLiveBalance(null);
+      })
+      .finally(() => clearTimeout(timeout));
+
+    return () => {
+      clearTimeout(timeout);
+      ctrl.abort();
+    };
+  }, [walletAddress]);
 
   return (
     <div className="min-w-57.5 rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#99f6e4] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
@@ -19,9 +46,11 @@ export const solanaBalanceAction = ({
         <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#99f6e4]">
           Solana Balance
         </span>
-        <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
-          BAL
-        </span>
+        {liveBalance !== null && (
+          <span className="rounded-full bg-teal-500/20 px-2 py-0.5 text-[10px] font-mono text-teal-400">
+            {liveBalance.toFixed(4)} SOL
+          </span>
+        )}
       </div>
       <div className="mt-2 text-sm font-medium text-neutral-100">
         {condition && threshold

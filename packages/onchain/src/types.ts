@@ -41,5 +41,5 @@ export interface BalanceSnapshot {
   tokenSymbol: string;
   balance: number;
   decimals: number;
-  network: "mainnet-beta" | "devnet";
+  network: "mainnet-beta";
 }

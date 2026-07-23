@@ -258,7 +258,7 @@ export interface PostgresMetadata {
 }
 
 export interface SolanaBalanceMetadata {
-  network: "mainnet-beta" | "devnet";
+  network: "mainnet-beta";
   walletAddress: string;
   tokenMint?: string;
   condition: "above" | "below";
@@ -267,7 +267,7 @@ export interface SolanaBalanceMetadata {
 }
 
 export interface SolanaSwapMetadata {
-  network: "mainnet-beta" | "devnet";
+  network: "mainnet-beta";
   fromToken: string;
   toToken: string;
   amount: number;

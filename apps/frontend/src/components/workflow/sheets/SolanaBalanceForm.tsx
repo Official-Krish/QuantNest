@@ -7,11 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ReliabilitySection } from "./ReliabilitySection";
-
-const NETWORKS = [
-  { label: "Mainnet Beta", value: "mainnet-beta" },
-  { label: "Devnet", value: "devnet" },
-];
+import { useState, useEffect } from "react";
+import { api } from "@/http";
 
 const CONDITIONS = [
   { label: "Above", value: "above" },
@@ -27,37 +24,63 @@ export function SolanaBalanceForm({
   metadata,
   setMetadata,
 }: SolanaBalanceFormProps) {
+  const walletAddress = (metadata.walletAddress as string) || "";
+
+  const [liveBalance, setLiveBalance] = useState<number | null>(null);
+  const [solPrice, setSolPrice] = useState<number | null>(null);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMetadata((current: any) => ({ ...current, network: "mainnet-beta" }));
+  }, [setMetadata]);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    api
+      .get<{ price: number }>("/onchain/solana/price", { signal: ctrl.signal })
+      .then((res) => setSolPrice(res.data.price))
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!walletAddress) {
+      setLiveBalance(null);
+      setBalanceError(null);
+      return;
+    }
+
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
+
+    api
+      .get<{ balance: number }>(`/onchain/solana/balance/${walletAddress}`, {
+        signal: ctrl.signal,
+      })
+      .then((res) => {
+        setLiveBalance(res.data.balance);
+        setBalanceError(null);
+      })
+      .catch(() => {
+        if (!ctrl.signal.aborted) {
+          setLiveBalance(null);
+          setBalanceError("Could not fetch balance for this address");
+        }
+      })
+      .finally(() => clearTimeout(timeout));
+
+    return () => {
+      clearTimeout(timeout);
+      ctrl.abort();
+    };
+  }, [walletAddress]);
+
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      {/* Network */}
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Network
-        </p>
-        <Select
-          onValueChange={(value) =>
-            setMetadata((current: any) => ({ ...current, network: value }))
-          }
-          value={(metadata.network as string) || "mainnet-beta"}
-        >
-          <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
-            <SelectValue placeholder="Select network" />
-          </SelectTrigger>
-          <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            {NETWORKS.map((n) => (
-              <SelectItem
-                key={n.value}
-                value={n.value}
-                className="cursor-pointer text-sm"
-              >
-                {n.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900/40 px-3 py-2 text-xs text-neutral-400">
+        Network:{" "}
+        <span className="font-semibold text-neutral-200">Mainnet Beta</span>
       </div>
-
-      {/* Wallet Address */}
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
           Wallet Address
@@ -67,7 +90,7 @@ export function SolanaBalanceForm({
         </p>
         <Input
           type="text"
-          value={metadata.walletAddress as string}
+          value={walletAddress}
           onChange={(e) =>
             setMetadata((current: any) => ({
               ...current,
@@ -78,6 +101,32 @@ export function SolanaBalanceForm({
           placeholder="Enter Solana wallet address"
         />
       </div>
+
+      {liveBalance !== null && (
+        <div className="flex items-center gap-2 rounded-xl border border-teal-500/30 bg-teal-500/8 px-3 py-2 text-xs text-neutral-300">
+          <span className="inline-flex size-2 shrink-0 rounded-full bg-teal-500" />
+          Balance:{" "}
+          <span className="font-semibold text-teal-400">
+            {liveBalance.toFixed(4)} SOL
+          </span>
+          {solPrice !== null && (
+            <span className="ml-auto text-neutral-500">
+              ≈ ${(liveBalance * solPrice).toFixed(2)}
+            </span>
+          )}
+        </div>
+      )}
+
+      {balanceError && <p className="text-xs text-red-400">{balanceError}</p>}
+
+      {solPrice !== null && (
+        <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/40 px-3 py-2 text-xs text-neutral-400">
+          SOL Price:{" "}
+          <span className="font-semibold text-neutral-200">
+            ${solPrice.toFixed(2)}
+          </span>
+        </div>
+      )}
 
       {/* Token Mint (optional) */}
       <div className="space-y-2">

@@ -3,16 +3,15 @@ import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { authMiddleware } from "../middleware";
 import { getReusableSecretForEdit } from "../services/reusableSecrets";
 import bs58 from "bs58";
+import { getCurrentPrice } from "@quantnest-trading/market";
 
 const onchainRouter = Router();
 
 const SOLANA_RPC_URL =
   process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
 
-function createConnection(network?: string) {
-  const rpc =
-    network === "devnet" ? "https://api.devnet.solana.com" : SOLANA_RPC_URL;
-  return new Connection(rpc, "confirmed");
+function createConnection() {
+  return new Connection(SOLANA_RPC_URL, "confirmed");
 }
 
 onchainRouter.get("/solana/balance/:address", async (req, res) => {
@@ -27,8 +26,7 @@ onchainRouter.get("/solana/balance/:address", async (req, res) => {
       return;
     }
 
-    const network = (req.query.network as string) || "mainnet-beta";
-    const connection = createConnection(network);
+    const connection = createConnection();
     const balanceLamports = await connection.getBalance(pubkey);
     const balance = balanceLamports / 1_000_000_000;
 
@@ -36,7 +34,7 @@ onchainRouter.get("/solana/balance/:address", async (req, res) => {
       address,
       balance,
       balanceLamports,
-      network,
+      network: "mainnet-beta",
     });
   } catch (error) {
     console.error("SOL balance check failed:", error);
@@ -66,8 +64,7 @@ onchainRouter.get(
       const keypair = Keypair.fromSecretKey(bs58.decode(privateKeyBase58));
       const address = keypair.publicKey.toBase58();
 
-      const network = (req.query.network as string) || "mainnet-beta";
-      const connection = createConnection(network);
+      const connection = createConnection();
       const balanceLamports = await connection.getBalance(keypair.publicKey);
       const balance = balanceLamports / 1_000_000_000;
 
@@ -75,7 +72,7 @@ onchainRouter.get(
         address,
         balance,
         balanceLamports,
-        network,
+        network: "mainnet-beta",
       });
     } catch (error) {
       console.error("Solana wallet status failed:", error);
@@ -83,5 +80,19 @@ onchainRouter.get(
     }
   },
 );
+
+onchainRouter.get("/solana/price", async (_req, res) => {
+  try {
+    const price = await getCurrentPrice("SOL-USD", "Crypto");
+    res.json({ symbol: "SOL-USD", price });
+  } catch {
+    try {
+      const price = await getCurrentPrice("SOL", "Crypto");
+      res.json({ symbol: "SOL", price });
+    } catch {
+      res.status(502).json({ error: "Failed to fetch SOL price" });
+    }
+  }
+});
 
 export default onchainRouter;

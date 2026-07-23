@@ -36,7 +36,8 @@ export const env = {
 
   SOLANA: {
     RPC_URL: str("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com"),
-    RPC_WS_URL: process.env.SOLANA_RPC_WS_URL ?? "",
+    RPC_WS_URL:
+      process.env.SOLANA_RPC_WS_URL ?? "wss://api.mainnet-beta.solana.com",
   },
 
   RATE_LIMITS: {
