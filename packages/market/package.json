@@ -16,6 +16,6 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "yahoo-finance2": "^3.13.2"
+    "yahoo-finance2": "^4.0.0"
   }
 }

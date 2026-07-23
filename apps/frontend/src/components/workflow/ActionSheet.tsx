@@ -70,23 +70,29 @@ export const ActionSheet = ({
     const timeouts: ReturnType<typeof setTimeout>[] = [];
 
     if (!initialKind) {
-      timeouts.push(setTimeout(() => {
-        setMetadata({});
-        setSelectedAction("");
-        setInitialAction(undefined);
-        setActiveStep(1);
-      }, 0));
+      timeouts.push(
+        setTimeout(() => {
+          setMetadata({});
+          setSelectedAction("");
+          setInitialAction(undefined);
+          setActiveStep(1);
+        }, 0),
+      );
       return () => timeouts.forEach(clearTimeout);
     }
 
-    timeouts.push(setTimeout(() => {
-      setMetadata({
-        ...((initialMetadata || {}) as NodeMetadata | Record<string, unknown>),
-      });
-      setSelectedAction(initialKind);
-      setActiveStep(3);
-      setTransitionDirection(1);
-    }, 0));
+    timeouts.push(
+      setTimeout(() => {
+        setMetadata({
+          ...((initialMetadata || {}) as
+            | NodeMetadata
+            | Record<string, unknown>),
+        });
+        setSelectedAction(initialKind);
+        setActiveStep(3);
+        setTransitionDirection(1);
+      }, 0),
+    );
 
     const nextMarketType = String(
       (initialMetadata as any)?.marketType || "",
@@ -97,10 +103,12 @@ export const ActionSheet = ({
       timeouts.push(setTimeout(() => setMarketType("Crypto"), 0));
     }
 
-    timeouts.push(setTimeout(
-      () => setInitialAction(getBuilderPanelGroupForNodeType(initialKind)),
-      0,
-    ));
+    timeouts.push(
+      setTimeout(
+        () => setInitialAction(getBuilderPanelGroupForNodeType(initialKind)),
+        0,
+      ),
+    );
 
     return () => timeouts.forEach(clearTimeout);
   }, [initialKind, initialMetadata, open, setMarketType]);
@@ -610,6 +618,43 @@ export const ActionSheet = ({
                             <div className="rounded-2xl border border-[#f17463]/35 bg-[#f17463]/8 px-3 py-2 text-xs text-neutral-300">
                               {selectedActionCountHint ||
                                 "Data actions are available for logging and storage workflows."}
+                            </div>
+                          </div>
+                        ) : activeGroup === "On-chain" ? (
+                          <div className="space-y-2">
+                            {availableActions.map((action) => {
+                              const selected = selectedAction === action.id;
+                              return (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  onClick={() => handleSelectAction(action.id)}
+                                  className={cn(
+                                    "flex w-full cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-all",
+                                    selected
+                                      ? "border-l-2 border-l-[#99f6e4] border-[#99f6e4]/60 bg-[#99f6e4]/10"
+                                      : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900",
+                                  )}
+                                >
+                                  <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-950">
+                                    <span className="text-sm text-[#99f6e4]">
+                                      ⧫
+                                    </span>
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block text-sm font-semibold text-neutral-100">
+                                      {action.title}
+                                    </span>
+                                    <span className="mt-1 block text-sm leading-5 text-neutral-300">
+                                      {action.description}
+                                    </span>
+                                  </span>
+                                </button>
+                              );
+                            })}
+                            <div className="rounded-2xl border border-[#99f6e4]/35 bg-[#99f6e4]/8 px-3 py-2 text-xs text-neutral-300">
+                              Swap tokens and monitor Solana wallet balances
+                              through Jupiter.
                             </div>
                           </div>
                         ) : (

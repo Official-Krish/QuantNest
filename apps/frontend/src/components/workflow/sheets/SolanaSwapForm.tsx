@@ -8,6 +8,9 @@ import {
 } from "@/components/ui/select";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 import { ReliabilitySection } from "./ReliabilitySection";
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import bs58 from "bs58";
 
 const COMMON_TOKENS = [
   { symbol: "SOL", mint: "So11111111111111111111111111111111111111112" },
@@ -22,12 +25,117 @@ const NETWORKS = [
   { label: "Devnet", value: "devnet" },
 ];
 
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+
+function deriveAddress(privateKeyBase58: string): string | null {
+  try {
+    const decoded = bs58.decode(privateKeyBase58);
+    if (decoded.length !== 64) return null;
+    const pubkeyBytes = decoded.slice(32, 64);
+    return bs58.encode(pubkeyBytes);
+  } catch {
+    return null;
+  }
+}
+
 interface SolanaSwapFormProps {
   metadata: Record<string, unknown>;
   setMetadata: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
 }
 
 export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
+  const hasSecret = Boolean(String(metadata.secretId || "").trim());
+  const secretId = (metadata.secretId as string) || "";
+  const privateKey = (metadata.privateKey as string) || "";
+
+  const [derivedAddress, setDerivedAddress] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
+  const fetchBalanceForAddress = useCallback(
+    (address: string) => {
+      const network = (metadata.network as string) || "mainnet-beta";
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      axios
+        .get<{ balance: number }>(`/api/v1/onchain/solana/balance/${address}`, {
+          params: { network },
+          signal: controller.signal,
+        })
+        .then((res) => setBalance(res.data.balance))
+        .catch(() => {
+          if (!controller.signal.aborted) setBalance(null);
+        })
+        .finally(() => clearTimeout(timeout));
+
+      return () => {
+        clearTimeout(timeout);
+        controller.abort();
+      };
+    },
+    [metadata.network],
+  );
+
+  useEffect(() => {
+    if (hasSecret && secretId) {
+      setAddressError(null);
+      const network = (metadata.network as string) || "mainnet-beta";
+      const controller = new AbortController();
+
+      axios
+        .get<{ address: string; balance: number }>(
+          `/api/v1/onchain/solana/wallet/${secretId}`,
+          {
+            params: { network },
+            signal: controller.signal,
+          },
+        )
+        .then((res) => {
+          setDerivedAddress(res.data.address);
+          setBalance(res.data.balance);
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setDerivedAddress(null);
+            setBalance(null);
+            setAddressError("Failed to load saved wallet");
+          }
+        });
+
+      return () => controller.abort();
+    }
+  }, [hasSecret, secretId, metadata.network]);
+
+  useEffect(() => {
+    if (!hasSecret) {
+      const address = privateKey ? deriveAddress(privateKey) : null;
+      if (address) {
+        setDerivedAddress(address);
+        setAddressError(null);
+        return fetchBalanceForAddress(address);
+      } else if (privateKey) {
+        setDerivedAddress(null);
+        setBalance(null);
+        setAddressError(
+          "Invalid private key: must be a 64-byte base58-encoded keypair",
+        );
+        return;
+      } else {
+        setDerivedAddress(null);
+        setBalance(null);
+        setAddressError(null);
+      }
+    }
+  }, [hasSecret, privateKey, fetchBalanceForAddress]);
+
+  useEffect(() => {
+    setMetadata((current: any) => ({
+      ...current,
+      fromToken: SOL_MINT,
+    }));
+  }, [setMetadata]);
+
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
       <ReusableSecretPicker
@@ -47,6 +155,53 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
           }))
         }
       />
+
+      {!hasSecret && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            Private Key (one-time)
+          </p>
+          <p className="text-xs text-neutral-400">
+            Solana wallet private key in base58 format. For production use, save
+            your wallet in Profile &gt; Secrets.
+          </p>
+          <Input
+            type="password"
+            value={privateKey}
+            onChange={(e) =>
+              setMetadata((current: any) => ({
+                ...current,
+                secretId: undefined,
+                privateKey: e.target.value,
+              }))
+            }
+            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+            placeholder="Enter base58 private key"
+          />
+        </div>
+      )}
+
+      {derivedAddress && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            Wallet Address
+          </p>
+          <div className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200">
+            <span className="inline-flex size-3 shrink-0 rounded-full bg-teal-500" />
+            <code className="truncate font-mono text-xs">{derivedAddress}</code>
+          </div>
+          {balance !== null && (
+            <p className="text-xs text-neutral-400">
+              Balance:{" "}
+              <span className="font-semibold text-teal-400">
+                {balance.toFixed(4)} SOL
+              </span>
+            </p>
+          )}
+        </div>
+      )}
+
+      {addressError && <p className="text-xs text-red-400">{addressError}</p>}
 
       {/* Network */}
       <div className="space-y-2">
@@ -76,57 +231,31 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
         </Select>
       </div>
 
-      {/* From Token */}
+      {/* Sell (From) - locked to SOL */}
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          From Token
+          Sell
         </p>
         <p className="text-xs text-neutral-400">
-          Token or mint address to swap from.
+          Swapping from your SOL balance.
         </p>
-        <Select
-          onValueChange={(value) =>
-            setMetadata((current: any) => ({ ...current, fromToken: value }))
-          }
-          value={(metadata.fromToken as string) || ""}
-        >
-          <SelectTrigger className="w-full border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
-            <SelectValue placeholder="Select token" />
-          </SelectTrigger>
-          <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            {COMMON_TOKENS.map((t) => (
-              <SelectItem
-                key={t.mint}
-                value={t.mint}
-                className="cursor-pointer text-sm"
-              >
-                {t.symbol} ({t.mint.slice(0, 8)}...)
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          type="text"
-          value={metadata.fromToken as string}
-          onChange={(e) =>
-            setMetadata((current: any) => ({
-              ...current,
-              fromToken: e.target.value,
-            }))
-          }
-          className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder="Or paste custom mint address"
-        />
+        <div className="flex items-center gap-3 rounded-xl border border-neutral-700 bg-neutral-900/60 px-3 py-2.5">
+          <span className="inline-flex size-8 items-center justify-center rounded-lg border border-neutral-700 bg-neutral-800 text-xs font-bold text-teal-400">
+            SOL
+          </span>
+          <span className="text-sm text-neutral-200">Solana (Native)</span>
+          <span className="ml-auto text-[10px] text-neutral-500">
+            So1111...11112
+          </span>
+        </div>
       </div>
 
       {/* To Token */}
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          To Token
+          Buy
         </p>
-        <p className="text-xs text-neutral-400">
-          Token or mint address to swap to.
-        </p>
+        <p className="text-xs text-neutral-400">Token you want to receive.</p>
         <Select
           onValueChange={(value) =>
             setMetadata((current: any) => ({ ...current, toToken: value }))
@@ -137,7 +266,7 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
             <SelectValue placeholder="Select token" />
           </SelectTrigger>
           <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            {COMMON_TOKENS.map((t) => (
+            {COMMON_TOKENS.filter((t) => t.mint !== SOL_MINT).map((t) => (
               <SelectItem
                 key={t.mint}
                 value={t.mint}
@@ -165,11 +294,9 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
       {/* Amount */}
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Amount
+          Amount (SOL)
         </p>
-        <p className="text-xs text-neutral-400">
-          Amount of from-token to swap.
-        </p>
+        <p className="text-xs text-neutral-400">Amount of SOL to swap.</p>
         <Input
           type="number"
           min="0"
