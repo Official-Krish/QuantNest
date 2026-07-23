@@ -44,11 +44,7 @@ export function SolanaBalanceForm({
   }, []);
 
   useEffect(() => {
-    if (!walletAddress) {
-      setLiveBalance(null);
-      setBalanceError(null);
-      return;
-    }
+    if (!walletAddress) return;
 
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 8000);

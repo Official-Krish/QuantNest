@@ -26,7 +26,7 @@ import { googleDriveDailyCsvAction } from "@/components/nodes/actions/googleDriv
 import { googleSheetsReportAction } from "@/components/nodes/actions/googleSheetsReportAction";
 import { postgresAction } from "@/components/nodes/actions/postgresAction";
 import { solanaSwapAction } from "@/components/nodes/actions/solanaSwapAction";
-import { solanaBalanceAction } from "@/components/nodes/triggers/solanaBalanceAction";
+import { SolanaBalanceAction } from "@/components/nodes/triggers/solanaBalanceAction";
 import { TimerForm } from "./sheets/TimerForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
@@ -85,7 +85,7 @@ export const builderNodeRenderers = {
   "google-sheets-report": googleSheetsReportAction,
   postgres: postgresAction,
   "solana-swap": solanaSwapAction,
-  "solana-balance": solanaBalanceAction,
+  "solana-balance": SolanaBalanceAction,
 } as const;
 
 export const builderFormRegistry = {

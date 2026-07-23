@@ -2,7 +2,7 @@ import { Handle, Position } from "@xyflow/react";
 import { useEffect, useState } from "react";
 import { api } from "@/http";
 
-export const solanaBalanceAction = ({
+export const SolanaBalanceAction = ({
   data,
 }: {
   data: {
@@ -17,10 +17,7 @@ export const solanaBalanceAction = ({
   const [liveBalance, setLiveBalance] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!walletAddress) {
-      setLiveBalance(null);
-      return;
-    }
+    if (!walletAddress) return;
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 8000);
 

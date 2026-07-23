@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 import { ReliabilitySection } from "./ReliabilitySection";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { api } from "@/http";
 import bs58 from "bs58";
 
@@ -48,6 +48,19 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
   const [solPrice, setSolPrice] = useState<number | null>(null);
   const [addressError, setAddressError] = useState<string | null>(null);
 
+  const derivedFromKey = useMemo(() => {
+    if (hasSecret || !privateKey) return null;
+    const addr = deriveAddress(privateKey);
+    return addr;
+  }, [hasSecret, privateKey]);
+
+  const keyError = useMemo(() => {
+    if (hasSecret || !privateKey) return null;
+    if (!deriveAddress(privateKey))
+      return "Invalid private key: must be a 64-byte base58-encoded keypair";
+    return null;
+  }, [hasSecret, privateKey]);
+
   useEffect(() => {
     const ctrl = new AbortController();
     api
@@ -79,7 +92,6 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
 
   useEffect(() => {
     if (hasSecret && secretId) {
-      setAddressError(null);
       const controller = new AbortController();
 
       api
@@ -106,26 +118,10 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
   }, [hasSecret, secretId]);
 
   useEffect(() => {
-    if (!hasSecret) {
-      const address = privateKey ? deriveAddress(privateKey) : null;
-      if (address) {
-        setDerivedAddress(address);
-        setAddressError(null);
-        return fetchBalanceForAddress(address);
-      } else if (privateKey) {
-        setDerivedAddress(null);
-        setBalance(null);
-        setAddressError(
-          "Invalid private key: must be a 64-byte base58-encoded keypair",
-        );
-        return;
-      } else {
-        setDerivedAddress(null);
-        setBalance(null);
-        setAddressError(null);
-      }
+    if (!hasSecret && derivedFromKey) {
+      return fetchBalanceForAddress(derivedFromKey);
     }
-  }, [hasSecret, privateKey, fetchBalanceForAddress]);
+  }, [hasSecret, privateKey, derivedFromKey, fetchBalanceForAddress]);
 
   useEffect(() => {
     setMetadata((current: any) => ({
@@ -137,6 +133,9 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
   useEffect(() => {
     setMetadata((current: any) => ({ ...current, network: "mainnet-beta" }));
   }, [setMetadata]);
+
+  const displayAddress = hasSecret ? derivedAddress : derivedFromKey;
+  const displayError = hasSecret ? addressError : keyError;
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
@@ -187,14 +186,14 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
         </div>
       )}
 
-      {derivedAddress && (
+      {displayAddress && (
         <div className="space-y-1.5">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
             Wallet Address
           </p>
           <div className="flex items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-200">
             <span className="inline-flex size-3 shrink-0 rounded-full bg-teal-500" />
-            <code className="truncate font-mono text-xs">{derivedAddress}</code>
+            <code className="truncate font-mono text-xs">{displayAddress}</code>
           </div>
           {balance !== null && (
             <p className="text-xs text-neutral-400">
@@ -207,7 +206,7 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
         </div>
       )}
 
-      {addressError && <p className="text-xs text-red-400">{addressError}</p>}
+      {displayError && <p className="text-xs text-red-400">{displayError}</p>}
 
       {solPrice !== null && (
         <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/40 px-3 py-2 text-xs text-neutral-400">
