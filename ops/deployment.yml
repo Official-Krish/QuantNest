@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: quantnest-frontend
-          image: krishanand01/quantnest-frontend:vc52c7ebdb66ac04779cc6ccecb9f2426ba79ad7d
+          image: krishanand01/quantnest-frontend:va79ee01d6dc6946da2b7cf056d0d61430b2db518
           imagePullPolicy: Always
           ports:
             - containerPort: 80
@@ -88,7 +88,7 @@ spec:
     spec:
       containers:
         - name: quantnest-backend
-          image: krishanand01/quantnest-backend:vc52c7ebdb66ac04779cc6ccecb9f2426ba79ad7d
+          image: krishanand01/quantnest-backend:va79ee01d6dc6946da2b7cf056d0d61430b2db518
           imagePullPolicy: Always
 
           ports:
@@ -144,7 +144,7 @@ spec:
 
       containers:
         - name: quantnest-executor
-          image: krishanand01/quantnest-executor:vee90bd548beed54a22f737fd0509ec2d4d7576ff
+          image: krishanand01/quantnest-executor:va79ee01d6dc6946da2b7cf056d0d61430b2db518
           imagePullPolicy: Always
 
           resources:
@@ -196,7 +196,7 @@ spec:
 
       containers:
         - name: quantnest-ai-builder
-          image: krishanand01/quantnest-ai-builder:vc52c7ebdb66ac04779cc6ccecb9f2426ba79ad7d
+          image: krishanand01/quantnest-ai-builder:va79ee01d6dc6946da2b7cf056d0d61430b2db518
           imagePullPolicy: Always
         
           ports:
