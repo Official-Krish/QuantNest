@@ -12,13 +12,39 @@ import {
   aiStrategyWorkflowPlanSchema,
   strategyBuilderRequestSchema,
 } from "@quantnest-trading/types/ai";
-import { getNodeRegistryEntry, NODE_METADATA_FIELD_LABELS } from "@quantnest-trading/node-registry";
+import {
+  getNodeRegistryEntry,
+  NODE_METADATA_FIELD_LABELS,
+} from "@quantnest-trading/node-registry";
 import { AiBuilderError } from "../errors";
 
-const PRICE_TRIGGER_ASSETS = ["CDSL", "HDFC", "TCS", "INFY", "RELIANCE", "ETH", "BTC", "SOL"];
-const TRIGGER_TYPES = new Set(["timer", "price", "price-trigger", "breakout-retest-trigger", "conditional-trigger", "market-session", "portfolio-pnl-drawdown-trigger"]);
+const PRICE_TRIGGER_ASSETS = [
+  "CDSL",
+  "HDFC",
+  "TCS",
+  "INFY",
+  "RELIANCE",
+  "ETH",
+  "BTC",
+  "SOL",
+];
+const TRIGGER_TYPES = new Set([
+  "timer",
+  "price",
+  "price-trigger",
+  "breakout-retest-trigger",
+  "conditional-trigger",
+  "market-session",
+  "portfolio-pnl-drawdown-trigger",
+  "solana-balance",
+]);
 const EXECUTION_TYPES = new Set(["zerodha", "groww"]);
-const CONDITION_NODE_TYPES = new Set(["conditional-trigger", "if", "filter", "recheck"]);
+const CONDITION_NODE_TYPES = new Set([
+  "conditional-trigger",
+  "if",
+  "filter",
+  "recheck",
+]);
 const CRITICAL_ACTION_FIELDS = new Set([
   "connectionString",
   "tableName",
@@ -48,17 +74,27 @@ function isPriceTriggerType(type: unknown): boolean {
   return normalizedType === "price" || normalizedType === "price-trigger";
 }
 
-function normalizePriceThresholdCondition(condition: unknown): "above" | "below" | "" {
+function normalizePriceThresholdCondition(
+  condition: unknown,
+): "above" | "below" | "" {
   const normalized = String(condition || "")
     .trim()
     .toLowerCase()
     .replace(/[\s-]+/g, "_");
 
-  if (normalized === "above" || normalized === "crosses_above" || normalized === "cross_above") {
+  if (
+    normalized === "above" ||
+    normalized === "crosses_above" ||
+    normalized === "cross_above"
+  ) {
     return "above";
   }
 
-  if (normalized === "below" || normalized === "crosses_below" || normalized === "cross_below") {
+  if (
+    normalized === "below" ||
+    normalized === "crosses_below" ||
+    normalized === "cross_below"
+  ) {
     return "below";
   }
 
@@ -85,11 +121,27 @@ function canonicalizeComparator(operator: string): string {
     .toLowerCase()
     .replace(/[-\s]+/g, "_");
 
-  if (["crosses_below", "cross_below", "crossed_below", "crossbelow", "crossesbelow"].includes(normalized)) {
+  if (
+    [
+      "crosses_below",
+      "cross_below",
+      "crossed_below",
+      "crossbelow",
+      "crossesbelow",
+    ].includes(normalized)
+  ) {
     return "crosses_below";
   }
 
-  if (["crosses_above", "cross_above", "crossed_above", "crossabove", "crossesabove"].includes(normalized)) {
+  if (
+    [
+      "crosses_above",
+      "cross_above",
+      "crossed_above",
+      "crossabove",
+      "crossesabove",
+    ].includes(normalized)
+  ) {
     return "crosses_above";
   }
 
@@ -121,10 +173,16 @@ function getAllClauses(expression: unknown): Array<Record<string, unknown>> {
   return clauses;
 }
 
-function normalizeCrossoverOperatorsInPlan(plan: AiStrategyWorkflowPlan, prompt: string): void {
-  const wantsCrossover = /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(prompt);
-  const wantsBelow = /cross(?:es|ed|ing)?[_\s-]?below|crossover[^\n]*below/i.test(prompt);
-  const wantsAbove = /cross(?:es|ed|ing)?[_\s-]?above|crossover[^\n]*above/i.test(prompt);
+function normalizeCrossoverOperatorsInPlan(
+  plan: AiStrategyWorkflowPlan,
+  prompt: string,
+): void {
+  const wantsCrossover =
+    /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(prompt);
+  const wantsBelow =
+    /cross(?:es|ed|ing)?[_\s-]?below|crossover[^\n]*below/i.test(prompt);
+  const wantsAbove =
+    /cross(?:es|ed|ing)?[_\s-]?above|crossover[^\n]*above/i.test(prompt);
 
   for (const node of plan.nodes) {
     if (normalizeNodeType(node.type) !== "conditional-trigger") continue;
@@ -133,12 +191,18 @@ function normalizeCrossoverOperatorsInPlan(plan: AiStrategyWorkflowPlan, prompt:
     const clauses = getAllClauses(metadata.expression);
 
     for (const clause of clauses) {
-      const currentOperator = canonicalizeComparator(String(clause.operator || ""));
+      const currentOperator = canonicalizeComparator(
+        String(clause.operator || ""),
+      );
       const left = clause.left as { type?: string } | undefined;
       const right = clause.right as { type?: string } | undefined;
-      const isIndicatorVsIndicator = left?.type === "indicator" && right?.type === "indicator";
+      const isIndicatorVsIndicator =
+        left?.type === "indicator" && right?.type === "indicator";
 
-      if (currentOperator === "crosses_above" || currentOperator === "crosses_below") {
+      if (
+        currentOperator === "crosses_above" ||
+        currentOperator === "crosses_below"
+      ) {
         clause.operator = currentOperator;
         continue;
       }
@@ -169,7 +233,11 @@ function extractClauses(expression: unknown): Array<{ operator?: string }> {
   const clauses: Array<{ operator?: string }> = [];
 
   for (const entry of conditions) {
-    const node = entry as { type?: string; operator?: string; conditions?: unknown[] };
+    const node = entry as {
+      type?: string;
+      operator?: string;
+      conditions?: unknown[];
+    };
     if (node?.type === "clause") {
       clauses.push(node);
       continue;
@@ -215,7 +283,9 @@ function normalizeOperand(operand: unknown): Record<string, unknown> {
         timeframe: String(operand.indicator.timeframe || "5m"),
         indicator: String(operand.indicator.indicator || "rsi"),
         marketType: operand.indicator.marketType,
-        params: isRecord(operand.indicator.params) ? operand.indicator.params : undefined,
+        params: isRecord(operand.indicator.params)
+          ? operand.indicator.params
+          : undefined,
       },
     };
   }
@@ -228,7 +298,9 @@ function normalizeOperand(operand: unknown): Record<string, unknown> {
         timeframe: String(operand.indicator.timeframe || "5m"),
         indicator: String(operand.indicator.indicator || "rsi"),
         marketType: operand.indicator.marketType,
-        params: isRecord(operand.indicator.params) ? operand.indicator.params : undefined,
+        params: isRecord(operand.indicator.params)
+          ? operand.indicator.params
+          : undefined,
       },
     };
   }
@@ -243,7 +315,9 @@ function normalizeOperand(operand: unknown): Record<string, unknown> {
   return { type: "value", value: 0 };
 }
 
-function normalizeExpressionCondition(condition: unknown): Record<string, unknown> | null {
+function normalizeExpressionCondition(
+  condition: unknown,
+): Record<string, unknown> | null {
   if (!isRecord(condition)) {
     return null;
   }
@@ -259,7 +333,10 @@ function normalizeExpressionCondition(condition: unknown): Record<string, unknow
 
     return {
       type: "group",
-      operator: String(condition.operator || "AND").toUpperCase() === "OR" ? "OR" : "AND",
+      operator:
+        String(condition.operator || "AND").toUpperCase() === "OR"
+          ? "OR"
+          : "AND",
       conditions,
     };
   }
@@ -273,10 +350,16 @@ function normalizeExpressionCondition(condition: unknown): Record<string, unknow
     };
   }
 
-  if (isRecord(condition.indicator) && Object.prototype.hasOwnProperty.call(condition, "value")) {
+  if (
+    isRecord(condition.indicator) &&
+    Object.prototype.hasOwnProperty.call(condition, "value")
+  ) {
     return {
       type: "clause",
-      left: normalizeOperand({ type: "indicator", indicator: condition.indicator }),
+      left: normalizeOperand({
+        type: "indicator",
+        indicator: condition.indicator,
+      }),
       operator: String(condition.operator || ">"),
       right: normalizeOperand({ type: "value", value: condition.value }),
     };
@@ -302,12 +385,16 @@ function normalizeExpression(expression: unknown): unknown {
   const asCondition = normalizeExpressionCondition(expression);
   if (asCondition?.type === "group") {
     const conditions = Array.isArray(asCondition.conditions)
-      ? asCondition.conditions.filter((entry): entry is Record<string, unknown> => isRecord(entry))
+      ? asCondition.conditions.filter(
+          (entry): entry is Record<string, unknown> => isRecord(entry),
+        )
       : [];
 
     if (
-      conditions.length > 1
-      && conditions.every((entry) => String(entry.type || "").toLowerCase() === "clause")
+      conditions.length > 1 &&
+      conditions.every(
+        (entry) => String(entry.type || "").toLowerCase() === "clause",
+      )
     ) {
       return {
         type: "group",
@@ -315,7 +402,10 @@ function normalizeExpression(expression: unknown): unknown {
         conditions: [
           {
             type: "group",
-            operator: String(asCondition.operator || "AND").toUpperCase() === "OR" ? "OR" : "AND",
+            operator:
+              String(asCondition.operator || "AND").toUpperCase() === "OR"
+                ? "OR"
+                : "AND",
             conditions,
           },
         ],
@@ -336,7 +426,9 @@ function normalizeExpression(expression: unknown): unknown {
   return expression;
 }
 
-function normalizeIndicatorExpressionsInPlan(plan: AiStrategyWorkflowPlan): void {
+function normalizeIndicatorExpressionsInPlan(
+  plan: AiStrategyWorkflowPlan,
+): void {
   for (const node of plan.nodes) {
     const nodeType = String(node.type).toLowerCase();
     if (!CONDITION_NODE_TYPES.has(nodeType)) {
@@ -370,7 +462,9 @@ function validateRetryPolicyMetadata(
   issues: AiStrategyValidationIssue[],
   nodeId: string,
 ) {
-  const retryPolicy = metadata.retryPolicy as Record<string, unknown> | undefined;
+  const retryPolicy = metadata.retryPolicy as
+    | Record<string, unknown>
+    | undefined;
   if (!retryPolicy || typeof retryPolicy !== "object") {
     return;
   }
@@ -381,33 +475,68 @@ function validateRetryPolicyMetadata(
 
   const maxAttempts = Number(retryPolicy.maxAttempts);
   const delaySeconds = Number(retryPolicy.delaySeconds);
-  const backoffType = String(retryPolicy.backoffType || "").trim().toLowerCase();
-  const onFinalFailure = String(retryPolicy.onFinalFailure || "").trim().toLowerCase();
+  const backoffType = String(retryPolicy.backoffType || "")
+    .trim()
+    .toLowerCase();
+  const onFinalFailure = String(retryPolicy.onFinalFailure || "")
+    .trim()
+    .toLowerCase();
 
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
-    pushIssue(issues, "error", "INVALID_GRAPH", "Retry policy maxAttempts must be at least 1.", nodeId, "retryPolicy.maxAttempts");
+    pushIssue(
+      issues,
+      "error",
+      "INVALID_GRAPH",
+      "Retry policy maxAttempts must be at least 1.",
+      nodeId,
+      "retryPolicy.maxAttempts",
+    );
   }
 
   if (!Number.isFinite(delaySeconds) || delaySeconds < 0) {
-    pushIssue(issues, "error", "INVALID_GRAPH", "Retry policy delaySeconds must be 0 or greater.", nodeId, "retryPolicy.delaySeconds");
+    pushIssue(
+      issues,
+      "error",
+      "INVALID_GRAPH",
+      "Retry policy delaySeconds must be 0 or greater.",
+      nodeId,
+      "retryPolicy.delaySeconds",
+    );
   }
 
   if (!["fixed", "exponential"].includes(backoffType)) {
-    pushIssue(issues, "error", "INVALID_GRAPH", "Retry policy backoffType must be fixed or exponential.", nodeId, "retryPolicy.backoffType");
+    pushIssue(
+      issues,
+      "error",
+      "INVALID_GRAPH",
+      "Retry policy backoffType must be fixed or exponential.",
+      nodeId,
+      "retryPolicy.backoffType",
+    );
   }
 
   if (!["fail-workflow", "continue"].includes(onFinalFailure)) {
-    pushIssue(issues, "error", "INVALID_GRAPH", "Retry policy onFinalFailure must be fail-workflow or continue.", nodeId, "retryPolicy.onFinalFailure");
+    pushIssue(
+      issues,
+      "error",
+      "INVALID_GRAPH",
+      "Retry policy onFinalFailure must be fail-workflow or continue.",
+      nodeId,
+      "retryPolicy.onFinalFailure",
+    );
   }
 }
 
 function mergeCriticalActionMissingInputs(plan: AiStrategyWorkflowPlan): void {
-  const existing = new Set(plan.missingInputs.map((input) => `${input.nodeId}:${input.field}`));
+  const existing = new Set(
+    plan.missingInputs.map((input) => `${input.nodeId}:${input.field}`),
+  );
 
   for (const node of plan.nodes) {
     const nodeType = String(node.type || "").toLowerCase();
     const nodeKind = String(node.data.kind || "").toLowerCase();
-    const isPortfolioRiskTrigger = nodeType === "portfolio-pnl-drawdown-trigger";
+    const isPortfolioRiskTrigger =
+      nodeType === "portfolio-pnl-drawdown-trigger";
 
     if (nodeKind !== "action" && !isPortfolioRiskTrigger) continue;
 
@@ -416,7 +545,10 @@ function mergeCriticalActionMissingInputs(plan: AiStrategyWorkflowPlan): void {
 
     const metadata = (node.data.metadata || {}) as Record<string, unknown>;
     const hasSecret = Boolean(String(metadata.secretId || "").trim());
-    const editableFields = new Set([...(entry.metadataFields || []), ...(entry.secretFieldKeys || [])]);
+    const editableFields = new Set([
+      ...(entry.metadataFields || []),
+      ...(entry.secretFieldKeys || []),
+    ]);
 
     const fieldsToValidate = isPortfolioRiskTrigger
       ? new Set([
@@ -424,9 +556,13 @@ function mergeCriticalActionMissingInputs(plan: AiStrategyWorkflowPlan): void {
           "mode",
           "thresholdValue",
           "thresholdUnit",
-          ...(String(metadata.broker || "").trim().toLowerCase() === "lighter"
+          ...(String(metadata.broker || "")
+            .trim()
+            .toLowerCase() === "lighter"
             ? ["apiKey", "accountIndex", "apiKeyIndex"]
-            : String(metadata.broker || "").trim().toLowerCase() === "zerodha"
+            : String(metadata.broker || "")
+                  .trim()
+                  .toLowerCase() === "zerodha"
               ? ["apiKey", "accessToken"]
               : ["accessToken"]),
         ])
@@ -462,23 +598,25 @@ function mergeCriticalActionMissingInputs(plan: AiStrategyWorkflowPlan): void {
   }
 }
 
-function deduplicateActionCredentialMissingInputs(plan: AiStrategyWorkflowPlan): void {
+function deduplicateActionCredentialMissingInputs(
+  plan: AiStrategyWorkflowPlan,
+): void {
   const serviceFieldSeen = new Map<string, boolean>();
   const indicesToRemove = new Set<number>();
 
   for (let i = 0; i < plan.missingInputs.length; i++) {
     const input = plan.missingInputs[i];
     if (!input) continue;
-    
+
     const nodeType = String(input.nodeType).toLowerCase();
     const entry = getNodeRegistryEntry(nodeType);
-    
+
     // Only deduplicate for actions with reusableSecretService
     const service = entry?.reusableSecretService;
     if (!service) continue;
 
     const key = `${service}:${input.field}`;
-    
+
     if (serviceFieldSeen.has(key)) {
       // This is a duplicate - mark for removal
       indicesToRemove.add(i);
@@ -507,27 +645,53 @@ function pushIssue(
   issues.push({ severity, code, message, nodeId, field });
 }
 
-function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyValidationIssue[]) {
+function validateNodeMetadata(
+  plan: AiStrategyWorkflowPlan,
+  issues: AiStrategyValidationIssue[],
+) {
   for (const node of plan.nodes) {
     const metadata = (node.data.metadata || {}) as Record<string, unknown>;
     const normalizedType = normalizeNodeType(node.type);
     const normalizedKind = String(node.data.kind).toLowerCase();
 
     if (TRIGGER_TYPES.has(normalizedType) && normalizedKind !== "trigger") {
-      pushIssue(issues, "error", "INVALID_NODE_KIND", `${node.type} must be a trigger node.`, node.nodeId);
+      pushIssue(
+        issues,
+        "error",
+        "INVALID_NODE_KIND",
+        `${node.type} must be a trigger node.`,
+        node.nodeId,
+      );
     }
 
     if (!TRIGGER_TYPES.has(normalizedType) && normalizedKind !== "action") {
-      pushIssue(issues, "error", "INVALID_NODE_KIND", `${node.type} must be an action node.`, node.nodeId);
+      pushIssue(
+        issues,
+        "error",
+        "INVALID_NODE_KIND",
+        `${node.type} must be an action node.`,
+        node.nodeId,
+      );
     }
 
     if (isPriceTriggerType(normalizedType)) {
       const asset = String(metadata.asset || "").trim();
-      const marketType = String(metadata.marketType || "").trim().toLowerCase();
-      const mode = String(metadata.mode || "threshold").trim().toLowerCase();
+      const marketType = String(metadata.marketType || "")
+        .trim()
+        .toLowerCase();
+      const mode = String(metadata.mode || "threshold")
+        .trim()
+        .toLowerCase();
 
       if (!asset) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Price trigger is missing asset.", node.nodeId, "asset");
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Price trigger is missing asset.",
+          node.nodeId,
+          "asset",
+        );
       } else if (!PRICE_TRIGGER_ASSETS.includes(asset)) {
         pushIssue(
           issues,
@@ -540,8 +704,12 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       }
 
       if (mode === "change") {
-        const changeDirection = String(metadata.changeDirection || "").trim().toLowerCase();
-        const changeType = String(metadata.changeType || "").trim().toLowerCase();
+        const changeDirection = String(metadata.changeDirection || "")
+          .trim()
+          .toLowerCase();
+        const changeType = String(metadata.changeType || "")
+          .trim()
+          .toLowerCase();
         const changeValue = Number(metadata.changeValue);
         const changeWindowMinutes = Number(metadata.changeWindowMinutes);
 
@@ -590,7 +758,9 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
         }
       } else {
         const targetPrice = Number(metadata.targetPrice);
-        const normalizedCondition = normalizePriceThresholdCondition(metadata.condition);
+        const normalizedCondition = normalizePriceThresholdCondition(
+          metadata.condition,
+        );
 
         if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
           pushIssue(
@@ -629,16 +799,29 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
 
     if (normalizedType === "breakout-retest-trigger") {
       const asset = String(metadata.asset || "").trim();
-      const marketType = String(metadata.marketType || "").trim().toLowerCase();
-      const direction = String(metadata.direction || "").trim().toLowerCase();
+      const marketType = String(metadata.marketType || "")
+        .trim()
+        .toLowerCase();
+      const direction = String(metadata.direction || "")
+        .trim()
+        .toLowerCase();
       const breakoutLevel = Number(metadata.breakoutLevel);
       const retestTolerancePct = Number(metadata.retestTolerancePct);
       const confirmationMovePct = Number(metadata.confirmationMovePct);
       const retestWindowMinutes = Number(metadata.retestWindowMinutes);
-      const confirmationWindowMinutes = Number(metadata.confirmationWindowMinutes);
+      const confirmationWindowMinutes = Number(
+        metadata.confirmationWindowMinutes,
+      );
 
       if (!asset) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger is missing asset.", node.nodeId, "asset");
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Breakout retest trigger is missing asset.",
+          node.nodeId,
+          "asset",
+        );
       } else if (!PRICE_TRIGGER_ASSETS.includes(asset)) {
         pushIssue(
           issues,
@@ -651,31 +834,83 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       }
 
       if (!["indian", "crypto", "web3"].includes(marketType)) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include a valid marketType.", node.nodeId, "marketType");
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Breakout retest trigger must include a valid marketType.",
+          node.nodeId,
+          "marketType",
+        );
       }
 
       if (!["bullish", "bearish"].includes(direction)) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must use direction 'bullish' or 'bearish'.", node.nodeId, "direction");
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Breakout retest trigger must use direction 'bullish' or 'bearish'.",
+          node.nodeId,
+          "direction",
+        );
       }
 
       if (!Number.isFinite(breakoutLevel) || breakoutLevel <= 0) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include breakoutLevel greater than 0.", node.nodeId, "breakoutLevel");
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Breakout retest trigger must include breakoutLevel greater than 0.",
+          node.nodeId,
+          "breakoutLevel",
+        );
       }
 
       if (!Number.isFinite(retestTolerancePct) || retestTolerancePct <= 0) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include retestTolerancePct greater than 0.", node.nodeId, "retestTolerancePct");
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Breakout retest trigger must include retestTolerancePct greater than 0.",
+          node.nodeId,
+          "retestTolerancePct",
+        );
       }
 
       if (!Number.isFinite(confirmationMovePct) || confirmationMovePct <= 0) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include confirmationMovePct greater than 0.", node.nodeId, "confirmationMovePct");
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Breakout retest trigger must include confirmationMovePct greater than 0.",
+          node.nodeId,
+          "confirmationMovePct",
+        );
       }
 
       if (!Number.isFinite(retestWindowMinutes) || retestWindowMinutes <= 0) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include retestWindowMinutes greater than 0.", node.nodeId, "retestWindowMinutes");
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Breakout retest trigger must include retestWindowMinutes greater than 0.",
+          node.nodeId,
+          "retestWindowMinutes",
+        );
       }
 
-      if (!Number.isFinite(confirmationWindowMinutes) || confirmationWindowMinutes <= 0) {
-        pushIssue(issues, "error", "INVALID_GRAPH", "Breakout retest trigger must include confirmationWindowMinutes greater than 0.", node.nodeId, "confirmationWindowMinutes");
+      if (
+        !Number.isFinite(confirmationWindowMinutes) ||
+        confirmationWindowMinutes <= 0
+      ) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Breakout retest trigger must include confirmationWindowMinutes greater than 0.",
+          node.nodeId,
+          "confirmationWindowMinutes",
+        );
       }
     }
 
@@ -694,7 +929,9 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
     }
 
     if (normalizedType === "conditional-trigger") {
-      const clauses = extractClauses((metadata as Record<string, unknown>).expression);
+      const clauses = extractClauses(
+        (metadata as Record<string, unknown>).expression,
+      );
       if (!clauses.length) {
         pushIssue(
           issues,
@@ -734,7 +971,9 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
         );
       }
 
-      const recheckMode = String(metadata.recheckMode || "trigger").trim().toLowerCase();
+      const recheckMode = String(metadata.recheckMode || "trigger")
+        .trim()
+        .toLowerCase();
       if (!["trigger", "custom"].includes(recheckMode)) {
         pushIssue(
           issues,
@@ -747,9 +986,13 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       }
 
       if (recheckMode === "custom") {
-        const hasExpression = Boolean((metadata as Record<string, unknown>).expression);
+        const hasExpression = Boolean(
+          (metadata as Record<string, unknown>).expression,
+        );
         const asset = String(metadata.asset || "").trim();
-        const condition = String(metadata.condition || "").trim().toLowerCase();
+        const condition = String(metadata.condition || "")
+          .trim()
+          .toLowerCase();
         const targetPrice = Number(metadata.targetPrice);
 
         if (!hasExpression) {
@@ -796,9 +1039,13 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
     validateRetryPolicyMetadata(metadata, issues, node.nodeId);
 
     if (normalizedType === "if" || normalizedType === "filter") {
-      const hasExpression = Boolean((metadata as Record<string, unknown>).expression);
+      const hasExpression = Boolean(
+        (metadata as Record<string, unknown>).expression,
+      );
       const asset = String(metadata.asset || "").trim();
-      const condition = String(metadata.condition || "").trim().toLowerCase();
+      const condition = String(metadata.condition || "")
+        .trim()
+        .toLowerCase();
       const targetPrice = Number(metadata.targetPrice);
 
       if (!hasExpression) {
@@ -838,7 +1085,9 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
     }
 
     if (normalizedType === "zerodha") {
-      const side = String(metadata.type || "").trim().toLowerCase();
+      const side = String(metadata.type || "")
+        .trim()
+        .toLowerCase();
       const qty = Number(metadata.qty);
       const symbol = String(metadata.symbol || "").trim();
 
@@ -875,8 +1124,12 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
     }
 
     if (normalizedType === "market-session") {
-      const marketType = String(metadata.marketType || "").trim().toLowerCase();
-      const event = String(metadata.event || "").trim().toLowerCase();
+      const marketType = String(metadata.marketType || "")
+        .trim()
+        .toLowerCase();
+      const event = String(metadata.event || "")
+        .trim()
+        .toLowerCase();
       const triggerTime = String(metadata.triggerTime || "").trim();
       const isValidTime = /^\d{1,2}:\d{2}$/.test(triggerTime);
 
@@ -890,13 +1143,15 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           "marketType",
         );
       }
-      if (![
-        "market-open",
-        "market-close",
-        "at-time",
-        "pause-at-time",
-        "session-window",
-      ].includes(event)) {
+      if (
+        ![
+          "market-open",
+          "market-close",
+          "at-time",
+          "pause-at-time",
+          "session-window",
+        ].includes(event)
+      ) {
         pushIssue(
           issues,
           "error",
@@ -915,7 +1170,10 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           node.nodeId,
           "triggerTime",
         );
-      } else if ((event === "at-time" || event === "pause-at-time") && !isValidTime) {
+      } else if (
+        (event === "at-time" || event === "pause-at-time") &&
+        !isValidTime
+      ) {
         pushIssue(
           issues,
           "error",
@@ -924,7 +1182,10 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
           node.nodeId,
           "triggerTime",
         );
-      } else if ((event === "at-time" || event === "pause-at-time") && isValidTime) {
+      } else if (
+        (event === "at-time" || event === "pause-at-time") &&
+        isValidTime
+      ) {
         const timeParts = triggerTime.split(":");
         if (timeParts.length !== 2) {
           pushIssue(
@@ -940,7 +1201,14 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
 
         const hours = Number(timeParts[0]);
         const minutes = Number(timeParts[1]);
-        if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        if (
+          !Number.isFinite(hours) ||
+          !Number.isFinite(minutes) ||
+          hours < 0 ||
+          hours > 23 ||
+          minutes < 0 ||
+          minutes > 59
+        ) {
           pushIssue(
             issues,
             "error",
@@ -978,9 +1246,15 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
     }
 
     if (normalizedType === "portfolio-pnl-drawdown-trigger") {
-      const broker = String(metadata.broker || "").trim().toLowerCase();
-      const mode = String(metadata.mode || "").trim().toLowerCase();
-      const thresholdUnit = String(metadata.thresholdUnit || "").trim().toLowerCase();
+      const broker = String(metadata.broker || "")
+        .trim()
+        .toLowerCase();
+      const mode = String(metadata.mode || "")
+        .trim()
+        .toLowerCase();
+      const thresholdUnit = String(metadata.thresholdUnit || "")
+        .trim()
+        .toLowerCase();
       const thresholdValue = Number(metadata.thresholdValue);
       const hasSecret = Boolean(String(metadata.secretId || "").trim());
 
@@ -995,7 +1269,9 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
         );
       }
 
-      if (!["daily-loss-cap", "profit-target", "drawdown-limit"].includes(mode)) {
+      if (
+        !["daily-loss-cap", "profit-target", "drawdown-limit"].includes(mode)
+      ) {
         pushIssue(
           issues,
           "error",
@@ -1029,15 +1305,19 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
       }
 
       if (!hasSecret) {
-        const missingCredentialFields = broker === "lighter"
-          ? ["apiKey", "accountIndex", "apiKeyIndex"]
-          : broker === "zerodha"
-            ? ["apiKey", "accessToken"]
-            : ["accessToken"];
+        const missingCredentialFields =
+          broker === "lighter"
+            ? ["apiKey", "accountIndex", "apiKeyIndex"]
+            : broker === "zerodha"
+              ? ["apiKey", "accessToken"]
+              : ["accessToken"];
 
         for (const field of missingCredentialFields) {
           const value = metadata[field];
-          const missing = value === undefined || value === null || String(value).trim() === "";
+          const missing =
+            value === undefined ||
+            value === null ||
+            String(value).trim() === "";
           if (missing) {
             pushIssue(
               issues,
@@ -1051,6 +1331,122 @@ function validateNodeMetadata(plan: AiStrategyWorkflowPlan, issues: AiStrategyVa
         }
       }
     }
+
+    if (normalizedType === "solana-swap") {
+      const fromToken = String(metadata.fromToken || "").trim();
+      const toToken = String(metadata.toToken || "").trim();
+      const amount = Number(metadata.amount);
+      const slippageBps = Number(metadata.slippageBps);
+
+      if (!fromToken) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Solana Swap must include fromToken (mint address).",
+          node.nodeId,
+          "fromToken",
+        );
+      }
+      if (!toToken) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Solana Swap must include toToken (mint address).",
+          node.nodeId,
+          "toToken",
+        );
+      }
+      if (
+        fromToken &&
+        toToken &&
+        fromToken.toLowerCase() === toToken.toLowerCase()
+      ) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Solana Swap fromToken and toToken must be different.",
+          node.nodeId,
+          "toToken",
+        );
+      }
+      if (!Number.isFinite(amount) || amount <= 0) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Solana Swap amount must be greater than 0.",
+          node.nodeId,
+          "amount",
+        );
+      }
+      if (
+        !Number.isFinite(slippageBps) ||
+        slippageBps < 1 ||
+        slippageBps > 500
+      ) {
+        pushIssue(
+          issues,
+          "warning",
+          "INVALID_VALUE",
+          "Solana Swap slippageBps should be between 1 and 500 (0.01%–5%).",
+          node.nodeId,
+          "slippageBps",
+        );
+      }
+      const hasSecret = Boolean(String(metadata.secretId || "").trim());
+      if (!hasSecret) {
+        pushIssue(
+          issues,
+          "warning",
+          "MISSING_SECRET_PLACEHOLDER",
+          "Solana Swap requires a saved wallet secret. Add one via Profile > Secrets.",
+          node.nodeId,
+          "secretId",
+        );
+      }
+    }
+
+    if (normalizedType === "solana-balance") {
+      const walletAddress = String(metadata.walletAddress || "").trim();
+      const condition = String(metadata.condition || "")
+        .trim()
+        .toLowerCase();
+      const threshold = Number(metadata.threshold);
+
+      if (!walletAddress) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Solana Balance trigger must include a walletAddress.",
+          node.nodeId,
+          "walletAddress",
+        );
+      }
+      if (!["above", "below"].includes(condition)) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Solana Balance trigger condition must be 'above' or 'below'.",
+          node.nodeId,
+          "condition",
+        );
+      }
+      if (!Number.isFinite(threshold) || threshold <= 0) {
+        pushIssue(
+          issues,
+          "error",
+          "INVALID_GRAPH",
+          "Solana Balance trigger threshold must be greater than 0.",
+          node.nodeId,
+          "threshold",
+        );
+      }
+    }
   }
 }
 
@@ -1060,14 +1456,17 @@ function validatePromptAlignedSemantics(
   issues: AiStrategyValidationIssue[],
 ) {
   const prompt = request.prompt.toLowerCase();
-  const expectedMarketTypes = request.market === "Crypto"
-    ? new Set(["crypto", "web3"])
-    : new Set(["indian"]);
+  const expectedMarketTypes =
+    request.market === "Crypto"
+      ? new Set(["crypto", "web3"])
+      : new Set(["indian"]);
 
   for (const node of plan.nodes) {
     const metadata = (node.data.metadata || {}) as Record<string, unknown>;
     const normalizedType = normalizeNodeType(node.type || "");
-    const rawMarketType = String(metadata.marketType || "").trim().toLowerCase();
+    const rawMarketType = String(metadata.marketType || "")
+      .trim()
+      .toLowerCase();
 
     if (!rawMarketType) continue;
 
@@ -1095,7 +1494,9 @@ function validatePromptAlignedSemantics(
   }
 
   const priceNode = plan.nodes.find((node) => isPriceTriggerType(node.type));
-  const priceMatch = prompt.match(/price(?:\s+\w+){0,8}?\s+(below|above)\s+(\d+(?:\.\d+)?)/i);
+  const priceMatch = prompt.match(
+    /price(?:\s+\w+){0,8}?\s+(below|above)\s+(\d+(?:\.\d+)?)/i,
+  );
 
   if (priceMatch) {
     if (!priceNode) {
@@ -1111,7 +1512,9 @@ function validatePromptAlignedSemantics(
     const expectedCondition = priceMatch[1]?.toLowerCase();
     const expectedTarget = Number(priceMatch[2]);
     const metadata = (priceNode.data.metadata || {}) as Record<string, unknown>;
-    const actualCondition = normalizePriceThresholdCondition(metadata.condition);
+    const actualCondition = normalizePriceThresholdCondition(
+      metadata.condition,
+    );
     const actualTarget = Number(metadata.targetPrice);
 
     if (actualCondition !== expectedCondition) {
@@ -1137,9 +1540,12 @@ function validatePromptAlignedSemantics(
     }
   }
 
-  const asksForCrossover = /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(prompt);
+  const asksForCrossover =
+    /(cross(?:es|ed|ing)?[_\s-]?(above|below)|crossover)/i.test(prompt);
   if (asksForCrossover) {
-    const conditionalNodes = plan.nodes.filter((node) => normalizeNodeType(node.type) === "conditional-trigger");
+    const conditionalNodes = plan.nodes.filter(
+      (node) => normalizeNodeType(node.type) === "conditional-trigger",
+    );
     const hasCrossoverPriceTrigger = plan.nodes.some((node) => {
       if (!isPriceTriggerType(node.type)) return false;
       const metadata = (node.data.metadata || {}) as Record<string, unknown>;
@@ -1175,9 +1581,14 @@ function validatePromptAlignedSemantics(
     }
   }
 
-  const asksForVolumeSpike = /volume\s*(spike|surge)|spike\s+in\s+volume|high\s+volume|volume\s*above/i.test(prompt);
+  const asksForVolumeSpike =
+    /volume\s*(spike|surge)|spike\s+in\s+volume|high\s+volume|volume\s*above/i.test(
+      prompt,
+    );
   if (asksForVolumeSpike) {
-    const conditionalNodes = plan.nodes.filter((node) => String(node.type).toLowerCase() === "conditional-trigger");
+    const conditionalNodes = plan.nodes.filter(
+      (node) => String(node.type).toLowerCase() === "conditional-trigger",
+    );
 
     if (!conditionalNodes.length) {
       pushIssue(
@@ -1193,11 +1604,19 @@ function validatePromptAlignedSemantics(
       const metadata = (node.data.metadata || {}) as Record<string, unknown>;
       const clauses = extractClauses(metadata.expression);
       return clauses.some((clause: any) => {
-        const left = clause?.left as { type?: string; indicator?: { indicator?: string } } | undefined;
-        const right = clause?.right as { type?: string; indicator?: { indicator?: string } } | undefined;
+        const left = clause?.left as
+          | { type?: string; indicator?: { indicator?: string } }
+          | undefined;
+        const right = clause?.right as
+          | { type?: string; indicator?: { indicator?: string } }
+          | undefined;
         return (
-          (left?.type === "indicator" && String(left?.indicator?.indicator || "").toLowerCase() === "volume") ||
-          (right?.type === "indicator" && String(right?.indicator?.indicator || "").toLowerCase() === "volume")
+          (left?.type === "indicator" &&
+            String(left?.indicator?.indicator || "").toLowerCase() ===
+              "volume") ||
+          (right?.type === "indicator" &&
+            String(right?.indicator?.indicator || "").toLowerCase() ===
+              "volume")
         );
       });
     });
@@ -1219,8 +1638,12 @@ function buildValidationReport(
 ): AiStrategyValidationReport {
   const issues: AiStrategyValidationIssue[] = [];
   const nodeIds = new Set(plan.nodes.map((node) => node.nodeId));
-  const triggerNodes = plan.nodes.filter((node) => String(node.data.kind).toLowerCase() === "trigger");
-  const actionNodes = plan.nodes.filter((node) => String(node.data.kind).toLowerCase() === "action");
+  const triggerNodes = plan.nodes.filter(
+    (node) => String(node.data.kind).toLowerCase() === "trigger",
+  );
+  const actionNodes = plan.nodes.filter(
+    (node) => String(node.data.kind).toLowerCase() === "action",
+  );
   const outgoing = new Map<string, typeof plan.edges>();
   const incomingCount = new Map<string, number>();
 
@@ -1230,7 +1653,12 @@ function buildValidationReport(
   }
 
   if (triggerNodes.length === 0) {
-    pushIssue(issues, "error", "INVALID_GRAPH", "Generated plan does not contain a trigger node.");
+    pushIssue(
+      issues,
+      "error",
+      "INVALID_GRAPH",
+      "Generated plan does not contain a trigger node.",
+    );
   }
 
   if (triggerNodes.length > 1) {
@@ -1243,17 +1671,32 @@ function buildValidationReport(
   }
 
   if (nodeIds.size !== plan.nodes.length) {
-    pushIssue(issues, "error", "INVALID_GRAPH", "Generated plan contains duplicate node ids.");
+    pushIssue(
+      issues,
+      "error",
+      "INVALID_GRAPH",
+      "Generated plan contains duplicate node ids.",
+    );
   }
 
   for (const edge of plan.edges) {
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {
-      pushIssue(issues, "error", "INVALID_GRAPH", `Generated edge references missing nodes: ${edge.id}`);
+      pushIssue(
+        issues,
+        "error",
+        "INVALID_GRAPH",
+        `Generated edge references missing nodes: ${edge.id}`,
+      );
       continue;
     }
 
     if (edge.source === edge.target) {
-      pushIssue(issues, "error", "INVALID_GRAPH", `Generated edge forms a self-loop: ${edge.id}`);
+      pushIssue(
+        issues,
+        "error",
+        "INVALID_GRAPH",
+        `Generated edge forms a self-loop: ${edge.id}`,
+      );
     }
 
     outgoing.set(edge.source, [...(outgoing.get(edge.source) || []), edge]);
@@ -1261,7 +1704,9 @@ function buildValidationReport(
   }
 
   if (request.allowedNodeTypes?.length) {
-    const allowed = new Set(request.allowedNodeTypes.map((value) => String(value).toLowerCase()));
+    const allowed = new Set(
+      request.allowedNodeTypes.map((value) => String(value).toLowerCase()),
+    );
     for (const node of plan.nodes) {
       if (!allowed.has(String(node.type).toLowerCase())) {
         pushIssue(
@@ -1288,8 +1733,14 @@ function buildValidationReport(
     }
 
     const normalizedType = normalizeNodeType(node.type);
-    if (normalizedType === "conditional-trigger" || normalizedType === "if" || normalizedType === "recheck") {
-      const handles = new Set(edges.map((edge) => edge.sourceHandle).filter(Boolean));
+    if (
+      normalizedType === "conditional-trigger" ||
+      normalizedType === "if" ||
+      normalizedType === "recheck"
+    ) {
+      const handles = new Set(
+        edges.map((edge) => edge.sourceHandle).filter(Boolean),
+      );
       if (!handles.has("true") || !handles.has("false")) {
         pushIssue(
           issues,
@@ -1316,7 +1767,9 @@ function buildValidationReport(
     }
   }
 
-  const executionNodes = plan.nodes.filter((node) => EXECUTION_TYPES.has(String(node.type).toLowerCase()));
+  const executionNodes = plan.nodes.filter((node) =>
+    EXECUTION_TYPES.has(String(node.type).toLowerCase()),
+  );
   if (executionNodes.length > 0 && request.allowDirectExecution !== true) {
     pushIssue(
       issues,
@@ -1338,19 +1791,24 @@ function buildValidationReport(
   validateNodeMetadata(plan, issues);
   validatePromptAlignedSemantics(plan, request, issues);
 
-  const branchCount = plan.edges.filter((edge) => edge.sourceHandle === "true" || edge.sourceHandle === "false").length;
+  const branchCount = plan.edges.filter(
+    (edge) => edge.sourceHandle === "true" || edge.sourceHandle === "false",
+  ).length;
 
   return {
     canOpenInBuilder: !issues.some((issue) => issue.severity === "error"),
     triggerCount: triggerNodes.length,
     branchCount,
-    missingInputsCount: plan.missingInputs.filter((input) => input.required).length,
+    missingInputsCount: plan.missingInputs.filter((input) => input.required)
+      .length,
     issues,
   };
 }
 
 function assertNoValidationErrors(validation: AiStrategyValidationReport) {
-  const blockingIssues = validation.issues.filter((issue) => issue.severity === "error");
+  const blockingIssues = validation.issues.filter(
+    (issue) => issue.severity === "error",
+  );
   if (!blockingIssues.length) {
     return;
   }
@@ -1363,11 +1821,15 @@ function assertNoValidationErrors(validation: AiStrategyValidationReport) {
   );
 }
 
-export function parseStrategyBuilderRequest(input: unknown): AiStrategyBuilderRequest {
+export function parseStrategyBuilderRequest(
+  input: unknown,
+): AiStrategyBuilderRequest {
   return strategyBuilderRequestSchema.parse(input);
 }
 
-export function parseStrategyDraftEditRequest(input: unknown): AiStrategyDraftEditRequest {
+export function parseStrategyDraftEditRequest(
+  input: unknown,
+): AiStrategyDraftEditRequest {
   return aiStrategyDraftEditRequestSchema.parse(input);
 }
 

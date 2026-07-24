@@ -1,0 +1,25 @@
+{
+  "name": "@quantnest-trading/onchain",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./solana": "./src/solana.ts",
+    "./jupiter": "./src/jupiter.ts",
+    "./tokens": "./src/tokens.ts",
+    "./keys": "./src/keys.ts",
+    "./types": "./src/types.ts"
+  },
+  "dependencies": {
+    "@solana/web3.js": "1.98.0",
+    "@solana/spl-token": "0.4.12",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

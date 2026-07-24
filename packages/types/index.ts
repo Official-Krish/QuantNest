@@ -22,7 +22,9 @@ export type NodeKind =
   | "notion-daily-report"
   | "google-drive-daily-csv"
   | "google-sheets-report"
-  | "postgres";
+  | "postgres"
+  | "solana-balance"
+  | "solana-swap";
 
 export interface NodeType {
   type: NodeKind;
@@ -61,6 +63,8 @@ export type NodeMetadata =
   | GoogleDriveDailyCsvMetadata
   | GoogleSheetsReportMetadata
   | PostgresMetadata
+  | SolanaBalanceMetadata
+  | SolanaSwapMetadata
   | Record<string, unknown>;
 
 export interface DelayNodeMetadata {
@@ -250,6 +254,25 @@ export interface PostgresMetadata {
   connectionString: string;
   tableName: string;
   jsonPayload?: string;
+  retryPolicy?: RetryPolicyMetadata;
+}
+
+export interface SolanaBalanceMetadata {
+  network: "mainnet-beta";
+  walletAddress: string;
+  tokenMint?: string;
+  condition: "above" | "below";
+  threshold: number;
+  retryPolicy?: RetryPolicyMetadata;
+}
+
+export interface SolanaSwapMetadata {
+  network: "mainnet-beta";
+  fromToken: string;
+  toToken: string;
+  amount: number;
+  slippageBps: number;
+  secretId: string;
   retryPolicy?: RetryPolicyMetadata;
 }
 

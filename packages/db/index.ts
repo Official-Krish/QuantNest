@@ -54,6 +54,7 @@ export const REUSABLE_SECRET_SERVICES = [
   "whatsapp",
   "notion-daily-report",
   "google-drive-daily-csv",
+  "solana",
 ] as const;
 
 export type ReusableSecretService = (typeof REUSABLE_SECRET_SERVICES)[number];

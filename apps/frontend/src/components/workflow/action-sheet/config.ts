@@ -11,6 +11,7 @@ import {
   GitMerge,
   PlayCircle,
   RotateCcw,
+  Wallet,
 } from "lucide-react";
 
 export const ACTION_GROUP_OPTIONS: Array<{
@@ -55,6 +56,13 @@ export const ACTION_GROUP_OPTIONS: Array<{
     icon: FileText,
     toneClassName: "text-neutral-200",
   },
+  {
+    id: "On-chain" as BuilderPanelGroup,
+    title: "On-chain",
+    description: "Swap tokens and monitor Solana wallet balances.",
+    icon: Wallet,
+    toneClassName: "text-[#99f6e4]",
+  },
 ];
 
 export const ACTION_STEP_TITLES: Record<BuilderPanelGroup, string> = {
@@ -63,6 +71,7 @@ export const ACTION_STEP_TITLES: Record<BuilderPanelGroup, string> = {
   "Flow Control": "Select logic step",
   Data: "Select data action",
   Reporting: "Select reporting action",
+  "On-chain": "Select Solana action",
 };
 
 export const FLOW_CONTROL_STEP_OPTIONS: Record<

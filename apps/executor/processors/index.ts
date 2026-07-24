@@ -4,6 +4,7 @@ export { BreakoutRetestProcessor } from "./breakout-retest.processor";
 export { ConditionalTriggerProcessor } from "./conditional.processor";
 export { MarketSessionProcessor } from "./market-session.processor";
 export { PortfolioPnlDrawdownProcessor } from "./portfolio-pnl-drawdown.processor";
+export { SolanaBalanceProcessor } from "./solana-balance.processor";
 export { TriggerProcessorFactory, triggerProcessorFactory } from "./factory";
 export type {
   BulkWriteUpdate,

@@ -103,6 +103,11 @@ const DEFAULT_CONFIGS: Record<string, CircuitBreakerConfig> = {
     recoveryTimeoutMs: 15_000,
     halfOpenMaxProbes: 1,
   },
+  solana: {
+    failureThreshold: 5,
+    recoveryTimeoutMs: 30_000,
+    halfOpenMaxProbes: 1,
+  },
 };
 
 export class CircuitBreaker {

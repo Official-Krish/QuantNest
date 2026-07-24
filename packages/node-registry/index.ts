@@ -1,573 +1,772 @@
 export type NodeRegistryKind = "trigger" | "action";
-export type BuilderActionCategory = "Indian" | "Crypto" | "Notification" | "Reporting" | "Flow" | "Data";
-export type BuilderPanelGroup = "Order Execution" | "Order Notification" | "Flow Control" | "Reporting" | "Data";
+export type BuilderActionCategory =
+  | "Indian"
+  | "Crypto"
+  | "Notification"
+  | "Reporting"
+  | "Flow"
+  | "Data";
+export type BuilderPanelGroup =
+  | "Order Execution"
+  | "Order Notification"
+  | "Flow Control"
+  | "Reporting"
+  | "Data"
+  | "On-chain";
 export type BuilderFormId =
-    | "timer"
-    | "price-trigger"
-    | "breakout-retest-trigger"
-    | "conditional"
-    | "market-session"
-    | "portfolio-pnl-drawdown-trigger"
-    | "trading"
-    | "gmail"
-    | "slack"
-    | "telegram"
-    | "discord"
-    | "whatsapp"
-    | "recheck"
-    | "delay"
-    | "notion-daily-report"
-    | "google-drive-daily-csv"
-    | "google-sheets-report"
-    | "postgres"
-    | "none";
-export type ExecutorTriggerProcessorId = "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session" | "portfolio-pnl-drawdown-trigger";
+  | "timer"
+  | "price-trigger"
+  | "breakout-retest-trigger"
+  | "conditional"
+  | "market-session"
+  | "portfolio-pnl-drawdown-trigger"
+  | "trading"
+  | "gmail"
+  | "slack"
+  | "telegram"
+  | "discord"
+  | "whatsapp"
+  | "recheck"
+  | "delay"
+  | "notion-daily-report"
+  | "google-drive-daily-csv"
+  | "google-sheets-report"
+  | "postgres"
+  | "none"
+  | "solana-balance"
+  | "solana-swap";
+export type ExecutorTriggerProcessorId =
+  | "timer"
+  | "price-trigger"
+  | "breakout-retest-trigger"
+  | "conditional-trigger"
+  | "market-session"
+  | "portfolio-pnl-drawdown-trigger"
+  | "solana-balance";
 export type ExecutorActionHandlerId =
-    | "noop"
-    | "delay"
-    | "recheck"
-    | "zerodha"
-    | "groww"
-    | "lighter"
-    | "gmail"
-    | "slack"
-    | "telegram"
-    | "discord"
-    | "whatsapp"
-    | "notion-daily-report"
-    | "google-drive-daily-csv"
-    | "google-sheets-report"
-    | "postgres";
+  | "noop"
+  | "delay"
+  | "recheck"
+  | "zerodha"
+  | "groww"
+  | "lighter"
+  | "gmail"
+  | "slack"
+  | "telegram"
+  | "discord"
+  | "whatsapp"
+  | "notion-daily-report"
+  | "google-drive-daily-csv"
+  | "google-sheets-report"
+  | "postgres"
+  | "solana-swap";
 
 export interface NodeRegistryEntry {
-    id: string;
-    title: string;
-    description: string;
-    kind: NodeRegistryKind;
-    builderCategory?: BuilderActionCategory;
-    builderPanelGroup?: BuilderPanelGroup;
-    builderFormId?: BuilderFormId;
-    builderRendererId?: string;
-    aiAllowed?: boolean;
-    aiPreferredAction?: boolean;
-    aiNodeType?: string;
-    aiPromptNodeType?: string;
-    metadataFields: string[];
-    reusableSecretService?: string;
-    secretFieldKeys?: string[];
-    executorTriggerProcessorId?: ExecutorTriggerProcessorId;
-    executorActionHandlerId?: ExecutorActionHandlerId;
-    aliases?: string[];
+  id: string;
+  title: string;
+  description: string;
+  kind: NodeRegistryKind;
+  builderCategory?: BuilderActionCategory;
+  builderPanelGroup?: BuilderPanelGroup;
+  builderFormId?: BuilderFormId;
+  builderRendererId?: string;
+  aiAllowed?: boolean;
+  aiPreferredAction?: boolean;
+  aiNodeType?: string;
+  aiPromptNodeType?: string;
+  metadataFields: string[];
+  reusableSecretService?: string;
+  secretFieldKeys?: string[];
+  executorTriggerProcessorId?: ExecutorTriggerProcessorId;
+  executorActionHandlerId?: ExecutorActionHandlerId;
+  aliases?: string[];
 }
 
 export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
-    direction: "Direction",
-    breakoutLevel: "Breakout level",
-    retestTolerancePct: "Retest tolerance (%)",
-    confirmationMovePct: "Confirmation move (%)",
-    retestWindowMinutes: "Retest window (minutes)",
-    confirmationWindowMinutes: "Confirmation window (minutes)",
-    apiKey: "API key",
-    accessToken: "Access token",
-    recipientName: "Recipient name",
-    recipientEmail: "Recipient email",
-    recipientPhone: "Recipient phone",
-    slackBotToken: "Slack bot token",
-    slackUserId: "Slack user ID",
-    telegramBotToken: "Telegram bot token",
-    telegramChatId: "Telegram chat ID",
-    webhookUrl: "Webhook URL",
-    notionApiKey: "Notion API key",
-    parentPageId: "Parent page ID",
-    googleClientEmail: "Google service account email",
-    googlePrivateKey: "Google private key",
-    sheetUrl: "Google Sheet URL",
-    sheetId: "Google Spreadsheet ID",
-    sheetName: "Google Sheet tab name",
-    serviceAccountEmail: "Backend service account email",
-    googleDriveFolderId: "Google Drive folder ID",
-    accountIndex: "Account index",
-    apiKeyIndex: "API key index",
-    retryPolicy: "Retry policy",
-    durationSeconds: "Delay duration (seconds)",
-    recheckMode: "Re-check mode",
-    aiConsent: "AI consent",
-    connectionString: "Connection String",
-    tableName: "Table Name",
-    jsonPayload: "JSON Payload",
-    broker: "Broker",
-    mode: "Risk mode",
-    thresholdValue: "Threshold value",
-    thresholdUnit: "Threshold unit",
+  direction: "Direction",
+  breakoutLevel: "Breakout level",
+  retestTolerancePct: "Retest tolerance (%)",
+  confirmationMovePct: "Confirmation move (%)",
+  retestWindowMinutes: "Retest window (minutes)",
+  confirmationWindowMinutes: "Confirmation window (minutes)",
+  apiKey: "API key",
+  accessToken: "Access token",
+  recipientName: "Recipient name",
+  recipientEmail: "Recipient email",
+  recipientPhone: "Recipient phone",
+  slackBotToken: "Slack bot token",
+  slackUserId: "Slack user ID",
+  telegramBotToken: "Telegram bot token",
+  telegramChatId: "Telegram chat ID",
+  webhookUrl: "Webhook URL",
+  notionApiKey: "Notion API key",
+  parentPageId: "Parent page ID",
+  googleClientEmail: "Google service account email",
+  googlePrivateKey: "Google private key",
+  sheetUrl: "Google Sheet URL",
+  sheetId: "Google Spreadsheet ID",
+  sheetName: "Google Sheet tab name",
+  serviceAccountEmail: "Backend service account email",
+  googleDriveFolderId: "Google Drive folder ID",
+  accountIndex: "Account index",
+  apiKeyIndex: "API key index",
+  retryPolicy: "Retry policy",
+  durationSeconds: "Delay duration (seconds)",
+  recheckMode: "Re-check mode",
+  aiConsent: "AI consent",
+  connectionString: "Connection String",
+  tableName: "Table Name",
+  jsonPayload: "JSON Payload",
+  broker: "Broker",
+  mode: "Risk mode",
+  thresholdValue: "Threshold value",
+  thresholdUnit: "Threshold unit",
+  network: "Network",
+  walletAddress: "Wallet address",
+  tokenMint: "Token mint address",
+  fromToken: "From token",
+  toToken: "To token",
+  amount: "Amount",
+  slippageBps: "Slippage (bps)",
+  secretId: "Wallet secret",
 };
 
 export const NODE_REGISTRY: NodeRegistryEntry[] = [
-    {
-        id: "timer",
-        title: "Timer",
-        description: "Run this trigger every X seconds/minutes/hours/days",
-        kind: "trigger",
-        builderFormId: "timer",
-        builderRendererId: "timer",
-        executorTriggerProcessorId: "timer",
-        aiAllowed: true,
-        aiNodeType: "timer",
-        aiPromptNodeType: "timer",
-        metadataFields: ["time", "marketType", "asset"],
-    },
-    {
-        id: "price-trigger",
-        title: "Price Trigger",
-        description: "Run this trigger when a stock price crosses a certain threshold for an asset",
-        kind: "trigger",
-        builderFormId: "price-trigger",
-        builderRendererId: "price-trigger",
-        executorTriggerProcessorId: "price-trigger",
-        aiAllowed: true,
-        aiNodeType: "price",
-        aiPromptNodeType: "price",
-        aliases: ["price"],
-        metadataFields: ["asset", "targetPrice", "marketType", "condition"],
-    },
-    {
-        id: "breakout-retest-trigger",
-        title: "Breakout Retest",
-        description: "Wait for breakout, pullback retest, then confirmation before firing",
-        kind: "trigger",
-        builderFormId: "breakout-retest-trigger",
-        builderRendererId: "breakout-retest-trigger",
-        executorTriggerProcessorId: "breakout-retest-trigger",
-        aiAllowed: true,
-        aiNodeType: "breakout-retest-trigger",
-        aiPromptNodeType: "breakout-retest-trigger",
-        aliases: ["breakout-retest"],
-        metadataFields: [
-            "asset",
-            "marketType",
-            "direction",
-            "breakoutLevel",
-            "retestTolerancePct",
-            "confirmationMovePct",
-            "retestWindowMinutes",
-            "confirmationWindowMinutes",
-        ],
-    },
-    {
-        id: "conditional-trigger",
-        title: "Conditional Trigger",
-        description: "Run this trigger when a custom condition is met based on data from previous nodes",
-        kind: "trigger",
-        builderCategory: "Flow",
-        builderFormId: "conditional",
-        builderRendererId: "conditional-trigger",
-        executorTriggerProcessorId: "conditional-trigger",
-        aiAllowed: true,
-        aiNodeType: "conditional-trigger",
-        aiPromptNodeType: "conditional-trigger",
-        metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
-    },
-    {
-        id: "market-session",
-        title: "Market Session",
-        description: "Run this trigger when market opens or closes",
-        kind: "trigger",
-        builderCategory: "Flow",
-        builderFormId: "market-session",
-        builderRendererId: "market-session",
-        executorTriggerProcessorId: "market-session",
-        aiAllowed: true,
-        aiNodeType: "market-session",
-        aiPromptNodeType: "market-session",
-        metadataFields: ["marketType", "event", "triggerTime"],
-    },
+  {
+    id: "timer",
+    title: "Timer",
+    description: "Run this trigger every X seconds/minutes/hours/days",
+    kind: "trigger",
+    builderFormId: "timer",
+    builderRendererId: "timer",
+    executorTriggerProcessorId: "timer",
+    aiAllowed: true,
+    aiNodeType: "timer",
+    aiPromptNodeType: "timer",
+    metadataFields: ["time", "marketType", "asset"],
+  },
+  {
+    id: "price-trigger",
+    title: "Price Trigger",
+    description:
+      "Run this trigger when a stock price crosses a certain threshold for an asset",
+    kind: "trigger",
+    builderFormId: "price-trigger",
+    builderRendererId: "price-trigger",
+    executorTriggerProcessorId: "price-trigger",
+    aiAllowed: true,
+    aiNodeType: "price",
+    aiPromptNodeType: "price",
+    aliases: ["price"],
+    metadataFields: ["asset", "targetPrice", "marketType", "condition"],
+  },
+  {
+    id: "breakout-retest-trigger",
+    title: "Breakout Retest",
+    description:
+      "Wait for breakout, pullback retest, then confirmation before firing",
+    kind: "trigger",
+    builderFormId: "breakout-retest-trigger",
+    builderRendererId: "breakout-retest-trigger",
+    executorTriggerProcessorId: "breakout-retest-trigger",
+    aiAllowed: true,
+    aiNodeType: "breakout-retest-trigger",
+    aiPromptNodeType: "breakout-retest-trigger",
+    aliases: ["breakout-retest"],
+    metadataFields: [
+      "asset",
+      "marketType",
+      "direction",
+      "breakoutLevel",
+      "retestTolerancePct",
+      "confirmationMovePct",
+      "retestWindowMinutes",
+      "confirmationWindowMinutes",
+    ],
+  },
+  {
+    id: "conditional-trigger",
+    title: "Conditional Trigger",
+    description:
+      "Run this trigger when a custom condition is met based on data from previous nodes",
+    kind: "trigger",
+    builderCategory: "Flow",
+    builderFormId: "conditional",
+    builderRendererId: "conditional-trigger",
+    executorTriggerProcessorId: "conditional-trigger",
+    aiAllowed: true,
+    aiNodeType: "conditional-trigger",
+    aiPromptNodeType: "conditional-trigger",
+    metadataFields: [
+      "asset",
+      "marketType",
+      "condition",
+      "targetPrice",
+      "timeWindowMinutes",
+      "expression",
+    ],
+  },
+  {
+    id: "market-session",
+    title: "Market Session",
+    description: "Run this trigger when market opens or closes",
+    kind: "trigger",
+    builderCategory: "Flow",
+    builderFormId: "market-session",
+    builderRendererId: "market-session",
+    executorTriggerProcessorId: "market-session",
+    aiAllowed: true,
+    aiNodeType: "market-session",
+    aiPromptNodeType: "market-session",
+    metadataFields: ["marketType", "event", "triggerTime"],
+  },
 
-    {
-        id: "portfolio-pnl-drawdown-trigger",
-        title: "Portfolio PnL / Drawdown",
-        description: "Run when an account-level daily loss, profit target, or drawdown threshold is breached",
-        kind: "trigger",
-        builderFormId: "portfolio-pnl-drawdown-trigger",
-        builderRendererId: "portfolio-pnl-drawdown-trigger",
-        executorTriggerProcessorId: "portfolio-pnl-drawdown-trigger",
-        aiAllowed: true,
-        aiNodeType: "portfolio-pnl-drawdown-trigger",
-        aiPromptNodeType: "portfolio-pnl-drawdown-trigger",
-        aliases: ["portfolio-risk", "portfolio-pnl", "drawdown-trigger", "loss-cap"],
-        metadataFields: ["broker", "mode", "thresholdValue", "thresholdUnit", "secretId", "apiKey", "accessToken", "accountIndex", "apiKeyIndex"],
-        secretFieldKeys: ["apiKey", "accessToken", "accountIndex", "apiKeyIndex"],
-    },
-    {
-        id: "zerodha",
-        title: "Zerodha",
-        description: "Execute an order on Zerodha",
-        kind: "action",
-        builderCategory: "Indian",
-        builderPanelGroup: "Order Execution",
-        builderFormId: "trading",
-        builderRendererId: "zerodha",
-        executorActionHandlerId: "zerodha",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        aiNodeType: "zerodha",
-        aiPromptNodeType: "Zerodha",
-        aliases: ["Zerodha"],
-        metadataFields: ["type", "qty", "symbol", "apiKey", "accessToken", "exchange", "retryPolicy"],
-        reusableSecretService: "zerodha",
-        secretFieldKeys: ["apiKey", "accessToken"],
-    },
-    {
-        id: "groww",
-        title: "Groww",
-        description: "Execute an order on Groww",
-        kind: "action",
-        builderCategory: "Indian",
-        builderPanelGroup: "Order Execution",
-        builderFormId: "trading",
-        builderRendererId: "groww",
-        executorActionHandlerId: "groww",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        aiNodeType: "groww",
-        aiPromptNodeType: "Groww",
-        aliases: ["Groww"],
-        metadataFields: ["type", "qty", "symbol", "accessToken", "exchange", "retryPolicy"],
-        reusableSecretService: "groww",
-        secretFieldKeys: ["accessToken"],
-    },
-    {
-        id: "lighter",
-        title: "Lighter",
-        description: "Execute a trade on Lighter",
-        kind: "action",
-        builderCategory: "Crypto",
-        builderPanelGroup: "Order Execution",
-        builderFormId: "trading",
-        builderRendererId: "lighter",
-        executorActionHandlerId: "lighter",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["type", "qty", "symbol", "apiKey", "accountIndex", "apiKeyIndex", "retryPolicy"],
-        reusableSecretService: "lighter",
-        secretFieldKeys: ["apiKey", "accountIndex", "apiKeyIndex"],
-    },
-    {
-        id: "if",
-        title: "If",
-        description: "Evaluate a condition mid-workflow and branch into true or false paths",
-        kind: "action",
-        builderCategory: "Flow",
-        builderPanelGroup: "Flow Control",
-        builderFormId: "conditional",
-        builderRendererId: "if",
-        executorActionHandlerId: "noop",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
-    },
-    {
-        id: "filter",
-        title: "Filter",
-        description: "Continue only when a condition passes, without creating extra branches",
-        kind: "action",
-        builderCategory: "Flow",
-        builderPanelGroup: "Flow Control",
-        builderFormId: "conditional",
-        builderRendererId: "filter",
-        executorActionHandlerId: "noop",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["asset", "marketType", "condition", "targetPrice", "timeWindowMinutes", "expression"],
-    },
-    {
-        id: "recheck",
-        title: "Re-check",
-        description: "Wait, re-evaluate trigger or custom condition, then continue only if still valid",
-        kind: "action",
-        builderCategory: "Flow",
-        builderPanelGroup: "Flow Control",
-        builderFormId: "recheck",
-        builderRendererId: "recheck",
-        executorActionHandlerId: "recheck",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        aiNodeType: "recheck",
-        aiPromptNodeType: "recheck",
-        metadataFields: [
-            "durationSeconds",
-            "recheckMode",
-            "asset",
-            "marketType",
-            "condition",
-            "targetPrice",
-            "timeWindowMinutes",
-            "expression",
-        ],
-    },
-    {
-        id: "delay",
-        title: "Delay",
-        description: "Wait for a fixed duration before continuing to the next node",
-        kind: "action",
-        builderCategory: "Flow",
-        builderPanelGroup: "Flow Control",
-        builderFormId: "delay",
-        builderRendererId: "delay",
-        executorActionHandlerId: "delay",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["durationSeconds"],
-    },
-    {
-        id: "merge",
-        title: "Merge",
-        description: "Join multiple branches back into one shared downstream path",
-        kind: "action",
-        builderCategory: "Flow",
-        builderPanelGroup: "Flow Control",
-        builderFormId: "none",
-        builderRendererId: "merge",
-        executorActionHandlerId: "noop",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: [],
-    },
-    {
-        id: "gmail",
-        title: "Gmail",
-        description: "Send email notifications for workflow events",
-        kind: "action",
-        builderCategory: "Notification",
-        builderPanelGroup: "Order Notification",
-        builderFormId: "gmail",
-        builderRendererId: "gmail",
-        executorActionHandlerId: "gmail",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["recipientEmail", "recipientName", "retryPolicy"],
-    },
-    {
-        id: "slack",
-        title: "Slack",
-        description: "Send Slack direct messages for workflow events",
-        kind: "action",
-        builderCategory: "Notification",
-        builderPanelGroup: "Order Notification",
-        builderFormId: "slack",
-        builderRendererId: "slack",
-        executorActionHandlerId: "slack",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["slackBotToken", "slackUserId", "recipientName", "retryPolicy"],
-        reusableSecretService: "slack",
-        secretFieldKeys: ["slackBotToken", "slackUserId"],
-    },
-    {
-        id: "telegram",
-        title: "Telegram",
-        description: "Send Telegram bot messages for workflow events",
-        kind: "action",
-        builderCategory: "Notification",
-        builderPanelGroup: "Order Notification",
-        builderFormId: "telegram",
-        builderRendererId: "telegram",
-        executorActionHandlerId: "telegram",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["telegramBotToken", "telegramChatId", "recipientName", "retryPolicy"],
-        reusableSecretService: "telegram",
-        secretFieldKeys: ["telegramBotToken", "telegramChatId"],
-    },
-    {
-        id: "discord",
-        title: "Discord",
-        description: "Send Discord webhook notifications for workflow events",
-        kind: "action",
-        builderCategory: "Notification",
-        builderPanelGroup: "Order Notification",
-        builderFormId: "discord",
-        builderRendererId: "discord",
-        executorActionHandlerId: "discord",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["webhookUrl", "recipientName", "retryPolicy"],
-        reusableSecretService: "discord",
-        secretFieldKeys: ["webhookUrl"],
-    },
-    {
-        id: "whatsapp",
-        title: "WhatsApp",
-        description: "Send WhatsApp notifications for workflow events",
-        kind: "action",
-        builderCategory: "Notification",
-        builderPanelGroup: "Order Notification",
-        builderFormId: "whatsapp",
-        builderRendererId: "whatsapp",
-        executorActionHandlerId: "whatsapp",
-        aiAllowed: false,
-        metadataFields: ["recipientPhone", "recipientName", "retryPolicy"],
-        reusableSecretService: "whatsapp",
-        secretFieldKeys: ["recipientPhone"],
-    },
-    {
-        id: "notion-daily-report",
-        title: "Notion Daily Report",
-        description: "Create a daily AI performance report page in Notion (Zerodha, Groww, or Lighter)",
-        kind: "action",
-        builderCategory: "Reporting",
-        builderPanelGroup: "Reporting",
-        builderFormId: "notion-daily-report",
-        builderRendererId: "notion-daily-report",
-        executorActionHandlerId: "notion-daily-report",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["notionApiKey", "parentPageId", "aiConsent", "retryPolicy"],
-        reusableSecretService: "notion-daily-report",
-        secretFieldKeys: ["notionApiKey"],
-    },
-    {
-        id: "google-drive-daily-csv",
-        title: "Google Drive Daily CSV",
-        description: "After 3:30 PM IST, export broker trades + AI insights to Google Drive once per day",
-        kind: "action",
-        builderCategory: "Reporting",
-        builderPanelGroup: "Reporting",
-        builderFormId: "google-drive-daily-csv",
-        builderRendererId: "google-drive-daily-csv",
-        executorActionHandlerId: "google-drive-daily-csv",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["googleClientEmail", "googlePrivateKey", "googleDriveFolderId", "filePrefix", "aiConsent", "retryPolicy"],
-        reusableSecretService: "google-drive-daily-csv",
-        secretFieldKeys: ["googleClientEmail", "googlePrivateKey"],
-    },
-    {
-        id: "google-sheets-report",
-        title: "Google Sheets Report",
-        description: "Append workflow execution data to a Google Sheet",
-        kind: "action",
-        builderCategory: "Reporting",
-        builderPanelGroup: "Reporting",
-        builderFormId: "google-sheets-report",
-        builderRendererId: "google-sheets-report",
-        executorActionHandlerId: "google-sheets-report",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        aliases: ["Google Sheets Report", "google sheets report", "google-sheets"],
-        metadataFields: ["sheetUrl", "sheetName", "retryPolicy"],
-    },
-    {
-        id: "postgres",
-        title: "Postgres",
-        description: "Insert workflow execution data into a PostgreSQL database",
-        kind: "action",
-        builderCategory: "Data",
-        builderPanelGroup: "Data",
-        builderFormId: "postgres",
-        builderRendererId: "postgres",
-        executorActionHandlerId: "postgres",
-        aiAllowed: true,
-        aiPreferredAction: true,
-        metadataFields: ["connectionString", "tableName", "jsonPayload", "retryPolicy"],
-        secretFieldKeys: ["connectionString"],
-    },
+  {
+    id: "portfolio-pnl-drawdown-trigger",
+    title: "Portfolio PnL / Drawdown",
+    description:
+      "Run when an account-level daily loss, profit target, or drawdown threshold is breached",
+    kind: "trigger",
+    builderFormId: "portfolio-pnl-drawdown-trigger",
+    builderRendererId: "portfolio-pnl-drawdown-trigger",
+    executorTriggerProcessorId: "portfolio-pnl-drawdown-trigger",
+    aiAllowed: true,
+    aiNodeType: "portfolio-pnl-drawdown-trigger",
+    aiPromptNodeType: "portfolio-pnl-drawdown-trigger",
+    aliases: [
+      "portfolio-risk",
+      "portfolio-pnl",
+      "drawdown-trigger",
+      "loss-cap",
+    ],
+    metadataFields: [
+      "broker",
+      "mode",
+      "thresholdValue",
+      "thresholdUnit",
+      "secretId",
+      "apiKey",
+      "accessToken",
+      "accountIndex",
+      "apiKeyIndex",
+    ],
+    secretFieldKeys: ["apiKey", "accessToken", "accountIndex", "apiKeyIndex"],
+  },
+  {
+    id: "solana-balance",
+    title: "Solana Balance",
+    description:
+      "Trigger when a Solana wallet or token balance crosses a threshold",
+    kind: "trigger",
+    builderCategory: "Crypto",
+    builderPanelGroup: "On-chain",
+    builderFormId: "solana-balance",
+    builderRendererId: "solana-balance",
+    aiAllowed: true,
+    aiNodeType: "solana-balance",
+    aiPromptNodeType: "solana-balance",
+    metadataFields: [
+      "network",
+      "walletAddress",
+      "tokenMint",
+      "condition",
+      "threshold",
+    ],
+    executorTriggerProcessorId: "solana-balance",
+  },
+  {
+    id: "solana-swap",
+    title: "Solana Swap",
+    description: "Swap tokens on Solana via Jupiter aggregator",
+    kind: "action",
+    builderCategory: "Crypto",
+    builderPanelGroup: "On-chain",
+    builderFormId: "solana-swap",
+    builderRendererId: "solana-swap",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    aiNodeType: "solana-swap",
+    aiPromptNodeType: "solana-swap",
+    metadataFields: [
+      "network",
+      "fromToken",
+      "toToken",
+      "amount",
+      "slippageBps",
+      "secretId",
+      "retryPolicy",
+    ],
+    reusableSecretService: "solana",
+    secretFieldKeys: ["secretId"],
+    executorActionHandlerId: "solana-swap",
+  },
+  {
+    id: "zerodha",
+    title: "Zerodha",
+    description: "Execute an order on Zerodha",
+    kind: "action",
+    builderCategory: "Indian",
+    builderPanelGroup: "Order Execution",
+    builderFormId: "trading",
+    builderRendererId: "zerodha",
+    executorActionHandlerId: "zerodha",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    aiNodeType: "zerodha",
+    aiPromptNodeType: "Zerodha",
+    aliases: ["Zerodha"],
+    metadataFields: [
+      "type",
+      "qty",
+      "symbol",
+      "apiKey",
+      "accessToken",
+      "exchange",
+      "retryPolicy",
+    ],
+    reusableSecretService: "zerodha",
+    secretFieldKeys: ["apiKey", "accessToken"],
+  },
+  {
+    id: "groww",
+    title: "Groww",
+    description: "Execute an order on Groww",
+    kind: "action",
+    builderCategory: "Indian",
+    builderPanelGroup: "Order Execution",
+    builderFormId: "trading",
+    builderRendererId: "groww",
+    executorActionHandlerId: "groww",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    aiNodeType: "groww",
+    aiPromptNodeType: "Groww",
+    aliases: ["Groww"],
+    metadataFields: [
+      "type",
+      "qty",
+      "symbol",
+      "accessToken",
+      "exchange",
+      "retryPolicy",
+    ],
+    reusableSecretService: "groww",
+    secretFieldKeys: ["accessToken"],
+  },
+  {
+    id: "lighter",
+    title: "Lighter",
+    description: "Execute a trade on Lighter",
+    kind: "action",
+    builderCategory: "Crypto",
+    builderPanelGroup: "Order Execution",
+    builderFormId: "trading",
+    builderRendererId: "lighter",
+    executorActionHandlerId: "lighter",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [
+      "type",
+      "qty",
+      "symbol",
+      "apiKey",
+      "accountIndex",
+      "apiKeyIndex",
+      "retryPolicy",
+    ],
+    reusableSecretService: "lighter",
+    secretFieldKeys: ["apiKey", "accountIndex", "apiKeyIndex"],
+  },
+  {
+    id: "if",
+    title: "If",
+    description:
+      "Evaluate a condition mid-workflow and branch into true or false paths",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "Flow Control",
+    builderFormId: "conditional",
+    builderRendererId: "if",
+    executorActionHandlerId: "noop",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [
+      "asset",
+      "marketType",
+      "condition",
+      "targetPrice",
+      "timeWindowMinutes",
+      "expression",
+    ],
+  },
+  {
+    id: "filter",
+    title: "Filter",
+    description:
+      "Continue only when a condition passes, without creating extra branches",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "Flow Control",
+    builderFormId: "conditional",
+    builderRendererId: "filter",
+    executorActionHandlerId: "noop",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [
+      "asset",
+      "marketType",
+      "condition",
+      "targetPrice",
+      "timeWindowMinutes",
+      "expression",
+    ],
+  },
+  {
+    id: "recheck",
+    title: "Re-check",
+    description:
+      "Wait, re-evaluate trigger or custom condition, then continue only if still valid",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "Flow Control",
+    builderFormId: "recheck",
+    builderRendererId: "recheck",
+    executorActionHandlerId: "recheck",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    aiNodeType: "recheck",
+    aiPromptNodeType: "recheck",
+    metadataFields: [
+      "durationSeconds",
+      "recheckMode",
+      "asset",
+      "marketType",
+      "condition",
+      "targetPrice",
+      "timeWindowMinutes",
+      "expression",
+    ],
+  },
+  {
+    id: "delay",
+    title: "Delay",
+    description: "Wait for a fixed duration before continuing to the next node",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "Flow Control",
+    builderFormId: "delay",
+    builderRendererId: "delay",
+    executorActionHandlerId: "delay",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: ["durationSeconds"],
+  },
+  {
+    id: "merge",
+    title: "Merge",
+    description: "Join multiple branches back into one shared downstream path",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "Flow Control",
+    builderFormId: "none",
+    builderRendererId: "merge",
+    executorActionHandlerId: "noop",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [],
+  },
+  {
+    id: "gmail",
+    title: "Gmail",
+    description: "Send email notifications for workflow events",
+    kind: "action",
+    builderCategory: "Notification",
+    builderPanelGroup: "Order Notification",
+    builderFormId: "gmail",
+    builderRendererId: "gmail",
+    executorActionHandlerId: "gmail",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: ["recipientEmail", "recipientName", "retryPolicy"],
+  },
+  {
+    id: "slack",
+    title: "Slack",
+    description: "Send Slack direct messages for workflow events",
+    kind: "action",
+    builderCategory: "Notification",
+    builderPanelGroup: "Order Notification",
+    builderFormId: "slack",
+    builderRendererId: "slack",
+    executorActionHandlerId: "slack",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [
+      "slackBotToken",
+      "slackUserId",
+      "recipientName",
+      "retryPolicy",
+    ],
+    reusableSecretService: "slack",
+    secretFieldKeys: ["slackBotToken", "slackUserId"],
+  },
+  {
+    id: "telegram",
+    title: "Telegram",
+    description: "Send Telegram bot messages for workflow events",
+    kind: "action",
+    builderCategory: "Notification",
+    builderPanelGroup: "Order Notification",
+    builderFormId: "telegram",
+    builderRendererId: "telegram",
+    executorActionHandlerId: "telegram",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [
+      "telegramBotToken",
+      "telegramChatId",
+      "recipientName",
+      "retryPolicy",
+    ],
+    reusableSecretService: "telegram",
+    secretFieldKeys: ["telegramBotToken", "telegramChatId"],
+  },
+  {
+    id: "discord",
+    title: "Discord",
+    description: "Send Discord webhook notifications for workflow events",
+    kind: "action",
+    builderCategory: "Notification",
+    builderPanelGroup: "Order Notification",
+    builderFormId: "discord",
+    builderRendererId: "discord",
+    executorActionHandlerId: "discord",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: ["webhookUrl", "recipientName", "retryPolicy"],
+    reusableSecretService: "discord",
+    secretFieldKeys: ["webhookUrl"],
+  },
+  {
+    id: "whatsapp",
+    title: "WhatsApp",
+    description: "Send WhatsApp notifications for workflow events",
+    kind: "action",
+    builderCategory: "Notification",
+    builderPanelGroup: "Order Notification",
+    builderFormId: "whatsapp",
+    builderRendererId: "whatsapp",
+    executorActionHandlerId: "whatsapp",
+    aiAllowed: false,
+    metadataFields: ["recipientPhone", "recipientName", "retryPolicy"],
+    reusableSecretService: "whatsapp",
+    secretFieldKeys: ["recipientPhone"],
+  },
+  {
+    id: "notion-daily-report",
+    title: "Notion Daily Report",
+    description:
+      "Create a daily AI performance report page in Notion (Zerodha, Groww, or Lighter)",
+    kind: "action",
+    builderCategory: "Reporting",
+    builderPanelGroup: "Reporting",
+    builderFormId: "notion-daily-report",
+    builderRendererId: "notion-daily-report",
+    executorActionHandlerId: "notion-daily-report",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [
+      "notionApiKey",
+      "parentPageId",
+      "aiConsent",
+      "retryPolicy",
+    ],
+    reusableSecretService: "notion-daily-report",
+    secretFieldKeys: ["notionApiKey"],
+  },
+  {
+    id: "google-drive-daily-csv",
+    title: "Google Drive Daily CSV",
+    description:
+      "After 3:30 PM IST, export broker trades + AI insights to Google Drive once per day",
+    kind: "action",
+    builderCategory: "Reporting",
+    builderPanelGroup: "Reporting",
+    builderFormId: "google-drive-daily-csv",
+    builderRendererId: "google-drive-daily-csv",
+    executorActionHandlerId: "google-drive-daily-csv",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [
+      "googleClientEmail",
+      "googlePrivateKey",
+      "googleDriveFolderId",
+      "filePrefix",
+      "aiConsent",
+      "retryPolicy",
+    ],
+    reusableSecretService: "google-drive-daily-csv",
+    secretFieldKeys: ["googleClientEmail", "googlePrivateKey"],
+  },
+  {
+    id: "google-sheets-report",
+    title: "Google Sheets Report",
+    description: "Append workflow execution data to a Google Sheet",
+    kind: "action",
+    builderCategory: "Reporting",
+    builderPanelGroup: "Reporting",
+    builderFormId: "google-sheets-report",
+    builderRendererId: "google-sheets-report",
+    executorActionHandlerId: "google-sheets-report",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    aliases: ["Google Sheets Report", "google sheets report", "google-sheets"],
+    metadataFields: ["sheetUrl", "sheetName", "retryPolicy"],
+  },
+  {
+    id: "postgres",
+    title: "Postgres",
+    description: "Insert workflow execution data into a PostgreSQL database",
+    kind: "action",
+    builderCategory: "Data",
+    builderPanelGroup: "Data",
+    builderFormId: "postgres",
+    builderRendererId: "postgres",
+    executorActionHandlerId: "postgres",
+    aiAllowed: true,
+    aiPreferredAction: true,
+    metadataFields: [
+      "connectionString",
+      "tableName",
+      "jsonPayload",
+      "retryPolicy",
+    ],
+    secretFieldKeys: ["connectionString"],
+  },
 ];
 
 export function getNodeRegistryEntry(nodeType: string) {
-    const normalized = String(nodeType || "").trim().toLowerCase();
-    return NODE_REGISTRY.find((entry) => {
-        const aliases = [entry.id, ...(entry.aliases || []), entry.aiNodeType || "", entry.aiPromptNodeType || ""]
-            .map((value) => String(value).trim().toLowerCase())
-            .filter(Boolean);
-        return aliases.includes(normalized);
-    });
+  const normalized = String(nodeType || "")
+    .trim()
+    .toLowerCase();
+  return NODE_REGISTRY.find((entry) => {
+    const aliases = [
+      entry.id,
+      ...(entry.aliases || []),
+      entry.aiNodeType || "",
+      entry.aiPromptNodeType || "",
+    ]
+      .map((value) => String(value).trim().toLowerCase())
+      .filter(Boolean);
+    return aliases.includes(normalized);
+  });
 }
 
 export function getBuilderActionGroups() {
-    const groups: Record<BuilderActionCategory, Array<{ id: string; title: string; description: string }>> = {
-        Indian: [],
-        Crypto: [],
-        Notification: [],
-        Reporting: [],
-        Flow: [],
-        Data: [],
-    };
+  const groups: Record<
+    BuilderActionCategory,
+    Array<{ id: string; title: string; description: string }>
+  > = {
+    Indian: [],
+    Crypto: [],
+    Notification: [],
+    Reporting: [],
+    Flow: [],
+    Data: [],
+  };
 
-    for (const entry of NODE_REGISTRY) {
-        if (entry.kind !== "action" || !entry.builderCategory) continue;
-        if (entry.id === "whatsapp") continue;
-        groups[entry.builderCategory].push({
-            id: entry.id,
-            title: entry.title,
-            description: entry.description,
-        });
-    }
+  for (const entry of NODE_REGISTRY) {
+    if (entry.kind !== "action" || !entry.builderCategory) continue;
+    if (entry.id === "whatsapp") continue;
+    groups[entry.builderCategory].push({
+      id: entry.id,
+      title: entry.title,
+      description: entry.description,
+    });
+  }
 
-    return groups;
+  return groups;
 }
 
 export function getBuilderTriggerOptions() {
-    return NODE_REGISTRY
-        .filter((entry) => entry.kind === "trigger")
-        .map((entry) => ({
-            id: entry.id,
-            title: entry.title,
-            description: entry.description,
-        }));
+  return NODE_REGISTRY.filter((entry) => entry.kind === "trigger").map(
+    (entry) => ({
+      id: entry.id,
+      title: entry.title,
+      description: entry.description,
+    }),
+  );
 }
 
-export function getBuilderPanelActions(group: BuilderPanelGroup, hasZerodhaAction = true, marketType?: "Indian" | "Crypto" | null) {
-    return NODE_REGISTRY
-        .filter((entry) => {
-            if (entry.kind !== "action" || entry.builderPanelGroup !== group) return false;
-            if (entry.id === "whatsapp") return false;
-            if (group === "Reporting" && !hasZerodhaAction) return false;
-            if (group === "Order Execution" && marketType && entry.builderCategory !== marketType) return false;
-            if (group === "Order Execution" && !marketType) return false;
-            return true;
-        })
-        .map((entry) => ({
-            id: entry.id,
-            title: entry.title,
-            description: entry.description,
-        }));
+export function getBuilderPanelActions(
+  group: BuilderPanelGroup,
+  hasZerodhaAction = true,
+  marketType?: "Indian" | "Crypto" | null,
+) {
+  return NODE_REGISTRY.filter((entry) => {
+    if (entry.kind !== "action" || entry.builderPanelGroup !== group)
+      return false;
+    if (entry.id === "whatsapp") return false;
+    if (group === "Reporting" && !hasZerodhaAction) return false;
+    if (
+      group === "Order Execution" &&
+      marketType &&
+      entry.builderCategory !== marketType
+    )
+      return false;
+    if (group === "Order Execution" && !marketType) return false;
+    return true;
+  }).map((entry) => ({
+    id: entry.id,
+    title: entry.title,
+    description: entry.description,
+  }));
 }
 
 export function getAiPreferredActionOptions() {
-    return NODE_REGISTRY
-        .filter((entry) => entry.kind === "action" && entry.aiPreferredAction)
-        .map((entry) => entry.id);
+  return NODE_REGISTRY.filter(
+    (entry) => entry.kind === "action" && entry.aiPreferredAction,
+  ).map((entry) => entry.id);
 }
 
 export function getAiAllowedNodeTypes() {
-    return Array.from(
-        new Set(
-            NODE_REGISTRY
-                .filter((entry) => entry.aiAllowed)
-                .flatMap((entry) => [entry.id, entry.aiNodeType, ...(entry.aliases || [])])
-                .map((value) => String(value || "").trim().toLowerCase())
-                .filter(Boolean),
-        ),
-    );
+  return Array.from(
+    new Set(
+      NODE_REGISTRY.filter((entry) => entry.aiAllowed)
+        .flatMap((entry) => [
+          entry.id,
+          entry.aiNodeType,
+          ...(entry.aliases || []),
+        ])
+        .map((value) =>
+          String(value || "")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean),
+    ),
+  );
 }
 
 export function getAiPromptNodeTypes() {
-    return NODE_REGISTRY
-        .filter((entry) => entry.aiAllowed)
-        .map((entry) => entry.aiPromptNodeType || entry.aiNodeType || entry.id);
+  return NODE_REGISTRY.filter((entry) => entry.aiAllowed).map(
+    (entry) => entry.aiPromptNodeType || entry.aiNodeType || entry.id,
+  );
 }
 
 export function getActionMetadataReference() {
-    return Object.fromEntries(
-        NODE_REGISTRY
-            .filter((entry) => entry.kind === "action" && entry.aiPreferredAction)
-            .map((entry) => [entry.id, entry.metadataFields]),
-    );
+  return Object.fromEntries(
+    NODE_REGISTRY.filter(
+      (entry) => entry.kind === "action" && entry.aiPreferredAction,
+    ).map((entry) => [entry.id, entry.metadataFields]),
+  );
 }
 
 export function getTriggerMetadataReference() {
-    return Object.fromEntries(
-        NODE_REGISTRY
-            .filter((entry) => entry.kind === "trigger")
-            .map((entry) => [entry.aiNodeType || entry.id, entry.metadataFields]),
-    );
+  return Object.fromEntries(
+    NODE_REGISTRY.filter((entry) => entry.kind === "trigger").map((entry) => [
+      entry.aiNodeType || entry.id,
+      entry.metadataFields,
+    ]),
+  );
 }

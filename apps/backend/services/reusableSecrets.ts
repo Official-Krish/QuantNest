@@ -16,6 +16,7 @@ export const SECRET_SERVICE_FIELDS: Record<ReusableSecretService, string[]> = {
   whatsapp: ["recipientPhone"],
   "notion-daily-report": ["notionApiKey"],
   "google-drive-daily-csv": ["googleClientEmail", "googlePrivateKey"],
+  solana: ["privateKey"],
 };
 
 export function getSecretFieldsForService(service: ReusableSecretService) {
@@ -30,13 +31,21 @@ export function sanitizeSecretPayload(
   return Object.fromEntries(
     allowedFields
       .map((field) => [field, payload[field]])
-      .filter(([, value]) => value !== undefined && value !== null && `${value}`.trim() !== ""),
+      .filter(
+        ([, value]) =>
+          value !== undefined && value !== null && `${value}`.trim() !== "",
+      ),
   );
 }
 
-export async function listReusableSecrets(userId: string, service?: ReusableSecretService) {
+export async function listReusableSecrets(
+  userId: string,
+  service?: ReusableSecretService,
+) {
   const query = service ? { userId, service } : { userId };
-  const secrets = await UserReusableSecretModel.find(query).sort({ updatedAt: -1 });
+  const secrets = await UserReusableSecretModel.find(query).sort({
+    updatedAt: -1,
+  });
   return secrets.map((secret) => ({
     id: String(secret._id),
     name: secret.name,
@@ -48,8 +57,14 @@ export async function listReusableSecrets(userId: string, service?: ReusableSecr
   }));
 }
 
-export async function getReusableSecretForEdit(userId: string, secretId: string) {
-  const secret = await UserReusableSecretModel.findOne({ _id: secretId, userId });
+export async function getReusableSecretForEdit(
+  userId: string,
+  secretId: string,
+) {
+  const secret = await UserReusableSecretModel.findOne({
+    _id: secretId,
+    userId,
+  });
   if (!secret || !secret.encryptedPayload) return null;
   return {
     id: String(secret._id),
@@ -69,7 +84,10 @@ export async function createReusableSecret(params: {
   service: ReusableSecretService;
   payload: Record<string, unknown>;
 }) {
-  const sanitizedPayload = sanitizeSecretPayload(params.service, params.payload);
+  const sanitizedPayload = sanitizeSecretPayload(
+    params.service,
+    params.payload,
+  );
   const fieldKeys = Object.keys(sanitizedPayload);
   const created = await UserReusableSecretModel.create({
     userId: params.userId,
@@ -95,7 +113,10 @@ export async function updateReusableSecret(params: {
   name?: string;
   payload?: Record<string, unknown>;
 }) {
-  const existing = await UserReusableSecretModel.findOne({ _id: params.secretId, userId: params.userId });
+  const existing = await UserReusableSecretModel.findOne({
+    _id: params.secretId,
+    userId: params.userId,
+  });
   if (!existing) return null;
 
   if (params.name) {
@@ -103,7 +124,10 @@ export async function updateReusableSecret(params: {
   }
 
   if (params.payload) {
-    const sanitizedPayload = sanitizeSecretPayload(existing.service as ReusableSecretService, params.payload);
+    const sanitizedPayload = sanitizeSecretPayload(
+      existing.service as ReusableSecretService,
+      params.payload,
+    );
     existing.fieldKeys = Object.keys(sanitizedPayload);
     existing.encryptedPayload = encryptReusableSecretPayload(sanitizedPayload);
   }
@@ -122,7 +146,10 @@ export async function updateReusableSecret(params: {
 }
 
 export async function deleteReusableSecret(userId: string, secretId: string) {
-  const deleted = await UserReusableSecretModel.findOneAndDelete({ _id: secretId, userId });
+  const deleted = await UserReusableSecretModel.findOneAndDelete({
+    _id: secretId,
+    userId,
+  });
   if (!deleted) {
     return { deleted: false, pausedWorkflowCount: 0 };
   }
@@ -146,9 +173,15 @@ export async function deleteReusableSecret(userId: string, secretId: string) {
   };
 }
 
-export async function resolveSecretPayload(userId: string, secretId?: string | null) {
+export async function resolveSecretPayload(
+  userId: string,
+  secretId?: string | null,
+) {
   if (!secretId) return null;
-  const secret = await UserReusableSecretModel.findOne({ _id: secretId, userId });
+  const secret = await UserReusableSecretModel.findOne({
+    _id: secretId,
+    userId,
+  });
   if (!secret || !secret.encryptedPayload) return null;
   secret.lastUsedAt = new Date();
   await secret.save();
@@ -159,13 +192,16 @@ export async function resolveSecretPayload(userId: string, secretId?: string | n
   };
 }
 
-export async function resolveNodeMetadataSecrets<T extends Record<string, any>>(params: {
+export async function resolveNodeMetadataSecrets<
+  T extends Record<string, any>,
+>(params: {
   userId: string;
   service: ReusableSecretService;
   metadata?: T | null;
 }) {
   const metadata = { ...(params.metadata || {}) } as Record<string, unknown>;
-  const secretId = typeof metadata.secretId === "string" ? metadata.secretId : undefined;
+  const secretId =
+    typeof metadata.secretId === "string" ? metadata.secretId : undefined;
   if (!secretId) return metadata as T;
 
   const resolved = await resolveSecretPayload(params.userId, secretId);

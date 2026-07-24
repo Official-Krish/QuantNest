@@ -89,7 +89,11 @@ export function getBuilderActionValidationState(
             ["above", "below"].includes(
               String(actionMetadata.condition || ""),
             ) &&
-            Number(actionMetadata.targetPrice) > 0))));
+            Number(actionMetadata.targetPrice) > 0)))) &&
+    (selectedAction !== "solana-swap" ||
+      ((secretSelected || hasValue(actionMetadata.privateKey)) &&
+        hasValue(actionMetadata.toToken) &&
+        Number(actionMetadata.amount) > 0));
 
   return {
     tradingValidationErrors,

@@ -21,14 +21,15 @@ import {
 import type { ReusableSecretService, ReusableSecretSummary } from "@/types/api";
 import { TelegramChatLookup } from "@/components/workflow/sheets/TelegramChatLookup";
 
-const SERVICE_FIELDS: Record<ReusableSecretService, Array<{ key: string; label: string; type?: "text" | "password" | "number" }>> = {
+const SERVICE_FIELDS: Record<
+  ReusableSecretService,
+  Array<{ key: string; label: string; type?: "text" | "password" | "number" }>
+> = {
   zerodha: [
     { key: "apiKey", label: "API Key" },
     { key: "accessToken", label: "Access Token", type: "password" },
   ],
-  groww: [
-    { key: "accessToken", label: "Access Token", type: "password" },
-  ],
+  groww: [{ key: "accessToken", label: "Access Token", type: "password" }],
   lighter: [
     { key: "apiKey", label: "API Key", type: "password" },
     { key: "accountIndex", label: "Account Index", type: "number" },
@@ -42,12 +43,8 @@ const SERVICE_FIELDS: Record<ReusableSecretService, Array<{ key: string; label: 
     { key: "telegramBotToken", label: "Bot Token", type: "password" },
     { key: "telegramChatId", label: "Chat ID" },
   ],
-  discord: [
-    { key: "webhookUrl", label: "Webhook URL", type: "password" },
-  ],
-  whatsapp: [
-    { key: "recipientPhone", label: "Recipient Phone" },
-  ],
+  discord: [{ key: "webhookUrl", label: "Webhook URL", type: "password" }],
+  whatsapp: [{ key: "recipientPhone", label: "Recipient Phone" }],
   "notion-daily-report": [
     { key: "notionApiKey", label: "Notion API Key", type: "password" },
   ],
@@ -55,6 +52,7 @@ const SERVICE_FIELDS: Record<ReusableSecretService, Array<{ key: string; label: 
     { key: "googleClientEmail", label: "Service Account Email" },
     { key: "googlePrivateKey", label: "Private Key", type: "password" },
   ],
+  solana: [{ key: "privateKey", label: "Private Key", type: "password" }],
 };
 
 const SERVICE_LABELS: Record<ReusableSecretService, string> = {
@@ -67,6 +65,7 @@ const SERVICE_LABELS: Record<ReusableSecretService, string> = {
   whatsapp: "WhatsApp",
   "notion-daily-report": "Notion",
   "google-drive-daily-csv": "Google Drive",
+  solana: "Solana Wallet",
 };
 
 type ProfileSecretsTabProps = {
@@ -74,14 +73,21 @@ type ProfileSecretsTabProps = {
   setSecrets: React.Dispatch<React.SetStateAction<ReusableSecretSummary[]>>;
 };
 
-export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProps) {
-  const [selectedService, setSelectedService] = useState<ReusableSecretService>("zerodha");
+export function ProfileSecretsTab({
+  secrets,
+  setSecrets,
+}: ProfileSecretsTabProps) {
+  const [selectedService, setSelectedService] =
+    useState<ReusableSecretService>("zerodha");
   const [selectedSecretId, setSelectedSecretId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [payload, setPayload] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const fields = useMemo(() => SERVICE_FIELDS[selectedService], [selectedService]);
+  const fields = useMemo(
+    () => SERVICE_FIELDS[selectedService],
+    [selectedService],
+  );
   const filteredSecrets = useMemo(
     () => secrets.filter((secret) => secret.service === selectedService),
     [secrets, selectedService],
@@ -99,7 +105,10 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
       setSelectedService(detail.service);
       setPayload(
         Object.fromEntries(
-          Object.entries(detail.payload).map(([key, value]) => [key, String(value)]),
+          Object.entries(detail.payload).map(([key, value]) => [
+            key,
+            String(value),
+          ]),
         ),
       );
     };
@@ -116,8 +125,14 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
   const refreshSecrets = async (service?: ReusableSecretService) => {
     const next = await apiGetReusableSecrets(service);
     setSecrets((current) => {
-      const others = service ? current.filter((item) => item.service !== service) : [];
-      return service ? [...others, ...next].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) : next;
+      const others = service
+        ? current.filter((item) => item.service !== service)
+        : [];
+      return service
+        ? [...others, ...next].sort((a, b) =>
+            b.updatedAt.localeCompare(a.updatedAt),
+          )
+        : next;
     });
   };
 
@@ -128,7 +143,9 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
         fields
           .map((field) => [
             field.key,
-            field.type === "number" ? Number(payload[field.key] || 0) : payload[field.key] || "",
+            field.type === "number"
+              ? Number(payload[field.key] || 0)
+              : payload[field.key] || "",
           ])
           .filter(([, value]) => value !== "" && value !== undefined),
       );
@@ -151,7 +168,10 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
       resetForm();
     } catch (error: any) {
       toast.error("Unable to save secret", {
-        description: error?.response?.data?.message || error?.message || "Please try again.",
+        description:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Please try again.",
       });
     } finally {
       setSaving(false);
@@ -180,14 +200,17 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
               Reusable Secrets
             </div>
             <p className="mt-1 text-sm text-neutral-400">
-              Save integration credentials once and reuse them across workflow nodes without embedding raw values everywhere.
+              Save integration credentials once and reuse them across workflow
+              nodes without embedding raw values everywhere.
             </p>
           </div>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
           <div className="space-y-3 rounded-3xl border border-neutral-800 bg-black/35 p-4">
-            <div className="text-xs uppercase tracking-[0.22em] text-neutral-500">Saved secrets</div>
+            <div className="text-xs uppercase tracking-[0.22em] text-neutral-500">
+              Saved secrets
+            </div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(SERVICE_LABELS).map(([service, label]) => (
                 <button
@@ -209,32 +232,37 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
             </div>
 
             <div className="space-y-2">
-              {filteredSecrets.length ? filteredSecrets.map((secret) => (
-                <button
-                  key={secret.id}
-                  type="button"
-                  onClick={() => setSelectedSecretId(secret.id)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                    selectedSecretId === secret.id
-                      ? "border-[#f17463]/45 bg-[#f17463]/10"
-                      : "border-neutral-800 bg-neutral-950/70 hover:border-neutral-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-medium text-neutral-100">{secret.name}</div>
-                      <div className="mt-1 text-xs text-neutral-500">
-                        {secret.fieldKeys.join(" · ") || "No fields"}
+              {filteredSecrets.length ? (
+                filteredSecrets.map((secret) => (
+                  <button
+                    key={secret.id}
+                    type="button"
+                    onClick={() => setSelectedSecretId(secret.id)}
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                      selectedSecretId === secret.id
+                        ? "border-[#f17463]/45 bg-[#f17463]/10"
+                        : "border-neutral-800 bg-neutral-950/70 hover:border-neutral-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-medium text-neutral-100">
+                          {secret.name}
+                        </div>
+                        <div className="mt-1 text-xs text-neutral-500">
+                          {secret.fieldKeys.join(" · ") || "No fields"}
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-neutral-500">
+                        {new Date(secret.updatedAt).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="text-[11px] text-neutral-500">
-                      {new Date(secret.updatedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </button>
-              )) : (
+                  </button>
+                ))
+              ) : (
                 <div className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-950/50 px-4 py-6 text-sm text-neutral-500">
-                  No saved {SERVICE_LABELS[selectedService].toLowerCase()} secrets yet.
+                  No saved {SERVICE_LABELS[selectedService].toLowerCase()}{" "}
+                  secrets yet.
                 </div>
               )}
             </div>
@@ -247,7 +275,8 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
                   {selectedSecretId ? "Edit secret" : "Create secret"}
                 </div>
                 <p className="mt-1 text-sm text-neutral-400">
-                  Store only the values you want to reuse. Workflow-specific settings can stay on the node.
+                  Store only the values you want to reuse. Workflow-specific
+                  settings can stay on the node.
                 </p>
               </div>
               {selectedSecretId ? (
@@ -264,21 +293,27 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
 
             {!selectedSecretId ? (
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-[0.18em] text-neutral-500">Service</label>
+                <label className="text-xs uppercase tracking-[0.18em] text-neutral-500">
+                  Service
+                </label>
                 <Select
                   value={selectedService}
-                  onValueChange={(value) => setSelectedService(value as ReusableSecretService)}
+                  onValueChange={(value) =>
+                    setSelectedService(value as ReusableSecretService)
+                  }
                 >
                   <SelectTrigger className="h-11 w-full rounded-2xl border-neutral-800 bg-neutral-950 px-4 text-sm text-white">
                     <SelectValue placeholder="Select a service" />
                   </SelectTrigger>
                   <SelectContent className="border-neutral-800 bg-neutral-950 text-white">
                     <SelectGroup>
-                      {Object.entries(SERVICE_LABELS).map(([service, label]) => (
-                        <SelectItem key={service} value={service}>
-                          {label}
-                        </SelectItem>
-                      ))}
+                      {Object.entries(SERVICE_LABELS).map(
+                        ([service, label]) => (
+                          <SelectItem key={service} value={service}>
+                            {label}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -286,7 +321,9 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
             ) : null}
 
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.18em] text-neutral-500">Secret name</label>
+              <label className="text-xs uppercase tracking-[0.18em] text-neutral-500">
+                Secret name
+              </label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -298,9 +335,17 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
             <div className="grid gap-4 md:grid-cols-2">
               {fields.map((field) => (
                 <div key={field.key} className="space-y-2">
-                  <label className="text-xs uppercase tracking-[0.18em] text-neutral-500">{field.label}</label>
+                  <label className="text-xs uppercase tracking-[0.18em] text-neutral-500">
+                    {field.label}
+                  </label>
                   <Input
-                    type={field.type === "password" ? "password" : field.type === "number" ? "number" : "text"}
+                    type={
+                      field.type === "password"
+                        ? "password"
+                        : field.type === "number"
+                          ? "number"
+                          : "text"
+                    }
                     value={payload[field.key] || ""}
                     onChange={(e) =>
                       setPayload((current) => ({
@@ -334,7 +379,11 @@ export function ProfileSecretsTab({ secrets, setSecrets }: ProfileSecretsTabProp
               className="cursor-pointer rounded-2xl bg-[#f17463] px-5 text-sm font-light text-neutral-100 hover:bg-[#f48b7d]"
             >
               <Save className="mr-2 h-4 w-4" />
-              {saving ? "Saving..." : selectedSecretId ? "Update secret" : "Save secret"}
+              {saving
+                ? "Saving..."
+                : selectedSecretId
+                  ? "Update secret"
+                  : "Save secret"}
             </Button>
           </div>
         </div>

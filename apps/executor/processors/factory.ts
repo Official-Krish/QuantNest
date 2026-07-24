@@ -4,6 +4,7 @@ import { BreakoutRetestProcessor } from "./breakout-retest.processor";
 import { ConditionalTriggerProcessor } from "./conditional.processor";
 import { MarketSessionProcessor } from "./market-session.processor";
 import { PortfolioPnlDrawdownProcessor } from "./portfolio-pnl-drawdown.processor";
+import { SolanaBalanceProcessor } from "./solana-balance.processor";
 
 export class TriggerProcessorFactory {
   private processors: Map<string, IWorkflowProcessor> = new Map();
@@ -15,6 +16,7 @@ export class TriggerProcessorFactory {
     this.register(new ConditionalTriggerProcessor());
     this.register(new MarketSessionProcessor());
     this.register(new PortfolioPnlDrawdownProcessor());
+    this.register(new SolanaBalanceProcessor());
   }
 
   private register(processor: IWorkflowProcessor): void {

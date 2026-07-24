@@ -9,7 +9,7 @@ import { redisCache, redisGet, redisSet } from "@quantnest-trading/redis";
 export * from "./utils";
 export * from "./indicators";
 
-const yahooFinance = new YahooFinance();
+const yahooFinance = new YahooFinance({ validation: { logErrors: false } });
 
 type MarketType = "Indian" | "Crypto";
 type HistoricalInterval = "1d" | "1wk" | "1mo";
@@ -282,13 +282,17 @@ async function searchYahooQuotes(
   },
 ): Promise<any[]> {
   try {
-    const result = await (yahooFinance as any).search(query, {
-      quotesCount: options?.quotesCount ?? 50,
-      region: options?.region,
-      lang: options?.lang,
-      newsCount: 0,
-      enableFuzzyQuery: options?.enableFuzzyQuery ?? false,
-    });
+    const result = await (yahooFinance as any).search(
+      query,
+      {
+        quotesCount: options?.quotesCount ?? 50,
+        region: options?.region,
+        lang: options?.lang,
+        newsCount: 0,
+        enableFuzzyQuery: options?.enableFuzzyQuery ?? false,
+      },
+      { validateResult: false },
+    );
 
     return Array.isArray(result?.quotes) ? result.quotes : [];
   } catch {
@@ -428,8 +432,16 @@ export async function getCurrentPrice(
   return redisCache(
     key,
     async () => {
-      const quote = await yahooFinance.quote(resolveTicker(asset, market));
-      return quote.regularMarketPrice;
+      try {
+        const quote = await yahooFinance.quote(
+          resolveTicker(asset, market),
+          {},
+          { validateResult: false },
+        );
+        return quote.regularMarketPrice ?? 0;
+      } catch {
+        return 0;
+      }
     },
     PRICE_CACHE_TTL_MS,
   );
@@ -480,6 +492,7 @@ export async function getHistoricalChart(
       {
         period1,
         interval,
+        return: "array",
       },
     );
 
@@ -504,8 +517,12 @@ export async function getVolume(
   market: MarketType,
 ): Promise<number> {
   try {
-    const quote = await yahooFinance.quote(resolveTicker(asset, market));
-    return quote.regularMarketVolume;
+    const quote = await yahooFinance.quote(
+      resolveTicker(asset, market),
+      {},
+      { validateResult: false },
+    );
+    return quote.regularMarketVolume ?? 0;
   } catch (error) {
     console.error("Failed to fetch volume for", asset, error);
     throw new Error(`Failed to fetch volume for ${asset}`);

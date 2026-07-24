@@ -16,7 +16,10 @@ import { SUPPORTED_TRIGGERS } from "./sheets/constants";
 import { TriggerTypeSelector } from "./sheets/TriggerTypeSelector";
 import { MarketStatusBadge } from "./sheets/MarketStatusBadge";
 import { renderBuilderForm } from "./builderRegistry";
-import { getPortfolioRiskValidationErrors } from "@/lib/validation";
+import {
+  getPortfolioRiskValidationErrors,
+  getSolanaBalanceValidationErrors,
+} from "@/lib/validation";
 
 type SupportedTriggerKind =
   | "timer"
@@ -24,7 +27,8 @@ type SupportedTriggerKind =
   | "breakout-retest-trigger"
   | "conditional-trigger"
   | "market-session"
-  | "portfolio-pnl-drawdown-trigger";
+  | "portfolio-pnl-drawdown-trigger"
+  | "solana-balance";
 
 const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = [
   "timer",
@@ -33,6 +37,7 @@ const SUPPORTED_TRIGGER_KINDS: SupportedTriggerKind[] = [
   "conditional-trigger",
   "market-session",
   "portfolio-pnl-drawdown-trigger",
+  "solana-balance",
 ];
 
 const isSupportedTriggerKind = (kind: string): kind is SupportedTriggerKind => {
@@ -81,8 +86,14 @@ export const TriggerSheet = ({
     selectedTrigger === "portfolio-pnl-drawdown-trigger"
       ? getPortfolioRiskValidationErrors(metadata as Record<string, unknown>)
       : [];
+  const solanaValidationErrors =
+    selectedTrigger === "solana-balance"
+      ? getSolanaBalanceValidationErrors(metadata as Record<string, unknown>)
+      : [];
   const canCreateTrigger =
-    Boolean(selectedTrigger) && portfolioValidationErrors.length === 0;
+    Boolean(selectedTrigger) &&
+    portfolioValidationErrors.length === 0 &&
+    solanaValidationErrors.length === 0;
 
   useEffect(() => {
     if (!open) return;
@@ -130,7 +141,7 @@ export const TriggerSheet = ({
   }, [open, onPreviewTriggerChange]);
 
   const handleCreate = () => {
-    if (!selectedTrigger) return;
+    if (!selectedTrigger || !canCreateTrigger) return;
     onSelect(selectedTrigger as NodeKind, metadata);
     onOpenChange(false);
   };
@@ -282,6 +293,19 @@ export const TriggerSheet = ({
                     {portfolioValidationErrors.length > 0 ? (
                       <div className="rounded-2xl border border-[#f17463]/35 bg-[#f17463]/8 px-3 py-2 text-xs leading-5 text-neutral-300">
                         {portfolioValidationErrors[0]}
+                      </div>
+                    ) : null}
+
+                    {solanaValidationErrors.length > 0 ? (
+                      <div className="rounded-md border border-amber-500/35 bg-amber-500/10 p-3 text-xs text-amber-200">
+                        <p className="font-medium text-amber-300">
+                          Complete validation:
+                        </p>
+                        <ul className="mt-2 space-y-1">
+                          {solanaValidationErrors.map((e: string) => (
+                            <li key={e}>• {e}</li>
+                          ))}
+                        </ul>
                       </div>
                     ) : null}
                   </motion.div>

@@ -17,9 +17,10 @@ export function buildPlannerPromptSections({
   actionMetadataGuide,
   triggerMetadataGuide,
 }: PlannerPromptSectionsParams): string[] {
-  const retryAwarePrompt = /(retry|retries|retrying|resilien(?:t|ce)|fault tolerance|fallback|tolerance|backoff|continue on failure|error handling)/i.test(
-    `${input.prompt} ${(input.constraints || []).join(" ")}`,
-  );
+  const retryAwarePrompt =
+    /(retry|retries|retrying|resilien(?:t|ce)|fault tolerance|fallback|tolerance|backoff|continue on failure|error handling)/i.test(
+      `${input.prompt} ${(input.constraints || []).join(" ")}`,
+    );
 
   return [
     "You are an AI workflow planner for QuantNest Trading.",
@@ -36,7 +37,7 @@ export function buildPlannerPromptSections({
         nodes: [
           {
             nodeId: "string",
-            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | portfolio-pnl-drawdown-trigger | if | filter | recheck | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report | postgres",
+            type: "timer | price | breakout-retest-trigger | conditional-trigger | market-session | portfolio-pnl-drawdown-trigger | if | filter | recheck | delay | merge | zerodha | groww | lighter | gmail | slack | telegram | discord | whatsapp | notion-daily-report | google-drive-daily-csv | google-sheets-report | postgres | solana-balance | solana-swap",
             data: {
               kind: "trigger | action",
               metadata: {},
@@ -52,7 +53,8 @@ export function buildPlannerPromptSections({
             id: "string",
             source: "nodeId",
             target: "nodeId",
-            sourceHandle: "optional string, use true/false for conditional branches when needed",
+            sourceHandle:
+              "optional string, use true/false for conditional branches when needed",
             targetHandle: "optional string",
           },
         ],
@@ -112,6 +114,11 @@ export function buildPlannerPromptSections({
     "- Use portfolio-pnl-drawdown-trigger for account-level phrases like daily loss cap, profit target reached, account drawdown, pause after loss exceeds, or stop/notify once portfolio PnL crosses a limit.",
     "- Portfolio risk triggers are account-level and one-shot; do not add marketType/asset unless another downstream condition explicitly needs it.",
     "- Always align marketType: use 'indian' for Indian requests, 'web3' for Crypto/Bitcoin requests.",
+    "",
+    "SOLANA NODES:",
+    "- For solana-balance: metadata must include walletAddress (Solana public key), condition ('above' or 'below'), threshold (number), and optional tokenMint (leave empty for SOL). network is always 'mainnet-beta'.",
+    "- For solana-swap: metadata must include fromToken (mint address), toToken (mint address), amount (number), secretId (references saved wallet key), slippageBps (number, default 100 = 1%). token symbols: SOL (So111111...), USDC (EPjFWdd5...), USDT (Es9vMFrz...), JitoSOL (J1toso1u...), BONK (DezXAZ8z...). Always use the mint address, not the symbol.",
+    "- Common Solana patterns: 'Swap 5 SOL for USDC when SOL balance exceeds 10' → solana-balance trigger → solana-swap action. 'Take profit: swap 50% of SOL to USDC at $200 target' → price trigger (if price data available) or solana-balance → solana-swap. 'DCA: swap USDC to SOL weekly' → timer trigger → solana-swap action.",
     "",
     "PRACTICAL ALGO PATTERNS (BUP, BUPS, RISK CONTROL):",
     "- BUP (Break Up Pattern): price breaks above a resistance level. User phrases: 'BUP above X', 'break up pattern', 'breakout above'. Use price trigger with condition='above' or 'crosses_above'.",
@@ -246,10 +253,33 @@ export function buildPlannerPromptSections({
             },
             position: { x: 200, y: 0 },
           },
-          { nodeId: "n3", type: "slack", data: { kind: "action", metadata: {} }, position: { x: 400, y: 0 } },
-          { nodeId: "n4", type: "lighter", data: { kind: "action", metadata: { type: "short", qty: 0.5, symbol: "BTC" } }, position: { x: 600, y: 0 } },
-          { nodeId: "n5", type: "delay", data: { kind: "action", metadata: { durationSeconds: 120 } }, position: { x: 800, y: 0 } },
-          { nodeId: "n6", type: "whatsapp", data: { kind: "action", metadata: {} }, position: { x: 1000, y: 0 } },
+          {
+            nodeId: "n3",
+            type: "slack",
+            data: { kind: "action", metadata: {} },
+            position: { x: 400, y: 0 },
+          },
+          {
+            nodeId: "n4",
+            type: "lighter",
+            data: {
+              kind: "action",
+              metadata: { type: "short", qty: 0.5, symbol: "BTC" },
+            },
+            position: { x: 600, y: 0 },
+          },
+          {
+            nodeId: "n5",
+            type: "delay",
+            data: { kind: "action", metadata: { durationSeconds: 120 } },
+            position: { x: 800, y: 0 },
+          },
+          {
+            nodeId: "n6",
+            type: "whatsapp",
+            data: { kind: "action", metadata: {} },
+            position: { x: 1000, y: 0 },
+          },
         ],
         edges: [
           { id: "e1", source: "n1", target: "n2" },
@@ -271,11 +301,52 @@ export function buildPlannerPromptSections({
         workflowName: "Reliance Dip Execution",
         marketType: "Indian",
         nodes: [
-          { nodeId: "n1", type: "price", data: { kind: "trigger", metadata: { asset: "RELIANCE", marketType: "indian", condition: "below", targetPrice: 2850 } }, position: { x: 0, y: 0 } },
-          { nodeId: "n2", type: "groww", data: { kind: "action", metadata: { type: "buy", qty: 5, symbol: "RELIANCE", exchange: "NSE" } }, position: { x: 200, y: 0 } },
-          { nodeId: "n3", type: "delay", data: { kind: "action", metadata: { durationSeconds: 300 } }, position: { x: 400, y: 0 } },
-          { nodeId: "n4", type: "gmail", data: { kind: "action", metadata: {} }, position: { x: 600, y: 0 } },
-          { nodeId: "n5", type: "google-sheets-report", data: { kind: "action", metadata: {} }, position: { x: 800, y: 0 } },
+          {
+            nodeId: "n1",
+            type: "price",
+            data: {
+              kind: "trigger",
+              metadata: {
+                asset: "RELIANCE",
+                marketType: "indian",
+                condition: "below",
+                targetPrice: 2850,
+              },
+            },
+            position: { x: 0, y: 0 },
+          },
+          {
+            nodeId: "n2",
+            type: "groww",
+            data: {
+              kind: "action",
+              metadata: {
+                type: "buy",
+                qty: 5,
+                symbol: "RELIANCE",
+                exchange: "NSE",
+              },
+            },
+            position: { x: 200, y: 0 },
+          },
+          {
+            nodeId: "n3",
+            type: "delay",
+            data: { kind: "action", metadata: { durationSeconds: 300 } },
+            position: { x: 400, y: 0 },
+          },
+          {
+            nodeId: "n4",
+            type: "gmail",
+            data: { kind: "action", metadata: {} },
+            position: { x: 600, y: 0 },
+          },
+          {
+            nodeId: "n5",
+            type: "google-sheets-report",
+            data: { kind: "action", metadata: {} },
+            position: { x: 800, y: 0 },
+          },
         ],
         edges: [
           { id: "e1", source: "n1", target: "n2" },
@@ -316,19 +387,37 @@ export function buildPlannerPromptSections({
                           type: "clause",
                           left: {
                             type: "indicator",
-                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "ema", params: { period: 20 } },
+                            indicator: {
+                              symbol: "HDFC",
+                              timeframe: "5m",
+                              marketType: "Indian",
+                              indicator: "ema",
+                              params: { period: 20 },
+                            },
                           },
                           operator: "crosses_above",
                           right: {
                             type: "indicator",
-                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "ema", params: { period: 50 } },
+                            indicator: {
+                              symbol: "HDFC",
+                              timeframe: "5m",
+                              marketType: "Indian",
+                              indicator: "ema",
+                              params: { period: 50 },
+                            },
                           },
                         },
                         {
                           type: "clause",
                           left: {
                             type: "indicator",
-                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "rsi", params: { period: 14 } },
+                            indicator: {
+                              symbol: "HDFC",
+                              timeframe: "5m",
+                              marketType: "Indian",
+                              indicator: "rsi",
+                              params: { period: 14 },
+                            },
                           },
                           operator: "<",
                           right: { type: "value", value: 60 },
@@ -343,19 +432,35 @@ export function buildPlannerPromptSections({
                           type: "clause",
                           left: {
                             type: "indicator",
-                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "price" },
+                            indicator: {
+                              symbol: "HDFC",
+                              timeframe: "5m",
+                              marketType: "Indian",
+                              indicator: "price",
+                            },
                           },
                           operator: "crosses_above",
                           right: {
                             type: "indicator",
-                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "ema", params: { period: 20 } },
+                            indicator: {
+                              symbol: "HDFC",
+                              timeframe: "5m",
+                              marketType: "Indian",
+                              indicator: "ema",
+                              params: { period: 20 },
+                            },
                           },
                         },
                         {
                           type: "clause",
                           left: {
                             type: "indicator",
-                            indicator: { symbol: "HDFC", timeframe: "5m", marketType: "Indian", indicator: "volume" },
+                            indicator: {
+                              symbol: "HDFC",
+                              timeframe: "5m",
+                              marketType: "Indian",
+                              indicator: "volume",
+                            },
                           },
                           operator: ">",
                           right: { type: "value", value: 2000000 },
@@ -368,11 +473,44 @@ export function buildPlannerPromptSections({
             },
             position: { x: 0, y: 0 },
           },
-          { nodeId: "n2", type: "telegram", data: { kind: "action", metadata: {} }, position: { x: 240, y: -120 } },
-          { nodeId: "n3", type: "zerodha", data: { kind: "action", metadata: { type: "buy", qty: 10, symbol: "HDFC", exchange: "NSE" } }, position: { x: 460, y: -120 } },
-          { nodeId: "n4", type: "discord", data: { kind: "action", metadata: {} }, position: { x: 240, y: 120 } },
-          { nodeId: "n5", type: "merge", data: { kind: "action", metadata: {} }, position: { x: 680, y: 0 } },
-          { nodeId: "n6", type: "google-sheets-report", data: { kind: "action", metadata: {} }, position: { x: 900, y: 0 } },
+          {
+            nodeId: "n2",
+            type: "telegram",
+            data: { kind: "action", metadata: {} },
+            position: { x: 240, y: -120 },
+          },
+          {
+            nodeId: "n3",
+            type: "zerodha",
+            data: {
+              kind: "action",
+              metadata: {
+                type: "buy",
+                qty: 10,
+                symbol: "HDFC",
+                exchange: "NSE",
+              },
+            },
+            position: { x: 460, y: -120 },
+          },
+          {
+            nodeId: "n4",
+            type: "discord",
+            data: { kind: "action", metadata: {} },
+            position: { x: 240, y: 120 },
+          },
+          {
+            nodeId: "n5",
+            type: "merge",
+            data: { kind: "action", metadata: {} },
+            position: { x: 680, y: 0 },
+          },
+          {
+            nodeId: "n6",
+            type: "google-sheets-report",
+            data: { kind: "action", metadata: {} },
+            position: { x: 900, y: 0 },
+          },
         ],
         edges: [
           { id: "e1", source: "n1", target: "n2", sourceHandle: "true" },
@@ -497,10 +635,46 @@ export function buildPlannerPromptSections({
             },
             position: { x: 240, y: 0 },
           },
-          { nodeId: "n3", type: "zerodha", data: { kind: "action", metadata: { type: "buy", qty: 10, symbol: "HDFC", exchange: "NSE" } }, position: { x: 460, y: 0 } },
-          { nodeId: "n4", type: "slack", data: { kind: "action", metadata: {} }, position: { x: 680, y: 0 } },
-          { nodeId: "n5", type: "delay", data: { kind: "action", metadata: { durationSeconds: 300 } }, position: { x: 900, y: 0 } },
-          { nodeId: "n6", type: "zerodha", data: { kind: "action", metadata: { type: "sell", qty: 10, symbol: "HDFC", exchange: "NSE" } }, position: { x: 1120, y: 0 } },
+          {
+            nodeId: "n3",
+            type: "zerodha",
+            data: {
+              kind: "action",
+              metadata: {
+                type: "buy",
+                qty: 10,
+                symbol: "HDFC",
+                exchange: "NSE",
+              },
+            },
+            position: { x: 460, y: 0 },
+          },
+          {
+            nodeId: "n4",
+            type: "slack",
+            data: { kind: "action", metadata: {} },
+            position: { x: 680, y: 0 },
+          },
+          {
+            nodeId: "n5",
+            type: "delay",
+            data: { kind: "action", metadata: { durationSeconds: 300 } },
+            position: { x: 900, y: 0 },
+          },
+          {
+            nodeId: "n6",
+            type: "zerodha",
+            data: {
+              kind: "action",
+              metadata: {
+                type: "sell",
+                qty: 10,
+                symbol: "HDFC",
+                exchange: "NSE",
+              },
+            },
+            position: { x: 1120, y: 0 },
+          },
         ],
         edges: [
           { id: "e1", source: "n1", target: "n2" },
@@ -521,7 +695,8 @@ export function buildPlannerPromptSections({
     JSON.stringify(
       {
         workflowName: "BTC Breakout Recheck Buy",
-        summary: "This workflow starts when BTC price crosses above 65000, waits 180 seconds, and re-validates momentum with price above EMA(20) and RSI(14) below 70. On true recheck it executes a Lighter buy, while false sends a Telegram warning and stops trade execution.",
+        summary:
+          "This workflow starts when BTC price crosses above 65000, waits 180 seconds, and re-validates momentum with price above EMA(20) and RSI(14) below 70. On true recheck it executes a Lighter buy, while false sends a Telegram warning and stops trade execution.",
         marketType: "Crypto",
         nodes: [
           {
@@ -642,7 +817,8 @@ export function buildPlannerPromptSections({
             nodeType: "lighter",
             field: "apiKey",
             label: "Lighter API Key",
-            reason: "API key for Lighter broker is required for executing trades.",
+            reason:
+              "API key for Lighter broker is required for executing trades.",
             required: true,
             secret: true,
           },
@@ -651,7 +827,8 @@ export function buildPlannerPromptSections({
             nodeType: "lighter",
             field: "apiSecret",
             label: "Lighter API Secret",
-            reason: "API secret for Lighter broker is required for executing trades.",
+            reason:
+              "API secret for Lighter broker is required for executing trades.",
             required: true,
             secret: true,
           },
