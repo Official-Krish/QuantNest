@@ -1,4 +1,5 @@
 import type { IndicatorConditionGroup, IndicatorMarket } from "./indicators";
+import type { AIDecisionMetadata } from "./ai-runtime";
 
 export type NodeKind =
   | "price"
@@ -24,7 +25,8 @@ export type NodeKind =
   | "google-sheets-report"
   | "postgres"
   | "solana-balance"
-  | "solana-swap";
+  | "solana-swap"
+  | "ai-decision";
 
 export interface NodeType {
   type: NodeKind;
@@ -65,6 +67,7 @@ export type NodeMetadata =
   | PostgresMetadata
   | SolanaBalanceMetadata
   | SolanaSwapMetadata
+  | AIDecisionMetadata
   | Record<string, unknown>;
 
 export interface DelayNodeMetadata {
@@ -275,6 +278,17 @@ export interface SolanaSwapMetadata {
   secretId: string;
   retryPolicy?: RetryPolicyMetadata;
 }
+
+export {
+  AIDecisionMetadataSchema,
+  AIDecisionResultSchema,
+  AIExecutionContextSchema,
+} from "./ai-runtime";
+export type {
+  AIDecisionMetadata,
+  AIDecisionResult,
+  AIExecutionContext,
+} from "./ai-runtime";
 
 export interface RetryPolicyMetadata {
   enabled?: boolean;

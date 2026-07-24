@@ -12,7 +12,8 @@ export type BuilderPanelGroup =
   | "Flow Control"
   | "Reporting"
   | "Data"
-  | "On-chain";
+  | "On-chain"
+  | "AI";
 export type BuilderFormId =
   | "timer"
   | "price-trigger"
@@ -34,7 +35,8 @@ export type BuilderFormId =
   | "postgres"
   | "none"
   | "solana-balance"
-  | "solana-swap";
+  | "solana-swap"
+  | "ai-decision";
 export type ExecutorTriggerProcessorId =
   | "timer"
   | "price-trigger"
@@ -59,7 +61,8 @@ export type ExecutorActionHandlerId =
   | "google-drive-daily-csv"
   | "google-sheets-report"
   | "postgres"
-  | "solana-swap";
+  | "solana-swap"
+  | "ai-decision";
 
 export interface NodeRegistryEntry {
   id: string;
@@ -129,6 +132,14 @@ export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
   amount: "Amount",
   slippageBps: "Slippage (bps)",
   secretId: "Wallet secret",
+  systemPrompt: "System prompt",
+  outputSchema: "Output schema",
+  model: "Model",
+  baseUrl: "Base URL",
+  temperature: "Temperature",
+  maxTokens: "Max tokens",
+  role: "Role",
+  contextDepth: "Context depth",
 };
 
 export const NODE_REGISTRY: NodeRegistryEntry[] = [
@@ -642,6 +653,30 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "retryPolicy",
     ],
     secretFieldKeys: ["connectionString"],
+  },
+  {
+    id: "ai-decision",
+    title: "AI Decision",
+    description: "Ask an AI to make a decision based on workflow context",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "AI",
+    builderFormId: "ai-decision",
+    builderRendererId: "ai-decision",
+    executorActionHandlerId: "ai-decision",
+    metadataFields: [
+      "systemPrompt",
+      "outputSchema",
+      "model",
+      "baseUrl",
+      "temperature",
+      "maxTokens",
+      "role",
+      "contextDepth",
+      "secretId",
+    ],
+    reusableSecretService: "openai",
+    secretFieldKeys: ["secretId"],
   },
 ];
 

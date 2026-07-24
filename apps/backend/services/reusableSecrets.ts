@@ -17,6 +17,7 @@ export const SECRET_SERVICE_FIELDS: Record<ReusableSecretService, string[]> = {
   "notion-daily-report": ["notionApiKey"],
   "google-drive-daily-csv": ["googleClientEmail", "googlePrivateKey"],
   solana: ["privateKey"],
+  openai: ["apiKey"],
 };
 
 export function getSecretFieldsForService(service: ReusableSecretService) {

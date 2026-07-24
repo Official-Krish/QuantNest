@@ -55,6 +55,7 @@ export const REUSABLE_SECRET_SERVICES = [
   "notion-daily-report",
   "google-drive-daily-csv",
   "solana",
+  "openai",
 ] as const;
 
 export type ReusableSecretService = (typeof REUSABLE_SECRET_SERVICES)[number];
@@ -869,6 +870,64 @@ UserReusableSecretSchema.index(
   { unique: true },
 );
 
+const AiRoleSchema = new Schema({
+  userId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Users",
+    required: false,
+    index: true,
+  },
+  name: { type: String, required: true, trim: true },
+  description: { type: String, required: false },
+  prompt: { type: String, required: true },
+  isBuiltin: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+const AiExecutionLogSchema = new Schema({
+  userId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Users",
+    required: true,
+    index: true,
+  },
+  workflowId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Workflows",
+    required: true,
+    index: true,
+  },
+  executionId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Executions",
+    required: true,
+    index: true,
+  },
+  nodeId: { type: String, required: true },
+  model: { type: String, required: true },
+  provider: { type: String, required: true, default: "openai" },
+  promptTokens: { type: Number, required: false },
+  completionTokens: { type: Number, required: false },
+  totalTokens: { type: Number, required: false },
+  costUsd: { type: Number, required: false },
+  durationMs: { type: Number, required: false },
+  decision: { type: String, required: true },
+  confidence: { type: Number, required: true },
+  reason: { type: String, required: false },
+  fullResult: { type: Schema.Types.Mixed, required: false },
+  status: {
+    type: String,
+    enum: ["success", "failed"],
+    required: true,
+  },
+  errorMessage: { type: String, required: false },
+  createdAt: { type: Date, default: Date.now },
+});
+
+AiExecutionLogSchema.index({ workflowId: 1, createdAt: -1 });
+AiExecutionLogSchema.index({ userId: 1, createdAt: -1 });
+
 export const ExecutionTraceModel = mongoose.model(
   "ExecutionTraces",
   ExecutionTraceSchema,
@@ -904,4 +963,9 @@ export const UserReusableSecretModel = mongoose.model(
 export const RefreshTokenModel = mongoose.model(
   "RefreshTokens",
   RefreshTokenSchema,
+);
+export const AiRoleModel = mongoose.model("AiRoles", AiRoleSchema);
+export const AiExecutionLogModel = mongoose.model(
+  "AiExecutionLogs",
+  AiExecutionLogSchema,
 );

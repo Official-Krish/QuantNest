@@ -13,6 +13,7 @@ import workFlowRouter from "./routes/workflow";
 import examplesRouter from "./routes/examples";
 import ZerodhaTokenRouter from "./routes/token";
 import onchainRouter from "./routes/onchain";
+import aiRuntimeRouter from "./routes/ai-runtime";
 import { getMarketStatus } from "@quantnest-trading/executor-utils";
 import { getAllMarketAssets, getMarketAssets } from "@quantnest-trading/market";
 import { connectMongoWithRetry } from "@quantnest-trading/db/client";
@@ -27,7 +28,7 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: "https://quantnest.krishlabs.tech",
+    origin: "http://localhost:5173",
     credentials: true,
   }),
 );
@@ -100,6 +101,7 @@ app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/zerodha-token", ZerodhaTokenRouter);
 app.use("/api/v1/examples", examplesRouter);
 app.use("/api/v1/onchain", onchainRouter);
+app.use("/api/v1/ai/runtime", aiRuntimeRouter);
 
 const handleMarketStatus = async (
   req: express.Request,

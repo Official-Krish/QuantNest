@@ -27,7 +27,8 @@ import { googleSheetsReportAction } from "@/components/nodes/actions/googleSheet
 import { postgresAction } from "@/components/nodes/actions/postgresAction";
 import { solanaSwapAction } from "@/components/nodes/actions/solanaSwapAction";
 import { SolanaBalanceAction } from "@/components/nodes/triggers/solanaBalanceAction";
-import { TimerForm } from "./sheets/TimerForm";
+import { aiDecisionNode } from "@/components/nodes/actions/aiDecisionNode";
+import { AIDecisionForm } from "./sheets/AIDecisionForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
@@ -49,6 +50,7 @@ import { SolanaBalanceForm } from "./sheets/SolanaBalanceForm";
 import { SolanaSwapForm } from "./sheets/SolanaSwapForm";
 import type { NodeMetadata } from "@quantnest-trading/types";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { TimerForm } from "./sheets";
 
 export interface BuilderFormRenderProps {
   metadata: NodeMetadata | Record<string, unknown>;
@@ -86,6 +88,7 @@ export const builderNodeRenderers = {
   postgres: postgresAction,
   "solana-swap": solanaSwapAction,
   "solana-balance": SolanaBalanceAction,
+  "ai-decision": aiDecisionNode,
 } as const;
 
 export const builderFormRegistry = {
@@ -109,6 +112,7 @@ export const builderFormRegistry = {
   postgres: PostgresForm,
   "solana-balance": SolanaBalanceForm,
   "solana-swap": SolanaSwapForm,
+  "ai-decision": AIDecisionForm,
 } as const;
 
 export function getBuilderFormComponent(nodeType: string) {
@@ -282,6 +286,13 @@ export function renderBuilderForm(
     case "solana-swap":
       return (
         <SolanaSwapForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
+    case "ai-decision":
+      return (
+        <AIDecisionForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
         />

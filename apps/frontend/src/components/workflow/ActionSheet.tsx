@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, GitFork, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, GitFork, Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getServiceBrand, ServiceLogo } from "./service-branding";
 import {
@@ -232,7 +232,9 @@ export const ActionSheet = ({
             ? "Persist execution records to external data systems."
             : activeGroup === "Reporting"
               ? "Reporting actions stay locked until Zerodha, Groww, or Lighter is connected."
-              : "";
+              : activeGroup === "AI"
+                ? "AI decision nodes use OpenAI-compatible providers."
+                : "";
 
   const canShowConfig = activeStep === 3 && Boolean(selectedAction);
 
@@ -655,6 +657,41 @@ export const ActionSheet = ({
                             <div className="rounded-2xl border border-[#99f6e4]/35 bg-[#99f6e4]/8 px-3 py-2 text-xs text-neutral-300">
                               Swap tokens and monitor Solana wallet balances
                               through Jupiter.
+                            </div>
+                          </div>
+                        ) : activeGroup === "AI" ? (
+                          <div className="space-y-2">
+                            {availableActions.map((action) => {
+                              const selected = selectedAction === action.id;
+                              return (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  onClick={() => handleSelectAction(action.id)}
+                                  className={cn(
+                                    "flex w-full cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-all",
+                                    selected
+                                      ? "border-l-2 border-l-violet-400 border-violet-400/60 bg-violet-400/10"
+                                      : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900",
+                                  )}
+                                >
+                                  <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-950">
+                                    <Sparkles className="size-5 text-violet-400" />
+                                  </span>
+                                  <span className="min-w-0">
+                                    <span className="block text-sm font-semibold text-neutral-100">
+                                      {action.title}
+                                    </span>
+                                    <span className="mt-1 block text-sm leading-5 text-neutral-300">
+                                      {action.description}
+                                    </span>
+                                  </span>
+                                </button>
+                              );
+                            })}
+                            <div className="rounded-2xl border border-violet-400/35 bg-violet-400/8 px-3 py-2 text-xs text-neutral-300">
+                              AI nodes use your configured OpenAI-compatible API
+                              key.
                             </div>
                           </div>
                         ) : (

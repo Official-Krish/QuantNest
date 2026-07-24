@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import type { IconType } from "react-icons";
 import { HiOutlineBolt } from "react-icons/hi2";
 import { BiLogoPostgresql } from "react-icons/bi";
@@ -8,6 +7,7 @@ import {
   SiGoogledrive,
   SiGooglesheets,
   SiNotion,
+  SiOpenai,
   SiSlack,
   SiTelegram,
   SiWhatsapp,
@@ -95,6 +95,12 @@ const SERVICE_BRANDS: Record<string, ServiceBrand> = {
     colorClassName: "text-emerald-300",
     tintClassName: "bg-emerald-400/12",
     borderClassName: "border-emerald-400/25",
+  },
+  "ai-decision": {
+    icon: SiOpenai,
+    colorClassName: "text-violet-400",
+    tintClassName: "bg-violet-400/12",
+    borderClassName: "border-violet-400/25",
   },
 };
 
