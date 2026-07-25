@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, GitFork, Lock, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, GitFork, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getServiceBrand, ServiceLogo } from "./service-branding";
 import {

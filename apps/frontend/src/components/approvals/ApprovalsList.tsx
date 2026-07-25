@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Filter, RefreshCw, ShieldAlert, Zap } from "lucide-react";
+import { RefreshCw, ShieldAlert } from "lucide-react";
 import type { ApprovalRequestSummary } from "@/http";
 import { ApprovalCard } from "./ApprovalCard";
 

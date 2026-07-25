@@ -72,10 +72,7 @@ export const Appbar = () => {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setPendingApprovals(0);
-      return;
-    }
+    if (!isAuthenticated) return;
     const fetch = async () => {
       try {
         const approvals = await apiGetApprovals({ status: "pending" });
