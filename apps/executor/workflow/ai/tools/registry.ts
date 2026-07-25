@@ -4,11 +4,22 @@ import type {
   ToolCall,
   ToolResult,
 } from "./types";
-import { getPriceTool, getVolumeTool } from "./market";
+import {
+  getPriceTool,
+  getVolumeTool,
+  getHistoricalTool,
+  getAssetsTool,
+  getMarketStatusTool,
+} from "./market";
+import { getPortfolioSnapshotTool } from "./portfolio";
 
 const toolHandlers = new Map<string, ToolHandler>([
   ["get_market_price", getPriceTool],
   ["get_market_volume", getVolumeTool],
+  ["get_market_historical", getHistoricalTool],
+  ["get_market_assets", getAssetsTool],
+  ["get_market_status", getMarketStatusTool],
+  ["get_portfolio_snapshot", getPortfolioSnapshotTool],
 ]);
 
 export function getToolDefinitions(): ToolDefinition[] {
