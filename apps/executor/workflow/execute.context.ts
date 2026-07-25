@@ -31,6 +31,7 @@ export interface ExecutionContext {
     tradeType?: "buy" | "sell";
     failureReason?: string;
     reason?: string;
+    ai?: Record<string, unknown>;
     aiContext?: {
       triggerType?: string;
       marketType?: "Indian" | "Crypto";

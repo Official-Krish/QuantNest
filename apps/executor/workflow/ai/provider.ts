@@ -1,4 +1,4 @@
-import type { AIDecisionResult } from "@quantnest-trading/types";
+import type { ToolDefinition } from "./tools/types";
 
 export interface AIProviderConfig {
   apiKey: string;
@@ -7,11 +7,25 @@ export interface AIProviderConfig {
   maxTokens?: number;
 }
 
+export type StreamChunk = {
+  type: "text" | "error" | "done";
+  text?: string;
+  error?: string;
+};
+
 export interface AIProvider {
   execute(
     config: AIProviderConfig,
     messages: ChatMessage[],
-  ): Promise<AIDecisionResult>;
+    tools?: ToolDefinition[],
+  ): Promise<Record<string, unknown>>;
+
+  streamExecute?(
+    config: AIProviderConfig,
+    messages: ChatMessage[],
+    onChunk: (chunk: StreamChunk) => void,
+    tools?: ToolDefinition[],
+  ): Promise<Record<string, unknown>>;
 }
 
 export interface ChatMessage {

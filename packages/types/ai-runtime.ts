@@ -11,12 +11,13 @@ export const AIDecisionMetadataSchema = z.object({
   systemPrompt: z.string().trim().min(1, "System prompt is required"),
   outputSchema: z.array(OutputFieldSchema).default([]),
   model: z.string().trim().min(1, "Model is required"),
-  baseUrl: z.string().url("Must be a valid URL").optional(),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   role: z.string().trim().min(1).default("analyst"),
   contextDepth: z.number().int().min(1).max(10).default(3),
   secretId: z.string().optional(),
+  minConfidence: z.number().min(0).max(1).default(0),
+  enableTools: z.boolean().default(false),
 });
 
 export const AIDecisionResultSchema = z
@@ -27,17 +28,62 @@ export const AIDecisionResultSchema = z
   })
   .passthrough();
 
-export const AIExecutionContextSchema = z.object({
-  workflowId: z.string().trim().min(1),
-  executionId: z.string().trim().min(1),
-  userId: z.string().trim().min(1),
-  nodeId: z.string().trim().min(1),
-  prompt: z.string(),
-  upstreamContext: z.record(z.string(), z.unknown()),
-  metadata: AIDecisionMetadataSchema,
+export const AIClassifyMetadataSchema = z.object({
+  systemPrompt: z.string().trim().min(1, "System prompt is required"),
+  labels: z
+    .array(z.string().trim().min(1))
+    .min(2, "At least two labels are required"),
+  model: z.string().trim().min(1, "Model is required"),
+  temperature: z.number().min(0).max(2).default(0.2),
+  maxTokens: z.number().int().min(1).max(8192).default(512),
+  contextDepth: z.number().int().min(1).max(10).default(3),
+  minConfidence: z.number().min(0).max(1).default(0),
+  maxCostPerExecution: z.number().min(0).max(100).default(0),
+  monthlyBudget: z.number().min(0).max(10000).default(0),
+});
+
+export const AIClassifyResultSchema = z.object({
+  label: z.string().trim().min(1, "Label is required"),
+  confidence: z.number().min(0).max(1),
+});
+
+export const AIExtractMetadataSchema = z.object({
+  systemPrompt: z.string().trim().min(1, "System prompt is required"),
+  fields: z
+    .array(z.string().trim().min(1))
+    .min(1, "At least one field is required"),
+  model: z.string().trim().min(1, "Model is required"),
+  temperature: z.number().min(0).max(2).default(0.2),
+  maxTokens: z.number().int().min(1).max(8192).default(512),
+  contextDepth: z.number().int().min(1).max(10).default(3),
+  maxCostPerExecution: z.number().min(0).max(100).default(0),
+  monthlyBudget: z.number().min(0).max(10000).default(0),
+});
+
+export const AIExtractResultSchema = z.record(z.string(), z.unknown());
+
+export const AIGenerateMetadataSchema = z.object({
+  systemPrompt: z.string().trim().min(1, "System prompt is required"),
+  model: z.string().trim().min(1, "Model is required"),
+  temperature: z.number().min(0).max(2).default(0.2),
+  maxTokens: z.number().int().min(1).max(8192).default(512),
+  contextDepth: z.number().int().min(1).max(10).default(3),
+  enableTools: z.boolean().default(false),
+  maxCostPerExecution: z.number().min(0).max(100).default(0),
+  monthlyBudget: z.number().min(0).max(10000).default(0),
+});
+
+export const AIGenerateResultSchema = z.object({
+  summary: z.string().trim().min(1, "Summary is required"),
+  analysis: z.string().optional(),
 });
 
 export type OutputField = z.infer<typeof OutputFieldSchema>;
 export type AIDecisionMetadata = z.infer<typeof AIDecisionMetadataSchema>;
 export type AIDecisionResult = z.infer<typeof AIDecisionResultSchema>;
-export type AIExecutionContext = z.infer<typeof AIExecutionContextSchema>;
+export type AIClassifyMetadata = z.infer<typeof AIClassifyMetadataSchema>;
+export type AIClassifyResult = z.infer<typeof AIClassifyResultSchema>;
+export type AIExtractMetadata = z.infer<typeof AIExtractMetadataSchema>;
+export type AIExtractResult = z.infer<typeof AIExtractResultSchema>;
+export type AIGenerateMetadata = z.infer<typeof AIGenerateMetadataSchema>;
+export type AIGenerateResult = z.infer<typeof AIGenerateResultSchema>;

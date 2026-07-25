@@ -1,5 +1,10 @@
 import type { IndicatorConditionGroup, IndicatorMarket } from "./indicators";
-import type { AIDecisionMetadata } from "./ai-runtime";
+import type {
+  AIDecisionMetadata,
+  AIClassifyMetadata,
+  AIExtractMetadata,
+  AIGenerateMetadata,
+} from "./ai-runtime";
 
 export type NodeKind =
   | "price"
@@ -26,7 +31,10 @@ export type NodeKind =
   | "postgres"
   | "solana-balance"
   | "solana-swap"
-  | "ai-decision";
+  | "ai-decision"
+  | "ai-classify"
+  | "ai-extract"
+  | "ai-generate";
 
 export interface NodeType {
   type: NodeKind;
@@ -68,6 +76,9 @@ export type NodeMetadata =
   | SolanaBalanceMetadata
   | SolanaSwapMetadata
   | AIDecisionMetadata
+  | AIClassifyMetadata
+  | AIExtractMetadata
+  | AIGenerateMetadata
   | Record<string, unknown>;
 
 export interface DelayNodeMetadata {
@@ -282,12 +293,22 @@ export interface SolanaSwapMetadata {
 export {
   AIDecisionMetadataSchema,
   AIDecisionResultSchema,
-  AIExecutionContextSchema,
+  AIClassifyMetadataSchema,
+  AIClassifyResultSchema,
+  AIExtractMetadataSchema,
+  AIExtractResultSchema,
+  AIGenerateMetadataSchema,
+  AIGenerateResultSchema,
 } from "./ai-runtime";
 export type {
   AIDecisionMetadata,
   AIDecisionResult,
-  AIExecutionContext,
+  AIClassifyMetadata,
+  AIClassifyResult,
+  AIExtractMetadata,
+  AIExtractResult,
+  AIGenerateMetadata,
+  AIGenerateResult,
 } from "./ai-runtime";
 
 export interface RetryPolicyMetadata {

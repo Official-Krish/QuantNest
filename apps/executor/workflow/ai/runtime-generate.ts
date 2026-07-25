@@ -1,17 +1,16 @@
-import type { AIDecisionResult } from "@quantnest-trading/types";
+import type { AIGenerateResult } from "@quantnest-trading/types";
 import {
-  AIDecisionMetadataSchema,
-  AIDecisionResultSchema,
+  AIGenerateMetadataSchema,
+  AIGenerateResultSchema,
 } from "@quantnest-trading/types";
 import { getAIProvider } from "./provider-factory";
 import type { ChatMessage } from "./provider";
-import { getBundledRoles } from "./roles/bundled";
 import { collectUpstreamContext } from "./context-collector";
 import { getToolDefinitions } from "./tools/registry";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 
-export type AIRuntimeExecuteParams = {
+export type AIRuntimeGenerateParams = {
   metadata: Record<string, unknown>;
   nodeId: string;
   nodes: NodeType[];
@@ -20,9 +19,9 @@ export type AIRuntimeExecuteParams = {
   resolvedApiKey: string;
 };
 
-export async function runtimeExecute(
-  params: AIRuntimeExecuteParams,
-): Promise<AIDecisionResult> {
+export async function runtimeGenerate(
+  params: AIRuntimeGenerateParams,
+): Promise<AIGenerateResult> {
   const {
     metadata: rawMetadata,
     nodeId,
@@ -32,7 +31,7 @@ export async function runtimeExecute(
     resolvedApiKey,
   } = params;
 
-  const metadata = AIDecisionMetadataSchema.parse(rawMetadata);
+  const metadata = AIGenerateMetadataSchema.parse(rawMetadata);
 
   const { prompt: contextPrompt } = collectUpstreamContext({
     nodeId,
@@ -41,26 +40,16 @@ export async function runtimeExecute(
     context,
   });
 
-  const roles = getBundledRoles();
-  const roleDef = roles.find((r) => r.id === metadata.role);
-  const systemPrompt = [roleDef?.prompt ?? "", metadata.systemPrompt]
-    .filter(Boolean)
-    .join("\n\n");
-
-  const schemaFields = (metadata.outputSchema ?? []).map(
-    (f) =>
-      `"${f.fieldName}": one of [${f.choices.map((c) => `"${c}"`).join(", ")}]`,
-  );
-
   const schemaInstruction = `Output valid JSON with these fields:
-- "decision": string
-- "confidence": number (0-1)
-- "reason": string${schemaFields.length > 0 ? `\n- ${schemaFields.join("\n- ")}` : ""}`;
+- "summary": string (a concise summary of the analysis)
+- "analysis": string (optional, detailed analysis if relevant)`;
 
   const messages: ChatMessage[] = [
     {
       role: "system",
-      content: [systemPrompt, schemaInstruction].filter(Boolean).join("\n\n"),
+      content: [metadata.systemPrompt, schemaInstruction]
+        .filter(Boolean)
+        .join("\n\n"),
     },
     {
       role: "user",
@@ -68,7 +57,7 @@ export async function runtimeExecute(
         "Here is the workflow context:",
         contextPrompt,
         "",
-        "Based on this context, make a decision.",
+        "Generate your analysis based on this context.",
       ].join("\n"),
     },
   ];
@@ -86,5 +75,5 @@ export async function runtimeExecute(
     tools,
   );
 
-  return AIDecisionResultSchema.parse(raw);
+  return AIGenerateResultSchema.parse(raw);
 }

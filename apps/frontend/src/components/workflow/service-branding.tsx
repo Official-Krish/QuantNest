@@ -102,6 +102,24 @@ const SERVICE_BRANDS: Record<string, ServiceBrand> = {
     tintClassName: "bg-violet-400/12",
     borderClassName: "border-violet-400/25",
   },
+  "ai-classify": {
+    icon: SiOpenai,
+    colorClassName: "text-emerald-400",
+    tintClassName: "bg-emerald-400/12",
+    borderClassName: "border-emerald-400/25",
+  },
+  "ai-extract": {
+    icon: SiOpenai,
+    colorClassName: "text-sky-400",
+    tintClassName: "bg-sky-400/12",
+    borderClassName: "border-sky-400/25",
+  },
+  "ai-generate": {
+    icon: SiOpenai,
+    colorClassName: "text-amber-400",
+    tintClassName: "bg-amber-400/12",
+    borderClassName: "border-amber-400/25",
+  },
 };
 
 const DEFAULT_BRAND: ServiceBrand = {

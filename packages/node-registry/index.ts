@@ -36,7 +36,10 @@ export type BuilderFormId =
   | "none"
   | "solana-balance"
   | "solana-swap"
-  | "ai-decision";
+  | "ai-decision"
+  | "ai-classify"
+  | "ai-extract"
+  | "ai-generate";
 export type ExecutorTriggerProcessorId =
   | "timer"
   | "price-trigger"
@@ -62,7 +65,10 @@ export type ExecutorActionHandlerId =
   | "google-sheets-report"
   | "postgres"
   | "solana-swap"
-  | "ai-decision";
+  | "ai-decision"
+  | "ai-classify"
+  | "ai-extract"
+  | "ai-generate";
 
 export interface NodeRegistryEntry {
   id: string;
@@ -140,6 +146,7 @@ export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
   maxTokens: "Max tokens",
   role: "Role",
   contextDepth: "Context depth",
+  minConfidence: "Min confidence",
 };
 
 export const NODE_REGISTRY: NodeRegistryEntry[] = [
@@ -408,6 +415,8 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "targetPrice",
       "timeWindowMinutes",
       "expression",
+      "conditionType",
+      "contextExpression",
     ],
   },
   {
@@ -430,6 +439,8 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "targetPrice",
       "timeWindowMinutes",
       "expression",
+      "conditionType",
+      "contextExpression",
     ],
   },
   {
@@ -668,15 +679,82 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "systemPrompt",
       "outputSchema",
       "model",
-      "baseUrl",
       "temperature",
       "maxTokens",
       "role",
       "contextDepth",
+      "minConfidence",
       "secretId",
+      "enableTools",
+      "maxCostPerExecution",
+      "monthlyBudget",
     ],
     reusableSecretService: "openai",
     secretFieldKeys: ["secretId"],
+  },
+  {
+    id: "ai-classify",
+    title: "AI Classify",
+    description: "Classify input data into one of a set of predefined labels",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "AI",
+    builderFormId: "ai-classify",
+    builderRendererId: "ai-classify",
+    executorActionHandlerId: "ai-classify",
+    metadataFields: [
+      "systemPrompt",
+      "labels",
+      "model",
+      "temperature",
+      "maxTokens",
+      "contextDepth",
+      "minConfidence",
+      "maxCostPerExecution",
+      "monthlyBudget",
+    ],
+  },
+  {
+    id: "ai-extract",
+    title: "AI Extract",
+    description: "Extract structured fields from workflow context using AI",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "AI",
+    builderFormId: "ai-extract",
+    builderRendererId: "ai-extract",
+    executorActionHandlerId: "ai-extract",
+    metadataFields: [
+      "systemPrompt",
+      "fields",
+      "model",
+      "temperature",
+      "maxTokens",
+      "contextDepth",
+      "maxCostPerExecution",
+      "monthlyBudget",
+    ],
+  },
+  {
+    id: "ai-generate",
+    title: "AI Generate",
+    description: "Generate freeform text analysis and summaries using AI",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "AI",
+    builderFormId: "ai-generate",
+    builderRendererId: "ai-generate",
+    executorActionHandlerId: "ai-generate",
+    metadataFields: [
+      "systemPrompt",
+      "model",
+      "temperature",
+      "maxTokens",
+      "contextDepth",
+      "enableTools",
+      "maxCostPerExecution",
+      "monthlyBudget",
+    ],
   },
 ];
 
