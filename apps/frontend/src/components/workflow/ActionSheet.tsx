@@ -675,9 +675,6 @@ export const ActionSheet = ({
                                       : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900",
                                   )}
                                 >
-                                  <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-950">
-                                    <Sparkles className="size-5 text-violet-400" />
-                                  </span>
                                   <span className="min-w-0">
                                     <span className="block text-sm font-semibold text-neutral-100">
                                       {action.title}
@@ -689,10 +686,6 @@ export const ActionSheet = ({
                                 </button>
                               );
                             })}
-                            <div className="rounded-2xl border border-violet-400/35 bg-violet-400/8 px-3 py-2 text-xs text-neutral-300">
-                              AI nodes use your configured OpenAI-compatible API
-                              key.
-                            </div>
                           </div>
                         ) : (
                           <p className="rounded-xl border border-neutral-800 bg-neutral-900/50 px-3 py-3 text-sm text-neutral-300">

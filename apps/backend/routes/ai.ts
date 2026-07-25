@@ -684,9 +684,37 @@ aiRouter.get("/approvals", authMiddleware, async (req, res) => {
       .limit(100)
       .lean();
 
+    const workflowIds = [
+      ...new Set(approvals.map((a) => String(a.workflowId))),
+    ];
+    const workflows = await WorkflowModel.find({ _id: { $in: workflowIds } })
+      .select("workflowName")
+      .lean();
+    const workflowMap = Object.fromEntries(
+      workflows.map((w) => [
+        String(w._id),
+        (w as any).workflowName || String(w._id),
+      ]),
+    );
+
+    const mapped = approvals.map((a) => ({
+      id: String(a._id),
+      workflowId: String(a.workflowId),
+      workflowName: workflowMap[String(a.workflowId)] || String(a.workflowId),
+      nodeId: a.nodeId,
+      executionId: a.executionId ? String(a.executionId) : undefined,
+      status: a.status,
+      prompt: a.prompt,
+      proposedAction: a.proposedAction,
+      metadata: a.metadata,
+      createdAt: a.createdAt,
+      approvedAt: a.approvedAt,
+      rejectedAt: a.rejectedAt,
+    }));
+
     res.status(200).json({
       success: true,
-      data: approvals,
+      data: mapped,
     });
   } catch (error) {
     res.status(500).json({
@@ -828,13 +856,11 @@ aiRouter.get("/memories", authMiddleware, async (req, res) => {
   try {
     const userId = req.userId;
     if (!userId) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          code: "UNAUTHORIZED",
-          message: "Unauthorized",
-        });
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
       return;
     }
 
@@ -875,13 +901,11 @@ aiRouter.delete("/memories/:memoryId", authMiddleware, async (req, res) => {
   try {
     const userId = req.userId;
     if (!userId) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          code: "UNAUTHORIZED",
-          message: "Unauthorized",
-        });
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
       return;
     }
 
@@ -890,13 +914,11 @@ aiRouter.delete("/memories/:memoryId", authMiddleware, async (req, res) => {
       userId,
     });
     if (result.deletedCount === 0) {
-      res
-        .status(404)
-        .json({
-          success: false,
-          code: "NOT_FOUND",
-          message: "Memory not found.",
-        });
+      res.status(404).json({
+        success: false,
+        code: "NOT_FOUND",
+        message: "Memory not found.",
+      });
       return;
     }
 

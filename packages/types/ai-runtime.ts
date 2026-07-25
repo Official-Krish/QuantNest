@@ -15,9 +15,9 @@ export const ReasoningStepSchema = z.object({
 });
 
 export const AIDecisionMetadataSchema = z.object({
-  systemPrompt: z.string().trim().min(1, "System prompt is required"),
+  systemPrompt: z.string().default(""),
   outputSchema: z.array(OutputFieldSchema).default([]),
-  model: z.string().trim().min(1, "Model is required"),
+  model: z.string().default("gemini-2.5-flash"),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   role: z.string().trim().min(1).default("analyst"),
@@ -42,11 +42,9 @@ export const AIDecisionResultSchema = z
   .passthrough();
 
 export const AIClassifyMetadataSchema = z.object({
-  systemPrompt: z.string().trim().min(1, "System prompt is required"),
-  labels: z
-    .array(z.string().trim().min(1))
-    .min(2, "At least two labels are required"),
-  model: z.string().trim().min(1, "Model is required"),
+  systemPrompt: z.string().default(""),
+  labels: z.array(z.string().trim().min(1)).default([]),
+  model: z.string().default("gemini-2.5-flash"),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   contextDepth: z.number().int().min(1).max(10).default(3),
@@ -67,11 +65,9 @@ export const AIClassifyResultSchema = z.object({
 });
 
 export const AIExtractMetadataSchema = z.object({
-  systemPrompt: z.string().trim().min(1, "System prompt is required"),
-  fields: z
-    .array(z.string().trim().min(1))
-    .min(1, "At least one field is required"),
-  model: z.string().trim().min(1, "Model is required"),
+  systemPrompt: z.string().default(""),
+  fields: z.array(z.string().trim().min(1)).default([]),
+  model: z.string().default("gemini-2.5-flash"),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   contextDepth: z.number().int().min(1).max(10).default(3),
@@ -87,8 +83,8 @@ export const AIExtractMetadataSchema = z.object({
 export const AIExtractResultSchema = z.record(z.string(), z.unknown());
 
 export const AIGenerateMetadataSchema = z.object({
-  systemPrompt: z.string().trim().min(1, "System prompt is required"),
-  model: z.string().trim().min(1, "Model is required"),
+  systemPrompt: z.string().default(""),
+  model: z.string().default("gemini-2.5-flash"),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   contextDepth: z.number().int().min(1).max(10).default(3),

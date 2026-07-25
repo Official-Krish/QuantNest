@@ -1,5 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
-import { ScanSearch } from "lucide-react";
+import { ScanSearch, Lock, Search, Bookmark } from "lucide-react";
 
 export const aiExtractNode = ({
   data,
@@ -8,6 +8,9 @@ export const aiExtractNode = ({
     metadata?: {
       model?: string;
       fields?: string[];
+      approvalRequired?: boolean;
+      reasoningEnabled?: boolean;
+      memoryEnabled?: boolean;
     };
   };
 }) => {
@@ -35,6 +38,30 @@ export const aiExtractNode = ({
           </span>
         )}
       </div>
+      {(data.metadata?.approvalRequired ||
+        data.metadata?.reasoningEnabled ||
+        data.metadata?.memoryEnabled) && (
+        <div className="mt-2 flex items-center gap-1.5">
+          {data.metadata?.approvalRequired && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-300">
+              <Lock className="h-2.5 w-2.5" />
+              Approval
+            </span>
+          )}
+          {data.metadata?.reasoningEnabled && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-medium text-blue-300">
+              <Search className="h-2.5 w-2.5" />
+              Reasoning
+            </span>
+          )}
+          {data.metadata?.memoryEnabled && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-medium text-emerald-300">
+              <Bookmark className="h-2.5 w-2.5" />
+              Memory
+            </span>
+          )}
+        </div>
+      )}
       <Handle
         type="target"
         position={Position.Left}

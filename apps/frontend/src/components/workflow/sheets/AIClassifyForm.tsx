@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -7,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ShieldCheck, Brain, Database } from "lucide-react";
 import { AIClassifyMetadataSchema } from "@quantnest-trading/types";
 
 const DEFAULT_MODELS = [
@@ -26,7 +28,9 @@ export const AIClassifyForm = ({
   metadata,
   setMetadata,
 }: AIClassifyFormProps) => {
-  const labels = (metadata.labels as string[]) ?? [];
+  const [labelText, setLabelText] = useState(() =>
+    ((metadata.labels as string[]) ?? []).join("\n"),
+  );
 
   const validationErrors = useMemo(() => {
     const result = AIClassifyMetadataSchema.safeParse(metadata);
@@ -38,6 +42,11 @@ export const AIClassifyForm = ({
 
   const set = (key: string, value: unknown) => {
     setMetadata((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleLabelsChange = (text: string) => {
+    setLabelText(text);
+    set("labels", text.split("\n"));
   };
 
   const fieldError = (key: string) => {
@@ -68,13 +77,8 @@ export const AIClassifyForm = ({
           Labels (one per line)
         </p>
         <textarea
-          value={labels.join("\n")}
-          onChange={(e) =>
-            set(
-              "labels",
-              e.target.value.split("\n").filter((l) => l.trim().length > 0),
-            )
-          }
+          value={labelText}
+          onChange={(e) => handleLabelsChange(e.target.value)}
           className="w-full rounded-lg border border-neutral-800 bg-neutral-900 p-2.5 text-sm text-neutral-100 placeholder-neutral-500 focus:border-[#f17463]/50 focus:outline-none"
           rows={4}
           placeholder={`BULLISH\nBEARISH\nNEUTRAL`}
@@ -167,6 +171,90 @@ export const AIClassifyForm = ({
             placeholder="3"
           />
         </div>
+      </div>
+
+      {/* ---- Phase 3: Approval, Reasoning, Memory ---- */}
+      <div className="space-y-3 rounded-xl border border-neutral-800 bg-neutral-900/30 p-3">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+          Advanced
+        </p>
+
+        <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
+          <Checkbox
+            id="approvalRequired"
+            checked={(metadata.approvalRequired as boolean) ?? false}
+            onCheckedChange={(v) => set("approvalRequired", v === true)}
+            className="cursor-pointer"
+          />
+          <label
+            htmlFor="approvalRequired"
+            className="flex cursor-pointer items-center gap-2 text-sm text-neutral-300"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-neutral-500" />
+            Require approval before execution
+          </label>
+        </div>
+        {(metadata.approvalRequired as boolean) && (
+          <div className="space-y-2 pl-6">
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500">
+              Approval prompt
+            </p>
+            <textarea
+              value={(metadata.approvalPrompt as string) ?? ""}
+              onChange={(e) => set("approvalPrompt", e.target.value)}
+              className="w-full rounded-lg border border-neutral-800 bg-neutral-950 p-2 text-xs text-neutral-100 placeholder-neutral-600 focus:border-[#f17463]/50 focus:outline-none"
+              rows={2}
+              placeholder="e.g. Review the classification before applying."
+            />
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
+          <Checkbox
+            id="reasoningEnabled"
+            checked={(metadata.reasoningEnabled as boolean) ?? false}
+            onCheckedChange={(v) => set("reasoningEnabled", v === true)}
+            className="cursor-pointer"
+          />
+          <label
+            htmlFor="reasoningEnabled"
+            className="flex cursor-pointer items-center gap-2 text-sm text-neutral-300"
+          >
+            <Brain className="h-3.5 w-3.5 text-neutral-500" />
+            Enable chain-of-thought reasoning
+          </label>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
+          <Checkbox
+            id="memoryEnabled"
+            checked={(metadata.memoryEnabled as boolean) ?? false}
+            onCheckedChange={(v) => set("memoryEnabled", v === true)}
+            className="cursor-pointer"
+          />
+          <label
+            htmlFor="memoryEnabled"
+            className="flex cursor-pointer items-center gap-2 text-sm text-neutral-300"
+          >
+            <Database className="h-3.5 w-3.5 text-neutral-500" />
+            Persist memory across runs
+          </label>
+        </div>
+        {(metadata.memoryEnabled as boolean) && (
+          <div className="space-y-2 pl-6">
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500">
+              Memory TTL (hours)
+            </p>
+            <Input
+              type="number"
+              min={1}
+              max={8760}
+              value={(metadata.memoryTtl as number) ?? 24}
+              onChange={(e) => set("memoryTtl", Number(e.target.value))}
+              className="border-neutral-800 bg-neutral-950 text-sm text-neutral-100"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
