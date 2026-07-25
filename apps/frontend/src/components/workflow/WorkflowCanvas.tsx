@@ -66,8 +66,11 @@ export interface WorkflowCanvasProps {
   onEditTriggerSave: (type: any, metadata: any) => void;
   onEditActionSave: (type: any, metadata: any) => void;
   marketType: "Indian" | "Crypto" | null;
-  setMarketType: React.Dispatch<React.SetStateAction<"Indian" | "Crypto" | null>>;
+  setMarketType: React.Dispatch<
+    React.SetStateAction<"Indian" | "Crypto" | null>
+  >;
   hasZerodhaAction: boolean;
+  useOpenClaw?: boolean;
 }
 
 export const WorkflowCanvas = ({
@@ -112,10 +115,15 @@ export const WorkflowCanvas = ({
   marketType,
   setMarketType,
   hasZerodhaAction,
+  useOpenClaw,
 }: WorkflowCanvasProps) => {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
-  const [previewTriggerKind, setPreviewTriggerKind] = useState<string | null>(null);
-  const menuNodeKind = nodeMenu ? String(nodeMenu.node.data?.kind || "action").toLowerCase() : "action";
+  const [previewTriggerKind, setPreviewTriggerKind] = useState<string | null>(
+    null,
+  );
+  const menuNodeKind = nodeMenu
+    ? String(nodeMenu.node.data?.kind || "action").toLowerCase()
+    : "action";
   const menuNodeType = nodeMenu ? String(nodeMenu.node.type || "node") : "node";
   const menuNodeLabel = menuNodeType.replaceAll("-", " ");
 
@@ -128,12 +136,24 @@ export const WorkflowCanvas = ({
 
   const sourceNodeColor = (nodeType: string) => {
     const normalized = nodeType.toLowerCase();
-    if (normalized === "price-trigger" || normalized === "timer") return "#f17463";
+    if (normalized === "price-trigger" || normalized === "timer")
+      return "#f17463";
     if (normalized === "breakout-retest-trigger") return "#38bdf8";
-    if (normalized === "gmail" || normalized === "slack" || normalized === "telegram") return "#38bdf8";
-    if (normalized === "zerodha" || normalized === "groww" || normalized === "lighter") return "#34d399";
+    if (
+      normalized === "gmail" ||
+      normalized === "slack" ||
+      normalized === "telegram"
+    )
+      return "#38bdf8";
+    if (
+      normalized === "zerodha" ||
+      normalized === "groww" ||
+      normalized === "lighter"
+    )
+      return "#34d399";
     if (normalized === "postgres") return "#34d399";
-    if (normalized === "conditional-trigger" || normalized === "if") return "#a78bfa";
+    if (normalized === "conditional-trigger" || normalized === "if")
+      return "#a78bfa";
     if (normalized === "recheck") return "#60a5fa";
     if (normalized === "filter") return "#14b8a6";
     return "#a3a3a3";
@@ -145,11 +165,12 @@ export const WorkflowCanvas = ({
     );
 
     return edges.map((edge) => {
-      const color = edge.sourceHandle === "true"
-        ? "#34d399"
-        : edge.sourceHandle === "false"
-          ? "#f87171"
-          : sourceNodeColor(typeById.get(edge.source) || "");
+      const color =
+        edge.sourceHandle === "true"
+          ? "#34d399"
+          : edge.sourceHandle === "false"
+            ? "#f87171"
+            : sourceNodeColor(typeById.get(edge.source) || "");
       return {
         ...edge,
         style: {
@@ -197,8 +218,8 @@ export const WorkflowCanvas = ({
             Start with a trigger
           </p>
           <p className="max-w-sm text-sm text-neutral-300">
-            Choose a market price trigger or a timer to kick off your
-            strategy. We will guide you through connecting broker actions.
+            Choose a market price trigger or a timer to kick off your strategy.
+            We will guide you through connecting broker actions.
           </p>
           <Button
             className="mt-2 bg-white px-4 py-2 text-xs font-medium text-neutral-900 hover:bg-gray-200 md:text-sm cursor-pointer"
@@ -220,7 +241,9 @@ export const WorkflowCanvas = ({
         <button
           type="button"
           className="rounded-full px-3 py-1 text-[11px] font-medium text-neutral-200 hover:bg-neutral-900/90 cursor-pointer"
-          onClick={() => reactFlowInstance?.fitView({ padding: 0.2, duration: 350 })}
+          onClick={() =>
+            reactFlowInstance?.fitView({ padding: 0.2, duration: 350 })
+          }
         >
           Center nodes
         </button>
@@ -253,7 +276,11 @@ export const WorkflowCanvas = ({
             disabled={!canSave || saving}
             className="px-4 py-2 text-xs"
           >
-            {saving ? "Saving..." : workflowId ? "Update workflow" : "Save workflow"}
+            {saving
+              ? "Saving..."
+              : workflowId
+                ? "Update workflow"
+                : "Save workflow"}
           </OrangeButton>
         </div>
       )}
@@ -287,11 +314,17 @@ export const WorkflowCanvas = ({
                 </span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-neutral-800" />
-              <DropdownMenuItem className="cursor-pointer hover:text-neutral-100" onClick={onEditNodeFromMenu}>
+              <DropdownMenuItem
+                className="cursor-pointer hover:text-neutral-100"
+                onClick={onEditNodeFromMenu}
+              >
                 <Pencil className="size-4" />
                 Edit {menuNodeKind}
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onClick={onDuplicateNodeFromMenu}>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={onDuplicateNodeFromMenu}
+              >
                 <Copy className="size-4" />
                 Duplicate {menuNodeKind}
               </DropdownMenuItem>
@@ -347,6 +380,7 @@ export const WorkflowCanvas = ({
             marketType={marketType}
             setMarketType={setMarketType}
             hasZerodhaAction={hasZerodhaAction}
+            useOpenClaw={useOpenClaw}
           />
         )}
 
@@ -365,6 +399,7 @@ export const WorkflowCanvas = ({
             marketType={marketType}
             setMarketType={setMarketType}
             hasZerodhaAction={hasZerodhaAction}
+            useOpenClaw={useOpenClaw}
           />
         )}
 
@@ -383,7 +418,12 @@ export const WorkflowCanvas = ({
           onNodeClick={onNodeClick}
           fitView
         >
-          <Background gap={22} size={2} color="#262626" variant={BackgroundVariant.Dots} />
+          <Background
+            gap={22}
+            size={2}
+            color="#262626"
+            variant={BackgroundVariant.Dots}
+          />
         </ReactFlow>
       </div>
     </div>

@@ -20,6 +20,9 @@ export class WorkflowEngine {
     condition?: boolean,
     executionMode?: "live" | "dry-run",
     triggerSnapshot?: TriggerEvaluationSnapshot,
+    useOpenClaw?: boolean,
+    openclawUrl?: string,
+    openclawToken?: string,
   ): Promise<
     ExecutionResponseType & {
       trace?: {
@@ -55,6 +58,7 @@ export class WorkflowEngine {
       .setExecutionMode(executionMode)
       .setCondition(condition)
       .setTrigger(trigger, nodes)
+      .setOpenClaw(useOpenClaw, openclawUrl, openclawToken)
       .build();
 
     if (context.trace && triggerSnapshot) {
@@ -202,6 +206,9 @@ export async function executeWorkflow(
   condition?: boolean,
   executionMode?: "live" | "dry-run",
   triggerSnapshot?: TriggerEvaluationSnapshot,
+  useOpenClaw?: boolean,
+  openclawUrl?: string,
+  openclawToken?: string,
 ): Promise<
   ExecutionResponseType & {
     trace?: {
@@ -219,5 +226,8 @@ export async function executeWorkflow(
     condition,
     executionMode,
     triggerSnapshot,
+    useOpenClaw,
+    openclawUrl,
+    openclawToken,
   );
 }

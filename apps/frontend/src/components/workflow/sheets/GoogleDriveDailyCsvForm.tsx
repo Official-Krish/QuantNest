@@ -6,37 +6,45 @@ import { ReliabilitySection } from "./ReliabilitySection";
 interface GoogleDriveDailyCsvFormProps {
   metadata: any;
   setMetadata: React.Dispatch<React.SetStateAction<any>>;
+  useOpenClaw?: boolean;
 }
 
 export const GoogleDriveDailyCsvForm = ({
   metadata,
   setMetadata,
+  useOpenClaw,
 }: GoogleDriveDailyCsvFormProps) => {
   const hasSecret = Boolean(String(metadata.secretId || "").trim());
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <ReusableSecretPicker
-        service="google-drive-daily-csv"
-        secretId={metadata.secretId}
-        helperText="Reuse a saved Google service account secret or leave empty to enter one-time credentials."
-        onSelectSecret={(secretId) =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId,
-            googleClientEmail: "",
-            googlePrivateKey: "",
-          }))
-        }
-        onClearSecret={() =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId: undefined,
-          }))
-        }
-      />
+      {useOpenClaw ? (
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs text-orange-200">
+          Credentials are managed by your local OpenClaw instance.
+        </div>
+      ) : (
+        <ReusableSecretPicker
+          service="google-drive-daily-csv"
+          secretId={metadata.secretId}
+          helperText="Reuse a saved Google service account secret or leave empty to enter one-time credentials."
+          onSelectSecret={(secretId) =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId,
+              googleClientEmail: "",
+              googlePrivateKey: "",
+            }))
+          }
+          onClearSecret={() =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId: undefined,
+            }))
+          }
+        />
+      )}
 
-      {!hasSecret && (
+      {!useOpenClaw && !hasSecret && (
         <>
           <div className="space-y-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
@@ -126,14 +134,16 @@ export const GoogleDriveDailyCsvForm = ({
           className="mt-0.5 border-neutral-600 data-[state=checked]:border-[#f17463] data-[state=checked]:bg-[#f17463]"
         />
         <span className="text-xs leading-relaxed text-neutral-300">
-          I consent to QuantNest using broker trade data for AI-generated daily insights included in the CSV export.
+          I consent to QuantNest using broker trade data for AI-generated daily
+          insights included in the CSV export.
         </span>
       </label>
 
       <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3">
         <p className="text-xs text-neutral-400">
-          Runs once per day after 3:30 PM IST, exports broker trades with AI insights, then uploads CSV to Google Drive.
-          Share the target folder with this service account email before enabling.
+          Runs once per day after 3:30 PM IST, exports broker trades with AI
+          insights, then uploads CSV to Google Drive. Share the target folder
+          with this service account email before enabling.
         </p>
       </div>
 

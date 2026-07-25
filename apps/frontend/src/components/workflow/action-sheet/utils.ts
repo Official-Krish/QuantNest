@@ -22,7 +22,16 @@ function hasRecipientName(metadata: Record<string, unknown>) {
 export function getBuilderActionValidationState(
   selectedAction: string,
   metadata: TradingMetadata | LighterMetadata | Record<string, unknown>,
+  useOpenClaw?: boolean,
 ) {
+  if (useOpenClaw) {
+    return {
+      tradingValidationErrors: [],
+      actionValidationErrors: [],
+      canCreateAction: true,
+    };
+  }
+
   const actionMetadata = metadata as Record<string, unknown>;
   const tradingValidationErrors =
     selectedAction === "zerodha" ||

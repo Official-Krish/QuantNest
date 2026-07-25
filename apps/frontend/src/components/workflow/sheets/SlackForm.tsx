@@ -5,32 +5,43 @@ import { ReliabilitySection } from "./ReliabilitySection";
 interface SlackFormProps {
   metadata: any;
   setMetadata: React.Dispatch<React.SetStateAction<any>>;
+  useOpenClaw?: boolean;
 }
 
-export const SlackForm = ({ metadata, setMetadata }: SlackFormProps) => {
+export const SlackForm = ({
+  metadata,
+  setMetadata,
+  useOpenClaw,
+}: SlackFormProps) => {
   const hasSecret = Boolean(String(metadata.secretId || "").trim());
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <ReusableSecretPicker
-        service="slack"
-        secretId={metadata.secretId}
-        helperText="Reuse a saved Slack bot token + user destination, or leave empty to enter a one-time value."
-        onSelectSecret={(secretId) =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId,
-            slackBotToken: "",
-            slackUserId: "",
-          }))
-        }
-        onClearSecret={() =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId: undefined,
-          }))
-        }
-      />
+      {useOpenClaw ? (
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs text-orange-200">
+          Credentials are managed by your local OpenClaw instance.
+        </div>
+      ) : (
+        <ReusableSecretPicker
+          service="slack"
+          secretId={metadata.secretId}
+          helperText="Reuse a saved Slack bot token + user destination, or leave empty to enter a one-time value."
+          onSelectSecret={(secretId) =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId,
+              slackBotToken: "",
+              slackUserId: "",
+            }))
+          }
+          onClearSecret={() =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId: undefined,
+            }))
+          }
+        />
+      )}
 
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
@@ -53,14 +64,15 @@ export const SlackForm = ({ metadata, setMetadata }: SlackFormProps) => {
         />
       </div>
 
-      {!hasSecret && (
+      {!useOpenClaw && !hasSecret && (
         <>
           <div className="space-y-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
               Bot Token
             </p>
             <p className="text-xs text-neutral-400">
-              Slack bot token used by the official Slack SDK to open a DM and send the message.
+              Slack bot token used by the official Slack SDK to open a DM and
+              send the message.
             </p>
             <Input
               type="password"
@@ -82,7 +94,8 @@ export const SlackForm = ({ metadata, setMetadata }: SlackFormProps) => {
               Slack User ID
             </p>
             <p className="text-xs text-neutral-400">
-              User ID of the person who should receive the direct message, for example `U012ABCDEF`.
+              User ID of the person who should receive the direct message, for
+              example `U012ABCDEF`.
             </p>
             <Input
               type="text"
@@ -103,10 +116,12 @@ export const SlackForm = ({ metadata, setMetadata }: SlackFormProps) => {
 
       <div className="space-y-2 rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3">
         <p className="text-xs text-neutral-400">
-          The app must be installed in the target Slack workspace, and the recipient must be reachable by the app.
+          The app must be installed in the target Slack workspace, and the
+          recipient must be reachable by the app.
         </p>
         <p className="text-xs text-neutral-500">
-          Recommended scopes: `chat:write` and the scope needed to open DMs in your Slack app configuration.
+          Recommended scopes: `chat:write` and the scope needed to open DMs in
+          your Slack app configuration.
         </p>
       </div>
 

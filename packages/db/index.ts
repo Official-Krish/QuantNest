@@ -339,6 +339,18 @@ const WorkflowSchema = new Schema({
     type: Schema.Types.Mixed,
     required: false,
   },
+  useOpenClaw: {
+    type: Boolean,
+    default: false,
+  },
+  openclawUrl: {
+    type: String,
+    default: "",
+  },
+  openclawToken: {
+    type: String,
+    default: "",
+  },
   nextRunAt: {
     type: Date,
     required: false,

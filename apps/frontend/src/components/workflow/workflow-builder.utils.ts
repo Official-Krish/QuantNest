@@ -36,10 +36,16 @@ export function buildWorkflowSnapshot(params: {
   nodes: NodeType[];
   edges: EdgeType[];
   executionMode?: "live" | "dry-run";
+  useOpenClaw?: boolean;
+  openclawUrl?: string;
+  openclawToken?: string;
 }) {
   return JSON.stringify({
     workflowName: params.workflowName.trim(),
     executionMode: params.executionMode || "live",
+    useOpenClaw: params.useOpenClaw ?? false,
+    openclawUrl: params.openclawUrl ?? "",
+    openclawToken: params.openclawToken ?? "",
     nodes: params.nodes.map(normalizeNodeForCompare),
     edges: params.edges.map(normalizeEdgeForCompare),
   });
@@ -50,7 +56,10 @@ function inferNodeTypeFromMetadata(node: any): string {
   const kind = node.data?.kind?.toLowerCase();
 
   if (metadata.time !== undefined) return "timer";
-  if (metadata.breakoutLevel !== undefined && metadata.direction !== undefined) {
+  if (
+    metadata.breakoutLevel !== undefined &&
+    metadata.direction !== undefined
+  ) {
     return "breakout-retest-trigger";
   }
   if (
@@ -71,10 +80,22 @@ function inferNodeTypeFromMetadata(node: any): string {
   ) {
     return kind === "trigger" ? "conditional-trigger" : "if";
   }
-  if (metadata.slackUserId !== undefined || metadata.slackBotToken !== undefined) return "slack";
-  if (metadata.telegramChatId !== undefined || metadata.telegramBotToken !== undefined) return "telegram";
+  if (
+    metadata.slackUserId !== undefined ||
+    metadata.slackBotToken !== undefined
+  )
+    return "slack";
+  if (
+    metadata.telegramChatId !== undefined ||
+    metadata.telegramBotToken !== undefined
+  )
+    return "telegram";
   if (metadata.webhookUrl !== undefined) return "discord";
-  if (metadata.type !== undefined && metadata.qty !== undefined && metadata.symbol !== undefined) {
+  if (
+    metadata.type !== undefined &&
+    metadata.qty !== undefined &&
+    metadata.symbol !== undefined
+  ) {
     return "zerodha";
   }
   if (
@@ -114,15 +135,16 @@ function normalizeStoredNodeType(nodeType: string | undefined) {
 export function normalizeWorkflowForBuilder(workflow: Workflow) {
   const normalizedNodes: NodeType[] = workflow.nodes.map((node: any) => {
     const nodeId = node.nodeId || node.id;
-    const nodeType = normalizeStoredNodeType(node.type) || inferNodeTypeFromMetadata(node);
+    const nodeType =
+      normalizeStoredNodeType(node.type) || inferNodeTypeFromMetadata(node);
 
     return {
       nodeId,
       type: nodeType as NodeType["type"],
       data: {
-        kind: (node.data?.kind?.toLowerCase() || node.data?.kind || "trigger") as
-          | "action"
-          | "trigger",
+        kind: (node.data?.kind?.toLowerCase() ||
+          node.data?.kind ||
+          "trigger") as "action" | "trigger",
         metadata: node.data?.metadata || {},
       },
       position: node.position || { x: 0, y: 0 },
@@ -140,7 +162,11 @@ export function normalizeWorkflowForBuilder(workflow: Workflow) {
 
     const sourceNode = nodeById.get(edge.source);
     const targetNode = nodeById.get(edge.target);
-    if (sourceNode?.type !== "conditional-trigger" && sourceNode?.type !== "if" && sourceNode?.type !== "recheck") {
+    if (
+      sourceNode?.type !== "conditional-trigger" &&
+      sourceNode?.type !== "if" &&
+      sourceNode?.type !== "recheck"
+    ) {
       return edge;
     }
 
@@ -162,6 +188,9 @@ export function normalizeWorkflowForBuilder(workflow: Workflow) {
     workflowName: workflow.workflowName || "",
     executionMode: workflow.executionMode || "live",
     marketType: workflow.marketType || "Indian",
+    useOpenClaw: workflow.useOpenClaw ?? false,
+    openclawUrl: workflow.openclawUrl ?? "",
+    openclawToken: workflow.openclawToken ?? "",
   };
 }
 
@@ -194,7 +223,10 @@ export function collectBrokerVerificationPayloads(nodes: NodeType[]) {
         accessToken: String(metadata.accessToken || "").trim(),
         secretId: String(metadata.secretId || "").trim() || undefined,
       };
-      verificationPayloads.set(`groww:${payload.secretId || payload.accessToken}`, payload);
+      verificationPayloads.set(
+        `groww:${payload.secretId || payload.accessToken}`,
+        payload,
+      );
       continue;
     }
 
@@ -214,4 +246,49 @@ export function collectBrokerVerificationPayloads(nodes: NodeType[]) {
   }
 
   return verificationPayloads;
+}
+
+const CREDENTIAL_KEYS = new Set([
+  "apiKey",
+  "accessToken",
+  "accountIndex",
+  "apiKeyIndex",
+  "secretId",
+  "slackBotToken",
+  "slackUserId",
+  "telegramBotToken",
+  "telegramChatId",
+  "webhookUrl",
+  "notionApiKey",
+  "googleClientEmail",
+  "googlePrivateKey",
+  "privateKey",
+  "connectionString",
+]);
+
+export function stripCredentialKeys(
+  metadata: Record<string, unknown>,
+): Record<string, unknown> {
+  const clean: Record<string, unknown> = {};
+  for (const key of Object.keys(metadata)) {
+    if (!CREDENTIAL_KEYS.has(key)) {
+      clean[key] = metadata[key];
+    }
+  }
+  return clean;
+}
+
+export function stripNodeCredentials(nodes: NodeType[]): NodeType[] {
+  return nodes.map((node) => {
+    if (!node.data?.metadata) return node;
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        metadata: stripCredentialKeys(
+          node.data.metadata as Record<string, unknown>,
+        ),
+      },
+    };
+  });
 }

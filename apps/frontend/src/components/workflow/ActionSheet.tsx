@@ -30,6 +30,7 @@ import {
   getSelectedCardTitle,
 } from "./action-sheet/config";
 import { getBuilderActionValidationState } from "./action-sheet/utils";
+import { stripCredentialKeys } from "./workflow-builder.utils";
 
 export const ActionSheet = ({
   onSelect,
@@ -42,6 +43,7 @@ export const ActionSheet = ({
   marketType,
   setMarketType,
   hasZerodhaAction,
+  useOpenClaw,
 }: {
   onSelect: (kind: NodeKind, metadata: NodeMetadata) => void;
   open: boolean;
@@ -53,6 +55,7 @@ export const ActionSheet = ({
   marketType: "Indian" | "Crypto" | null;
   setMarketType: Dispatch<SetStateAction<"Indian" | "Crypto" | null>>;
   hasZerodhaAction: boolean;
+  useOpenClaw?: boolean;
 }) => {
   const [metadata, setMetadata] = useState<
     NodeMetadata | Record<string, unknown>
@@ -83,11 +86,10 @@ export const ActionSheet = ({
 
     timeouts.push(
       setTimeout(() => {
-        setMetadata({
-          ...((initialMetadata || {}) as
-            | NodeMetadata
-            | Record<string, unknown>),
-        });
+        const raw = (initialMetadata || {}) as
+          | NodeMetadata
+          | Record<string, unknown>;
+        setMetadata(useOpenClaw ? stripCredentialKeys(raw) : { ...raw });
         setSelectedAction(initialKind);
         setActiveStep(3);
         setTransitionDirection(1);
@@ -111,7 +113,7 @@ export const ActionSheet = ({
     );
 
     return () => timeouts.forEach(clearTimeout);
-  }, [initialKind, initialMetadata, open, setMarketType]);
+  }, [initialKind, initialMetadata, open, setMarketType, useOpenClaw]);
 
   useEffect(() => {
     if (!open) {
@@ -162,8 +164,9 @@ export const ActionSheet = ({
         getBuilderActionValidationState(
           selectedAction,
           metadata as Record<string, unknown>,
+          useOpenClaw,
         ),
-      [metadata, selectedAction],
+      [metadata, selectedAction, useOpenClaw],
     );
 
   const handleCreate = () => {
@@ -639,9 +642,10 @@ export const ActionSheet = ({
                                   )}
                                 >
                                   <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-950">
-                                    <span className="text-sm text-[#99f6e4]">
-                                      ⧫
-                                    </span>
+                                    <ServiceLogo
+                                      service={action.id}
+                                      size={18}
+                                    />
                                   </span>
                                   <span className="min-w-0">
                                     <span className="block text-sm font-semibold text-neutral-100">
@@ -743,6 +747,7 @@ export const ActionSheet = ({
                           showApiKey: selectedAction === "zerodha",
                           action: selectedAction,
                           selectedAction,
+                          useOpenClaw,
                         })
                       : null}
 

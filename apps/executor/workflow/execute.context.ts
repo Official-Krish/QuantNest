@@ -17,6 +17,9 @@ export interface ExecutionContext {
     | "Short";
   userId?: string;
   workflowId?: string;
+  useOpenClaw?: boolean;
+  openclawUrl?: string;
+  openclawToken?: string;
   trace?: {
     triggerSnapshot?: TriggerEvaluationSnapshot;
     nodeEntries: ExecutionTraceNodeEntry[];

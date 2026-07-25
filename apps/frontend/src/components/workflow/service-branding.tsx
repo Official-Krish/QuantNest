@@ -21,6 +21,7 @@ type ServiceBrand = {
   colorClassName: string;
   tintClassName: string;
   borderClassName: string;
+  imageUrl?: string;
 };
 
 const SERVICE_BRANDS: Record<string, ServiceBrand> = {
@@ -120,6 +121,20 @@ const SERVICE_BRANDS: Record<string, ServiceBrand> = {
     tintClassName: "bg-amber-400/12",
     borderClassName: "border-amber-400/25",
   },
+  "solana-swap": {
+    icon: TbPlugConnected,
+    colorClassName: "text-[#9945FF]",
+    tintClassName: "bg-[#9945FF]/12",
+    borderClassName: "border-[#9945FF]/25",
+    imageUrl: "/solana.png",
+  },
+  "solana-balance": {
+    icon: TbPlugConnected,
+    colorClassName: "text-[#9945FF]",
+    tintClassName: "bg-[#9945FF]/12",
+    borderClassName: "border-[#9945FF]/25",
+    imageUrl: "/solana.png",
+  },
 };
 
 const DEFAULT_BRAND: ServiceBrand = {
@@ -143,6 +158,18 @@ export function ServiceLogo({
   className?: string;
 }) {
   const brand = getServiceBrand(service);
+
+  if (brand.imageUrl) {
+    return (
+      <img
+        src={brand.imageUrl}
+        alt={service}
+        className={`${brand.colorClassName} ${className}`.trim()}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
   const Icon = brand.icon;
 
   return (

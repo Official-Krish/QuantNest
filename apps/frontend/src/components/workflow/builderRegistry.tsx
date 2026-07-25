@@ -66,6 +66,7 @@ export interface BuilderFormRenderProps {
   showApiKey?: boolean;
   action?: string;
   selectedAction?: string;
+  useOpenClaw?: boolean;
 }
 
 export const builderNodeRenderers = {
@@ -158,6 +159,7 @@ export function renderBuilderForm(
               | "groww"
               | "lighter"
           }
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "timer":
@@ -226,6 +228,7 @@ export function renderBuilderForm(
         <SlackForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "telegram":
@@ -233,6 +236,7 @@ export function renderBuilderForm(
         <TelegramForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "discord":
@@ -240,6 +244,7 @@ export function renderBuilderForm(
         <DiscordForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "whatsapp":
@@ -265,6 +270,7 @@ export function renderBuilderForm(
         <NotionDailyReportForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "google-drive-daily-csv":
@@ -272,6 +278,7 @@ export function renderBuilderForm(
         <GoogleDriveDailyCsvForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "google-sheets-report":
@@ -286,6 +293,7 @@ export function renderBuilderForm(
         <PostgresForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "solana-balance":
@@ -300,6 +308,7 @@ export function renderBuilderForm(
         <SolanaSwapForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "ai-decision":

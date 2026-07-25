@@ -5,31 +5,42 @@ import { ReliabilitySection } from "./ReliabilitySection";
 interface DiscordFormProps {
   metadata: any;
   setMetadata: React.Dispatch<React.SetStateAction<any>>;
+  useOpenClaw?: boolean;
 }
 
-export const DiscordForm = ({ metadata, setMetadata }: DiscordFormProps) => {
+export const DiscordForm = ({
+  metadata,
+  setMetadata,
+  useOpenClaw,
+}: DiscordFormProps) => {
   const hasSecret = Boolean(String(metadata.secretId || "").trim());
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <ReusableSecretPicker
-        service="discord"
-        secretId={metadata.secretId}
-        helperText="Reuse a saved Discord webhook or leave empty to enter a one-time webhook URL."
-        onSelectSecret={(secretId) =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId,
-            webhookUrl: "",
-          }))
-        }
-        onClearSecret={() =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId: undefined,
-          }))
-        }
-      />
+      {useOpenClaw ? (
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs text-orange-200">
+          Credentials are managed by your local OpenClaw instance.
+        </div>
+      ) : (
+        <ReusableSecretPicker
+          service="discord"
+          secretId={metadata.secretId}
+          helperText="Reuse a saved Discord webhook or leave empty to enter a one-time webhook URL."
+          onSelectSecret={(secretId) =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId,
+              webhookUrl: "",
+            }))
+          }
+          onClearSecret={() =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId: undefined,
+            }))
+          }
+        />
+      )}
 
       {/* Recipient Name */}
       <div className="space-y-2">
@@ -54,7 +65,7 @@ export const DiscordForm = ({ metadata, setMetadata }: DiscordFormProps) => {
       </div>
 
       {/* Webhook URL */}
-      {!hasSecret && (
+      {!useOpenClaw && !hasSecret && (
         <div className="space-y-2">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
             Webhook URL
@@ -81,10 +92,15 @@ export const DiscordForm = ({ metadata, setMetadata }: DiscordFormProps) => {
       {/* Info Box */}
       <div className="rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3 space-y-2">
         <p className="text-xs text-neutral-400">
-          💡 <span className="font-medium text-neutral-300">Auto-notification:</span> Discord messages are sent automatically based on workflow events.
+          💡{" "}
+          <span className="font-medium text-neutral-300">
+            Auto-notification:
+          </span>{" "}
+          Discord messages are sent automatically based on workflow events.
         </p>
         <p className="text-xs text-neutral-500">
-          To get a webhook URL: Server Settings → Integrations → Webhooks → New Webhook
+          To get a webhook URL: Server Settings → Integrations → Webhooks → New
+          Webhook
         </p>
       </div>
 
