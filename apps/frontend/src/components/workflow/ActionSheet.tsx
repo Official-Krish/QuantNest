@@ -89,7 +89,11 @@ export const ActionSheet = ({
         const raw = (initialMetadata || {}) as
           | NodeMetadata
           | Record<string, unknown>;
-        setMetadata(useOpenClaw ? stripCredentialKeys(raw) : { ...raw });
+        setMetadata(
+          useOpenClaw
+            ? stripCredentialKeys(raw as Record<string, unknown>)
+            : { ...raw },
+        );
         setSelectedAction(initialKind);
         setActiveStep(3);
         setTransitionDirection(1);
