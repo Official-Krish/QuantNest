@@ -6,6 +6,7 @@ import {
 import { getAIProvider } from "./provider-factory";
 import type { ChatMessage } from "./provider";
 import { collectUpstreamContext } from "./context-collector";
+import { buildReasoningInstruction } from "./reasoning";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 
@@ -48,10 +49,14 @@ ${fieldsStr}
 
 Output valid JSON with exactly these keys. Set a field to null if it cannot be determined.`;
 
+  const reasoningInstruction = buildReasoningInstruction(
+    metadata.reasoningEnabled,
+  );
+
   const messages: ChatMessage[] = [
     {
       role: "system",
-      content: [metadata.systemPrompt, schemaInstruction]
+      content: [metadata.systemPrompt, reasoningInstruction, schemaInstruction]
         .filter(Boolean)
         .join("\n\n"),
     },
@@ -82,6 +87,9 @@ Output valid JSON with exactly these keys. Set a field to null if it cannot be d
   const filtered: Record<string, unknown> = {};
   for (const field of fields) {
     filtered[field] = result[field] ?? null;
+  }
+  if (metadata.reasoningEnabled && result.reasoningSteps) {
+    filtered.reasoningSteps = result.reasoningSteps;
   }
   return filtered;
 }

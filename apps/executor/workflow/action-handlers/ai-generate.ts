@@ -2,7 +2,7 @@ import type { AIGenerateResult } from "@quantnest-trading/types";
 import { runtimeGenerate } from "../ai/runtime-generate";
 import type { IActionHandler } from "./base.handler";
 import type { ActionHandlerParams } from "./shared";
-import { executeActionWithRetry } from "./shared";
+import { executeActionWithRetry, handleApprovalGate } from "./shared";
 
 export const aiGenerateHandler: IActionHandler = {
   handlerId: "ai-generate",
@@ -34,16 +34,30 @@ export const aiGenerateHandler: IActionHandler = {
         });
 
         const nodeId = node.nodeId;
+        const reasoningSteps = (result as any).reasoningSteps;
         context.details = {
           ...context.details,
           [`${nodeId}_ai_summary`]: result.summary,
           [`${nodeId}_ai_analysis`]: result.analysis ?? "",
           [`${nodeId}_ai_raw`]: result,
+          ...(reasoningSteps
+            ? { [`${nodeId}_ai_reasoning_steps`]: reasoningSteps }
+            : {}),
           ai: {
             summary: result.summary,
             analysis: result.analysis ?? "",
+            ...(reasoningSteps ? { reasoningSteps } : {}),
           },
         };
+
+        await handleApprovalGate({
+          metadata,
+          nodeId,
+          nodeType: "AI Generate",
+          context,
+          steps,
+          result: result as unknown as Record<string, unknown>,
+        });
 
         return `AI Generate: ${result.summary.slice(0, 80)}${result.summary.length > 80 ? "..." : ""}`;
       },

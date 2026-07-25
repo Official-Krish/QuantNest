@@ -398,7 +398,7 @@ const ExrcutionStepSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["Success", "Failed"],
+      enum: ["Success", "Failed", "PendingApproval"],
       required: true,
     },
     message: {
@@ -444,6 +444,73 @@ const ExrcutionStepSchema = new Schema(
   },
 );
 
+const ApprovalRequestSchema = new Schema({
+  userId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Users",
+    required: true,
+  },
+  workflowId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Workflows",
+    required: true,
+  },
+  nodeId: {
+    type: String,
+    required: true,
+  },
+  executionId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Executions",
+    required: false,
+  },
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected", "expired"],
+    default: "pending",
+    required: true,
+  },
+  nodeType: {
+    type: String,
+    required: true,
+  },
+  prompt: {
+    type: String,
+    required: true,
+  },
+  proposedAction: {
+    type: Schema.Types.Mixed,
+    default: {},
+  },
+  metadata: {
+    type: Schema.Types.Mixed,
+    default: {},
+  },
+  approvedAt: {
+    type: Date,
+    required: false,
+  },
+  rejectedAt: {
+    type: Date,
+    required: false,
+  },
+  expiresAt: {
+    type: Date,
+    required: false,
+  },
+  dedupeKey: {
+    type: String,
+    required: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+ApprovalRequestSchema.index({ userId: 1, status: 1, createdAt: -1 });
+ApprovalRequestSchema.index({ workflowId: 1, status: 1 });
+
 const ExecutionSchema = new Schema({
   workflowId: {
     type: mongoose.Types.ObjectId,
@@ -457,7 +524,7 @@ const ExecutionSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ["Success", "Failed", "InProgress"],
+    enum: ["Success", "Failed", "InProgress", "PendingApproval"],
     required: true,
   },
   executionMode: {
@@ -968,4 +1035,8 @@ export const AiRoleModel = mongoose.model("AiRoles", AiRoleSchema);
 export const AiExecutionLogModel = mongoose.model(
   "AiExecutionLogs",
   AiExecutionLogSchema,
+);
+export const ApprovalRequestModel = mongoose.model(
+  "ApprovalRequests",
+  ApprovalRequestSchema,
 );

@@ -3,8 +3,10 @@ import { Router } from "express";
 import {
   AiStrategyDraftVersionModel,
   AiStrategySessionModel,
+  ApprovalRequestModel,
   ExecutionModel,
   ExecutionTraceModel,
+  WorkflowModel,
 } from "@quantnest-trading/db/client";
 import {
   aiStrategyDraftSessionSchema,
@@ -243,7 +245,11 @@ aiRouter.post("/debug/explain", authMiddleware, async (req, res) => {
           value: is.value,
         }),
       ),
-      executionStatus: execution.status as "Success" | "Failed" | "InProgress",
+      executionStatus: execution.status as
+        | "Success"
+        | "Failed"
+        | "InProgress"
+        | "PendingApproval",
       marketDataAtExecution: trace.marketDataSnapshot as
         | Record<string, unknown>
         | undefined,
@@ -644,6 +650,182 @@ aiRouter.patch(
         code: "AI_PROXY_ERROR",
         message:
           error instanceof Error ? error.message : "Failed to rename AI draft.",
+      });
+    }
+  },
+);
+
+// ---- Approval Request endpoints ----
+
+aiRouter.get("/approvals", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res
+        .status(401)
+        .json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
+      return;
+    }
+
+    const status = String(req.query.status || "").trim();
+    const filter: Record<string, unknown> = { userId };
+    if (
+      status &&
+      ["pending", "approved", "rejected", "expired"].includes(status)
+    ) {
+      filter.status = status;
+    }
+
+    const approvals = await ApprovalRequestModel.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      data: approvals,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "APPROVAL_ERROR",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to list approval requests.",
+    });
+  }
+});
+
+aiRouter.patch(
+  "/approvals/:approvalId/approve",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        res
+          .status(401)
+          .json({
+            success: false,
+            code: "UNAUTHORIZED",
+            message: "Unauthorized",
+          });
+        return;
+      }
+
+      const approvalId = String(req.params.approvalId);
+      const approval = await ApprovalRequestModel.findOne({
+        _id: approvalId,
+        userId,
+      });
+
+      if (!approval) {
+        res
+          .status(404)
+          .json({
+            success: false,
+            code: "NOT_FOUND",
+            message: "Approval request not found.",
+          });
+        return;
+      }
+
+      if (approval.status !== "pending") {
+        res.status(400).json({
+          success: false,
+          code: "ALREADY_PROCESSED",
+          message: `Approval request is already ${approval.status}.`,
+        });
+        return;
+      }
+
+      approval.status = "approved";
+      approval.approvedAt = new Date();
+      await approval.save();
+
+      const workflowId = String(approval.workflowId);
+      await WorkflowModel.updateOne(
+        { _id: workflowId },
+        { $set: { status: "active" } },
+      );
+
+      res.status(200).json({
+        success: true,
+        data: { id: approvalId, status: "approved" },
+        message: "Approval granted. Workflow has been resumed.",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        code: "APPROVAL_ERROR",
+        message: error instanceof Error ? error.message : "Failed to approve.",
+      });
+    }
+  },
+);
+
+aiRouter.patch(
+  "/approvals/:approvalId/reject",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        res
+          .status(401)
+          .json({
+            success: false,
+            code: "UNAUTHORIZED",
+            message: "Unauthorized",
+          });
+        return;
+      }
+
+      const approvalId = String(req.params.approvalId);
+      const approval = await ApprovalRequestModel.findOne({
+        _id: approvalId,
+        userId,
+      });
+
+      if (!approval) {
+        res
+          .status(404)
+          .json({
+            success: false,
+            code: "NOT_FOUND",
+            message: "Approval request not found.",
+          });
+        return;
+      }
+
+      if (approval.status !== "pending") {
+        res.status(400).json({
+          success: false,
+          code: "ALREADY_PROCESSED",
+          message: `Approval request is already ${approval.status}.`,
+        });
+        return;
+      }
+
+      approval.status = "rejected";
+      approval.rejectedAt = new Date();
+      await approval.save();
+
+      res.status(200).json({
+        success: true,
+        data: { id: approvalId, status: "rejected" },
+        message: "Approval request was rejected.",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        code: "APPROVAL_ERROR",
+        message: error instanceof Error ? error.message : "Failed to reject.",
       });
     }
   },

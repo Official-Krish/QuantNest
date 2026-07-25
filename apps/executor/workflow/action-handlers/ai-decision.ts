@@ -7,7 +7,7 @@ import {
 } from "../ai/rate-limiter";
 import type { IActionHandler } from "./base.handler";
 import type { ActionHandlerParams } from "./shared";
-import { executeActionWithRetry, pushStep } from "./shared";
+import { executeActionWithRetry, pushStep, handleApprovalGate } from "./shared";
 
 export const aiDecisionHandler: IActionHandler = {
   handlerId: "ai-decision",
@@ -87,6 +87,7 @@ export const aiDecisionHandler: IActionHandler = {
         const minConfidence = Number((metadata as any)?.minConfidence ?? 0);
         const confidencePassed = result.confidence >= minConfidence;
 
+        const reasoningSteps = (result as any).reasoningSteps;
         context.details = {
           ...context.details,
           [`${nodeId}_ai_decision`]: result.decision,
@@ -94,13 +95,26 @@ export const aiDecisionHandler: IActionHandler = {
           [`${nodeId}_ai_reason`]: result.reason,
           [`${nodeId}_ai_raw`]: result,
           [`${nodeId}_ai_confidence_passed`]: confidencePassed,
+          ...(reasoningSteps
+            ? { [`${nodeId}_ai_reasoning_steps`]: reasoningSteps }
+            : {}),
           ai: {
             decision: result.decision,
             confidence: result.confidence,
             reason: result.reason,
             confidencePassed,
+            ...(reasoningSteps ? { reasoningSteps } : {}),
           },
         };
+
+        await handleApprovalGate({
+          metadata,
+          nodeId,
+          nodeType: "AI Decision",
+          context,
+          steps,
+          result: result as unknown as Record<string, unknown>,
+        });
 
         return `AI Decision: ${result.decision} (confidence: ${(result.confidence * 100).toFixed(0)}%)`;
       },

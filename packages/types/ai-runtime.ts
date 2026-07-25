@@ -7,6 +7,13 @@ export const OutputFieldSchema = z.object({
     .min(1, "At least one choice is required"),
 });
 
+export const ReasoningStepSchema = z.object({
+  step: z.number().int().min(1),
+  title: z.string().trim().min(1),
+  reasoning: z.string().trim().min(1),
+  conclusion: z.string().optional(),
+});
+
 export const AIDecisionMetadataSchema = z.object({
   systemPrompt: z.string().trim().min(1, "System prompt is required"),
   outputSchema: z.array(OutputFieldSchema).default([]),
@@ -18,6 +25,9 @@ export const AIDecisionMetadataSchema = z.object({
   secretId: z.string().optional(),
   minConfidence: z.number().min(0).max(1).default(0),
   enableTools: z.boolean().default(false),
+  approvalRequired: z.boolean().default(false),
+  approvalPrompt: z.string().optional(),
+  reasoningEnabled: z.boolean().default(false),
 });
 
 export const AIDecisionResultSchema = z
@@ -25,6 +35,7 @@ export const AIDecisionResultSchema = z
     decision: z.string().trim().min(1, "Decision is required"),
     confidence: z.number().min(0).max(1),
     reason: z.string().trim().min(1, "Reason is required"),
+    reasoningSteps: z.array(ReasoningStepSchema).optional(),
   })
   .passthrough();
 
@@ -40,11 +51,15 @@ export const AIClassifyMetadataSchema = z.object({
   minConfidence: z.number().min(0).max(1).default(0),
   maxCostPerExecution: z.number().min(0).max(100).default(0),
   monthlyBudget: z.number().min(0).max(10000).default(0),
+  approvalRequired: z.boolean().default(false),
+  approvalPrompt: z.string().optional(),
+  reasoningEnabled: z.boolean().default(false),
 });
 
 export const AIClassifyResultSchema = z.object({
   label: z.string().trim().min(1, "Label is required"),
   confidence: z.number().min(0).max(1),
+  reasoningSteps: z.array(ReasoningStepSchema).optional(),
 });
 
 export const AIExtractMetadataSchema = z.object({
@@ -58,6 +73,9 @@ export const AIExtractMetadataSchema = z.object({
   contextDepth: z.number().int().min(1).max(10).default(3),
   maxCostPerExecution: z.number().min(0).max(100).default(0),
   monthlyBudget: z.number().min(0).max(10000).default(0),
+  approvalRequired: z.boolean().default(false),
+  approvalPrompt: z.string().optional(),
+  reasoningEnabled: z.boolean().default(false),
 });
 
 export const AIExtractResultSchema = z.record(z.string(), z.unknown());
@@ -71,14 +89,19 @@ export const AIGenerateMetadataSchema = z.object({
   enableTools: z.boolean().default(false),
   maxCostPerExecution: z.number().min(0).max(100).default(0),
   monthlyBudget: z.number().min(0).max(10000).default(0),
+  approvalRequired: z.boolean().default(false),
+  approvalPrompt: z.string().optional(),
+  reasoningEnabled: z.boolean().default(false),
 });
 
 export const AIGenerateResultSchema = z.object({
   summary: z.string().trim().min(1, "Summary is required"),
   analysis: z.string().optional(),
+  reasoningSteps: z.array(ReasoningStepSchema).optional(),
 });
 
 export type OutputField = z.infer<typeof OutputFieldSchema>;
+export type ReasoningStep = z.infer<typeof ReasoningStepSchema>;
 export type AIDecisionMetadata = z.infer<typeof AIDecisionMetadataSchema>;
 export type AIDecisionResult = z.infer<typeof AIDecisionResultSchema>;
 export type AIClassifyMetadata = z.infer<typeof AIClassifyMetadataSchema>;

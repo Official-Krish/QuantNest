@@ -2,7 +2,7 @@ import type { AIExtractResult } from "@quantnest-trading/types";
 import { runtimeExtract } from "../ai/runtime-extract";
 import type { IActionHandler } from "./base.handler";
 import type { ActionHandlerParams } from "./shared";
-import { executeActionWithRetry } from "./shared";
+import { executeActionWithRetry, handleApprovalGate } from "./shared";
 
 export const aiExtractHandler: IActionHandler = {
   handlerId: "ai-extract",
@@ -34,12 +34,35 @@ export const aiExtractHandler: IActionHandler = {
         });
 
         const nodeId = node.nodeId;
+        const reasoningSteps = result.reasoningSteps;
         const details: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(result)) {
+          if (key === "reasoningSteps") continue;
           details[`${nodeId}_ai_${key}`] = value;
         }
         details[`${nodeId}_ai_raw`] = result;
-        context.details = { ...context.details, ...details, ai: { ...result } };
+        context.details = {
+          ...context.details,
+          ...details,
+          ...(reasoningSteps
+            ? { [`${nodeId}_ai_reasoning_steps`]: reasoningSteps }
+            : {}),
+          ai: {
+            ...Object.fromEntries(
+              Object.entries(result).filter(([k]) => k !== "reasoningSteps"),
+            ),
+            ...(reasoningSteps ? { reasoningSteps } : {}),
+          },
+        };
+
+        await handleApprovalGate({
+          metadata,
+          nodeId,
+          nodeType: "AI Extract",
+          context,
+          steps,
+          result: result as unknown as Record<string, unknown>,
+        });
 
         const fieldCount = Object.keys(result).length;
         return `AI Extract: extracted ${fieldCount} field${fieldCount !== 1 ? "s" : ""}`;

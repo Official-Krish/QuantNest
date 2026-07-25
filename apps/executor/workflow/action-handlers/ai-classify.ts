@@ -2,7 +2,7 @@ import type { AIClassifyResult } from "@quantnest-trading/types";
 import { runtimeClassify } from "../ai/runtime-classify";
 import type { IActionHandler } from "./base.handler";
 import type { ActionHandlerParams } from "./shared";
-import { executeActionWithRetry } from "./shared";
+import { executeActionWithRetry, handleApprovalGate } from "./shared";
 
 export const aiClassifyHandler: IActionHandler = {
   handlerId: "ai-classify",
@@ -36,6 +36,7 @@ export const aiClassifyHandler: IActionHandler = {
         const nodeId = node.nodeId;
         const minConfidence = Number((metadata as any)?.minConfidence ?? 0);
         const confidencePassed = result.confidence >= minConfidence;
+        const reasoningSteps = (result as any).reasoningSteps;
 
         context.details = {
           ...context.details,
@@ -43,12 +44,25 @@ export const aiClassifyHandler: IActionHandler = {
           [`${nodeId}_ai_confidence`]: String(result.confidence),
           [`${nodeId}_ai_raw`]: result,
           [`${nodeId}_ai_confidence_passed`]: confidencePassed,
+          ...(reasoningSteps
+            ? { [`${nodeId}_ai_reasoning_steps`]: reasoningSteps }
+            : {}),
           ai: {
             label: result.label,
             confidence: result.confidence,
             confidencePassed,
+            ...(reasoningSteps ? { reasoningSteps } : {}),
           },
         };
+
+        await handleApprovalGate({
+          metadata,
+          nodeId,
+          nodeType: "AI Classify",
+          context,
+          steps,
+          result: result as unknown as Record<string, unknown>,
+        });
 
         return `AI Classify: ${result.label} (confidence: ${(result.confidence * 100).toFixed(0)}%)`;
       },

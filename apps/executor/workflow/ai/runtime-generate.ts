@@ -7,6 +7,7 @@ import { getAIProvider } from "./provider-factory";
 import type { ChatMessage } from "./provider";
 import { collectUpstreamContext } from "./context-collector";
 import { getToolDefinitions } from "./tools/registry";
+import { buildReasoningInstruction } from "./reasoning";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 
@@ -44,10 +45,14 @@ export async function runtimeGenerate(
 - "summary": string (a concise summary of the analysis)
 - "analysis": string (optional, detailed analysis if relevant)`;
 
+  const reasoningInstruction = buildReasoningInstruction(
+    metadata.reasoningEnabled,
+  );
+
   const messages: ChatMessage[] = [
     {
       role: "system",
-      content: [metadata.systemPrompt, schemaInstruction]
+      content: [metadata.systemPrompt, reasoningInstruction, schemaInstruction]
         .filter(Boolean)
         .join("\n\n"),
     },
