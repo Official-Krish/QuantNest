@@ -3,6 +3,7 @@ import type { ToolDefinition } from "./tools/types";
 export interface AIProviderConfig {
   apiKey: string;
   model: string;
+  baseUrl?: string;
   temperature?: number;
   maxTokens?: number;
 }

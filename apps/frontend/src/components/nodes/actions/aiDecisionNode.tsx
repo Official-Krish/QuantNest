@@ -6,6 +6,7 @@ export const aiDecisionNode = ({
 }: {
   data: {
     metadata?: {
+      provider?: string;
       model?: string;
       role?: string;
       outputSchema?: Array<{ fieldName: string; choices: string[] }>;
@@ -15,6 +16,7 @@ export const aiDecisionNode = ({
     };
   };
 }) => {
+  const provider = data.metadata?.provider ?? "gemini";
   const model = data.metadata?.model ?? "gpt-4o";
   const role = data.metadata?.role ?? "analyst";
   const fields = data.metadata?.outputSchema ?? [];
@@ -36,8 +38,10 @@ export const aiDecisionNode = ({
             AI Decision
           </span>
         </div>
-        <span className="rounded-full bg-violet-900/40 px-2 py-0.5 text-[10px] font-mono text-violet-300">
-          {model}
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-mono ${provider === "openclaw" ? "bg-orange-900/40 text-orange-300" : "bg-violet-900/40 text-violet-300"}`}
+        >
+          {provider === "openclaw" ? "OpenClaw" : model}
         </span>
       </div>
       <div className="mt-2 flex items-center gap-2 text-sm font-medium text-neutral-100">

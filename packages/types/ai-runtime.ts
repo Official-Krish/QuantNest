@@ -15,9 +15,12 @@ export const ReasoningStepSchema = z.object({
 });
 
 export const AIDecisionMetadataSchema = z.object({
+  provider: z.enum(["gemini", "openclaw"]).default("gemini"),
   systemPrompt: z.string().default(""),
   outputSchema: z.array(OutputFieldSchema).default([]),
   model: z.string().default("gemini-2.5-flash"),
+  openclawUrl: z.string().default(""),
+  openclawToken: z.string().default(""),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   role: z.string().trim().min(1).default("analyst"),
@@ -42,9 +45,12 @@ export const AIDecisionResultSchema = z
   .passthrough();
 
 export const AIClassifyMetadataSchema = z.object({
+  provider: z.enum(["gemini", "openclaw"]).default("gemini"),
   systemPrompt: z.string().default(""),
   labels: z.array(z.string().trim().min(1)).default([]),
   model: z.string().default("gemini-2.5-flash"),
+  openclawUrl: z.string().default(""),
+  openclawToken: z.string().default(""),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   contextDepth: z.number().int().min(1).max(10).default(3),
@@ -65,9 +71,12 @@ export const AIClassifyResultSchema = z.object({
 });
 
 export const AIExtractMetadataSchema = z.object({
+  provider: z.enum(["gemini", "openclaw"]).default("gemini"),
   systemPrompt: z.string().default(""),
   fields: z.array(z.string().trim().min(1)).default([]),
   model: z.string().default("gemini-2.5-flash"),
+  openclawUrl: z.string().default(""),
+  openclawToken: z.string().default(""),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   contextDepth: z.number().int().min(1).max(10).default(3),
@@ -83,8 +92,11 @@ export const AIExtractMetadataSchema = z.object({
 export const AIExtractResultSchema = z.record(z.string(), z.unknown());
 
 export const AIGenerateMetadataSchema = z.object({
+  provider: z.enum(["gemini", "openclaw"]).default("gemini"),
   systemPrompt: z.string().default(""),
   model: z.string().default("gemini-2.5-flash"),
+  openclawUrl: z.string().default(""),
+  openclawToken: z.string().default(""),
   temperature: z.number().min(0).max(2).default(0.2),
   maxTokens: z.number().int().min(1).max(8192).default(512),
   contextDepth: z.number().int().min(1).max(10).default(3),

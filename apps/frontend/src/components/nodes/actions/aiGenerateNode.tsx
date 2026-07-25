@@ -6,6 +6,7 @@ export const aiGenerateNode = ({
 }: {
   data: {
     metadata?: {
+      provider?: string;
       model?: string;
       approvalRequired?: boolean;
       reasoningEnabled?: boolean;
@@ -13,6 +14,7 @@ export const aiGenerateNode = ({
     };
   };
 }) => {
+  const provider = data.metadata?.provider ?? "gemini";
   const model = data.metadata?.model ?? "gemini-2.5-flash";
 
   return (
@@ -24,8 +26,10 @@ export const aiGenerateNode = ({
             AI Generate
           </span>
         </div>
-        <span className="rounded-full bg-amber-900/40 px-2 py-0.5 text-[10px] font-mono text-amber-300">
-          {model}
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-mono ${provider === "openclaw" ? "bg-orange-900/40 text-orange-300" : "bg-amber-900/40 text-amber-300"}`}
+        >
+          {provider === "openclaw" ? "OpenClaw" : model}
         </span>
       </div>
       {(data.metadata?.approvalRequired ||

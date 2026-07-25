@@ -6,6 +6,7 @@ export const aiExtractNode = ({
 }: {
   data: {
     metadata?: {
+      provider?: string;
       model?: string;
       fields?: string[];
       approvalRequired?: boolean;
@@ -14,6 +15,7 @@ export const aiExtractNode = ({
     };
   };
 }) => {
+  const provider = data.metadata?.provider ?? "gemini";
   const model = data.metadata?.model ?? "gemini-2.5-flash";
   const fields = data.metadata?.fields ?? [];
   const fieldCount = fields.length;
@@ -27,8 +29,10 @@ export const aiExtractNode = ({
             AI Extract
           </span>
         </div>
-        <span className="rounded-full bg-sky-900/40 px-2 py-0.5 text-[10px] font-mono text-sky-300">
-          {model}
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-mono ${provider === "openclaw" ? "bg-orange-900/40 text-orange-300" : "bg-sky-900/40 text-sky-300"}`}
+        >
+          {provider === "openclaw" ? "OpenClaw" : model}
         </span>
       </div>
       <div className="mt-2 flex items-center gap-2 text-sm font-medium text-neutral-100">

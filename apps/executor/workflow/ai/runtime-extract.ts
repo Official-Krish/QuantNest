@@ -82,11 +82,14 @@ Output valid JSON with exactly these keys. Set a field to null if it cannot be d
     },
   ];
 
-  const provider = getAIProvider("gemini");
+  const providerName = metadata.provider || "gemini";
+  const provider = getAIProvider(providerName);
   const raw = await provider.execute(
     {
-      apiKey: resolvedApiKey,
-      model: metadata.model,
+      apiKey:
+        providerName === "openclaw" ? metadata.openclawToken : resolvedApiKey,
+      model: providerName === "openclaw" ? "openclaw/default" : metadata.model,
+      baseUrl: providerName === "openclaw" ? metadata.openclawUrl : undefined,
       temperature: metadata.temperature,
       maxTokens: metadata.maxTokens,
     },

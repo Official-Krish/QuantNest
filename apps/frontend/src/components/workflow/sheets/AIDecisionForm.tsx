@@ -9,8 +9,21 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X, Bot, ShieldCheck, Brain, Database } from "lucide-react";
+import {
+  Plus,
+  X,
+  Bot,
+  ShieldCheck,
+  Brain,
+  Database,
+  Globe,
+} from "lucide-react";
 import { AIDecisionMetadataSchema } from "@quantnest-trading/types";
+
+const PROVIDERS = [
+  { label: "Gemini", value: "gemini" },
+  { label: "OpenClaw", value: "openclaw" },
+];
 
 const DEFAULT_MODELS = [
   { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
@@ -100,6 +113,58 @@ export const AIDecisionForm = ({
 
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+          Provider
+        </p>
+        <Select
+          value={(metadata.provider as string) ?? "gemini"}
+          onValueChange={(v) => set("provider", v)}
+        >
+          <SelectTrigger className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+            <SelectValue placeholder="Select provider" />
+          </SelectTrigger>
+          <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+            {PROVIDERS.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {(metadata.provider as string) === "openclaw" && (
+        <div className="space-y-3 rounded-xl border border-orange-500/20 bg-orange-500/5 p-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-orange-400">
+            <Globe className="h-3 w-3" /> OpenClaw Connection
+          </p>
+          <div className="space-y-2">
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500">
+              Gateway URL
+            </p>
+            <Input
+              value={(metadata.openclawUrl as string) ?? ""}
+              onChange={(e) => set("openclawUrl", e.target.value)}
+              className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder="http://127.0.0.1:18789"
+            />
+          </div>
+          <div className="space-y-2">
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500">
+              Gateway Token (optional)
+            </p>
+            <Input
+              type="password"
+              value={(metadata.openclawToken as string) ?? ""}
+              onChange={(e) => set("openclawToken", e.target.value)}
+              className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+              placeholder="openclaw gateway token"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
           Role
         </p>
         <Select
@@ -119,29 +184,31 @@ export const AIDecisionForm = ({
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Model
-        </p>
-        <Select
-          value={(metadata.model as string) ?? ""}
-          onValueChange={(v) => set("model", v === "__custom__" ? "" : v)}
-        >
-          <SelectTrigger className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
-            <SelectValue placeholder="Select model" />
-          </SelectTrigger>
-          <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            {DEFAULT_MODELS.map((m) => (
-              <SelectItem key={m.value} value={m.value}>
-                {m.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {fieldError("model") && (
-          <p className="text-xs text-red-400">{fieldError("model")}</p>
-        )}
-      </div>
+      {(metadata.provider as string) !== "openclaw" && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            Model
+          </p>
+          <Select
+            value={(metadata.model as string) ?? ""}
+            onValueChange={(v) => set("model", v === "__custom__" ? "" : v)}
+          >
+            <SelectTrigger className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+              <SelectValue placeholder="Select model" />
+            </SelectTrigger>
+            <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+              {DEFAULT_MODELS.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {fieldError("model") && (
+            <p className="text-xs text-red-400">{fieldError("model")}</p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">

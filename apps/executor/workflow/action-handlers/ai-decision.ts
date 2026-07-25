@@ -57,8 +57,12 @@ export const aiDecisionHandler: IActionHandler = {
       nodeTypeLabel: "AI Decision",
       retryPolicy: (metadata as any)?.retryPolicy,
       operation: async () => {
-        const resolvedApiKey = process.env.GOOGLE_API_KEY || "";
-        if (!resolvedApiKey) {
+        const providerName = (metadata as any)?.provider || "gemini";
+        const resolvedApiKey =
+          providerName === "openclaw"
+            ? (metadata as any)?.openclawToken || ""
+            : process.env.GOOGLE_API_KEY || "";
+        if (!resolvedApiKey && providerName !== "openclaw") {
           throw new Error("GOOGLE_API_KEY is not configured");
         }
 
