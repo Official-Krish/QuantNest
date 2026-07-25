@@ -691,6 +691,8 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "approvalRequired",
       "approvalPrompt",
       "reasoningEnabled",
+      "memoryEnabled",
+      "memoryTtl",
     ],
     reusableSecretService: "openai",
     secretFieldKeys: ["secretId"],
@@ -718,6 +720,8 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "approvalRequired",
       "approvalPrompt",
       "reasoningEnabled",
+      "memoryEnabled",
+      "memoryTtl",
     ],
   },
   {
@@ -742,6 +746,8 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "approvalRequired",
       "approvalPrompt",
       "reasoningEnabled",
+      "memoryEnabled",
+      "memoryTtl",
     ],
   },
   {
@@ -766,6 +772,8 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "approvalRequired",
       "approvalPrompt",
       "reasoningEnabled",
+      "memoryEnabled",
+      "memoryTtl",
     ],
   },
 ];

@@ -8,6 +8,7 @@ import type { ChatMessage } from "./provider";
 import { collectUpstreamContext } from "./context-collector";
 import { getToolDefinitions } from "./tools/registry";
 import { buildReasoningInstruction } from "./reasoning";
+import { collectMemoryContext, writeMemory } from "./memory";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 
@@ -49,6 +50,13 @@ export async function runtimeGenerate(
     metadata.reasoningEnabled,
   );
 
+  const memoryContext = await collectMemoryContext(
+    context.userId ?? "",
+    context.workflowId ?? "",
+    nodeId,
+    { memoryEnabled: metadata.memoryEnabled, memoryTtl: metadata.memoryTtl },
+  );
+
   const messages: ChatMessage[] = [
     {
       role: "system",
@@ -61,9 +69,12 @@ export async function runtimeGenerate(
       content: [
         "Here is the workflow context:",
         contextPrompt,
+        memoryContext,
         "",
         "Generate your analysis based on this context.",
-      ].join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
     },
   ];
 
@@ -80,5 +91,17 @@ export async function runtimeGenerate(
     tools,
   );
 
-  return AIGenerateResultSchema.parse(raw);
+  const result = AIGenerateResultSchema.parse(raw);
+
+  if (metadata.memoryEnabled) {
+    await writeMemory(
+      context.userId ?? "",
+      context.workflowId ?? "",
+      nodeId,
+      result as unknown as Record<string, unknown>,
+      metadata.memoryTtl,
+    );
+  }
+
+  return result;
 }

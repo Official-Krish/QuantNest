@@ -7,6 +7,7 @@ import { getAIProvider } from "./provider-factory";
 import type { ChatMessage } from "./provider";
 import { collectUpstreamContext } from "./context-collector";
 import { buildReasoningInstruction } from "./reasoning";
+import { collectMemoryContext, writeMemory } from "./memory";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 
@@ -53,6 +54,13 @@ Output valid JSON with exactly these keys. Set a field to null if it cannot be d
     metadata.reasoningEnabled,
   );
 
+  const memoryContext = await collectMemoryContext(
+    context.userId ?? "",
+    context.workflowId ?? "",
+    nodeId,
+    { memoryEnabled: metadata.memoryEnabled, memoryTtl: metadata.memoryTtl },
+  );
+
   const messages: ChatMessage[] = [
     {
       role: "system",
@@ -65,9 +73,12 @@ Output valid JSON with exactly these keys. Set a field to null if it cannot be d
       content: [
         "Here is the workflow context to extract data from:",
         contextPrompt,
+        memoryContext,
         "",
         "Extract the requested fields from this context.",
-      ].join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
     },
   ];
 
@@ -91,5 +102,16 @@ Output valid JSON with exactly these keys. Set a field to null if it cannot be d
   if (metadata.reasoningEnabled && result.reasoningSteps) {
     filtered.reasoningSteps = result.reasoningSteps;
   }
+
+  if (metadata.memoryEnabled) {
+    await writeMemory(
+      context.userId ?? "",
+      context.workflowId ?? "",
+      nodeId,
+      filtered,
+      metadata.memoryTtl,
+    );
+  }
+
   return filtered;
 }

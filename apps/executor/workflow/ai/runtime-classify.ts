@@ -7,6 +7,7 @@ import { getAIProvider } from "./provider-factory";
 import type { ChatMessage } from "./provider";
 import { collectUpstreamContext } from "./context-collector";
 import { buildReasoningInstruction } from "./reasoning";
+import { collectMemoryContext, writeMemory } from "./memory";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 
@@ -55,6 +56,13 @@ Output valid JSON with these fields:
     metadata.reasoningEnabled,
   );
 
+  const memoryContext = await collectMemoryContext(
+    context.userId ?? "",
+    context.workflowId ?? "",
+    nodeId,
+    { memoryEnabled: metadata.memoryEnabled, memoryTtl: metadata.memoryTtl },
+  );
+
   const messages: ChatMessage[] = [
     {
       role: "system",
@@ -67,9 +75,12 @@ Output valid JSON with these fields:
       content: [
         "Here is the workflow context to classify:",
         contextPrompt,
+        memoryContext,
         "",
         "Based on this context, select the most appropriate label.",
-      ].join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
     },
   ];
 
@@ -84,5 +95,17 @@ Output valid JSON with these fields:
     messages,
   );
 
-  return AIClassifyResultSchema.parse(raw);
+  const result = AIClassifyResultSchema.parse(raw);
+
+  if (metadata.memoryEnabled) {
+    await writeMemory(
+      context.userId ?? "",
+      context.workflowId ?? "",
+      nodeId,
+      result as unknown as Record<string, unknown>,
+      metadata.memoryTtl,
+    );
+  }
+
+  return result;
 }

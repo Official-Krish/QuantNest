@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   AiStrategyDraftVersionModel,
   AiStrategySessionModel,
+  AiMemoryModel,
   ApprovalRequestModel,
   ExecutionModel,
   ExecutionTraceModel,
@@ -661,13 +662,11 @@ aiRouter.get("/approvals", authMiddleware, async (req, res) => {
   try {
     const userId = req.userId;
     if (!userId) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          code: "UNAUTHORIZED",
-          message: "Unauthorized",
-        });
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
       return;
     }
 
@@ -708,13 +707,11 @@ aiRouter.patch(
     try {
       const userId = req.userId;
       if (!userId) {
-        res
-          .status(401)
-          .json({
-            success: false,
-            code: "UNAUTHORIZED",
-            message: "Unauthorized",
-          });
+        res.status(401).json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
         return;
       }
 
@@ -725,13 +722,11 @@ aiRouter.patch(
       });
 
       if (!approval) {
-        res
-          .status(404)
-          .json({
-            success: false,
-            code: "NOT_FOUND",
-            message: "Approval request not found.",
-          });
+        res.status(404).json({
+          success: false,
+          code: "NOT_FOUND",
+          message: "Approval request not found.",
+        });
         return;
       }
 
@@ -776,13 +771,11 @@ aiRouter.patch(
     try {
       const userId = req.userId;
       if (!userId) {
-        res
-          .status(401)
-          .json({
-            success: false,
-            code: "UNAUTHORIZED",
-            message: "Unauthorized",
-          });
+        res.status(401).json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
         return;
       }
 
@@ -793,13 +786,11 @@ aiRouter.patch(
       });
 
       if (!approval) {
-        res
-          .status(404)
-          .json({
-            success: false,
-            code: "NOT_FOUND",
-            message: "Approval request not found.",
-          });
+        res.status(404).json({
+          success: false,
+          code: "NOT_FOUND",
+          message: "Approval request not found.",
+        });
         return;
       }
 
@@ -830,5 +821,94 @@ aiRouter.patch(
     }
   },
 );
+
+// ---- AI Memory endpoints ----
+
+aiRouter.get("/memories", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res
+        .status(401)
+        .json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
+      return;
+    }
+
+    const workflowId = String(req.query.workflowId || "").trim();
+    const nodeId = String(req.query.nodeId || "").trim();
+    const filter: Record<string, unknown> = { userId };
+    if (workflowId) filter.workflowId = workflowId;
+    if (nodeId) filter.nodeId = nodeId;
+
+    const memories = await AiMemoryModel.find(filter)
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .lean();
+
+    const mapped = memories.map((m) => ({
+      id: m._id,
+      workflowId: m.workflowId,
+      nodeId: m.nodeId,
+      key: m.key,
+      value: m.value,
+      ttl: m.ttl,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+    }));
+
+    res.status(200).json({ success: true, data: mapped });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "MEMORY_ERROR",
+      message:
+        error instanceof Error ? error.message : "Failed to list memories.",
+    });
+  }
+});
+
+aiRouter.delete("/memories/:memoryId", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res
+        .status(401)
+        .json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
+      return;
+    }
+
+    const result = await AiMemoryModel.deleteOne({
+      _id: req.params.memoryId,
+      userId,
+    });
+    if (result.deletedCount === 0) {
+      res
+        .status(404)
+        .json({
+          success: false,
+          code: "NOT_FOUND",
+          message: "Memory not found.",
+        });
+      return;
+    }
+
+    res.status(200).json({ success: true, message: "Memory deleted." });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "MEMORY_ERROR",
+      message:
+        error instanceof Error ? error.message : "Failed to delete memory.",
+    });
+  }
+});
 
 export default aiRouter;

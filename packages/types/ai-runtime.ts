@@ -28,6 +28,8 @@ export const AIDecisionMetadataSchema = z.object({
   approvalRequired: z.boolean().default(false),
   approvalPrompt: z.string().optional(),
   reasoningEnabled: z.boolean().default(false),
+  memoryEnabled: z.boolean().default(false),
+  memoryTtl: z.number().int().min(1).max(8760).default(24),
 });
 
 export const AIDecisionResultSchema = z
@@ -54,6 +56,8 @@ export const AIClassifyMetadataSchema = z.object({
   approvalRequired: z.boolean().default(false),
   approvalPrompt: z.string().optional(),
   reasoningEnabled: z.boolean().default(false),
+  memoryEnabled: z.boolean().default(false),
+  memoryTtl: z.number().int().min(1).max(8760).default(24),
 });
 
 export const AIClassifyResultSchema = z.object({
@@ -76,6 +80,8 @@ export const AIExtractMetadataSchema = z.object({
   approvalRequired: z.boolean().default(false),
   approvalPrompt: z.string().optional(),
   reasoningEnabled: z.boolean().default(false),
+  memoryEnabled: z.boolean().default(false),
+  memoryTtl: z.number().int().min(1).max(8760).default(24),
 });
 
 export const AIExtractResultSchema = z.record(z.string(), z.unknown());
@@ -92,6 +98,8 @@ export const AIGenerateMetadataSchema = z.object({
   approvalRequired: z.boolean().default(false),
   approvalPrompt: z.string().optional(),
   reasoningEnabled: z.boolean().default(false),
+  memoryEnabled: z.boolean().default(false),
+  memoryTtl: z.number().int().min(1).max(8760).default(24),
 });
 
 export const AIGenerateResultSchema = z.object({

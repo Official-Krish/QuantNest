@@ -937,6 +937,45 @@ UserReusableSecretSchema.index(
   { unique: true },
 );
 
+const AiMemorySchema = new Schema(
+  {
+    userId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Users",
+      required: true,
+    },
+    workflowId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Workflows",
+      required: true,
+    },
+    nodeId: {
+      type: String,
+      required: true,
+    },
+    key: {
+      type: String,
+      required: true,
+      default: "default",
+    },
+    value: {
+      type: Schema.Types.Mixed,
+      required: true,
+    },
+    ttl: {
+      type: Date,
+      required: false,
+    },
+  },
+  { timestamps: true },
+);
+
+AiMemorySchema.index(
+  { userId: 1, workflowId: 1, nodeId: 1, key: 1 },
+  { unique: true },
+);
+AiMemorySchema.index({ ttl: 1 }, { expireAfterSeconds: 0 });
+
 const AiRoleSchema = new Schema({
   userId: {
     type: mongoose.Types.ObjectId,
@@ -1040,3 +1079,4 @@ export const ApprovalRequestModel = mongoose.model(
   "ApprovalRequests",
   ApprovalRequestSchema,
 );
+export const AiMemoryModel = mongoose.model("AiMemories", AiMemorySchema);

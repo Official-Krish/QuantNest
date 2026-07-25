@@ -9,6 +9,7 @@ import { getBundledRoles } from "./roles/bundled";
 import { collectUpstreamContext } from "./context-collector";
 import { getToolDefinitions } from "./tools/registry";
 import { buildReasoningInstruction } from "./reasoning";
+import { collectMemoryContext, writeMemory } from "./memory";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 
@@ -62,6 +63,13 @@ export async function runtimeExecute(
     metadata.reasoningEnabled,
   );
 
+  const memoryContext = await collectMemoryContext(
+    context.userId ?? "",
+    context.workflowId ?? "",
+    nodeId,
+    { memoryEnabled: metadata.memoryEnabled, memoryTtl: metadata.memoryTtl },
+  );
+
   const messages: ChatMessage[] = [
     {
       role: "system",
@@ -74,9 +82,12 @@ export async function runtimeExecute(
       content: [
         "Here is the workflow context:",
         contextPrompt,
+        memoryContext,
         "",
         "Based on this context, make a decision.",
-      ].join("\n"),
+      ]
+        .filter(Boolean)
+        .join("\n"),
     },
   ];
 
@@ -93,5 +104,17 @@ export async function runtimeExecute(
     tools,
   );
 
-  return AIDecisionResultSchema.parse(raw);
+  const result = AIDecisionResultSchema.parse(raw);
+
+  if (metadata.memoryEnabled) {
+    await writeMemory(
+      context.userId ?? "",
+      context.workflowId ?? "",
+      nodeId,
+      result as unknown as Record<string, unknown>,
+      metadata.memoryTtl,
+    );
+  }
+
+  return result;
 }
