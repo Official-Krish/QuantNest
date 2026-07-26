@@ -1,0 +1,24 @@
+{
+  "name": "@quantnest/agent",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "quantnest": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --outfile=dist/index.js --target=node --external ws && printf '#!/usr/bin/env node\\n' | cat - dist/index.js > dist/tmp && mv dist/tmp dist/index.js && chmod +x dist/index.js",
+    "dev": "bun --watch ./src/index.ts"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.7.0",
+    "picocolors": "^1.1.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
