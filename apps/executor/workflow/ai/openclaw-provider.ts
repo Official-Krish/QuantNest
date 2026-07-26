@@ -5,6 +5,9 @@ import type {
   StreamChunk,
 } from "./provider";
 
+const BACKEND_URL =
+  process.env.QUANTNEST_BACKEND_URL || "http://localhost:3000";
+
 interface OpenAIMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -22,6 +25,16 @@ interface OpenAIResponse {
 
 export class OpenClawProvider implements AIProvider {
   async execute(
+    config: AIProviderConfig,
+    messages: ChatMessage[],
+  ): Promise<Record<string, unknown>> {
+    if (config.userId) {
+      return this.executeViaAgent(config, messages);
+    }
+    return this.executeDirect(config, messages);
+  }
+
+  private async executeDirect(
     config: AIProviderConfig,
     messages: ChatMessage[],
   ): Promise<Record<string, unknown>> {
@@ -76,11 +89,73 @@ export class OpenClawProvider implements AIProvider {
     }
   }
 
+  private async executeViaAgent(
+    config: AIProviderConfig,
+    messages: ChatMessage[],
+  ): Promise<Record<string, unknown>> {
+    const prompt = messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+
+    const response = await fetch(
+      `${BACKEND_URL}/api/v1/internal/agent-execute`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: config.userId,
+          messages,
+          prompt,
+          timeout: 30_000,
+        }),
+        signal: AbortSignal.timeout(60000),
+      },
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Agent API error (${response.status}): ${text}`);
+    }
+
+    const data = (await response.json()) as {
+      status?: string;
+      message?: string;
+      data?: unknown;
+    };
+
+    if (data.status === "error" || data.status === "failure") {
+      throw new Error(data.message || "Agent execution failed");
+    }
+
+    const content =
+      data.message ||
+      (data.data
+        ? typeof data.data === "string"
+          ? data.data
+          : JSON.stringify(data.data)
+        : "");
+
+    if (!content) {
+      return { result: content };
+    }
+
+    try {
+      return JSON.parse(content) as Record<string, unknown>;
+    } catch {
+      return { result: content };
+    }
+  }
+
   async streamExecute(
     config: AIProviderConfig,
     messages: ChatMessage[],
     onChunk: (chunk: StreamChunk) => void,
   ): Promise<Record<string, unknown>> {
+    if (config.userId) {
+      const result = await this.executeViaAgent(config, messages);
+      onChunk({ type: "text", text: JSON.stringify(result) });
+      onChunk({ type: "done" });
+      return result;
+    }
+
     const baseUrl = (config.baseUrl || "http://127.0.0.1:18789").replace(
       /\/+$/,
       "",

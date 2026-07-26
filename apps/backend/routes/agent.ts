@@ -52,16 +52,19 @@ agentRouter.post("/user/agent-token", authMiddleware, async (req, res) => {
 });
 
 agentRouter.post("/internal/agent-execute", async (req, res) => {
-  const { userId, prompt, tools, context, timeout } = req.body as {
+  const { userId, prompt, messages, tools, context, timeout } = req.body as {
     userId?: string;
     prompt?: string;
+    messages?: Array<{ role: string; content: string }>;
     tools?: string[];
     context?: Record<string, unknown>;
     timeout?: number;
   };
 
-  if (!userId || !prompt) {
-    res.status(400).json({ error: "userId and prompt are required" });
+  if (!userId || (!prompt && !messages)) {
+    res
+      .status(400)
+      .json({ error: "userId and prompt or messages are required" });
     return;
   }
 
@@ -77,7 +80,14 @@ agentRouter.post("/internal/agent-execute", async (req, res) => {
   const sent = sendToAgent(agent.id, {
     id: crypto.randomUUID(),
     type: "EXECUTE_AI",
-    payload: { jobId, prompt, tools, context, timeout: timeout ?? 30_000 },
+    payload: {
+      jobId,
+      prompt,
+      messages,
+      tools,
+      context,
+      timeout: timeout ?? 30_000,
+    },
   });
 
   if (!sent) {

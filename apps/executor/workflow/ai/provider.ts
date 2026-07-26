@@ -6,6 +6,7 @@ export interface AIProviderConfig {
   baseUrl?: string;
   temperature?: number;
   maxTokens?: number;
+  userId?: string;
 }
 
 export type StreamChunk = {

@@ -102,6 +102,7 @@ export async function runtimeExecute(
       baseUrl: providerName === "openclaw" ? metadata.openclawUrl : undefined,
       temperature: metadata.temperature,
       maxTokens: metadata.maxTokens,
+      userId: providerName === "openclaw" ? context.userId : undefined,
     },
     messages,
     tools,

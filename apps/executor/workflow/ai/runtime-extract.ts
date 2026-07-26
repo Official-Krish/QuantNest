@@ -92,6 +92,7 @@ Output valid JSON with exactly these keys. Set a field to null if it cannot be d
       baseUrl: providerName === "openclaw" ? metadata.openclawUrl : undefined,
       temperature: metadata.temperature,
       maxTokens: metadata.maxTokens,
+      userId: providerName === "openclaw" ? context.userId : undefined,
     },
     messages,
   );

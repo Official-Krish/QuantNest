@@ -93,6 +93,7 @@ services:
       NODE_ENV: production
       MONGO_URL: mongodb://quantnest:quantnest_dev_password@mongodb:27017/quantnest?authSource=admin
       REDIS_HOST: redis
+      QUANTNEST_BACKEND_URL: http://backend:3000
     depends_on:
       mongodb:
         condition: service_healthy

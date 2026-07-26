@@ -310,18 +310,19 @@ async function handleVerifyCredentials(payload: Record<string, unknown>) {
 // ── AI execution ─────────────────────────────────────────
 
 async function handleExecuteAi(payload: Record<string, unknown>) {
-  const { jobId, prompt, tools, timeout } = payload as {
+  const { jobId, prompt, messages, tools, timeout } = payload as {
     jobId?: string;
     prompt?: string;
+    messages?: Array<{ role: string; content: string }>;
     tools?: string[];
     timeout?: number;
   };
-  if (!jobId || !prompt) return;
+  if (!jobId || (!prompt && !messages)) return;
 
   try {
     const openclawPayload: Record<string, unknown> = {
       model: "quantnest",
-      messages: [{ role: "user", content: prompt }],
+      messages: messages ?? [{ role: "user", content: prompt ?? "" }],
     };
     if (tools?.length) openclawPayload.tools = tools;
 

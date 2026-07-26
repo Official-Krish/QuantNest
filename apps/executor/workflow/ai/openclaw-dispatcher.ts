@@ -3,15 +3,8 @@ import type { ExecutionContext } from "../execute.context";
 import type { ExecutionStep } from "@quantnest-trading/types";
 import { shouldSkipActionByCondition } from "../execute.context";
 
-interface OpenAIChoice {
-  message: { content: string | null };
-  finish_reason: string;
-}
-
-interface OpenAIResponse {
-  choices: OpenAIChoice[];
-  error?: { message: string };
-}
+const BACKEND_URL =
+  process.env.QUANTNEST_BACKEND_URL || "http://localhost:3000";
 
 export async function dispatchActionToOpenClaw(params: {
   node: NodeType;
@@ -26,19 +19,6 @@ export async function dispatchActionToOpenClaw(params: {
     shouldSkipActionByCondition(nextCondition, node.data?.metadata?.condition)
   ) {
     return false;
-  }
-
-  const baseUrl = (context.openclawUrl || "http://127.0.0.1:18789").replace(
-    /\/+$/,
-    "",
-  );
-  const url = `${baseUrl}/v1/chat/completions`;
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (context.openclawToken) {
-    headers["Authorization"] = `Bearer ${context.openclawToken}`;
   }
 
   const actionType = node.type || "unknown";
@@ -79,23 +59,23 @@ ${JSON.stringify(
   2,
 )}`;
 
-  const body: Record<string, unknown> = {
-    model: "openclaw/default",
-    messages: [
-      { role: "system", content: systemMessage },
-      { role: "user", content: userMessage },
-    ],
-    temperature: 0.1,
-    max_tokens: 1024,
-  };
+  const messages = [
+    { role: "system" as const, content: systemMessage },
+    { role: "user" as const, content: userMessage },
+  ];
+  const prompt = `${systemMessage}\n\n${userMessage}`;
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetch(`${BACKEND_URL}/api/v1/internal/agent-execute`, {
       method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: context.userId,
+        prompt,
+        timeout: 30_000,
+      }),
+      signal: AbortSignal.timeout(60000),
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -104,7 +84,7 @@ ${JSON.stringify(
       nodeId: node.nodeId || node.id,
       nodeType: actionType,
       status: "Failed",
-      message: `OpenClaw dispatch failed: ${message}`,
+      message: `Agent dispatch failed: ${message}`,
       terminalFailure: true,
     });
     return true;
@@ -122,48 +102,61 @@ ${JSON.stringify(
       nodeId: node.nodeId || node.id,
       nodeType: actionType,
       status: "Failed",
-      message: `OpenClaw API error (${response.status}): ${text}`,
+      message: `Agent API error (${response.status}): ${text}`,
       terminalFailure: false,
     });
     return true;
   }
 
-  let data: OpenAIResponse;
+  let data: { status?: string; message?: string; data?: unknown };
   try {
-    data = (await response.json()) as OpenAIResponse;
+    data = (await response.json()) as {
+      status?: string;
+      message?: string;
+      data?: unknown;
+    };
   } catch {
     steps.push({
       step: steps.length + 1,
       nodeId: node.nodeId || node.id,
       nodeType: actionType,
       status: "Failed",
-      message: "OpenClaw returned invalid JSON",
+      message: "Agent returned invalid JSON",
       terminalFailure: false,
     });
     return true;
   }
 
-  if (data.error) {
+  if (data.status === "error" || data.status === "failure") {
     steps.push({
       step: steps.length + 1,
       nodeId: node.nodeId || node.id,
       nodeType: actionType,
       status: "Failed",
-      message: `OpenClaw error: ${data.error.message}`,
+      message: data.message || "Action failed on agent",
       terminalFailure: false,
     });
     return true;
   }
 
-  const content = data.choices?.[0]?.message?.content;
+  const content =
+    data.message ||
+    (data.data
+      ? typeof data.data === "string"
+        ? data.data
+        : JSON.stringify(data.data)
+      : "");
+
   if (!content) {
     steps.push({
       step: steps.length + 1,
       nodeId: node.nodeId || node.id,
       nodeType: actionType,
-      status: "Failed",
-      message: "OpenClaw returned empty content",
-      terminalFailure: false,
+      status: "Success",
+      message: "Action executed via agent",
+      attempt: 1,
+      maxAttempts: 1,
+      terminalFailure: true,
     });
     return true;
   }
