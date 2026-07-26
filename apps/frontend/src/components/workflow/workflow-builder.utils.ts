@@ -37,15 +37,11 @@ export function buildWorkflowSnapshot(params: {
   edges: EdgeType[];
   executionMode?: "live" | "dry-run";
   useOpenClaw?: boolean;
-  openclawUrl?: string;
-  openclawToken?: string;
 }) {
   return JSON.stringify({
     workflowName: params.workflowName.trim(),
     executionMode: params.executionMode || "live",
     useOpenClaw: params.useOpenClaw ?? false,
-    openclawUrl: params.openclawUrl ?? "",
-    openclawToken: params.openclawToken ?? "",
     nodes: params.nodes.map(normalizeNodeForCompare),
     edges: params.edges.map(normalizeEdgeForCompare),
   });
@@ -189,8 +185,6 @@ export function normalizeWorkflowForBuilder(workflow: Workflow) {
     executionMode: workflow.executionMode || "live",
     marketType: workflow.marketType || "Indian",
     useOpenClaw: workflow.useOpenClaw ?? false,
-    openclawUrl: workflow.openclawUrl ?? "",
-    openclawToken: workflow.openclawToken ?? "",
   };
 }
 

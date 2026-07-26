@@ -838,3 +838,22 @@ export async function apiDeleteMemory(
   );
   return { message: res.data.message };
 }
+
+export interface AgentInfo {
+  id: string;
+  version: string;
+  os: string;
+  hostname: string;
+  capabilities: string[];
+  connectedAt: string;
+}
+
+export interface VerifyAgentResponse {
+  connected: boolean;
+  agents: AgentInfo[];
+}
+
+export async function apiVerifyAgent(): Promise<VerifyAgentResponse> {
+  const res = await api.post<VerifyAgentResponse>("/verify-agent");
+  return res.data;
+}

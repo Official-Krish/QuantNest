@@ -124,8 +124,6 @@ export interface Workflow {
   status?: "active" | "paused";
   marketType?: "Indian" | "Crypto";
   useOpenClaw?: boolean;
-  openclawUrl?: string;
-  openclawToken?: string;
 }
 
 export interface WorkflowPreviewSnapshotEntry {

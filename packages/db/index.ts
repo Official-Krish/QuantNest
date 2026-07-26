@@ -343,14 +343,6 @@ const WorkflowSchema = new Schema({
     type: Boolean,
     default: false,
   },
-  openclawUrl: {
-    type: String,
-    default: "",
-  },
-  openclawToken: {
-    type: String,
-    default: "",
-  },
   nextRunAt: {
     type: Date,
     required: false,

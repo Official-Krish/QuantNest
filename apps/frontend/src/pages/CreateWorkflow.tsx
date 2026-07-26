@@ -18,6 +18,7 @@ import {
   apiGetWorkflow,
   apiVerifyBrokerCredentials,
   apiUpdateWorkflow,
+  apiVerifyAgent,
 } from "@/http";
 import { Button } from "@/components/ui/button";
 import { OrangeButton } from "@/components/ui/button-orange";
@@ -73,10 +74,15 @@ export const CreateWorkflow = () => {
     "live",
   );
   const [useOpenClaw, setUseOpenClaw] = useState(false);
-  const [openclawUrl, setOpenclawUrl] = useState("https://127.0.0.1:18789");
-  const [openclawToken, setOpenclawToken] = useState("");
   const [openclawChoiceLocked, setOpenclawChoiceLocked] = useState(false);
   const [showOpenClawDialog, setShowOpenClawDialog] = useState(false);
+  const [agentConnected, setAgentConnected] = useState(false);
+  const [agentInfo, setAgentInfo] = useState<{
+    hostname: string;
+    version: string;
+    capabilities: string[];
+  } | null>(null);
+  const [agentLoading, setAgentLoading] = useState(false);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(
     null,
   );
@@ -222,16 +228,12 @@ export const CreateWorkflow = () => {
             edges: normalizedWorkflow.edges,
             executionMode: normalizedWorkflow.executionMode,
             useOpenClaw: normalizedWorkflow.useOpenClaw,
-            openclawUrl: normalizedWorkflow.openclawUrl,
-            openclawToken: normalizedWorkflow.openclawToken,
           }),
         );
         setExecutionMode(
           (normalizedWorkflow.executionMode || "live") as "live" | "dry-run",
         );
         setUseOpenClaw(normalizedWorkflow.useOpenClaw || false);
-        setOpenclawUrl(normalizedWorkflow.openclawUrl || "");
-        setOpenclawToken(normalizedWorkflow.openclawToken || "");
         setOpenclawChoiceLocked(true);
       } catch (e: any) {
         setSaveError(
@@ -308,7 +310,7 @@ export const CreateWorkflow = () => {
   const canSave = useMemo(() => {
     if (nodes.length === 0 || loading) return false;
     if (workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH) return false;
-    if (useOpenClaw && !openclawUrl.trim()) return false;
+    if (useOpenClaw && !agentConnected) return false;
     if (!workflowId) return true;
 
     return (
@@ -318,8 +320,6 @@ export const CreateWorkflow = () => {
         edges,
         executionMode,
         useOpenClaw,
-        openclawUrl,
-        openclawToken,
       }) !== lastSavedSnapshot
     );
   }, [
@@ -328,8 +328,7 @@ export const CreateWorkflow = () => {
     workflowName,
     executionMode,
     useOpenClaw,
-    openclawUrl,
-    openclawToken,
+    agentConnected,
     workflowId,
     loading,
     lastSavedSnapshot,
@@ -374,8 +373,6 @@ export const CreateWorkflow = () => {
         edges,
         executionMode,
         useOpenClaw,
-        openclawUrl: useOpenClaw ? openclawUrl : "",
-        openclawToken: useOpenClaw ? openclawToken : "",
       };
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
@@ -393,8 +390,6 @@ export const CreateWorkflow = () => {
             edges,
             executionMode,
             useOpenClaw,
-            openclawUrl,
-            openclawToken,
           }),
         );
         toast.success("Workflow updated successfully");
@@ -423,8 +418,6 @@ export const CreateWorkflow = () => {
     workflowName,
     executionMode,
     useOpenClaw,
-    openclawUrl,
-    openclawToken,
     navigate,
   ]);
 
@@ -514,10 +507,39 @@ export const CreateWorkflow = () => {
     setAiBuilderContext(null);
     setActiveAiVersionId("");
     setUseOpenClaw(false);
-    setOpenclawUrl("https://127.0.0.1:18789");
-    setOpenclawToken("");
     setOpenclawChoiceLocked(false);
   }, []);
+
+  useEffect(() => {
+    if (!useOpenClaw) {
+      setAgentConnected(false);
+      setAgentInfo(null);
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      setAgentLoading(true);
+      try {
+        const resp = await apiVerifyAgent();
+        if (cancelled) return;
+        setAgentConnected(resp.connected);
+        setAgentInfo(resp.agents[0] || null);
+      } catch {
+        if (!cancelled) {
+          setAgentConnected(false);
+          setAgentInfo(null);
+        }
+      } finally {
+        if (!cancelled) setAgentLoading(false);
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [useOpenClaw]);
 
   const resetWorkflowBuilder = useCallback(() => {
     setShowResetDialog(true);
@@ -625,19 +647,39 @@ export const CreateWorkflow = () => {
                 </div>
                 {useOpenClaw && (
                   <div className="mt-2 flex items-center gap-2">
-                    <input
-                      value={openclawUrl}
-                      onChange={(e) => setOpenclawUrl(e.target.value)}
-                      placeholder="http://127.0.0.1:18789"
-                      className="h-8 w-64 rounded-lg border border-neutral-800 bg-neutral-950 px-2.5 text-xs text-neutral-100 placeholder-neutral-500 outline-none focus:border-orange-500/50"
-                    />
-                    <input
-                      type="password"
-                      value={openclawToken}
-                      onChange={(e) => setOpenclawToken(e.target.value)}
-                      placeholder="Gateway token (optional)"
-                      className="h-8 w-48 rounded-lg border border-neutral-800 bg-neutral-950 px-2.5 text-xs text-neutral-100 placeholder-neutral-500 outline-none focus:border-orange-500/50"
-                    />
+                    {agentLoading ? (
+                      <span className="h-8 flex items-center text-xs text-neutral-400">
+                        Checking agent connection...
+                      </span>
+                    ) : agentConnected ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-1.5">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                        <span className="text-xs text-emerald-300">
+                          Agent connected
+                        </span>
+                        {agentInfo && (
+                          <span className="ml-2 text-xs text-neutral-500">
+                            {agentInfo.hostname} v{agentInfo.version}
+                            {agentInfo.capabilities.length > 0 &&
+                              ` • ${agentInfo.capabilities.length} capabilities`}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-1.5">
+                        <span className="h-2 w-2 rounded-full bg-red-400" />
+                        <span className="text-xs text-red-300">
+                          Agent not connected
+                        </span>
+                        <span className="ml-1 text-xs text-neutral-500">
+                          Run{" "}
+                          <code className="rounded bg-neutral-800 px-1 py-0.5 font-mono text-neutral-300">
+                            quantnest
+                          </code>{" "}
+                          to start
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {saveError && (
@@ -911,30 +953,21 @@ export const CreateWorkflow = () => {
               </button>
               {useOpenClaw && (
                 <div className="space-y-2 pt-2">
-                  <input
-                    value={openclawUrl}
-                    onChange={(e) => setOpenclawUrl(e.target.value)}
-                    placeholder="OpenClaw URL (e.g. http://127.0.0.1:18789)"
-                    className="h-9 w-full rounded-lg border border-neutral-800 bg-neutral-950 px-2.5 text-xs text-neutral-100 placeholder-neutral-500 outline-none focus:border-orange-500/50"
-                  />
-                  <input
-                    type="password"
-                    value={openclawToken}
-                    onChange={(e) => setOpenclawToken(e.target.value)}
-                    placeholder="Gateway token (optional)"
-                    className="h-9 w-full rounded-lg border border-neutral-800 bg-neutral-950 px-2.5 text-xs text-neutral-100 placeholder-neutral-500 outline-none focus:border-orange-500/50"
-                  />
+                  <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-3 py-2.5 text-xs text-neutral-300">
+                    The QuantNest Agent runs locally and connects via WebSocket.
+                    No URL or token needed.
+                    <br />
+                    Install:{" "}
+                    <code className="rounded bg-neutral-800 px-1 py-0.5 font-mono text-neutral-200">
+                      npm install -g @quantnest/agent
+                    </code>
+                  </div>
                 </div>
               )}
             </div>
             <DialogFooter>
               <Button
-                className={`cursor-pointer ${
-                  useOpenClaw && !openclawUrl.trim()
-                    ? "bg-neutral-700 text-neutral-400"
-                    : "bg-white text-neutral-900 hover:bg-gray-200"
-                }`}
-                disabled={useOpenClaw && !openclawUrl.trim()}
+                className={`cursor-pointer ${"bg-white text-neutral-900 hover:bg-gray-200"}`}
                 onClick={() => handleOpenClawConfirm(useOpenClaw)}
               >
                 Confirm

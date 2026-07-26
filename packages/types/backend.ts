@@ -847,8 +847,6 @@ export const CreateWorkflowSchema = z
     edges: z.array(WorkflowEdgeSchema),
     executionMode: z.enum(["live", "dry-run"]).optional(),
     useOpenClaw: z.boolean().optional(),
-    openclawUrl: z.string().optional(),
-    openclawToken: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     validateWorkflowNodes(data.nodes, ctx);
@@ -860,8 +858,6 @@ export const UpdateWorkflowSchema = z
     edges: z.array(WorkflowEdgeSchema),
     executionMode: z.enum(["live", "dry-run"]).optional(),
     useOpenClaw: z.boolean().optional(),
-    openclawUrl: z.string().optional(),
-    openclawToken: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     validateWorkflowNodes(data.nodes, ctx);

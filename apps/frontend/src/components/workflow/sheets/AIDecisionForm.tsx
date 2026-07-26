@@ -135,31 +135,12 @@ export const AIDecisionForm = ({
       {(metadata.provider as string) === "openclaw" && (
         <div className="space-y-3 rounded-xl border border-orange-500/20 bg-orange-500/5 p-3">
           <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-orange-400">
-            <Globe className="h-3 w-3" /> OpenClaw Connection
+            <Globe className="h-3 w-3" /> Local Agent
           </p>
-          <div className="space-y-2">
-            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500">
-              Gateway URL
-            </p>
-            <Input
-              value={(metadata.openclawUrl as string) ?? ""}
-              onChange={(e) => set("openclawUrl", e.target.value)}
-              className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-              placeholder="http://127.0.0.1:18789"
-            />
-          </div>
-          <div className="space-y-2">
-            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500">
-              Gateway Token (optional)
-            </p>
-            <Input
-              type="password"
-              value={(metadata.openclawToken as string) ?? ""}
-              onChange={(e) => set("openclawToken", e.target.value)}
-              className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-              placeholder="openclaw gateway token"
-            />
-          </div>
+          <p className="text-xs text-neutral-400">
+            Execution routes through your local QuantNest Agent via WebSocket.
+            No URL or token needed.
+          </p>
         </div>
       )}
 
