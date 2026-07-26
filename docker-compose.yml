@@ -46,6 +46,7 @@ services:
     container_name: quantnest-backend
     ports:
       - "3000:3000"
+      - "9000:9000"
     environment:
       NODE_ENV: production
       MONGO_URL: mongodb://quantnest:quantnest_dev_password@mongodb:27017/quantnest?authSource=admin

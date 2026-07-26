@@ -1,7 +1,19 @@
 import { execSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import fs from "node:fs/promises";
+import { resolve } from "node:path";
 import { spinner } from "@clack/prompts";
 
 const OPENCLAWS_BASE = "http://127.0.0.1:18789";
+
+const DEFAULT_PLUGIN_URL =
+  "https://cdn.krishlabs.tech/quantnest/plugins/v0.1.0/quantnest-openclaw-plugin-0.1.0.tgz";
+
+const LOCAL_PATHS = [
+  resolve(process.cwd(), "..", "..", "plugins", "openclaw-quantnest"),
+  resolve(process.cwd(), "..", "plugins", "openclaw-quantnest"),
+  resolve(process.cwd(), "plugins", "openclaw-quantnest"),
+];
 
 function commandExists(cmd: string): boolean {
   try {
@@ -16,10 +28,15 @@ function commandExists(cmd: string): boolean {
   }
 }
 
-export async function ensureOpenclaw(): Promise<boolean> {
-  if (commandExists("openclaw")) {
-    return true;
+function findLocalPlugin(): string | null {
+  for (const p of LOCAL_PATHS) {
+    if (existsSync(resolve(p, "openclaw.plugin.json"))) return p;
   }
+  return null;
+}
+
+export async function ensureOpenclaw(): Promise<boolean> {
+  if (commandExists("openclaw")) return true;
 
   const s = spinner();
   s.start("OpenClaw not found. Installing...");
@@ -41,14 +58,13 @@ export async function ensureOpenclaw(): Promise<boolean> {
 }
 
 export async function ensureOpenclawGateway(): Promise<boolean> {
-  // check if already running
   try {
     const res = await fetch(`${OPENCLAWS_BASE}/v1/models`, {
       signal: AbortSignal.timeout(2000),
     });
     if (res.ok) return true;
   } catch {
-    // not running
+    /* not running */
   }
 
   const s = spinner();
@@ -62,7 +78,6 @@ export async function ensureOpenclawGateway(): Promise<boolean> {
       timeout: 10_000,
     });
 
-    // wait for gateway to be ready
     for (let i = 0; i < 30; i++) {
       await sleep(1000);
       try {
@@ -74,7 +89,7 @@ export async function ensureOpenclawGateway(): Promise<boolean> {
           return true;
         }
       } catch {
-        // still starting
+        /* still starting */
       }
     }
 
@@ -83,6 +98,62 @@ export async function ensureOpenclawGateway(): Promise<boolean> {
   } catch (err) {
     s.stop(
       `Failed to start OpenClaw: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return false;
+  }
+}
+
+export async function ensureQuantnestPlugin(): Promise<boolean> {
+  const s = spinner();
+
+  // Try local path first (development / monorepo)
+  const local = findLocalPlugin();
+  if (local) {
+    s.start("Installing QuantNest plugin (local)...");
+    try {
+      execSync(`openclaw plugins install "${local}" --force`, {
+        encoding: "utf-8",
+        stdio: "pipe",
+        shell: "bash",
+        timeout: 30_000,
+      });
+      s.stop("QuantNest plugin installed");
+      return true;
+    } catch (err) {
+      s.stop(
+        `Local plugin install failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return false;
+    }
+  }
+
+  // Download plugin from S3/CDN
+  const pluginUrl = process.env.QUANTNEST_PLUGIN_URL ?? DEFAULT_PLUGIN_URL;
+  s.start("Downloading QuantNest plugin...");
+
+  try {
+    const res = await fetch(pluginUrl, { signal: AbortSignal.timeout(60_000) });
+    if (!res.ok) throw new Error(`Download failed (${res.status})`);
+
+    const tmpFile = `/tmp/quantnest-plugin-${Date.now()}.tgz`;
+    const buffer = Buffer.from(await res.arrayBuffer());
+    await fs.writeFile(tmpFile, buffer);
+
+    s.message("Installing QuantNest plugin...");
+
+    execSync(`openclaw plugins install npm-pack:${tmpFile} --force`, {
+      encoding: "utf-8",
+      stdio: "pipe",
+      shell: "bash",
+      timeout: 60_000,
+    });
+
+    await fs.unlink(tmpFile).catch(() => {});
+    s.stop("QuantNest plugin installed");
+    return true;
+  } catch (err) {
+    s.stop(
+      `Failed to install plugin: ${err instanceof Error ? err.message : String(err)}`,
     );
     return false;
   }

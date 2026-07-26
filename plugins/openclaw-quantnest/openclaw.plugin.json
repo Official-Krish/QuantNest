@@ -1,0 +1,35 @@
+{
+  "id": "quantnest",
+  "name": "QuantNest Trading",
+  "description": "Multi-broker trading tools for Zerodha, Groww, Jupiter, and Lighter",
+  "version": "0.1.0",
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "quantnest_zerodha_get_positions",
+      "quantnest_zerodha_place_order",
+      "quantnest_groww_get_portfolio",
+      "quantnest_groww_place_order",
+      "quantnest_jupiter_get_quote",
+      "quantnest_jupiter_swap",
+      "quantnest_lighter_execute"
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "brokers": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

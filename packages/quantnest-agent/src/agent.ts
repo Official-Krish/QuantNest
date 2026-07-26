@@ -152,6 +152,71 @@ const BROKER_SCHEMAS: Record<string, BrokerField[]> = {
   ],
 };
 
+async function verifyBrokerLocally(
+  broker: string,
+  creds: Record<string, string>,
+): Promise<string | null> {
+  try {
+    switch (broker) {
+      case "zerodha": {
+        const { KiteConnect } = await import("kiteconnect");
+        const apiKey = creds["apiKey"] ?? "";
+        const accessToken = creds["accessToken"] ?? "";
+        const kc = new KiteConnect({ api_key: apiKey });
+        (kc as any).setAccessToken(accessToken);
+        await kc.getPositions();
+        return null;
+      }
+      case "groww": {
+        const res = await fetch(
+          "https://api.groww.in/v1/api/auth/login/validate",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clientId: creds["clientId"],
+              clientSecret: creds["clientSecret"],
+            }),
+            signal: AbortSignal.timeout(10_000),
+          },
+        );
+        return res.ok ? null : `Groww returned ${res.status}`;
+      }
+      case "jupiter": {
+        const { Connection, Keypair } = await import("@solana/web3.js");
+        const rpcUrl = creds["rpcUrl"] ?? "";
+        const walletPrivateKey = creds["walletPrivateKey"] ?? "";
+        const connection = new Connection(rpcUrl, {
+          commitment: "confirmed",
+        });
+        const secretKey = Uint8Array.from(
+          walletPrivateKey.split(",").map(Number),
+        );
+        const keypair = Keypair.fromSecretKey(secretKey);
+        const balance = await connection.getBalance(keypair.publicKey);
+        if (balance === undefined) return "Could not fetch wallet balance";
+        return null;
+      }
+      case "lighter": {
+        const apiKey = creds["apiKey"] ?? "";
+        const secretKey = creds["secretKey"] ?? "";
+        const res = await fetch("https://api.lighter.trade/v1/account", {
+          headers: {
+            "X-API-Key": apiKey,
+            "X-Secret-Key": secretKey,
+          },
+          signal: AbortSignal.timeout(10_000),
+        });
+        return res.ok ? null : `Lighter returned ${res.status}`;
+      }
+      default:
+        return `Unknown broker: ${broker}`;
+    }
+  } catch (err) {
+    return `${broker}: ${err instanceof Error ? err.message : "Verification error"}`;
+  }
+}
+
 async function collectBrokerCreds(
   workflowId: string,
   brokers: string[],
@@ -209,32 +274,9 @@ async function collectBrokerCreds(
     }
   }
 
-  // verify locally via OpenClaw
   for (const [broker, creds] of Object.entries(result)) {
-    try {
-      const verifyRes = await fetch(
-        `${OPENCLAWS_BASE}/v1/plugins/quantnest/verify`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ broker, credentials: creds }),
-          signal: AbortSignal.timeout(10_000),
-        },
-      );
-      if (!verifyRes.ok) {
-        const body = (await verifyRes.json().catch(() => ({}))) as Record<
-          string,
-          unknown
-        >;
-        errors.push(
-          `${broker}: ${(body.message as string) ?? "Verification failed"}`,
-        );
-      }
-    } catch (err) {
-      errors.push(
-        `${broker}: ${err instanceof Error ? err.message : "Verification error"}`,
-      );
-    }
+    const error = await verifyBrokerLocally(broker, creds);
+    if (error) errors.push(error);
   }
 
   const verified = errors.length === 0;
@@ -587,7 +629,7 @@ function sleep(ms: number) {
 
 // ── Node version check ───────────────────────────────────
 
-const REQUIRED_NODE = "v22.17.0";
+const REQUIRED_NODE = "v24.16.0";
 
 function ensureNodeVersion(): void {
   const current = process.version;

@@ -75,7 +75,8 @@ const handlers = {
         break;
       }
 
-      case "EXECUTE_AI_RESULT": {
+      case "EXECUTE_AI_RESULT":
+      case "VERIFY_CREDENTIALS_RESULT": {
         const payload = msg.payload as
           | {
               jobId?: string;

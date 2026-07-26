@@ -17,7 +17,11 @@ import {
 import { login } from "./login";
 import { configure } from "./configure";
 import { startAgent, stopAgent } from "./agent";
-import { ensureOpenclaw, ensureOpenclawGateway } from "./install";
+import {
+  ensureOpenclaw,
+  ensureOpenclawGateway,
+  ensureQuantnestPlugin,
+} from "./install";
 
 async function main() {
   const cmd = process.argv[2];
@@ -44,8 +48,31 @@ async function main() {
       );
       process.exit(1);
     }
+    const pluginInstalled = await ensureQuantnestPlugin();
+    if (!pluginInstalled) {
+      log.warn(
+        "QuantNest plugin not installed. Broker tools will be unavailable.",
+      );
+    }
     outro("Starting agent...");
-    await startAgent();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await startAgent();
+        return;
+      } catch (err) {
+        if (
+          attempt === 0 &&
+          err instanceof Error &&
+          err.message.includes("Session expired")
+        ) {
+          log.info("Session expired. Let's log in again.");
+          await login();
+          outro("Restarting agent...");
+          continue;
+        }
+        throw err;
+      }
+    }
     return;
   }
 

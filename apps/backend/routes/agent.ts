@@ -96,4 +96,52 @@ agentRouter.post("/internal/agent-execute", async (req, res) => {
   }
 });
 
+agentRouter.post("/verify-workflow-creds", authMiddleware, async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const { workflowId, brokers } = req.body as {
+    workflowId?: string;
+    brokers?: string[];
+  };
+
+  if (!workflowId || !brokers?.length) {
+    res.status(400).json({ error: "workflowId and brokers are required" });
+    return;
+  }
+
+  const agent = agentRegistry.pickForUser(userId);
+  if (!agent) {
+    res.status(400).json({ error: "No agent online for this user" });
+    return;
+  }
+
+  const jobId = crypto.randomUUID();
+  const resultPromise = pendingRequests.create(jobId, 120_000);
+
+  const sent = sendToAgent(agent.id, {
+    id: crypto.randomUUID(),
+    type: "VERIFY_CREDENTIALS",
+    payload: { jobId, workflowId, brokers },
+  });
+
+  if (!sent) {
+    pendingRequests.reject(jobId, new Error("Failed to send to agent"));
+    res.status(500).json({ error: "Failed to send to agent" });
+    return;
+  }
+
+  try {
+    const result = await resultPromise;
+    res.status(200).json(result);
+  } catch (err: any) {
+    res
+      .status(408)
+      .json({ error: err?.message ?? "Credential verification timed out" });
+  }
+});
+
 export default agentRouter;

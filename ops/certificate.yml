@@ -29,6 +29,20 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
+  name: quantnest-ws-cert
+  namespace: quantnest
+spec:
+  secretName: quantnest-ws-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: ws.quantnest.krishlabs.tech
+  dnsNames:
+  - ws.quantnest.krishlabs.tech
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
   name: quantnest-ai-builder-cert
   namespace: quantnest
 spec:

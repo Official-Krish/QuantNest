@@ -1,0 +1,28 @@
+{
+  "name": "@quantnest/openclaw-plugin",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "files": [
+    "dist",
+    "openclaw.plugin.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "plugin:build": "npm run build && openclaw plugins build --entry ./dist/index.js",
+    "plugin:validate": "npm run build && openclaw plugins validate --entry ./dist/index.js"
+  },
+  "dependencies": {
+    "typebox": "^1.1.38",
+    "kiteconnect": "^5.1.0",
+    "@solana/web3.js": "^1.98.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.3.24-beta.2"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  }
+}

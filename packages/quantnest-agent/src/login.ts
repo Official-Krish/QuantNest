@@ -1,7 +1,8 @@
 import { text, password, spinner, log, cancel, isCancel } from "@clack/prompts";
 import { readCredentials, writeCredentials } from "./credentials";
 
-const API_BASE = process.env.QUANTNEST_API_URL || "http://localhost:3000";
+const API_BASE =
+  process.env.QUANTNEST_API_URL || "https://api.quantnest.krishlabs.tech";
 
 export async function login() {
   const existing = readCredentials();
@@ -91,7 +92,8 @@ export async function login() {
       accessToken,
       refreshToken,
       apiUrl: API_BASE,
-      wsUrl: process.env.QUANTNEST_WS_URL || "ws://localhost:9000",
+      wsUrl:
+        process.env.QUANTNEST_WS_URL || "wss://ws.quantnest.krishlabs.tech",
     });
 
     s.stop("Signed in successfully");

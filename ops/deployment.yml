@@ -93,6 +93,8 @@ spec:
 
           ports:
             - containerPort: 3000
+            - containerPort: 9000
+              name: ws
 
           resources:
             requests:

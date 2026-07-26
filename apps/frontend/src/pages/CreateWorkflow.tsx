@@ -957,9 +957,11 @@ export const CreateWorkflow = () => {
                     The QuantNest Agent runs locally and connects via WebSocket.
                     No URL or token needed.
                     <br />
-                    Install:{" "}
+                    Run:{" "}
                     <code className="rounded bg-neutral-800 px-1 py-0.5 font-mono text-neutral-200">
-                      npm install -g @quantnest/agent
+                      curl -sL
+                      https://cdn.krishlabs.tech/quantnest/agent/v0.1.0/dist/index.js
+                      | node
                     </code>
                   </div>
                 </div>
