@@ -954,15 +954,55 @@ export const CreateWorkflow = () => {
               {useOpenClaw && (
                 <div className="space-y-2 pt-2">
                   <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-3 py-2.5 text-xs text-neutral-300">
-                    The QuantNest Agent runs locally and connects via WebSocket.
-                    No URL or token needed.
-                    <br />
-                    Run:{" "}
-                    <code className="rounded bg-neutral-800 px-1 py-0.5 font-mono text-neutral-200">
-                      curl -sL
-                      https://cdn.krishlabs.tech/quantnest/agent/v0.1.0/dist/index.js
-                      | node
-                    </code>
+                    <p>
+                      The QuantNest Agent runs locally and connects via
+                      WebSocket. No URL or token needed.
+                    </p>
+                    <p className="mt-2 text-neutral-400">Run</p>
+                    <div className="mt-1 flex items-stretch gap-0">
+                      <code className="flex-1 rounded-l bg-neutral-800 px-2.5 py-1.5 font-mono text-xs text-neutral-200 leading-relaxed break-all">
+                        curl -sL
+                        https://cdn.krishlabs.tech/quantnest/agent/v0.1.0/dist/index.js
+                        | node
+                      </code>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(
+                              "curl -sL https://cdn.krishlabs.tech/quantnest/agent/v0.1.0/dist/index.js | node",
+                            );
+                            toast.success("Copied to clipboard");
+                          } catch {
+                            toast.error("Failed to copy");
+                          }
+                        }}
+                        className="flex items-center rounded-r bg-neutral-800 px-2.5 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 transition-colors border-l border-neutral-700"
+                        title="Copy command"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect
+                            width="14"
+                            height="14"
+                            x="8"
+                            y="8"
+                            rx="2"
+                            ry="2"
+                          />
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
