@@ -2,6 +2,7 @@ import type { NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 import type { ExecutionStep } from "@quantnest-trading/types";
 import { shouldSkipActionByCondition } from "../execute.context";
+import { generateInternalToken } from "../../utils/internal-auth";
 
 const BACKEND_URL =
   process.env.QUANTNEST_BACKEND_URL || "http://localhost:3000";
@@ -67,9 +68,13 @@ ${JSON.stringify(
 
   let response: Response;
   try {
+    const token = generateInternalToken(context.userId);
     response = await fetch(`${BACKEND_URL}/api/v1/internal/agent-execute`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         userId: context.userId,
         prompt,

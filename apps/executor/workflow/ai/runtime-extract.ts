@@ -87,9 +87,14 @@ Output valid JSON with exactly these keys. Set a field to null if it cannot be d
   const raw = await provider.execute(
     {
       apiKey:
-        providerName === "openclaw" ? metadata.openclawToken : resolvedApiKey,
+        providerName === "openclaw"
+          ? (rawMetadata.openclawToken as string) || ""
+          : resolvedApiKey,
       model: providerName === "openclaw" ? "openclaw/default" : metadata.model,
-      baseUrl: providerName === "openclaw" ? metadata.openclawUrl : undefined,
+      baseUrl:
+        providerName === "openclaw"
+          ? (rawMetadata.openclawUrl as string)
+          : undefined,
       temperature: metadata.temperature,
       maxTokens: metadata.maxTokens,
       userId: providerName === "openclaw" ? context.userId : undefined,

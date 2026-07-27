@@ -94,6 +94,7 @@ services:
       MONGO_URL: mongodb://quantnest:quantnest_dev_password@mongodb:27017/quantnest?authSource=admin
       REDIS_HOST: redis
       QUANTNEST_BACKEND_URL: http://backend:3000
+      AI_SERVICE_JWT_SECRET: ${AI_SERVICE_JWT_SECRET}
     depends_on:
       mongodb:
         condition: service_healthy

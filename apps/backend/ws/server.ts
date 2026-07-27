@@ -136,7 +136,13 @@ const handlers = {
 
   close(ws: ServerWebSocket<WsData>) {
     if (ws.data.pingTimer) clearInterval(ws.data.pingTimer);
-    if (ws.data.agentId) agentRegistry.unregister(ws.data.agentId);
+    if (ws.data.agentId) {
+      agentRegistry.unregister(ws.data.agentId);
+      pendingRequests.rejectByAgent(
+        ws.data.agentId,
+        new Error("Agent disconnected"),
+      );
+    }
   },
 
   drain(ws: ServerWebSocket<WsData>) {

@@ -5,6 +5,8 @@ import type {
   StreamChunk,
 } from "./provider";
 
+import { generateInternalToken } from "../../utils/internal-auth";
+
 const BACKEND_URL =
   process.env.QUANTNEST_BACKEND_URL || "http://localhost:3000";
 
@@ -95,11 +97,15 @@ export class OpenClawProvider implements AIProvider {
   ): Promise<Record<string, unknown>> {
     const prompt = messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
 
+    const token = generateInternalToken(config.userId);
     const response = await fetch(
       `${BACKEND_URL}/api/v1/internal/agent-execute`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           userId: config.userId,
           messages,

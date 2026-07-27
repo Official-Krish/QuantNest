@@ -1,6 +1,6 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { authMiddleware } from "../middleware";
+import { authMiddleware, internalAuthMiddleware } from "../middleware";
 import { getJwtSecret } from "../utils/security";
 import { agentRegistry } from "../ws/agentRegistry";
 import { pendingRequests } from "../ws/pendingRequests";
@@ -51,60 +51,68 @@ agentRouter.post("/user/agent-token", authMiddleware, async (req, res) => {
   }
 });
 
-agentRouter.post("/internal/agent-execute", async (req, res) => {
-  const { userId, prompt, messages, tools, context, timeout } = req.body as {
-    userId?: string;
-    prompt?: string;
-    messages?: Array<{ role: string; content: string }>;
-    tools?: string[];
-    context?: Record<string, unknown>;
-    timeout?: number;
-  };
+agentRouter.post(
+  "/internal/agent-execute",
+  internalAuthMiddleware,
+  async (req, res) => {
+    const { userId, prompt, messages, tools, context, timeout } = req.body as {
+      userId?: string;
+      prompt?: string;
+      messages?: Array<{ role: string; content: string }>;
+      tools?: string[];
+      context?: Record<string, unknown>;
+      timeout?: number;
+    };
 
-  if (!userId || (!prompt && !messages)) {
-    res
-      .status(400)
-      .json({ error: "userId and prompt or messages are required" });
-    return;
-  }
+    if (!userId || (!prompt && !messages)) {
+      res
+        .status(400)
+        .json({ error: "userId and prompt or messages are required" });
+      return;
+    }
 
-  const agent = agentRegistry.pickForUser(userId);
-  if (!agent) {
-    res.status(400).json({ error: "No agent online for this user" });
-    return;
-  }
+    const agent = agentRegistry.pickForUser(userId);
+    if (!agent) {
+      res.status(400).json({ error: "No agent online for this user" });
+      return;
+    }
 
-  const jobId = crypto.randomUUID();
-  const resultPromise = pendingRequests.create(jobId, timeout ?? 30_000);
-
-  const sent = sendToAgent(agent.id, {
-    id: crypto.randomUUID(),
-    type: "EXECUTE_AI",
-    payload: {
+    const jobId = crypto.randomUUID();
+    const resultPromise = pendingRequests.create(
       jobId,
-      prompt,
-      messages,
-      tools,
-      context,
-      timeout: timeout ?? 30_000,
-    },
-  });
+      timeout ?? 30_000,
+      agent.id,
+    );
 
-  if (!sent) {
-    pendingRequests.reject(jobId, new Error("Failed to send to agent"));
-    res.status(500).json({ error: "Failed to send to agent" });
-    return;
-  }
+    const sent = sendToAgent(agent.id, {
+      id: crypto.randomUUID(),
+      type: "EXECUTE_AI",
+      payload: {
+        jobId,
+        prompt,
+        messages,
+        tools,
+        context,
+        timeout: timeout ?? 30_000,
+      },
+    });
 
-  try {
-    const result = await resultPromise;
-    res.status(200).json(result);
-  } catch (err: any) {
-    res
-      .status(408)
-      .json({ error: err?.message ?? "Agent execution timed out" });
-  }
-});
+    if (!sent) {
+      pendingRequests.reject(jobId, new Error("Failed to send to agent"));
+      res.status(500).json({ error: "Failed to send to agent" });
+      return;
+    }
+
+    try {
+      const result = await resultPromise;
+      res.status(200).json(result);
+    } catch (err: any) {
+      res
+        .status(408)
+        .json({ error: err?.message ?? "Agent execution timed out" });
+    }
+  },
+);
 
 agentRouter.post("/verify-workflow-creds", authMiddleware, async (req, res) => {
   const userId = req.userId;
