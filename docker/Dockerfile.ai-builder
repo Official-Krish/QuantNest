@@ -17,6 +17,10 @@ COPY packages/node-registry/ packages/node-registry/
 COPY packages/plan-guards/ packages/plan-guards/
 COPY packages/types/ packages/types/
 
+# Build backend
+WORKDIR /app/apps/ai-builder
+RUN bun run build
+
 FROM oven/bun:1 AS runtime
 
 WORKDIR /app/apps/ai-builder
@@ -29,4 +33,4 @@ COPY --from=builder /app/packages /app/packages
 
 EXPOSE 3001
 
-CMD ["bun", "index.ts"]
+CMD ["bun", "dist/index.js"]

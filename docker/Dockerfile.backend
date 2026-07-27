@@ -2,7 +2,9 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
+# Install dependencies (cached)
 COPY package.json bun.lock turbo.json ./
+
 COPY apps/backend/package.json apps/backend/package.json
 COPY packages/db/package.json packages/db/package.json
 COPY packages/market/package.json packages/market/package.json
@@ -14,6 +16,7 @@ COPY packages/redis/package.json packages/redis/package.json
 
 RUN bun install
 
+# Copy source
 COPY apps/backend/ apps/backend/
 COPY packages/db/ packages/db/
 COPY packages/market/ packages/market/
@@ -23,16 +26,25 @@ COPY packages/types/ packages/types/
 COPY packages/executor-utils/ packages/executor-utils/
 COPY packages/redis/ packages/redis/
 
+# Build backend
+WORKDIR /app/apps/backend
+RUN bun run build
+
+
 FROM oven/bun:1 AS runtime
 
 WORKDIR /app/apps/backend
 
 ENV NODE_ENV=production
 
+# Runtime dependencies
 COPY --from=builder /app/node_modules /app/node_modules
-COPY --from=builder /app/apps/backend /app/apps/backend
-COPY --from=builder /app/packages /app/packages
+
+# Compiled output only
+COPY --from=builder /app/apps/backend/dist ./dist
+
+USER bun
 
 EXPOSE 3000
 
-CMD ["bun", "index.ts"]
+CMD ["bun", "dist/index.js"]
