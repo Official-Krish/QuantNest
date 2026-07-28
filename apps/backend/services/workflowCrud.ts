@@ -2,6 +2,7 @@ import {
   ExecutionModel,
   ExecutionTraceModel,
   WorkflowModel,
+  AgentEventModel,
 } from "@quantnest-trading/db/client";
 import {
   createUserNotification,
@@ -158,7 +159,41 @@ export async function listExecutionsForWorkflow(
   userId: string | undefined,
   workflowId: string,
 ) {
-  return ExecutionModel.find({ workflowId, userId }).sort({ startTime: -1 });
+  const [executions, agentEvents] = await Promise.all([
+    ExecutionModel.find({ workflowId, userId }).sort({ startTime: -1 }).lean(),
+    AgentEventModel.find({ workflowId, userId, type: "EXECUTE_AI" })
+      .sort({ createdAt: -1 })
+      .lean(),
+  ]);
+
+  const mapped = agentEvents.map((e) => ({
+    _id: (e.jobId ?? e._id.toString()) as string,
+    workflowId: (e.workflowId?.toString() ?? workflowId) as string,
+    userId: (e.userId?.toString() ?? userId ?? "") as string,
+    status: e.status === "success" ? ("Success" as const) : ("Failed" as const),
+    executionMode: "live" as const,
+    steps: [
+      {
+        step: 1,
+        nodeId: "openclaw-ai",
+        nodeType: "OpenClaw AI",
+        status: (e.status === "success" ? "Success" : "Failed") as
+          | "Success"
+          | "Failed",
+        message: e.error ?? "Completed",
+      },
+    ],
+    startTime: e.createdAt.toISOString(),
+    endTime: e.duration
+      ? new Date(e.createdAt.getTime() + e.duration).toISOString()
+      : undefined,
+  }));
+
+  const merged = [...executions, ...mapped].sort(
+    (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
+  );
+
+  return merged;
 }
 
 export async function deleteWorkflowForUser(

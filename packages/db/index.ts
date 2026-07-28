@@ -1038,6 +1038,25 @@ const AiExecutionLogSchema = new Schema({
 AiExecutionLogSchema.index({ workflowId: 1, createdAt: -1 });
 AiExecutionLogSchema.index({ userId: 1, createdAt: -1 });
 
+const AgentEventSchema = new Schema({
+  userId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Users",
+    required: true,
+    index: true,
+  },
+  workflowId: { type: mongoose.Types.ObjectId, ref: "Workflows", index: true },
+  type: { type: String, required: true },
+  jobId: { type: String },
+  status: { type: String },
+  duration: { type: Number },
+  error: { type: String },
+  metadata: { type: Schema.Types.Mixed },
+  createdAt: { type: Date, default: Date.now },
+});
+AgentEventSchema.index({ workflowId: 1, createdAt: -1 });
+AgentEventSchema.index({ userId: 1, createdAt: -1 });
+
 export const ExecutionTraceModel = mongoose.model(
   "ExecutionTraces",
   ExecutionTraceSchema,
@@ -1084,3 +1103,4 @@ export const ApprovalRequestModel = mongoose.model(
   ApprovalRequestSchema,
 );
 export const AiMemoryModel = mongoose.model("AiMemories", AiMemorySchema);
+export const AgentEventModel = mongoose.model("AgentEvents", AgentEventSchema);

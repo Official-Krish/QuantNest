@@ -6,6 +6,7 @@ import { agentRegistry } from "./agentRegistry";
 import type { WsData } from "./agentRegistry";
 import { pendingRequests } from "./pendingRequests";
 import crypto from "crypto";
+import { AgentEventModel } from "@quantnest-trading/db/client";
 
 const PING_INTERVAL = 30_000;
 const WS_PORT = 9000;
@@ -119,6 +120,26 @@ const handlers = {
               (agent as any).openclawVersion = payload.openclawVersion;
             }
           }
+        }
+        break;
+      }
+
+      case "AUDIT_EVENT": {
+        const p = msg.payload as Record<string, unknown> | undefined;
+        if (p && p.type) {
+          AgentEventModel.create({
+            userId: ws.data.userId,
+            workflowId: (p.workflowId as string) || undefined,
+            type: p.type as string,
+            jobId: (p.jobId as string) || undefined,
+            status: (p.status as string) || undefined,
+            duration: (p.duration as number) || undefined,
+            error: (p.error as string) || undefined,
+            metadata: (p.metadata as Record<string, unknown>) || undefined,
+            createdAt: (p.timestamp as string)
+              ? new Date(p.timestamp as string)
+              : new Date(),
+          }).catch((err) => console.error("AUDIT_EVENT save error:", err));
         }
         break;
       }

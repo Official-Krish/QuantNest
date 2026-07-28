@@ -26,6 +26,7 @@ import {
   uninstallEverything,
 } from "./install";
 import { runWizard } from "./wizard";
+import { queryAudit, clearAudit } from "./audit";
 
 async function main() {
   const cmd = process.argv[2];
@@ -121,6 +122,57 @@ async function main() {
       log.success("Disconnected");
       break;
 
+    case "log": {
+      const args = process.argv.slice(3);
+      if (args.includes("--clear")) {
+        clearAudit();
+        log.success("Audit log cleared");
+        return;
+      }
+      const typeFilter = args.find((a) => !a.startsWith("-"));
+      const entries = queryAudit({
+        tail: true,
+        limit: 50,
+        type: typeFilter,
+      });
+      if (entries.length === 0) {
+        log.info("No audit entries found");
+        return;
+      }
+      console.log("");
+      for (const e of entries) {
+        const ts = e.timestamp.slice(0, 19).replace("T", " ");
+        const icon =
+          e.type === "EXECUTE_AI"
+            ? color.cyan("▶")
+            : e.type === "VERIFY_CREDENTIALS"
+              ? color.yellow("🔑")
+              : e.type === "AGENT_CONNECT"
+                ? color.green("↑")
+                : e.type === "AGENT_DISCONNECT"
+                  ? color.red("↓")
+                  : color.dim("•");
+        const tag = e.type.padEnd(20);
+        const st =
+          e.status === "success"
+            ? color.green("✔")
+            : e.status === "error"
+              ? color.red("✘")
+              : color.dim("–");
+        console.log(
+          `  ${icon} ${color.dim(ts)} ${tag} ${st}` +
+            (e.workflowId ? ` ${color.dim(e.workflowId)}` : "") +
+            (e.error ? ` ${color.red(e.error.slice(0, 80))}` : ""),
+        );
+      }
+      console.log(
+        color.dim(
+          `\n  ${entries.length} entries. Use --clear to purge. Filter by type: quantnest log EXECUTE_AI`,
+        ),
+      );
+      break;
+    }
+
     case "uninstall":
       stopAgent();
       await uninstallEverything();
@@ -152,6 +204,11 @@ async function main() {
       );
       console.log(
         "    " + color.cyan("status") + "     Show current login state",
+      );
+      console.log(
+        "    " +
+          color.cyan("log") +
+          "        Show audit trail (--clear to purge)",
       );
       console.log(
         "    " + color.cyan("logout") + "     Clear all stored credentials",
