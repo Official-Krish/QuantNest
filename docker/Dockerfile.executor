@@ -1,4 +1,4 @@
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ RUN find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests
     true
 
 
-FROM oven/bun:1-alpine AS runtime
+FROM oven/bun:1 AS runtime
 
 WORKDIR /app/apps/executor
 
@@ -55,7 +55,5 @@ COPY --from=builder /app/node_modules /app/node_modules
 
 # Compiled output only
 COPY --from=builder /app/apps/executor/dist ./dist
-
-USER bun
 
 CMD ["bun", "dist/index.js"]
