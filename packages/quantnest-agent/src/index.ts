@@ -13,6 +13,8 @@ import {
   readCredentials,
   clearCredentials,
   clearAllWorkflowCreds,
+  isFirstRun,
+  markFirstRunComplete,
 } from "./credentials";
 import { login } from "./login";
 import { configure } from "./configure";
@@ -21,7 +23,9 @@ import {
   ensureOpenclaw,
   ensureOpenclawGateway,
   ensureQuantnestPlugin,
+  uninstallEverything,
 } from "./install";
+import { runWizard } from "./wizard";
 
 async function main() {
   const cmd = process.argv[2];
@@ -57,7 +61,12 @@ async function main() {
     outro("Starting agent...");
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        await startAgent();
+        await startAgent(async () => {
+          if (isFirstRun()) {
+            await runWizard();
+            markFirstRunComplete();
+          }
+        });
         return;
       } catch (err) {
         if (
@@ -112,6 +121,12 @@ async function main() {
       log.success("Disconnected");
       break;
 
+    case "uninstall":
+      stopAgent();
+      await uninstallEverything();
+      log.success("QuantNest Agent fully uninstalled");
+      break;
+
     case "logout":
       clearCredentials();
       clearAllWorkflowCreds();
@@ -140,6 +155,11 @@ async function main() {
       );
       console.log(
         "    " + color.cyan("logout") + "     Clear all stored credentials",
+      );
+      console.log(
+        "    " +
+          color.cyan("uninstall") +
+          "  Remove everything — agent, OpenClaw, config",
       );
       console.log("    " + color.cyan("--help") + "     Show this help");
       console.log("");

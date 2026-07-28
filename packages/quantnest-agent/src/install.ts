@@ -1,8 +1,11 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { rmSync } from "node:fs";
 import fs from "node:fs/promises";
 import { resolve } from "node:path";
 import { spinner } from "@clack/prompts";
+
+const CONFIG_DIR = `${process.env.HOME || "/tmp"}/.quantnest`;
 
 const OPENCLAWS_BASE = "http://127.0.0.1:18789";
 
@@ -157,6 +160,64 @@ export async function ensureQuantnestPlugin(): Promise<boolean> {
     );
     return false;
   }
+}
+
+export async function uninstallEverything(): Promise<void> {
+  const s = spinner();
+
+  s.start("Stopping OpenClaw gateway...");
+  try {
+    execSync("openclaw stop", {
+      encoding: "utf-8",
+      stdio: "pipe",
+      shell: "bash",
+      timeout: 10_000,
+    });
+  } catch {
+    /* ignore */
+  }
+  s.stop("OpenClaw gateway stopped");
+
+  s.start("Removing QuantNest plugin...");
+  try {
+    execSync("openclaw plugins remove @quantnest/quantnest-openclaw-plugin", {
+      encoding: "utf-8",
+      stdio: "pipe",
+      shell: "bash",
+      timeout: 15_000,
+    });
+  } catch {
+    /* ignore */
+  }
+  s.stop("QuantNest plugin removed");
+
+  s.start("Uninstalling OpenClaw...");
+  try {
+    execSync("npm uninstall -g openclaw", {
+      encoding: "utf-8",
+      stdio: "pipe",
+      shell: "bash",
+      timeout: 30_000,
+    });
+  } catch {
+    /* ignore */
+  }
+  s.stop("OpenClaw uninstalled");
+
+  s.start("Removing QuantNest config...");
+  rmSync(CONFIG_DIR, { recursive: true, force: true });
+  s.stop("Config directory removed");
+
+  s.start("Cleaning cache...");
+  try {
+    rmSync(`${process.env.HOME || "/tmp"}/Library/Caches/quantnest`, {
+      recursive: true,
+      force: true,
+    });
+  } catch {
+    /* ignore */
+  }
+  s.stop("Cache cleaned");
 }
 
 function sleep(ms: number) {

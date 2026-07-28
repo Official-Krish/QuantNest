@@ -662,7 +662,7 @@ function ensureNodeVersion(): void {
 
 // ── Public API ───────────────────────────────────────────
 
-export async function startAgent() {
+export async function startAgent(onReady?: () => Promise<void>) {
   ensureNodeVersion();
 
   const creds = readCredentials();
@@ -682,6 +682,11 @@ export async function startAgent() {
       `Failed to connect: ${err instanceof Error ? err.message : String(err)}`,
     );
     process.exit(1);
+  }
+
+  if (onReady) {
+    await waitForConnection();
+    await onReady();
   }
 
   renderTui(getStatus);
@@ -723,6 +728,18 @@ export async function startAgent() {
       console.log("\nAgent stopped.");
       resolve();
     });
+  });
+}
+
+function waitForConnection(): Promise<void> {
+  return new Promise((resolve) => {
+    if (status.connected) return resolve();
+    const check = setInterval(() => {
+      if (status.connected) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 100);
   });
 }
 
