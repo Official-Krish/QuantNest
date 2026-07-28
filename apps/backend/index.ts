@@ -13,6 +13,8 @@ import workFlowRouter from "./routes/workflow";
 import examplesRouter from "./routes/examples";
 import ZerodhaTokenRouter from "./routes/token";
 import onchainRouter from "./routes/onchain";
+import aiRuntimeRouter from "./routes/ai-runtime";
+import agentRouter from "./routes/agent";
 import { getMarketStatus } from "@quantnest-trading/executor-utils";
 import { getAllMarketAssets, getMarketAssets } from "@quantnest-trading/market";
 import { connectMongoWithRetry } from "@quantnest-trading/db/client";
@@ -22,7 +24,6 @@ import { idempotencyMiddleware } from "./middleware/idempotency";
 const app = express();
 app.set("trust proxy", 1);
 
-// Security headers
 app.use(helmet());
 
 app.use(
@@ -32,16 +33,13 @@ app.use(
   }),
 );
 
-// Body parsing with size limit
 app.use(express.json({ limit: "100kb" }));
 
-// HTTP parameter pollution protection
 app.use(hpp());
 
 const cookieSecret = process.env.COOKIE_SECRET || crypto.randomUUID();
 app.use(cookieParser(cookieSecret));
 
-// CSRF protection — require custom header on mutating requests
 app.use((req, res, next) => {
   if (
     req.method === "GET" ||
@@ -60,7 +58,6 @@ app.use((req, res, next) => {
   res.status(403).json({ message: "CSRF validation failed" });
 });
 
-// Rate limiting
 const limiter = rateLimit({
   windowMs: 60 * 1000,
   max: 100,
@@ -69,7 +66,6 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Slow down after 40 requests in 1 minute
 const speedLimiter = slowDown({
   windowMs: 60 * 1000,
   delayAfter: 40,
@@ -87,7 +83,6 @@ const authLimiter = rateLimit({
 app.use("/api/v1/user/signin", authLimiter);
 app.use("/api/v1/user/signup", authLimiter);
 
-// Idempotency middleware
 app.use(idempotencyMiddleware);
 
 void connectMongoWithRetry({ serviceName: "backend" });
@@ -100,6 +95,8 @@ app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/zerodha-token", ZerodhaTokenRouter);
 app.use("/api/v1/examples", examplesRouter);
 app.use("/api/v1/onchain", onchainRouter);
+app.use("/api/v1/ai/runtime", aiRuntimeRouter);
+app.use("/api/v1", agentRouter);
 
 const handleMarketStatus = async (
   req: express.Request,
@@ -156,3 +153,6 @@ app.get("/api/v1/market/assets", handleMarketAssets);
 app.listen(3000, () => {
   console.log("Server is running on port 3000");
 });
+
+// Start WebSocket server on port 9000
+await import("./ws/server");

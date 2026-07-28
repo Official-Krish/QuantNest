@@ -1,4 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
+import { ServiceLogo } from "@/components/workflow/service-branding";
 
 export const solanaSwapAction = ({
   data,
@@ -17,6 +18,7 @@ export const solanaSwapAction = ({
     <div className="min-w-57.5 rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#99f6e4] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#99f6e4]">
+          <ServiceLogo service="solana-swap" size={14} />
           Solana Swap
         </span>
         <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">

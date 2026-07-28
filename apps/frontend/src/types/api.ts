@@ -123,6 +123,7 @@ export interface Workflow {
   updatedAt?: Date;
   status?: "active" | "paused";
   marketType?: "Indian" | "Crypto";
+  useOpenClaw?: boolean;
 }
 
 export interface WorkflowPreviewSnapshotEntry {

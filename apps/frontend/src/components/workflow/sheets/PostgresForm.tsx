@@ -4,30 +4,42 @@ import { ReliabilitySection } from "./ReliabilitySection";
 interface PostgresFormProps {
   metadata: any;
   setMetadata: React.Dispatch<React.SetStateAction<any>>;
+  useOpenClaw?: boolean;
 }
 
-export const PostgresForm = ({ metadata, setMetadata }: PostgresFormProps) => {
+export const PostgresForm = ({
+  metadata,
+  setMetadata,
+  useOpenClaw,
+}: PostgresFormProps) => {
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Connection String
-        </p>
-        <p className="text-xs text-neutral-400">
-          PostgreSQL connection string (e.g., postgres://user:pass@localhost:5432/dbname)
-        </p>
-        <Input
-          value={metadata.connectionString || ""}
-          onChange={(e) =>
-            setMetadata((current: any) => ({
-              ...current,
-              connectionString: e.target.value,
-            }))
-          }
-          className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-          placeholder="postgres://user:password@host:5432/database"
-        />
-      </div>
+      {useOpenClaw ? (
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs text-orange-200">
+          Credentials are managed by your local OpenClaw instance.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+            Connection String
+          </p>
+          <p className="text-xs text-neutral-400">
+            PostgreSQL connection string (e.g.,
+            postgres://user:pass@localhost:5432/dbname)
+          </p>
+          <Input
+            value={metadata.connectionString || ""}
+            onChange={(e) =>
+              setMetadata((current: any) => ({
+                ...current,
+                connectionString: e.target.value,
+              }))
+            }
+            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+            placeholder="postgres://user:password@host:5432/database"
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
@@ -55,7 +67,8 @@ export const PostgresForm = ({ metadata, setMetadata }: PostgresFormProps) => {
           JSON Payload (Optional)
         </p>
         <p className="text-xs text-neutral-400">
-          Additional data to include with each row (will be merged with execution context)
+          Additional data to include with each row (will be merged with
+          execution context)
         </p>
         <Input
           value={metadata.jsonPayload || ""}

@@ -55,6 +55,7 @@ export const REUSABLE_SECRET_SERVICES = [
   "notion-daily-report",
   "google-drive-daily-csv",
   "solana",
+  "openai",
 ] as const;
 
 export type ReusableSecretService = (typeof REUSABLE_SECRET_SERVICES)[number];
@@ -338,6 +339,10 @@ const WorkflowSchema = new Schema({
     type: Schema.Types.Mixed,
     required: false,
   },
+  useOpenClaw: {
+    type: Boolean,
+    default: false,
+  },
   nextRunAt: {
     type: Date,
     required: false,
@@ -397,7 +402,7 @@ const ExrcutionStepSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["Success", "Failed"],
+      enum: ["Success", "Failed", "PendingApproval"],
       required: true,
     },
     message: {
@@ -443,6 +448,73 @@ const ExrcutionStepSchema = new Schema(
   },
 );
 
+const ApprovalRequestSchema = new Schema({
+  userId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Users",
+    required: true,
+  },
+  workflowId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Workflows",
+    required: true,
+  },
+  nodeId: {
+    type: String,
+    required: true,
+  },
+  executionId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Executions",
+    required: false,
+  },
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected", "expired"],
+    default: "pending",
+    required: true,
+  },
+  nodeType: {
+    type: String,
+    required: true,
+  },
+  prompt: {
+    type: String,
+    required: true,
+  },
+  proposedAction: {
+    type: Schema.Types.Mixed,
+    default: {},
+  },
+  metadata: {
+    type: Schema.Types.Mixed,
+    default: {},
+  },
+  approvedAt: {
+    type: Date,
+    required: false,
+  },
+  rejectedAt: {
+    type: Date,
+    required: false,
+  },
+  expiresAt: {
+    type: Date,
+    required: false,
+  },
+  dedupeKey: {
+    type: String,
+    required: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+ApprovalRequestSchema.index({ userId: 1, status: 1, createdAt: -1 });
+ApprovalRequestSchema.index({ workflowId: 1, status: 1 });
+
 const ExecutionSchema = new Schema({
   workflowId: {
     type: mongoose.Types.ObjectId,
@@ -456,7 +528,7 @@ const ExecutionSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ["Success", "Failed", "InProgress"],
+    enum: ["Success", "Failed", "InProgress", "PendingApproval"],
     required: true,
   },
   executionMode: {
@@ -869,6 +941,103 @@ UserReusableSecretSchema.index(
   { unique: true },
 );
 
+const AiMemorySchema = new Schema(
+  {
+    userId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Users",
+      required: true,
+    },
+    workflowId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Workflows",
+      required: true,
+    },
+    nodeId: {
+      type: String,
+      required: true,
+    },
+    key: {
+      type: String,
+      required: true,
+      default: "default",
+    },
+    value: {
+      type: Schema.Types.Mixed,
+      required: true,
+    },
+    ttl: {
+      type: Date,
+      required: false,
+    },
+  },
+  { timestamps: true },
+);
+
+AiMemorySchema.index(
+  { userId: 1, workflowId: 1, nodeId: 1, key: 1 },
+  { unique: true },
+);
+AiMemorySchema.index({ ttl: 1 }, { expireAfterSeconds: 0 });
+
+const AiRoleSchema = new Schema({
+  userId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Users",
+    required: false,
+    index: true,
+  },
+  name: { type: String, required: true, trim: true },
+  description: { type: String, required: false },
+  prompt: { type: String, required: true },
+  isBuiltin: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+const AiExecutionLogSchema = new Schema({
+  userId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Users",
+    required: true,
+    index: true,
+  },
+  workflowId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Workflows",
+    required: true,
+    index: true,
+  },
+  executionId: {
+    type: mongoose.Types.ObjectId,
+    ref: "Executions",
+    required: true,
+    index: true,
+  },
+  nodeId: { type: String, required: true },
+  model: { type: String, required: true },
+  provider: { type: String, required: true, default: "openai" },
+  promptTokens: { type: Number, required: false },
+  completionTokens: { type: Number, required: false },
+  totalTokens: { type: Number, required: false },
+  costUsd: { type: Number, required: false },
+  durationMs: { type: Number, required: false },
+  decision: { type: String, required: true },
+  confidence: { type: Number, required: true },
+  reason: { type: String, required: false },
+  fullResult: { type: Schema.Types.Mixed, required: false },
+  status: {
+    type: String,
+    enum: ["success", "failed"],
+    required: true,
+  },
+  errorMessage: { type: String, required: false },
+  createdAt: { type: Date, default: Date.now },
+});
+
+AiExecutionLogSchema.index({ workflowId: 1, createdAt: -1 });
+AiExecutionLogSchema.index({ userId: 1, createdAt: -1 });
+
 export const ExecutionTraceModel = mongoose.model(
   "ExecutionTraces",
   ExecutionTraceSchema,
@@ -905,3 +1074,13 @@ export const RefreshTokenModel = mongoose.model(
   "RefreshTokens",
   RefreshTokenSchema,
 );
+export const AiRoleModel = mongoose.model("AiRoles", AiRoleSchema);
+export const AiExecutionLogModel = mongoose.model(
+  "AiExecutionLogs",
+  AiExecutionLogSchema,
+);
+export const ApprovalRequestModel = mongoose.model(
+  "ApprovalRequests",
+  ApprovalRequestSchema,
+);
+export const AiMemoryModel = mongoose.model("AiMemories", AiMemorySchema);

@@ -2,6 +2,7 @@ import type { BuilderPanelGroup } from "@quantnest-trading/node-registry";
 import type { ComponentType } from "react";
 import {
   Bell,
+  Brain,
   Clock3,
   Database,
   FileText,
@@ -63,6 +64,13 @@ export const ACTION_GROUP_OPTIONS: Array<{
     icon: Wallet,
     toneClassName: "text-[#99f6e4]",
   },
+  {
+    id: "AI" as BuilderPanelGroup,
+    title: "AI",
+    description: "Add AI-powered decision nodes to your workflow.",
+    icon: Brain,
+    toneClassName: "text-violet-400",
+  },
 ];
 
 export const ACTION_STEP_TITLES: Record<BuilderPanelGroup, string> = {
@@ -72,6 +80,7 @@ export const ACTION_STEP_TITLES: Record<BuilderPanelGroup, string> = {
   Data: "Select data action",
   Reporting: "Select reporting action",
   "On-chain": "Select Solana action",
+  AI: "Select AI node",
 };
 
 export const FLOW_CONTROL_STEP_OPTIONS: Record<

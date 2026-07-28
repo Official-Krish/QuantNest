@@ -9,6 +9,7 @@ import {
   MessageSquare,
   Play,
   Search,
+  ShieldAlert,
   Timer,
   Zap,
 } from "lucide-react";
@@ -39,6 +40,8 @@ function getStatusIcon(status: string) {
       return <AlertCircle className="h-3.5 w-3.5 text-red-400" />;
     case "InProgress":
       return <Hourglass className="h-3.5 w-3.5 animate-spin text-blue-400" />;
+    case "PendingApproval":
+      return <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />;
     default:
       return <Clock3 className="h-3.5 w-3.5 text-zinc-500" />;
   }
@@ -58,6 +61,8 @@ function getStatusBadgeStyle(status: string): string {
       return "border-red-500/40 bg-red-500/10 text-red-400";
     case "InProgress":
       return "border-blue-500/40 bg-blue-500/10 text-blue-400";
+    case "PendingApproval":
+      return "border-amber-500/40 bg-amber-500/10 text-amber-400";
     default:
       return "border-zinc-600/40 bg-zinc-800/50 text-zinc-400";
   }
@@ -71,6 +76,8 @@ function getExecutionDotColor(status: string): string {
       return "bg-red-400";
     case "InProgress":
       return "bg-blue-400";
+    case "PendingApproval":
+      return "bg-amber-400";
     default:
       return "bg-zinc-600";
   }
@@ -165,22 +172,32 @@ export const ExecutionHistory = ({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           {/* Status filters */}
           <div className="inline-flex flex-nowrap gap-1.5 overflow-x-auto">
-            {(["All", "Success", "Failed", "InProgress"] as const).map(
-              (status) => (
-                <button
-                  key={status}
-                  type="button"
-                  onClick={() => onStatusFilterChange(status)}
-                  className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-all ${
-                    statusFilter === status
-                      ? "border-white/25 bg-white/10 text-white"
-                      : "border-white/[0.07] bg-transparent text-zinc-500 hover:border-white/15 hover:text-zinc-300"
-                  }`}
-                >
-                  {status === "InProgress" ? "In Progress" : status}
-                </button>
-              ),
-            )}
+            {(
+              [
+                "All",
+                "Success",
+                "Failed",
+                "InProgress",
+                "PendingApproval",
+              ] as const
+            ).map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => onStatusFilterChange(status)}
+                className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-all ${
+                  statusFilter === status
+                    ? "border-white/25 bg-white/10 text-white"
+                    : "border-white/[0.07] bg-transparent text-zinc-500 hover:border-white/15 hover:text-zinc-300"
+                }`}
+              >
+                {status === "InProgress"
+                  ? "In Progress"
+                  : status === "PendingApproval"
+                    ? "Pending"
+                    : status}
+              </button>
+            ))}
           </div>
 
           {/* Date + search */}

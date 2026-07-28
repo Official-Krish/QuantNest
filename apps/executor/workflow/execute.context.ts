@@ -17,6 +17,9 @@ export interface ExecutionContext {
     | "Short";
   userId?: string;
   workflowId?: string;
+  useOpenClaw?: boolean;
+  openclawUrl?: string;
+  openclawToken?: string;
   trace?: {
     triggerSnapshot?: TriggerEvaluationSnapshot;
     nodeEntries: ExecutionTraceNodeEntry[];
@@ -31,6 +34,7 @@ export interface ExecutionContext {
     tradeType?: "buy" | "sell";
     failureReason?: string;
     reason?: string;
+    ai?: Record<string, unknown>;
     aiContext?: {
       triggerType?: string;
       marketType?: "Indian" | "Crypto";

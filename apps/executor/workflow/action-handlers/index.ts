@@ -15,6 +15,10 @@ import {
 import { zerodhaHandler, growwHandler, lighterHandler } from "./trading";
 import { postgresHandler } from "./database";
 import { solanaSwapHandler } from "./solana";
+import { aiDecisionHandler } from "./ai-decision";
+import { aiClassifyHandler } from "./ai-classify";
+import { aiExtractHandler } from "./ai-extract";
+import { aiGenerateHandler } from "./ai-generate";
 
 export const actionHandlerFactory = new ActionHandlerFactory();
 
@@ -38,6 +42,10 @@ register(googleDriveHandler);
 register(googleSheetsHandler);
 register(postgresHandler);
 register(solanaSwapHandler);
+register(aiDecisionHandler);
+register(aiClassifyHandler);
+register(aiExtractHandler);
+register(aiGenerateHandler);
 
 export type {
   ActionHandler,

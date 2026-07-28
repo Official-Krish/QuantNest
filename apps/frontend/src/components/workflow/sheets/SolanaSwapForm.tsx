@@ -36,9 +36,14 @@ function deriveAddress(privateKeyBase58: string): string | null {
 interface SolanaSwapFormProps {
   metadata: Record<string, unknown>;
   setMetadata: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  useOpenClaw?: boolean;
 }
 
-export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
+export function SolanaSwapForm({
+  metadata,
+  setMetadata,
+  useOpenClaw,
+}: SolanaSwapFormProps) {
   const hasSecret = Boolean(String(metadata.secretId || "").trim());
   const secretId = (metadata.secretId as string) || "";
   const privateKey = (metadata.privateKey as string) || "";
@@ -143,25 +148,31 @@ export function SolanaSwapForm({ metadata, setMetadata }: SolanaSwapFormProps) {
         Network:{" "}
         <span className="font-semibold text-neutral-200">Mainnet Beta</span>
       </div>
-      <ReusableSecretPicker
-        service="solana"
-        secretId={metadata.secretId as string | undefined}
-        helperText="Select a saved Solana wallet from Profile > Secrets, or leave empty to enter a private key one-time."
-        onSelectSecret={(secretId) =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId,
-          }))
-        }
-        onClearSecret={() =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId: undefined,
-          }))
-        }
-      />
+      {useOpenClaw ? (
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs text-orange-200">
+          Credentials are managed by your local OpenClaw instance.
+        </div>
+      ) : (
+        <ReusableSecretPicker
+          service="solana"
+          secretId={metadata.secretId as string | undefined}
+          helperText="Select a saved Solana wallet from Profile > Secrets, or leave empty to enter a private key one-time."
+          onSelectSecret={(secretId) =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId,
+            }))
+          }
+          onClearSecret={() =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId: undefined,
+            }))
+          }
+        />
+      )}
 
-      {!hasSecret && (
+      {!useOpenClaw && !hasSecret && (
         <div className="space-y-2">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
             Private Key (one-time)

@@ -19,6 +19,8 @@ import { Examples } from "./pages/Examples";
 import { Algorithms } from "./pages/Algorithms";
 import { AiStrategyChatBuilder } from "./pages/AiStrategyChatBuilder";
 import { BillingUsage } from "./pages/BillingUsage";
+import { Approvals } from "./pages/Approvals";
+import { Memories } from "./pages/Memories";
 import { MAINTENANCE_EVENT, isMaintenanceMode } from "./http";
 
 function MaintenanceGuard({ children }: { children: React.ReactNode }) {
@@ -194,6 +196,26 @@ export function App() {
           <MaintenanceGuard>
             <ProtectedRoute>
               <Executions />
+            </ProtectedRoute>
+          </MaintenanceGuard>
+        }
+      />
+      <Route
+        path="/approvals"
+        element={
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <Approvals />
+            </ProtectedRoute>
+          </MaintenanceGuard>
+        }
+      />
+      <Route
+        path="/memories"
+        element={
+          <MaintenanceGuard>
+            <ProtectedRoute>
+              <Memories />
             </ProtectedRoute>
           </MaintenanceGuard>
         }

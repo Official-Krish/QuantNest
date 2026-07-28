@@ -2,6 +2,7 @@ import type { TriggerEvaluationSnapshot } from "@quantnest-trading/types";
 import { createUserNotification } from "@quantnest-trading/executor-utils";
 import { evaluateConditionalMetadata } from "../../handlers/trigger.handler";
 import { resolveConditionalEdges } from "../execute.context";
+import { evaluateContextCondition } from "../ai/context-resolver";
 import type { NodeType } from "../../types";
 import type { ExecutionStep } from "@quantnest-trading/types";
 import type { INodeVisitor, VisitParams, VisitResult } from "./base.visitor";
@@ -50,23 +51,35 @@ export class ConditionalVisitor implements INodeVisitor {
     const isRootTriggerNode =
       String(sourceNode.data?.kind || "").toLowerCase() === "trigger" &&
       sourceNode?.type === "conditional-trigger";
-    const evaluationMetadata =
-      sourceNode?.type === "recheck"
-        ? buildRecheckEvaluationMetadata(sourceNode, nodes)
-        : sourceNode.data?.metadata;
+    const metadata = sourceNode.data?.metadata as
+      | Record<string, unknown>
+      | undefined;
     let evaluatedCondition: boolean;
     let conditionalSnapshot: Partial<TriggerEvaluationSnapshot> | undefined;
 
-    if (typeof condition === "boolean" && isRootTriggerNode) {
+    const conditionType = String(
+      metadata?.conditionType ?? "price",
+    ).toLowerCase();
+    const contextExpression = String(metadata?.contextExpression ?? "").trim();
+
+    if (conditionType === "context" && contextExpression && context.details) {
+      evaluatedCondition = evaluateContextCondition(contextExpression, context);
+    } else if (typeof condition === "boolean" && isRootTriggerNode) {
       evaluatedCondition = condition;
-    } else if (evaluationMetadata) {
-      const result = await evaluateConditionalMetadata(
-        evaluationMetadata as any,
-      );
-      evaluatedCondition = result.evaluatedCondition;
-      conditionalSnapshot = result.snapshot;
     } else {
-      evaluatedCondition = true;
+      const evaluationMetadata =
+        sourceNode?.type === "recheck"
+          ? buildRecheckEvaluationMetadata(sourceNode, nodes)
+          : metadata;
+      if (evaluationMetadata) {
+        const result = await evaluateConditionalMetadata(
+          evaluationMetadata as any,
+        );
+        evaluatedCondition = result.evaluatedCondition;
+        conditionalSnapshot = result.snapshot;
+      } else {
+        evaluatedCondition = true;
+      }
     }
 
     context.details = {
@@ -79,15 +92,13 @@ export class ConditionalVisitor implements INodeVisitor {
               ? "recheck"
               : "conditional-trigger",
         marketType:
-          (evaluationMetadata as any)?.marketType === "Crypto"
-            ? "Crypto"
-            : "Indian",
-        symbol: (evaluationMetadata as any)?.asset || context.details?.symbol,
+          (metadata as any)?.marketType === "Crypto" ? "Crypto" : "Indian",
+        symbol: (metadata as any)?.asset || context.details?.symbol,
         connectedSymbols: context.details?.aiContext?.connectedSymbols,
-        targetPrice: (evaluationMetadata as any)?.targetPrice,
-        condition: (evaluationMetadata as any)?.condition,
+        targetPrice: (metadata as any)?.targetPrice,
+        condition: (metadata as any)?.condition,
         timerIntervalSeconds: context.details?.aiContext?.timerIntervalSeconds,
-        expression: (evaluationMetadata as any)?.expression,
+        expression: (metadata as any)?.expression,
         evaluatedCondition,
       },
     };

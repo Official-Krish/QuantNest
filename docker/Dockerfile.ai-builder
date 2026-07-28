@@ -1,4 +1,4 @@
-FROM oven/bun:1 AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
@@ -17,16 +17,40 @@ COPY packages/node-registry/ packages/node-registry/
 COPY packages/plan-guards/ packages/plan-guards/
 COPY packages/types/ packages/types/
 
-FROM oven/bun:1 AS runtime
+# Build
+WORKDIR /app/apps/ai-builder
+RUN bun run build
+
+# Prune node_modules
+WORKDIR /app
+RUN find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" \
+    -o -name "docs" -o -name "doc" -o -name "example" -o -name "examples" \
+    -o -name ".github" -o -name ".vscode" -o -name "benchmark" -o -name "benchmarks" \
+    -o -name "man" -o -name "scripts" -o -name "src" \) -exec rm -rf {} + 2>/dev/null; \
+    find node_modules -type f \( -name "*.d.ts" -o -name "*.d.mts" -o -name "*.map" \
+    -o -name "*.md" -o -name "*.txt" -o -name "*.yml" -o -name "*.yaml" \
+    -o -name "LICENSE*" -o -name "CHANGELOG*" -o -name "HISTORY*" \
+    -o -name "Makefile" -o -name "*.ts" ! -name "*.d.ts" \
+    -o -name ".eslintrc*" -o -name ".prettierrc*" -o -name "tsconfig*" \
+    -o -name ".editorconfig" -o -name ".npmignore" \) -delete 2>/dev/null; \
+    rm -rf node_modules/.cache; \
+    true
+
+
+FROM oven/bun:1-alpine AS runtime
 
 WORKDIR /app/apps/ai-builder
 
 ENV NODE_ENV=production
 
+# Pruned node_modules
 COPY --from=builder /app/node_modules /app/node_modules
-COPY --from=builder /app/apps/ai-builder /app/apps/ai-builder
-COPY --from=builder /app/packages /app/packages
+
+# Only compiled output — NOT the full source + all packages
+COPY --from=builder /app/apps/ai-builder/dist ./dist
+
+USER bun
 
 EXPOSE 3001
 
-CMD ["bun", "index.ts"]
+CMD ["bun", "dist/index.js"]

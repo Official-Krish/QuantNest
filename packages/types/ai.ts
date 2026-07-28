@@ -277,7 +277,7 @@ export interface AiDebugQueryRequest {
     period?: number;
     value: number | null;
   }>;
-  executionStatus: "Success" | "Failed" | "InProgress";
+  executionStatus: "Success" | "Failed" | "InProgress" | "PendingApproval";
   marketDataAtExecution?: Record<string, unknown>;
 }
 

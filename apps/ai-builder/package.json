@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run --watch index.ts",
-    "build": "tsc -b",
+    "build": "bun build ./index.ts --target bun --outdir dist --sourcemap --external mongoose --external bson",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint ."
   },

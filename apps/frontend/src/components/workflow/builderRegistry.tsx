@@ -27,7 +27,14 @@ import { googleSheetsReportAction } from "@/components/nodes/actions/googleSheet
 import { postgresAction } from "@/components/nodes/actions/postgresAction";
 import { solanaSwapAction } from "@/components/nodes/actions/solanaSwapAction";
 import { SolanaBalanceAction } from "@/components/nodes/triggers/solanaBalanceAction";
-import { TimerForm } from "./sheets/TimerForm";
+import { aiDecisionNode } from "@/components/nodes/actions/aiDecisionNode";
+import { aiClassifyNode } from "@/components/nodes/actions/aiClassifyNode";
+import { aiExtractNode } from "@/components/nodes/actions/aiExtractNode";
+import { aiGenerateNode } from "@/components/nodes/actions/aiGenerateNode";
+import { AIDecisionForm } from "./sheets/AIDecisionForm";
+import { AIClassifyForm } from "./sheets/AIClassifyForm";
+import { AIExtractForm } from "./sheets/AIExtractForm";
+import { AIGenerateForm } from "./sheets/AIGenerateForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
@@ -49,6 +56,7 @@ import { SolanaBalanceForm } from "./sheets/SolanaBalanceForm";
 import { SolanaSwapForm } from "./sheets/SolanaSwapForm";
 import type { NodeMetadata } from "@quantnest-trading/types";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
+import { TimerForm } from "./sheets";
 
 export interface BuilderFormRenderProps {
   metadata: NodeMetadata | Record<string, unknown>;
@@ -58,6 +66,7 @@ export interface BuilderFormRenderProps {
   showApiKey?: boolean;
   action?: string;
   selectedAction?: string;
+  useOpenClaw?: boolean;
 }
 
 export const builderNodeRenderers = {
@@ -86,6 +95,10 @@ export const builderNodeRenderers = {
   postgres: postgresAction,
   "solana-swap": solanaSwapAction,
   "solana-balance": SolanaBalanceAction,
+  "ai-decision": aiDecisionNode,
+  "ai-classify": aiClassifyNode,
+  "ai-extract": aiExtractNode,
+  "ai-generate": aiGenerateNode,
 } as const;
 
 export const builderFormRegistry = {
@@ -109,6 +122,10 @@ export const builderFormRegistry = {
   postgres: PostgresForm,
   "solana-balance": SolanaBalanceForm,
   "solana-swap": SolanaSwapForm,
+  "ai-decision": AIDecisionForm,
+  "ai-classify": AIClassifyForm,
+  "ai-extract": AIExtractForm,
+  "ai-generate": AIGenerateForm,
 } as const;
 
 export function getBuilderFormComponent(nodeType: string) {
@@ -142,6 +159,7 @@ export function renderBuilderForm(
               | "groww"
               | "lighter"
           }
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "timer":
@@ -210,6 +228,7 @@ export function renderBuilderForm(
         <SlackForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "telegram":
@@ -217,6 +236,7 @@ export function renderBuilderForm(
         <TelegramForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "discord":
@@ -224,6 +244,7 @@ export function renderBuilderForm(
         <DiscordForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "whatsapp":
@@ -249,6 +270,7 @@ export function renderBuilderForm(
         <NotionDailyReportForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "google-drive-daily-csv":
@@ -256,6 +278,7 @@ export function renderBuilderForm(
         <GoogleDriveDailyCsvForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "google-sheets-report":
@@ -270,6 +293,7 @@ export function renderBuilderForm(
         <PostgresForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "solana-balance":
@@ -282,6 +306,35 @@ export function renderBuilderForm(
     case "solana-swap":
       return (
         <SolanaSwapForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
+        />
+      );
+    case "ai-decision":
+      return (
+        <AIDecisionForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
+    case "ai-classify":
+      return (
+        <AIClassifyForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
+    case "ai-extract":
+      return (
+        <AIExtractForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
+    case "ai-generate":
+      return (
+        <AIGenerateForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
         />

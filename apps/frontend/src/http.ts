@@ -757,3 +757,103 @@ export async function apiRenameAiStrategyDraft(
   }>(`/ai/strategy/drafts/${draftId}/title`, { title });
   return res.data.data.draft;
 }
+
+// ---- Approval endpoints ----
+
+export interface ApprovalRequestSummary {
+  id: string;
+  workflowId: string;
+  workflowName?: string;
+  nodeId: string;
+  executionId?: string;
+  status: "pending" | "approved" | "rejected" | "expired";
+  prompt: string;
+  proposedAction: string | Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+}
+
+export async function apiGetApprovals(params?: {
+  workflowId?: string;
+  status?: string;
+}): Promise<ApprovalRequestSummary[]> {
+  const res = await api.get<{
+    success: boolean;
+    data: ApprovalRequestSummary[];
+  }>("/ai/approvals", { params });
+  return res.data.data;
+}
+
+export async function apiApproveApproval(
+  approvalId: string,
+): Promise<{ id: string; status: string }> {
+  const res = await api.patch<{
+    success: boolean;
+    data: { id: string; status: string };
+  }>(`/ai/approvals/${approvalId}/approve`);
+  return res.data.data;
+}
+
+export async function apiRejectApproval(
+  approvalId: string,
+): Promise<{ id: string; status: string }> {
+  const res = await api.patch<{
+    success: boolean;
+    data: { id: string; status: string };
+  }>(`/ai/approvals/${approvalId}/reject`);
+  return res.data.data;
+}
+
+// ---- AI Memory endpoints ----
+
+export interface MemoryEntry {
+  id: string;
+  workflowId: string;
+  nodeId: string;
+  key: string;
+  value: Record<string, unknown>;
+  ttl: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function apiGetMemories(params?: {
+  workflowId?: string;
+  nodeId?: string;
+}): Promise<MemoryEntry[]> {
+  const res = await api.get<{ success: boolean; data: MemoryEntry[] }>(
+    "/ai/memories",
+    { params },
+  );
+  return res.data.data;
+}
+
+export async function apiDeleteMemory(
+  memoryId: string,
+): Promise<{ message: string }> {
+  const res = await api.delete<{ success: boolean; message: string }>(
+    `/ai/memories/${memoryId}`,
+  );
+  return { message: res.data.message };
+}
+
+export interface AgentInfo {
+  id: string;
+  version: string;
+  os: string;
+  hostname: string;
+  capabilities: string[];
+  connectedAt: string;
+}
+
+export interface VerifyAgentResponse {
+  connected: boolean;
+  agents: AgentInfo[];
+}
+
+export async function apiVerifyAgent(): Promise<VerifyAgentResponse> {
+  const res = await api.post<VerifyAgentResponse>("/verify-agent");
+  return res.data;
+}

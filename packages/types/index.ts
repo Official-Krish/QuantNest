@@ -1,4 +1,10 @@
 import type { IndicatorConditionGroup, IndicatorMarket } from "./indicators";
+import type {
+  AIDecisionMetadata,
+  AIClassifyMetadata,
+  AIExtractMetadata,
+  AIGenerateMetadata,
+} from "./ai-runtime";
 
 export type NodeKind =
   | "price"
@@ -24,7 +30,11 @@ export type NodeKind =
   | "google-sheets-report"
   | "postgres"
   | "solana-balance"
-  | "solana-swap";
+  | "solana-swap"
+  | "ai-decision"
+  | "ai-classify"
+  | "ai-extract"
+  | "ai-generate";
 
 export interface NodeType {
   type: NodeKind;
@@ -65,6 +75,10 @@ export type NodeMetadata =
   | PostgresMetadata
   | SolanaBalanceMetadata
   | SolanaSwapMetadata
+  | AIDecisionMetadata
+  | AIClassifyMetadata
+  | AIExtractMetadata
+  | AIGenerateMetadata
   | Record<string, unknown>;
 
 export interface DelayNodeMetadata {
@@ -276,6 +290,27 @@ export interface SolanaSwapMetadata {
   retryPolicy?: RetryPolicyMetadata;
 }
 
+export {
+  AIDecisionMetadataSchema,
+  AIDecisionResultSchema,
+  AIClassifyMetadataSchema,
+  AIClassifyResultSchema,
+  AIExtractMetadataSchema,
+  AIExtractResultSchema,
+  AIGenerateMetadataSchema,
+  AIGenerateResultSchema,
+} from "./ai-runtime";
+export type {
+  AIDecisionMetadata,
+  AIDecisionResult,
+  AIClassifyMetadata,
+  AIClassifyResult,
+  AIExtractMetadata,
+  AIExtractResult,
+  AIGenerateMetadata,
+  AIGenerateResult,
+} from "./ai-runtime";
+
 export interface RetryPolicyMetadata {
   enabled?: boolean;
   maxAttempts?: number;
@@ -316,7 +351,7 @@ export interface ExecutionStep {
   step: number;
   nodeId: string;
   nodeType: string;
-  status: "Success" | "Failed";
+  status: "Success" | "Failed" | "PendingApproval";
   message: string;
   attempt?: number;
   maxAttempts?: number;
@@ -330,7 +365,7 @@ export interface ExecutionStep {
 
 export interface ExecutionResponseType {
   steps: ExecutionStep[];
-  status: "Success" | "Failed" | "InProgress";
+  status: "Success" | "Failed" | "InProgress" | "PendingApproval";
 }
 
 // ---- Execution Trace types (for debugger) ----
@@ -396,3 +431,4 @@ export interface ExecutionTrace {
 }
 
 export * from "./indicators";
+export type { ApprovalRequest, ApprovalRequestStatus } from "./approval";

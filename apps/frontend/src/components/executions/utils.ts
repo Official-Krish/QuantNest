@@ -1,6 +1,8 @@
 import type { Execution, ExecutionMetrics } from "./types";
 
-export function sortExecutionsByStartTime(executions: Execution[]): Execution[] {
+export function sortExecutionsByStartTime(
+  executions: Execution[],
+): Execution[] {
   return [...executions].sort(
     (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
   );
@@ -8,11 +10,12 @@ export function sortExecutionsByStartTime(executions: Execution[]): Execution[] 
 
 export function filterExecutions(
   executions: Execution[],
-  statusFilter: "All" | "Success" | "Failed" | "InProgress",
+  statusFilter: "All" | "Success" | "Failed" | "InProgress" | "PendingApproval",
   searchTerm: string,
 ): Execution[] {
   return executions.filter((execution) => {
-    if (statusFilter !== "All" && execution.status !== statusFilter) return false;
+    if (statusFilter !== "All" && execution.status !== statusFilter)
+      return false;
     if (!searchTerm.trim()) return true;
 
     const q = searchTerm.toLowerCase();
@@ -29,7 +32,10 @@ export function filterExecutions(
   });
 }
 
-export function calculateDurationMs(startTime: string, endTime?: string): number {
+export function calculateDurationMs(
+  startTime: string,
+  endTime?: string,
+): number {
   const start = new Date(startTime).getTime();
   const end = endTime ? new Date(endTime).getTime() : Date.now();
   return Math.max(0, end - start);
@@ -56,15 +62,23 @@ export function formatDate(dateString: string): string {
 export function computeMetrics(executions: Execution[]): ExecutionMetrics {
   const successCount = executions.filter((e) => e.status === "Success").length;
   const failedCount = executions.filter((e) => e.status === "Failed").length;
-  const inProgressCount = executions.filter((e) => e.status === "InProgress").length;
+  const inProgressCount = executions.filter(
+    (e) => e.status === "InProgress",
+  ).length;
+  const pendingApprovalCount = executions.filter(
+    (e) => e.status === "PendingApproval",
+  ).length;
   const totalCount = executions.length;
-  const successRate = totalCount === 0 ? 0 : Math.round((successCount / totalCount) * 100);
+  const successRate =
+    totalCount === 0 ? 0 : Math.round((successCount / totalCount) * 100);
   const avgDurationMs =
     totalCount === 0
       ? 0
       : Math.round(
           executions.reduce((acc, execution) => {
-            return acc + calculateDurationMs(execution.startTime, execution.endTime);
+            return (
+              acc + calculateDurationMs(execution.startTime, execution.endTime)
+            );
           }, 0) / totalCount,
         );
 
@@ -72,6 +86,7 @@ export function computeMetrics(executions: Execution[]): ExecutionMetrics {
     successCount,
     failedCount,
     inProgressCount,
+    pendingApprovalCount,
     totalCount,
     successRate,
     avgDurationMs,
@@ -86,6 +101,8 @@ export function getStatusPillClass(status: string): string {
       return "border-red-500/30 bg-red-500/10 text-red-300";
     case "InProgress":
       return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300";
+    case "PendingApproval":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-300";
     default:
       return "border-neutral-600 bg-neutral-800 text-neutral-300";
   }

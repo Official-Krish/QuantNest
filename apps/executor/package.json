@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "tsc -b",
+    "build": "bun build ./index.ts --target bun --outdir dist --sourcemap --external mongoose --external bson",
     "lint": "eslint .",
     "test": "bun test"
   },
@@ -34,6 +34,7 @@
     "google-auth-library": "^10.6.1",
     "googleapis": "^171.4.0",
     "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.2",
     "kiteconnect": "^5.1.0",
     "mongoose": "^9.0.0",
     "resend": "^6.9.1",

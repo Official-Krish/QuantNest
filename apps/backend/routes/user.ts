@@ -146,7 +146,10 @@ userRouter.post("/signin", async (req, res) => {
     });
     return;
   }
-  UserModel.findOne({ username: parsedData.data.username.trim() })
+  const loginId = parsedData.data.username.trim();
+  UserModel.findOne({
+    $or: [{ username: loginId }, { email: loginId.toLowerCase() }],
+  })
     .then(async (user) => {
       if (!user) {
         res.status(401).json({ message: "Invalid credentials" });

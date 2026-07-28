@@ -11,12 +11,18 @@ export interface Execution {
   endTime?: string;
 }
 
-export type ExecutionStatusFilter = "All" | "Success" | "Failed" | "InProgress";
+export type ExecutionStatusFilter =
+  | "All"
+  | "Success"
+  | "Failed"
+  | "InProgress"
+  | "PendingApproval";
 
 export interface ExecutionMetrics {
   successCount: number;
   failedCount: number;
   inProgressCount: number;
+  pendingApprovalCount: number;
   totalCount: number;
   successRate: number;
   avgDurationMs: number;

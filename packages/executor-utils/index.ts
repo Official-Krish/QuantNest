@@ -1,450 +1,544 @@
-import { NotificationModel, WorkflowModel, ZerodhaTokenModel } from "@quantnest-trading/db/client";
+import {
+  NotificationModel,
+  WorkflowModel,
+  ZerodhaTokenModel,
+  ApprovalRequestModel,
+} from "@quantnest-trading/db/client";
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
 export interface TokenStatus {
-    hasValidToken: boolean;
-    needsToken: boolean;
-    expiresAt?: Date;
-    message: string;
-    tokenRequestId?: string;
+  hasValidToken: boolean;
+  needsToken: boolean;
+  expiresAt?: Date;
+  message: string;
+  tokenRequestId?: string;
 }
 
 export interface DerivedWorkflowTriggerState {
-    triggerType?: "timer" | "price-trigger" | "breakout-retest-trigger" | "conditional-trigger" | "market-session" | "portfolio-pnl-drawdown-trigger";
-    triggerNodeId?: string;
-    triggerConfig?: Record<string, unknown>;
-    nextRunAt?: Date;
-    lastEvaluatedAt?: Date;
+  triggerType?:
+    | "timer"
+    | "price-trigger"
+    | "breakout-retest-trigger"
+    | "conditional-trigger"
+    | "market-session"
+    | "portfolio-pnl-drawdown-trigger";
+  triggerNodeId?: string;
+  triggerConfig?: Record<string, unknown>;
+  nextRunAt?: Date;
+  lastEvaluatedAt?: Date;
 }
 
 export interface UserNotificationInput {
-    userId: string;
-    workflowId?: string;
-    workflowName?: string;
-    type: string;
-    severity: "info" | "warning" | "error";
-    title: string;
-    message: string;
-    metadata?: Record<string, unknown>;
-    dedupeKey?: string;
-    dedupeWindowHours?: number;
+  userId: string;
+  workflowId?: string;
+  workflowName?: string;
+  type: string;
+  severity: "info" | "warning" | "error";
+  title: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+  dedupeKey?: string;
+  dedupeWindowHours?: number;
 }
 
 /**
  * Get Zerodha token for a specific workflow
  */
-export async function getZerodhaToken(userId: string, workflowId: string): Promise<string | null> {
-    try {
-        const record = await ZerodhaTokenModel.findOne({
-            userId: new mongoose.Types.ObjectId(userId),
-            workflowId: new mongoose.Types.ObjectId(workflowId)
-        });
+export async function getZerodhaToken(
+  userId: string,
+  workflowId: string,
+): Promise<string | null> {
+  try {
+    const record = await ZerodhaTokenModel.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      workflowId: new mongoose.Types.ObjectId(workflowId),
+    });
 
-        if (!record) {
-            return null;
-        }
-
-        if (record.tokenExpiresAt && new Date() > record.tokenExpiresAt) {
-            await ZerodhaTokenModel.updateOne(
-                { _id: record._id },
-                { status: "expired" }
-            );
-            return null;
-        }
-
-        if (record.status !== "active" || !record.accessToken) {
-            return null;
-        }
-
-        return record.accessToken;
-    } catch (error) {
-        console.error("Error retrieving Zerodha token:", error);
-        return null;
+    if (!record) {
+      return null;
     }
+
+    if (record.tokenExpiresAt && new Date() > record.tokenExpiresAt) {
+      await ZerodhaTokenModel.updateOne(
+        { _id: record._id },
+        { status: "expired" },
+      );
+      return null;
+    }
+
+    if (record.status !== "active" || !record.accessToken) {
+      return null;
+    }
+
+    return record.accessToken;
+  } catch (error) {
+    console.error("Error retrieving Zerodha token:", error);
+    return null;
+  }
 }
 
 /**
  * Create a token request for a workflow
  * Returns a unique request ID to be used for polling/webhook
  */
-export async function createTokenRequest(userId: string, workflowId: string): Promise<string> {
-    try {
-        const tokenRequestId = uuidv4();
-        
-        const existingRecord = await ZerodhaTokenModel.findOne({
-            userId: new mongoose.Types.ObjectId(userId),
-            workflowId: new mongoose.Types.ObjectId(workflowId)
-        });
-        if (existingRecord) {
-            existingRecord.tokenRequestId = tokenRequestId;
-            existingRecord.status = "pending";
-            existingRecord.accessToken = undefined;
-            await existingRecord.save();
-        } else {
-            await ZerodhaTokenModel.create({
-                userId: new mongoose.Types.ObjectId(userId),
-                workflowId: new mongoose.Types.ObjectId(workflowId),
-                tokenRequestId,
-                status: "pending",
-            });
-        }
+export async function createTokenRequest(
+  userId: string,
+  workflowId: string,
+): Promise<string> {
+  try {
+    const tokenRequestId = uuidv4();
 
-        return tokenRequestId;
-    } catch (error) {
-        console.error("Error creating token request:", error);
-        throw error;
+    const existingRecord = await ZerodhaTokenModel.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      workflowId: new mongoose.Types.ObjectId(workflowId),
+    });
+    if (existingRecord) {
+      existingRecord.tokenRequestId = tokenRequestId;
+      existingRecord.status = "pending";
+      existingRecord.accessToken = undefined;
+      await existingRecord.save();
+    } else {
+      await ZerodhaTokenModel.create({
+        userId: new mongoose.Types.ObjectId(userId),
+        workflowId: new mongoose.Types.ObjectId(workflowId),
+        tokenRequestId,
+        status: "pending",
+      });
     }
+
+    return tokenRequestId;
+  } catch (error) {
+    console.error("Error creating token request:", error);
+    throw error;
+  }
 }
 
 /**
  * Save Zerodha token for a specific workflow
  */
 export async function saveZerodhaToken(
-    userId: string,
-    workflowId: string,
-    accessToken: string
+  userId: string,
+  workflowId: string,
+  accessToken: string,
 ): Promise<void> {
-    try {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
+  try {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
 
-        await ZerodhaTokenModel.updateOne(
-            {
-                userId: new mongoose.Types.ObjectId(userId),
-                workflowId: new mongoose.Types.ObjectId(workflowId)
-            },
-            {
-                userId: new mongoose.Types.ObjectId(userId),
-                workflowId: new mongoose.Types.ObjectId(workflowId),
-                accessToken,
-                tokenExpiresAt: tomorrow,
-                status: "active",
-                updatedAt: new Date(),
-            },
-            { upsert: true }
-        );
-    } catch (error) {
-        console.error("Error saving Zerodha token:", error);
-        throw error;
-    }
+    await ZerodhaTokenModel.updateOne(
+      {
+        userId: new mongoose.Types.ObjectId(userId),
+        workflowId: new mongoose.Types.ObjectId(workflowId),
+      },
+      {
+        userId: new mongoose.Types.ObjectId(userId),
+        workflowId: new mongoose.Types.ObjectId(workflowId),
+        accessToken,
+        tokenExpiresAt: tomorrow,
+        status: "active",
+        updatedAt: new Date(),
+      },
+      { upsert: true },
+    );
+  } catch (error) {
+    console.error("Error saving Zerodha token:", error);
+    throw error;
+  }
 }
 
 /**
  * Check token status for a workflow
  */
-export async function checkTokenStatus(userId: string, workflowId: string): Promise<TokenStatus> {
-    try {
-        const record = await ZerodhaTokenModel.findOne({
-            userId: new mongoose.Types.ObjectId(userId),
-            workflowId: new mongoose.Types.ObjectId(workflowId)
-        });
+export async function checkTokenStatus(
+  userId: string,
+  workflowId: string,
+): Promise<TokenStatus> {
+  try {
+    const record = await ZerodhaTokenModel.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      workflowId: new mongoose.Types.ObjectId(workflowId),
+    });
 
-        if (!record) {
-            const tokenRequestId = await createTokenRequest(userId, workflowId);
-            return {
-                hasValidToken: false,
-                needsToken: true,
-                message: "Access token required. Please provide your Zerodha access token.",
-                tokenRequestId,
-            };
-        }
-
-        if (record.status === "pending" || !record.accessToken) {
-            return {
-                hasValidToken: false,
-                needsToken: true,
-                message: "Waiting for access token. Please provide your Zerodha access token.",
-                tokenRequestId: record.tokenRequestId ?? undefined,
-            };
-        }
-
-        if (record.status === "expired" || (record.tokenExpiresAt && new Date() > record.tokenExpiresAt)) {
-            const newTokenRequestId = await createTokenRequest(userId, workflowId);
-            return {
-                hasValidToken: false,
-                needsToken: true,
-                message: "Your Zerodha access token has expired. Please provide a new token.",
-                tokenRequestId: newTokenRequestId,
-            };
-        }
-
-        const hoursUntilExpiry = record.tokenExpiresAt 
-            ? (record.tokenExpiresAt.getTime() - new Date().getTime()) / (1000 * 60 * 60)
-            : 24;
-
-        return {
-            hasValidToken: true,
-            needsToken: false,
-            expiresAt: record.tokenExpiresAt ?? undefined,
-            message: `Token valid for ${Math.ceil(hoursUntilExpiry)} more hours.`,
-        };
-    } catch (error) {
-        console.error("Error checking token status:", error);
-        return {
-            hasValidToken: false,
-            needsToken: true,
-            message: "Error checking token status",
-        };
+    if (!record) {
+      const tokenRequestId = await createTokenRequest(userId, workflowId);
+      return {
+        hasValidToken: false,
+        needsToken: true,
+        message:
+          "Access token required. Please provide your Zerodha access token.",
+        tokenRequestId,
+      };
     }
+
+    if (record.status === "pending" || !record.accessToken) {
+      return {
+        hasValidToken: false,
+        needsToken: true,
+        message:
+          "Waiting for access token. Please provide your Zerodha access token.",
+        tokenRequestId: record.tokenRequestId ?? undefined,
+      };
+    }
+
+    if (
+      record.status === "expired" ||
+      (record.tokenExpiresAt && new Date() > record.tokenExpiresAt)
+    ) {
+      const newTokenRequestId = await createTokenRequest(userId, workflowId);
+      return {
+        hasValidToken: false,
+        needsToken: true,
+        message:
+          "Your Zerodha access token has expired. Please provide a new token.",
+        tokenRequestId: newTokenRequestId,
+      };
+    }
+
+    const hoursUntilExpiry = record.tokenExpiresAt
+      ? (record.tokenExpiresAt.getTime() - new Date().getTime()) /
+        (1000 * 60 * 60)
+      : 24;
+
+    return {
+      hasValidToken: true,
+      needsToken: false,
+      expiresAt: record.tokenExpiresAt ?? undefined,
+      message: `Token valid for ${Math.ceil(hoursUntilExpiry)} more hours.`,
+    };
+  } catch (error) {
+    console.error("Error checking token status:", error);
+    return {
+      hasValidToken: false,
+      needsToken: true,
+      message: "Error checking token status",
+    };
+  }
 }
 
 /**
  * Delete token for a workflow
  */
-export async function deleteZerodhaToken(userId: string, workflowId: string): Promise<void> {
-    try {
-        await ZerodhaTokenModel.deleteOne({
-            userId: new mongoose.Types.ObjectId(userId),
-            workflowId: new mongoose.Types.ObjectId(workflowId)
-        });
-    } catch (error) {
-        console.error("Error deleting Zerodha token:", error);
-        throw error;
-    }
+export async function deleteZerodhaToken(
+  userId: string,
+  workflowId: string,
+): Promise<void> {
+  try {
+    await ZerodhaTokenModel.deleteOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      workflowId: new mongoose.Types.ObjectId(workflowId),
+    });
+  } catch (error) {
+    console.error("Error deleting Zerodha token:", error);
+    throw error;
+  }
 }
 
-export async function createUserNotification(input: UserNotificationInput): Promise<void> {
-    try {
-        const {
-            userId,
-            workflowId,
-            workflowName,
-            type,
-            severity,
-            title,
-            message,
-            metadata,
-            dedupeKey,
-            dedupeWindowHours = 24,
-        } = input;
+export async function createUserNotification(
+  input: UserNotificationInput,
+): Promise<void> {
+  try {
+    const {
+      userId,
+      workflowId,
+      workflowName,
+      type,
+      severity,
+      title,
+      message,
+      metadata,
+      dedupeKey,
+      dedupeWindowHours = 24,
+    } = input;
 
-        if (dedupeKey) {
-            const since = new Date(Date.now() - dedupeWindowHours * 60 * 60 * 1000);
-            const existing = await NotificationModel.exists({
-                userId: new mongoose.Types.ObjectId(userId),
-                dedupeKey,
-                createdAt: { $gte: since },
-            });
-            if (existing) {
-                return;
-            }
-        }
-
-        let resolvedWorkflowName = workflowName;
-        if (!resolvedWorkflowName && workflowId) {
-            const workflow = await WorkflowModel.findById(workflowId)
-                .select("workflowName")
-                .lean();
-            resolvedWorkflowName = workflow?.workflowName;
-        }
-
-        await NotificationModel.create({
-            userId: new mongoose.Types.ObjectId(userId),
-            workflowId: workflowId ? new mongoose.Types.ObjectId(workflowId) : undefined,
-            workflowName: resolvedWorkflowName,
-            type,
-            severity,
-            title,
-            message,
-            metadata,
-            dedupeKey,
-        });
-    } catch (error) {
-        console.error("Error creating user notification:", error);
+    if (dedupeKey) {
+      const since = new Date(Date.now() - dedupeWindowHours * 60 * 60 * 1000);
+      const existing = await NotificationModel.exists({
+        userId: new mongoose.Types.ObjectId(userId),
+        dedupeKey,
+        createdAt: { $gte: since },
+      });
+      if (existing) {
+        return;
+      }
     }
+
+    let resolvedWorkflowName = workflowName;
+    if (!resolvedWorkflowName && workflowId) {
+      const workflow = await WorkflowModel.findById(workflowId)
+        .select("workflowName")
+        .lean();
+      resolvedWorkflowName = workflow?.workflowName;
+    }
+
+    await NotificationModel.create({
+      userId: new mongoose.Types.ObjectId(userId),
+      workflowId: workflowId
+        ? new mongoose.Types.ObjectId(workflowId)
+        : undefined,
+      workflowName: resolvedWorkflowName,
+      type,
+      severity,
+      title,
+      message,
+      metadata,
+      dedupeKey,
+    });
+  } catch (error) {
+    console.error("Error creating user notification:", error);
+  }
 }
 
 export async function updateWorkflowStatus(
-    workflowId: string,
-    status: "active" | "paused",
+  workflowId: string,
+  status: "active" | "paused",
 ): Promise<void> {
-    try {
-        await WorkflowModel.updateOne(
-            { _id: new mongoose.Types.ObjectId(workflowId) },
-            { $set: { status } },
-        );
-    } catch (error) {
-        console.error("Error updating workflow status:", error);
-    }
+  try {
+    await WorkflowModel.updateOne(
+      { _id: new mongoose.Types.ObjectId(workflowId) },
+      { $set: { status } },
+    );
+  } catch (error) {
+    console.error("Error updating workflow status:", error);
+  }
 }
 
 export function deriveWorkflowTriggerState(
-    nodes: Array<{
-        id?: string;
-        nodeId?: string;
-        type?: string | null | undefined;
-        data?: {
-            kind?: "action" | "trigger" | "ACTION" | "TRIGGER" | null | undefined;
-            metadata?: Record<string, unknown> | null | undefined;
-        } | null | undefined;
-    }>,
-    now = new Date(),
-): DerivedWorkflowTriggerState {
-    const trigger = nodes.find((node) => {
-        const kind = String(node?.data?.kind || "").toLowerCase();
-        return kind === "trigger";
-    });
-
-    if (!trigger) {
-        return {};
-    }
-
-    const rawTriggerType = String(trigger.type || "").toLowerCase();
-    const triggerType = (
-        rawTriggerType === "price" ? "price-trigger" :
-        rawTriggerType === "breakout-retest" ? "breakout-retest-trigger" :
-        rawTriggerType === "conditional" ? "conditional-trigger" :
-        rawTriggerType
-    ) as DerivedWorkflowTriggerState["triggerType"];
-    const triggerNodeId = String(trigger.nodeId || trigger.id || "").trim() || undefined;
-    const rawMetadata = (trigger.data?.metadata || {}) as Record<string, unknown>;
-    const nextState: DerivedWorkflowTriggerState = {
-        triggerType,
-        triggerNodeId,
-        lastEvaluatedAt: now,
-    };
-
-    if (triggerType === "timer") {
-        const intervalSeconds = Number(rawMetadata.time);
-        nextState.triggerConfig = {
-            intervalSeconds,
-            marketType: rawMetadata.marketType,
-            asset: rawMetadata.asset,
-        };
-        if (Number.isFinite(intervalSeconds) && intervalSeconds > 0) {
-            nextState.nextRunAt = new Date(now.getTime() + intervalSeconds * 1000);
+  nodes: Array<{
+    id?: string;
+    nodeId?: string;
+    type?: string | null | undefined;
+    data?:
+      | {
+          kind?: "action" | "trigger" | "ACTION" | "TRIGGER" | null | undefined;
+          metadata?: Record<string, unknown> | null | undefined;
         }
-        return nextState;
-    }
+      | null
+      | undefined;
+  }>,
+  now = new Date(),
+): DerivedWorkflowTriggerState {
+  const trigger = nodes.find((node) => {
+    const kind = String(node?.data?.kind || "").toLowerCase();
+    return kind === "trigger";
+  });
 
-    if (triggerType === "price-trigger") {
-        nextState.triggerConfig = {
-            asset: rawMetadata.asset,
-            targetPrice: rawMetadata.targetPrice,
-            marketType: rawMetadata.marketType,
-            condition: rawMetadata.condition,
-        };
-        return nextState;
-    }
-
-    if (triggerType === "breakout-retest-trigger") {
-        nextState.triggerConfig = {
-            asset: rawMetadata.asset,
-            marketType: rawMetadata.marketType,
-            direction: rawMetadata.direction,
-            breakoutLevel: rawMetadata.breakoutLevel,
-            retestTolerancePct: rawMetadata.retestTolerancePct,
-            confirmationMovePct: rawMetadata.confirmationMovePct,
-            retestWindowMinutes: rawMetadata.retestWindowMinutes,
-            confirmationWindowMinutes: rawMetadata.confirmationWindowMinutes,
-            runtime: {
-                stage: "idle",
-            },
-        };
-        return nextState;
-    }
-
-    if (triggerType === "conditional-trigger") {
-        nextState.triggerConfig = {
-            asset: rawMetadata.asset,
-            marketType: rawMetadata.marketType,
-            condition: rawMetadata.condition,
-            targetPrice: rawMetadata.targetPrice,
-            timeWindowMinutes: rawMetadata.timeWindowMinutes,
-            startTime: rawMetadata.startTime,
-            expression: rawMetadata.expression,
-        };
-        return nextState;
-    }
-
-    if (triggerType === "market-session") {
-        nextState.triggerConfig = {
-            marketType: rawMetadata.marketType,
-            event: rawMetadata.event,
-            triggerTime: rawMetadata.triggerTime,
-            endTime: rawMetadata.endTime,
-        };
-        return nextState;
-    }
-
-    if (triggerType === "portfolio-pnl-drawdown-trigger") {
-        nextState.triggerConfig = {
-            broker: rawMetadata.broker,
-            mode: rawMetadata.mode,
-            thresholdValue: rawMetadata.thresholdValue,
-            thresholdUnit: rawMetadata.thresholdUnit,
-            secretId: rawMetadata.secretId,
-            apiKey: rawMetadata.apiKey,
-            accessToken: rawMetadata.accessToken,
-            accountIndex: rawMetadata.accountIndex,
-            apiKeyIndex: rawMetadata.apiKeyIndex,
-        };
-        return nextState;
-    }
-
+  if (!trigger) {
     return {};
+  }
+
+  const rawTriggerType = String(trigger.type || "").toLowerCase();
+  const triggerType = (
+    rawTriggerType === "price"
+      ? "price-trigger"
+      : rawTriggerType === "breakout-retest"
+        ? "breakout-retest-trigger"
+        : rawTriggerType === "conditional"
+          ? "conditional-trigger"
+          : rawTriggerType
+  ) as DerivedWorkflowTriggerState["triggerType"];
+  const triggerNodeId =
+    String(trigger.nodeId || trigger.id || "").trim() || undefined;
+  const rawMetadata = (trigger.data?.metadata || {}) as Record<string, unknown>;
+  const nextState: DerivedWorkflowTriggerState = {
+    triggerType,
+    triggerNodeId,
+    lastEvaluatedAt: now,
+  };
+
+  if (triggerType === "timer") {
+    const intervalSeconds = Number(rawMetadata.time);
+    nextState.triggerConfig = {
+      intervalSeconds,
+      marketType: rawMetadata.marketType,
+      asset: rawMetadata.asset,
+    };
+    if (Number.isFinite(intervalSeconds) && intervalSeconds > 0) {
+      nextState.nextRunAt = new Date(now.getTime() + intervalSeconds * 1000);
+    }
+    return nextState;
+  }
+
+  if (triggerType === "price-trigger") {
+    nextState.triggerConfig = {
+      asset: rawMetadata.asset,
+      targetPrice: rawMetadata.targetPrice,
+      marketType: rawMetadata.marketType,
+      condition: rawMetadata.condition,
+    };
+    return nextState;
+  }
+
+  if (triggerType === "breakout-retest-trigger") {
+    nextState.triggerConfig = {
+      asset: rawMetadata.asset,
+      marketType: rawMetadata.marketType,
+      direction: rawMetadata.direction,
+      breakoutLevel: rawMetadata.breakoutLevel,
+      retestTolerancePct: rawMetadata.retestTolerancePct,
+      confirmationMovePct: rawMetadata.confirmationMovePct,
+      retestWindowMinutes: rawMetadata.retestWindowMinutes,
+      confirmationWindowMinutes: rawMetadata.confirmationWindowMinutes,
+      runtime: {
+        stage: "idle",
+      },
+    };
+    return nextState;
+  }
+
+  if (triggerType === "conditional-trigger") {
+    nextState.triggerConfig = {
+      asset: rawMetadata.asset,
+      marketType: rawMetadata.marketType,
+      condition: rawMetadata.condition,
+      targetPrice: rawMetadata.targetPrice,
+      timeWindowMinutes: rawMetadata.timeWindowMinutes,
+      startTime: rawMetadata.startTime,
+      expression: rawMetadata.expression,
+    };
+    return nextState;
+  }
+
+  if (triggerType === "market-session") {
+    nextState.triggerConfig = {
+      marketType: rawMetadata.marketType,
+      event: rawMetadata.event,
+      triggerTime: rawMetadata.triggerTime,
+      endTime: rawMetadata.endTime,
+    };
+    return nextState;
+  }
+
+  if (triggerType === "portfolio-pnl-drawdown-trigger") {
+    nextState.triggerConfig = {
+      broker: rawMetadata.broker,
+      mode: rawMetadata.mode,
+      thresholdValue: rawMetadata.thresholdValue,
+      thresholdUnit: rawMetadata.thresholdUnit,
+      secretId: rawMetadata.secretId,
+      apiKey: rawMetadata.apiKey,
+      accessToken: rawMetadata.accessToken,
+      accountIndex: rawMetadata.accountIndex,
+      apiKeyIndex: rawMetadata.apiKeyIndex,
+    };
+    return nextState;
+  }
+
+  return {};
 }
 
-export async function pauseWorkflow(
-    workflowId: string,
-): Promise<void> {
-    await updateWorkflowStatus(workflowId, "paused");
+export async function pauseWorkflow(workflowId: string): Promise<void> {
+  await updateWorkflowStatus(workflowId, "paused");
+}
+
+export async function createApprovalRequest(input: {
+  userId: string;
+  workflowId: string;
+  nodeId: string;
+  executionId?: string;
+  nodeType: string;
+  prompt: string;
+  proposedAction: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  dedupeKey?: string;
+}): Promise<string> {
+  try {
+    const doc = await ApprovalRequestModel.create({
+      userId: new mongoose.Types.ObjectId(input.userId),
+      workflowId: new mongoose.Types.ObjectId(input.workflowId),
+      nodeId: input.nodeId,
+      executionId: input.executionId
+        ? new mongoose.Types.ObjectId(input.executionId)
+        : undefined,
+      status: "pending",
+      nodeType: input.nodeType,
+      prompt: input.prompt,
+      proposedAction: input.proposedAction,
+      metadata: input.metadata ?? {},
+      dedupeKey: input.dedupeKey,
+    });
+    return String(doc._id);
+  } catch (error) {
+    console.error("Error creating approval request:", error);
+    throw error;
+  }
+}
+
+export async function pauseWorkflowAndNotify(params: {
+  workflowId: string;
+  userId: string;
+  reason: string;
+  nodeLabel: string;
+}): Promise<void> {
+  const { workflowId, userId, reason, nodeLabel } = params;
+  await pauseWorkflow(workflowId);
+  await createUserNotification({
+    userId,
+    workflowId,
+    type: "workflow_paused_for_approval",
+    severity: "warning",
+    title: `"${nodeLabel}" requires approval`,
+    message: reason,
+    dedupeKey: `workflow-paused-approval:${workflowId}`,
+    dedupeWindowHours: 1,
+  });
 }
 
 export function getMarketStatus(): {
-    isOpen: boolean;
-    message: string;
-    nextOpenTime?: string;
+  isOpen: boolean;
+  message: string;
+  nextOpenTime?: string;
 } {
-    const now = new Date();
-    const istTime = new Date(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
-    
-    const dayOfWeek = istTime.getDay();
-    const hours = istTime.getHours();
-    const minutes = istTime.getMinutes();
-    
-    const currentTimeInMinutes = hours * 60 + minutes;
-    const marketOpenTime = 9 * 60 + 15;      // 9:15 AM
-    const marketCloseTime = 15 * 60 + 30;    // 3:30 PM
-    
-    if (dayOfWeek === 0) {
-        return {
-            isOpen: false,
-            message: "Market is closed on Sundays",
-            nextOpenTime: "Monday 9:15 AM IST"
-        };
-    }
-    
-    if (dayOfWeek === 6) {
-        return {
-            isOpen: false,
-            message: "Market is closed on Saturdays",
-            nextOpenTime: "Monday 9:15 AM IST"
-        };
-    }
-    
-    if (currentTimeInMinutes < marketOpenTime) {
-        const openingHour = Math.floor(marketOpenTime / 60);
-        const openingMinute = marketOpenTime % 60;
-        return {
-            isOpen: false,
-            message: `Market opens at ${openingHour}:${String(openingMinute).padStart(2, '0')} AM IST`,
-            nextOpenTime: `Today ${openingHour}:${String(openingMinute).padStart(2, '0')} AM IST`
-        };
-    }
-    
-    if (currentTimeInMinutes > marketCloseTime) {
-        return {
-            isOpen: false,
-            message: "Market is closed for the day",
-            nextOpenTime: "Tomorrow 9:15 AM IST"
-        };
-    }
-    
+  const now = new Date();
+  const istTime = new Date(
+    now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+  );
+
+  const dayOfWeek = istTime.getDay();
+  const hours = istTime.getHours();
+  const minutes = istTime.getMinutes();
+
+  const currentTimeInMinutes = hours * 60 + minutes;
+  const marketOpenTime = 9 * 60 + 15; // 9:15 AM
+  const marketCloseTime = 15 * 60 + 30; // 3:30 PM
+
+  if (dayOfWeek === 0) {
     return {
-        isOpen: true,
-        message: "Market is open"
+      isOpen: false,
+      message: "Market is closed on Sundays",
+      nextOpenTime: "Monday 9:15 AM IST",
     };
+  }
+
+  if (dayOfWeek === 6) {
+    return {
+      isOpen: false,
+      message: "Market is closed on Saturdays",
+      nextOpenTime: "Monday 9:15 AM IST",
+    };
+  }
+
+  if (currentTimeInMinutes < marketOpenTime) {
+    const openingHour = Math.floor(marketOpenTime / 60);
+    const openingMinute = marketOpenTime % 60;
+    return {
+      isOpen: false,
+      message: `Market opens at ${openingHour}:${String(openingMinute).padStart(2, "0")} AM IST`,
+      nextOpenTime: `Today ${openingHour}:${String(openingMinute).padStart(2, "0")} AM IST`,
+    };
+  }
+
+  if (currentTimeInMinutes > marketCloseTime) {
+    return {
+      isOpen: false,
+      message: "Market is closed for the day",
+      nextOpenTime: "Tomorrow 9:15 AM IST",
+    };
+  }
+
+  return {
+    isOpen: true,
+    message: "Market is open",
+  };
 }

@@ -98,6 +98,9 @@ export async function executeWorkflowSafe(
       condition,
       executionMode,
       triggerSnapshot,
+      workflow.useOpenClaw,
+      workflow.openclawUrl,
+      workflow.openclawToken,
     );
     execution.status = res.status;
     execution.set("steps", res.steps);

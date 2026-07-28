@@ -140,6 +140,17 @@ export class ExecutionContextBuilder {
     }
   }
 
+  setOpenClaw(
+    useOpenClaw?: boolean,
+    openclawUrl?: string,
+    openclawToken?: string,
+  ): this {
+    this.ctx.useOpenClaw = useOpenClaw ?? false;
+    this.ctx.openclawUrl = openclawUrl;
+    this.ctx.openclawToken = openclawToken;
+    return this;
+  }
+
   build(): ExecutionContext {
     return this.ctx;
   }

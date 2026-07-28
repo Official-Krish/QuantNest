@@ -2,11 +2,18 @@ import { getNodeRegistryEntry } from "@quantnest-trading/node-registry";
 import { actionHandlerFactory } from "./action-handlers";
 import type { ExecuteActionNodeParams } from "./action-handlers";
 import { resolveExecutorNodeSecrets } from "../services/reusableSecrets";
+import { dispatchActionToOpenClaw } from "./ai/openclaw-dispatcher";
 
 export async function executeActionNode(
   params: ExecuteActionNodeParams,
 ): Promise<void> {
   const { node, context } = params;
+
+  if (context.useOpenClaw) {
+    await dispatchActionToOpenClaw(params);
+    return;
+  }
+
   const type = String(node.type || "").toLowerCase();
   const registryEntry = getNodeRegistryEntry(type);
   const handlerId = registryEntry?.executorActionHandlerId;

@@ -27,6 +27,7 @@ import {
   updateWorkflowStatusForUser,
 } from "../services/workflowCrud";
 import { isPlanLimitError } from "../services/subscription";
+import { agentRegistry } from "../ws/agentRegistry";
 
 const workFlowRouter = Router();
 
@@ -160,15 +161,21 @@ workFlowRouter.post("/", authMiddleware, async (req, res) => {
   }
   const parsedCreate = CreateWorkflowSchema.safeParse(req.body);
   if (!parsedCreate.success) {
-    res
-      .status(400)
-      .json({
-        message: "Invalid request body",
-        issues: parsedCreate.error.issues,
-      });
+    res.status(400).json({
+      message: "Invalid request body",
+      issues: parsedCreate.error.issues,
+    });
     return;
   }
   const { data } = parsedCreate;
+
+  if (data.useOpenClaw && !agentRegistry.isOnline(userId)) {
+    res.status(400).json({
+      message: "Agent not connected. Start QuantNest Agent first.",
+    });
+    return;
+  }
+
   try {
     const workflow = await createWorkflowForUser({
       userId,
@@ -293,15 +300,21 @@ workFlowRouter.put("/:workflowId", authMiddleware, async (req, res) => {
   const userId = req.userId;
   const parsedUpdate = UpdateWorkflowSchema.safeParse(req.body);
   if (!parsedUpdate.success) {
-    res
-      .status(400)
-      .json({
-        message: "Invalid request body",
-        issues: parsedUpdate.error.issues,
-      });
+    res.status(400).json({
+      message: "Invalid request body",
+      issues: parsedUpdate.error.issues,
+    });
     return;
   }
   const { data } = parsedUpdate;
+
+  if (data.useOpenClaw && userId && !agentRegistry.isOnline(userId)) {
+    res.status(400).json({
+      message: "Agent not connected. Start QuantNest Agent first.",
+    });
+    return;
+  }
+
   try {
     const workflowId = String(req.params.workflowId);
     const workflow = await updateWorkflowForUser({

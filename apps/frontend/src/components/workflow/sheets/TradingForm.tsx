@@ -23,6 +23,7 @@ interface TradingFormProps {
   >;
   showApiKey?: boolean;
   action: "zerodha" | "groww" | "lighter";
+  useOpenClaw?: boolean;
 }
 
 export const TradingForm = ({
@@ -30,6 +31,7 @@ export const TradingForm = ({
   setMetadata,
   showApiKey = false,
   action,
+  useOpenClaw,
 }: TradingFormProps) => {
   const isWeb3 = action === "lighter";
   const { indianAssets, cryptoAssets } = useMarketAssets();
@@ -40,27 +42,34 @@ export const TradingForm = ({
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <ReusableSecretPicker
-        service={action}
-        secretId={(typedMetadata as any).secretId}
-        helperText="Select a saved credential bundle from Profile > Secrets, or leave empty to enter one-time values below."
-        onSelectSecret={(secretId) =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId,
-            apiKey: "",
-            accessToken: "",
-            accountIndex: undefined,
-            apiKeyIndex: undefined,
-          }))
-        }
-        onClearSecret={() =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId: undefined,
-          }))
-        }
-      />
+      {useOpenClaw ? (
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs text-orange-200">
+          Credentials are managed by your local OpenClaw instance. Fields below
+          will be sent to OpenClaw for execution.
+        </div>
+      ) : (
+        <ReusableSecretPicker
+          service={action}
+          secretId={(typedMetadata as any).secretId}
+          helperText="Select a saved credential bundle from Profile > Secrets, or leave empty to enter one-time values below."
+          onSelectSecret={(secretId) =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId,
+              apiKey: "",
+              accessToken: "",
+              accountIndex: undefined,
+              apiKeyIndex: undefined,
+            }))
+          }
+          onClearSecret={() =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId: undefined,
+            }))
+          }
+        />
+      )}
 
       {/* Order Type / Position Type */}
       <div className="space-y-2">
@@ -246,108 +255,116 @@ export const TradingForm = ({
         />
       </div>
 
-      {/* API Key */}
-      {!hasSecret && (showApiKey || isWeb3) && (
-        <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-            API key
-          </p>
-          <p className="text-xs text-neutral-400">
-            {isWeb3
-              ? "Your Lighter API key for authentication."
-              : "Your broker API key used only when this node runs."}
-          </p>
-          <Input
-            type="password"
-            value={typedMetadata.apiKey || ""}
-            onChange={(e) =>
-              setMetadata((current) => ({
-                ...current,
-                secretId: undefined,
-                apiKey: e.target.value,
-              }))
-            }
-            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-            placeholder="Enter API key"
-          />
-        </div>
-      )}
+      {!useOpenClaw && (
+        <>
+          {/* API Key */}
+          {!hasSecret && (showApiKey || isWeb3) && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                API key
+              </p>
+              <p className="text-xs text-neutral-400">
+                {isWeb3
+                  ? "Your Lighter API key for authentication."
+                  : "Your broker API key used only when this node runs."}
+              </p>
+              <Input
+                type="password"
+                value={typedMetadata.apiKey || ""}
+                onChange={(e) =>
+                  setMetadata((current) => ({
+                    ...current,
+                    secretId: undefined,
+                    apiKey: e.target.value,
+                  }))
+                }
+                className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+                placeholder="Enter API key"
+              />
+            </div>
+          )}
 
-      {/* Access Token (only for Indian brokers) */}
-      {!hasSecret && !isWeb3 && (
-        <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-            Access Token
-          </p>
-          <p className="text-xs text-neutral-400">
-            {action === "zerodha"
-              ? "Required for Zerodha authentication."
-              : "Your broker access token for authentication."}
-          </p>
-          <Input
-            type="password"
-            value={
-              (!isWeb3 && (typedMetadata as TradingMetadata).accessToken) || ""
-            }
-            onChange={(e) =>
-              setMetadata((current) => ({
-                ...current,
-                secretId: undefined,
-                accessToken: e.target.value,
-              }))
-            }
-            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-            placeholder="Enter access token"
-          />
-        </div>
-      )}
-      {!hasSecret && isWeb3 && (
-        <div className="space-y-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-            Account Index
-          </p>
-          <p className="text-xs text-neutral-400">
-            Your Lighter account index for authentication.
-          </p>
-          <Input
-            type="number"
-            value={
-              (isWeb3 && (typedMetadata as LighterMetadata).accountIndex) || ""
-            }
-            onChange={(e) =>
-              setMetadata((current) => ({
-                ...current,
-                secretId: undefined,
-                accountIndex: Number(e.target.value),
-              }))
-            }
-            className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-            placeholder="Enter account index"
-          />
-          <div className="space-y-2">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-              ApiKey Index
-            </p>
-            <p className="text-xs text-neutral-400">
-              Your Lighter ApiKey index for authentication.
-            </p>
-            <Input
-              type="number"
-              value={
-                (isWeb3 && (typedMetadata as LighterMetadata).apiKeyIndex) || ""
-              }
-              onChange={(e) =>
-                setMetadata((current) => ({
-                  ...current,
-                  secretId: undefined,
-                  apiKeyIndex: Number(e.target.value),
-                }))
-              }
-              className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-              placeholder="Enter apiKey index"
-            />
-          </div>
-        </div>
+          {/* Access Token (only for Indian brokers) */}
+          {!hasSecret && !isWeb3 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                Access Token
+              </p>
+              <p className="text-xs text-neutral-400">
+                {action === "zerodha"
+                  ? "Required for Zerodha authentication."
+                  : "Your broker access token for authentication."}
+              </p>
+              <Input
+                type="password"
+                value={
+                  (!isWeb3 && (typedMetadata as TradingMetadata).accessToken) ||
+                  ""
+                }
+                onChange={(e) =>
+                  setMetadata((current) => ({
+                    ...current,
+                    secretId: undefined,
+                    accessToken: e.target.value,
+                  }))
+                }
+                className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+                placeholder="Enter access token"
+              />
+            </div>
+          )}
+          {!hasSecret && isWeb3 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                Account Index
+              </p>
+              <p className="text-xs text-neutral-400">
+                Your Lighter account index for authentication.
+              </p>
+              <Input
+                type="number"
+                value={
+                  (isWeb3 && (typedMetadata as LighterMetadata).accountIndex) ||
+                  ""
+                }
+                onChange={(e) =>
+                  setMetadata((current) => ({
+                    ...current,
+                    secretId: undefined,
+                    accountIndex: Number(e.target.value),
+                  }))
+                }
+                className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+                placeholder="Enter account index"
+              />
+              <div className="space-y-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                  ApiKey Index
+                </p>
+                <p className="text-xs text-neutral-400">
+                  Your Lighter ApiKey index for authentication.
+                </p>
+                <Input
+                  type="number"
+                  value={
+                    (isWeb3 &&
+                      (typedMetadata as LighterMetadata).apiKeyIndex) ||
+                    ""
+                  }
+                  onChange={(e) =>
+                    setMetadata((current) => ({
+                      ...current,
+                      secretId: undefined,
+                      apiKeyIndex: Number(e.target.value),
+                    }))
+                  }
+                  className="mt-1 border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
+                  placeholder="Enter apiKey index"
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />

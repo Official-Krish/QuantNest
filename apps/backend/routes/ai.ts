@@ -3,8 +3,11 @@ import { Router } from "express";
 import {
   AiStrategyDraftVersionModel,
   AiStrategySessionModel,
+  AiMemoryModel,
+  ApprovalRequestModel,
   ExecutionModel,
   ExecutionTraceModel,
+  WorkflowModel,
 } from "@quantnest-trading/db/client";
 import {
   aiStrategyDraftSessionSchema,
@@ -243,7 +246,11 @@ aiRouter.post("/debug/explain", authMiddleware, async (req, res) => {
           value: is.value,
         }),
       ),
-      executionStatus: execution.status as "Success" | "Failed" | "InProgress",
+      executionStatus: execution.status as
+        | "Success"
+        | "Failed"
+        | "InProgress"
+        | "PendingApproval",
       marketDataAtExecution: trace.marketDataSnapshot as
         | Record<string, unknown>
         | undefined,
@@ -648,5 +655,282 @@ aiRouter.patch(
     }
   },
 );
+
+// ---- Approval Request endpoints ----
+
+aiRouter.get("/approvals", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const status = String(req.query.status || "").trim();
+    const filter: Record<string, unknown> = { userId };
+    if (
+      status &&
+      ["pending", "approved", "rejected", "expired"].includes(status)
+    ) {
+      filter.status = status;
+    }
+
+    const approvals = await ApprovalRequestModel.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    const workflowIds = [
+      ...new Set(approvals.map((a) => String(a.workflowId))),
+    ];
+    const workflows = await WorkflowModel.find({ _id: { $in: workflowIds } })
+      .select("workflowName")
+      .lean();
+    const workflowMap = Object.fromEntries(
+      workflows.map((w) => [
+        String(w._id),
+        (w as any).workflowName || String(w._id),
+      ]),
+    );
+
+    const mapped = approvals.map((a) => ({
+      id: String(a._id),
+      workflowId: String(a.workflowId),
+      workflowName: workflowMap[String(a.workflowId)] || String(a.workflowId),
+      nodeId: a.nodeId,
+      executionId: a.executionId ? String(a.executionId) : undefined,
+      status: a.status,
+      prompt: a.prompt,
+      proposedAction: a.proposedAction,
+      metadata: a.metadata,
+      createdAt: a.createdAt,
+      approvedAt: a.approvedAt,
+      rejectedAt: a.rejectedAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: mapped,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "APPROVAL_ERROR",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to list approval requests.",
+    });
+  }
+});
+
+aiRouter.patch(
+  "/approvals/:approvalId/approve",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
+        return;
+      }
+
+      const approvalId = String(req.params.approvalId);
+      const approval = await ApprovalRequestModel.findOne({
+        _id: approvalId,
+        userId,
+      });
+
+      if (!approval) {
+        res.status(404).json({
+          success: false,
+          code: "NOT_FOUND",
+          message: "Approval request not found.",
+        });
+        return;
+      }
+
+      if (approval.status !== "pending") {
+        res.status(400).json({
+          success: false,
+          code: "ALREADY_PROCESSED",
+          message: `Approval request is already ${approval.status}.`,
+        });
+        return;
+      }
+
+      approval.status = "approved";
+      approval.approvedAt = new Date();
+      await approval.save();
+
+      const workflowId = String(approval.workflowId);
+      await WorkflowModel.updateOne(
+        { _id: workflowId },
+        { $set: { status: "active" } },
+      );
+
+      res.status(200).json({
+        success: true,
+        data: { id: approvalId, status: "approved" },
+        message: "Approval granted. Workflow has been resumed.",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        code: "APPROVAL_ERROR",
+        message: error instanceof Error ? error.message : "Failed to approve.",
+      });
+    }
+  },
+);
+
+aiRouter.patch(
+  "/approvals/:approvalId/reject",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const userId = req.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          code: "UNAUTHORIZED",
+          message: "Unauthorized",
+        });
+        return;
+      }
+
+      const approvalId = String(req.params.approvalId);
+      const approval = await ApprovalRequestModel.findOne({
+        _id: approvalId,
+        userId,
+      });
+
+      if (!approval) {
+        res.status(404).json({
+          success: false,
+          code: "NOT_FOUND",
+          message: "Approval request not found.",
+        });
+        return;
+      }
+
+      if (approval.status !== "pending") {
+        res.status(400).json({
+          success: false,
+          code: "ALREADY_PROCESSED",
+          message: `Approval request is already ${approval.status}.`,
+        });
+        return;
+      }
+
+      approval.status = "rejected";
+      approval.rejectedAt = new Date();
+      await approval.save();
+
+      res.status(200).json({
+        success: true,
+        data: { id: approvalId, status: "rejected" },
+        message: "Approval request was rejected.",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        code: "APPROVAL_ERROR",
+        message: error instanceof Error ? error.message : "Failed to reject.",
+      });
+    }
+  },
+);
+
+// ---- AI Memory endpoints ----
+
+aiRouter.get("/memories", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const workflowId = String(req.query.workflowId || "").trim();
+    const nodeId = String(req.query.nodeId || "").trim();
+    const filter: Record<string, unknown> = { userId };
+    if (workflowId) filter.workflowId = workflowId;
+    if (nodeId) filter.nodeId = nodeId;
+
+    const memories = await AiMemoryModel.find(filter)
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .lean();
+
+    const mapped = memories.map((m) => ({
+      id: m._id,
+      workflowId: m.workflowId,
+      nodeId: m.nodeId,
+      key: m.key,
+      value: m.value,
+      ttl: m.ttl,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt,
+    }));
+
+    res.status(200).json({ success: true, data: mapped });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "MEMORY_ERROR",
+      message:
+        error instanceof Error ? error.message : "Failed to list memories.",
+    });
+  }
+});
+
+aiRouter.delete("/memories/:memoryId", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const result = await AiMemoryModel.deleteOne({
+      _id: req.params.memoryId,
+      userId,
+    });
+    if (result.deletedCount === 0) {
+      res.status(404).json({
+        success: false,
+        code: "NOT_FOUND",
+        message: "Memory not found.",
+      });
+      return;
+    }
+
+    res.status(200).json({ success: true, message: "Memory deleted." });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "MEMORY_ERROR",
+      message:
+        error instanceof Error ? error.message : "Failed to delete memory.",
+    });
+  }
+});
 
 export default aiRouter;

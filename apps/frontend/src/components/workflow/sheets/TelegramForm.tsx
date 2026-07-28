@@ -6,32 +6,43 @@ import { ReliabilitySection } from "./ReliabilitySection";
 interface TelegramFormProps {
   metadata: any;
   setMetadata: React.Dispatch<React.SetStateAction<any>>;
+  useOpenClaw?: boolean;
 }
 
-export const TelegramForm = ({ metadata, setMetadata }: TelegramFormProps) => {
+export const TelegramForm = ({
+  metadata,
+  setMetadata,
+  useOpenClaw,
+}: TelegramFormProps) => {
   const hasSecret = Boolean(String(metadata.secretId || "").trim());
 
   return (
     <div className="space-y-4 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-3">
-      <ReusableSecretPicker
-        service="telegram"
-        secretId={metadata.secretId}
-        helperText="Reuse a saved Telegram bot + chat destination, or leave empty to enter a one-time value."
-        onSelectSecret={(secretId) =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId,
-            telegramBotToken: "",
-            telegramChatId: "",
-          }))
-        }
-        onClearSecret={() =>
-          setMetadata((current: any) => ({
-            ...current,
-            secretId: undefined,
-          }))
-        }
-      />
+      {useOpenClaw ? (
+        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs text-orange-200">
+          Credentials are managed by your local OpenClaw instance.
+        </div>
+      ) : (
+        <ReusableSecretPicker
+          service="telegram"
+          secretId={metadata.secretId}
+          helperText="Reuse a saved Telegram bot + chat destination, or leave empty to enter a one-time value."
+          onSelectSecret={(secretId) =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId,
+              telegramBotToken: "",
+              telegramChatId: "",
+            }))
+          }
+          onClearSecret={() =>
+            setMetadata((current: any) => ({
+              ...current,
+              secretId: undefined,
+            }))
+          }
+        />
+      )}
 
       <div className="space-y-2">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
@@ -54,7 +65,7 @@ export const TelegramForm = ({ metadata, setMetadata }: TelegramFormProps) => {
         />
       </div>
 
-      {!hasSecret && (
+      {!useOpenClaw && !hasSecret && (
         <>
           <div className="space-y-2">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
@@ -117,7 +128,8 @@ export const TelegramForm = ({ metadata, setMetadata }: TelegramFormProps) => {
 
       <div className="space-y-2 rounded-lg border border-neutral-700/50 bg-neutral-900/30 p-3">
         <p className="text-xs text-neutral-400">
-          This version sends outbound bot messages. Later we can reuse the same bot to listen for commands like “stop this workflow”.
+          This version sends outbound bot messages. Later we can reuse the same
+          bot to listen for commands like “stop this workflow”.
         </p>
       </div>
 

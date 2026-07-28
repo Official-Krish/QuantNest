@@ -30,6 +30,7 @@ import {
   getSelectedCardTitle,
 } from "./action-sheet/config";
 import { getBuilderActionValidationState } from "./action-sheet/utils";
+import { stripCredentialKeys } from "./workflow-builder.utils";
 
 export const ActionSheet = ({
   onSelect,
@@ -42,6 +43,7 @@ export const ActionSheet = ({
   marketType,
   setMarketType,
   hasZerodhaAction,
+  useOpenClaw,
 }: {
   onSelect: (kind: NodeKind, metadata: NodeMetadata) => void;
   open: boolean;
@@ -53,6 +55,7 @@ export const ActionSheet = ({
   marketType: "Indian" | "Crypto" | null;
   setMarketType: Dispatch<SetStateAction<"Indian" | "Crypto" | null>>;
   hasZerodhaAction: boolean;
+  useOpenClaw?: boolean;
 }) => {
   const [metadata, setMetadata] = useState<
     NodeMetadata | Record<string, unknown>
@@ -83,11 +86,14 @@ export const ActionSheet = ({
 
     timeouts.push(
       setTimeout(() => {
-        setMetadata({
-          ...((initialMetadata || {}) as
-            | NodeMetadata
-            | Record<string, unknown>),
-        });
+        const raw = (initialMetadata || {}) as
+          | NodeMetadata
+          | Record<string, unknown>;
+        setMetadata(
+          useOpenClaw
+            ? stripCredentialKeys(raw as Record<string, unknown>)
+            : { ...raw },
+        );
         setSelectedAction(initialKind);
         setActiveStep(3);
         setTransitionDirection(1);
@@ -111,7 +117,7 @@ export const ActionSheet = ({
     );
 
     return () => timeouts.forEach(clearTimeout);
-  }, [initialKind, initialMetadata, open, setMarketType]);
+  }, [initialKind, initialMetadata, open, setMarketType, useOpenClaw]);
 
   useEffect(() => {
     if (!open) {
@@ -162,8 +168,9 @@ export const ActionSheet = ({
         getBuilderActionValidationState(
           selectedAction,
           metadata as Record<string, unknown>,
+          useOpenClaw,
         ),
-      [metadata, selectedAction],
+      [metadata, selectedAction, useOpenClaw],
     );
 
   const handleCreate = () => {
@@ -232,7 +239,9 @@ export const ActionSheet = ({
             ? "Persist execution records to external data systems."
             : activeGroup === "Reporting"
               ? "Reporting actions stay locked until Zerodha, Groww, or Lighter is connected."
-              : "";
+              : activeGroup === "AI"
+                ? "AI decision nodes use OpenAI-compatible providers."
+                : "";
 
   const canShowConfig = activeStep === 3 && Boolean(selectedAction);
 
@@ -637,9 +646,10 @@ export const ActionSheet = ({
                                   )}
                                 >
                                   <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-950">
-                                    <span className="text-sm text-[#99f6e4]">
-                                      ⧫
-                                    </span>
+                                    <ServiceLogo
+                                      service={action.id}
+                                      size={18}
+                                    />
                                   </span>
                                   <span className="min-w-0">
                                     <span className="block text-sm font-semibold text-neutral-100">
@@ -656,6 +666,34 @@ export const ActionSheet = ({
                               Swap tokens and monitor Solana wallet balances
                               through Jupiter.
                             </div>
+                          </div>
+                        ) : activeGroup === "AI" ? (
+                          <div className="space-y-2">
+                            {availableActions.map((action) => {
+                              const selected = selectedAction === action.id;
+                              return (
+                                <button
+                                  key={action.id}
+                                  type="button"
+                                  onClick={() => handleSelectAction(action.id)}
+                                  className={cn(
+                                    "flex w-full cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-all",
+                                    selected
+                                      ? "border-l-2 border-l-violet-400 border-violet-400/60 bg-violet-400/10"
+                                      : "border-neutral-700 bg-neutral-900/60 hover:border-neutral-500 hover:bg-neutral-900",
+                                  )}
+                                >
+                                  <span className="min-w-0">
+                                    <span className="block text-sm font-semibold text-neutral-100">
+                                      {action.title}
+                                    </span>
+                                    <span className="mt-1 block text-sm leading-5 text-neutral-300">
+                                      {action.description}
+                                    </span>
+                                  </span>
+                                </button>
+                              );
+                            })}
                           </div>
                         ) : (
                           <p className="rounded-xl border border-neutral-800 bg-neutral-900/50 px-3 py-3 text-sm text-neutral-300">
@@ -713,6 +751,7 @@ export const ActionSheet = ({
                           showApiKey: selectedAction === "zerodha",
                           action: selectedAction,
                           selectedAction,
+                          useOpenClaw,
                         })
                       : null}
 

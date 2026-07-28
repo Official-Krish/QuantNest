@@ -26,6 +26,10 @@ spec:
       protocol: TCP
       port: 80
       targetPort: 3000
+    - name: ws
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
   type: ClusterIP
 ---
 apiVersion: v1

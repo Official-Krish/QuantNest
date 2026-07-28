@@ -6,9 +6,11 @@ import {
   AnimatePresence,
 } from "motion/react";
 import { ProfileDropDown } from "./Profile-Dropdown";
+import { ShieldCheck, Database } from "lucide-react";
 import {
   AUTH_STATE_EVENT,
   apiVerifyToken,
+  apiGetApprovals,
   clearAuthSession,
   hasAuthSession,
   setAuthSession,
@@ -38,6 +40,7 @@ export const Appbar = () => {
     hasAuthSession(),
   );
   const { scrollY } = useScroll();
+  const [pendingApprovals, setPendingApprovals] = useState(0);
 
   useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 40));
 
@@ -67,6 +70,21 @@ export const Appbar = () => {
     return () =>
       window.removeEventListener(AUTH_STATE_EVENT, handler as EventListener);
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetch = async () => {
+      try {
+        const approvals = await apiGetApprovals({ status: "pending" });
+        setPendingApprovals(approvals.length);
+      } catch {
+        setPendingApprovals(0);
+      }
+    };
+    void fetch();
+    const interval = setInterval(fetch, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const items = isAuthenticated ? NAV_AUTH : NAV_PUBLIC;
 
@@ -173,7 +191,28 @@ export const Appbar = () => {
               </motion.a>
             </>
           ) : (
-            <ProfileDropDown />
+            <>
+              <a
+                href="/approvals"
+                className="relative flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-200 no-underline"
+                title="Approvals"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                {pendingApprovals > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-black">
+                    {pendingApprovals}
+                  </span>
+                )}
+              </a>
+              <a
+                href="/memories"
+                className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-200 no-underline"
+                title="AI Memory"
+              >
+                <Database className="h-4 w-4" />
+              </a>
+              <ProfileDropDown />
+            </>
           )}
         </div>
       </div>

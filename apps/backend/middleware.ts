@@ -67,3 +67,54 @@ export async function authMiddleware(
     return;
   }
 }
+
+function getAiServiceJwtSecret(): string {
+  const secret =
+    process.env.AI_SERVICE_JWT_SECRET || process.env.AI_SERVICE_TOKEN;
+  if (
+    !secret ||
+    secret === "AI_SERVICE_TOKEN" ||
+    secret === "AI_SERVICE_JWT_SECRET"
+  ) {
+    throw new Error(
+      "AI_SERVICE_JWT_SECRET must be configured and must not use the default placeholder value.",
+    );
+  }
+  return secret;
+}
+
+export function internalAuthMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const secret = getAiServiceJwtSecret();
+    const headerToken = req.headers["authorization"]?.split(" ")[1];
+    if (!headerToken) {
+      res.status(401).json({ error: "No internal token provided" });
+      return;
+    }
+
+    const decoded = jwt.verify(headerToken, secret, {
+      algorithms: ["HS256"],
+    });
+
+    const payload = decoded as any;
+    if (payload.scope !== "executor-service") {
+      res.status(403).json({ error: "Invalid token scope" });
+      return;
+    }
+
+    if (payload.userId) {
+      req.userId = payload.userId;
+    }
+    next();
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(403).json({ error: "Invalid internal token" });
+      return;
+    }
+    res.status(500).json({ error: "Internal auth error" });
+  }
+}

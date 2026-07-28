@@ -2,7 +2,11 @@ import type {
   ExecutionStep,
   RetryPolicyMetadata,
 } from "@quantnest-trading/types";
-import { createUserNotification } from "@quantnest-trading/executor-utils";
+import {
+  createUserNotification,
+  createApprovalRequest,
+  pauseWorkflowAndNotify,
+} from "@quantnest-trading/executor-utils";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 import { shouldSkipActionByCondition } from "../execute.context";
@@ -337,5 +341,51 @@ export async function executeNotificationAction(
         });
       }
     },
+  });
+}
+
+export async function handleApprovalGate(params: {
+  metadata: Record<string, unknown>;
+  nodeId: string;
+  nodeType: string;
+  context: ExecutionContext;
+  steps: ExecutionStep[];
+  result: Record<string, unknown>;
+}): Promise<void> {
+  const { metadata, nodeId, nodeType, context, steps, result } = params;
+  const approvalRequired = Boolean((metadata as any)?.approvalRequired);
+  if (!approvalRequired) return;
+
+  const approvalPrompt = String(
+    (metadata as any)?.approvalPrompt ||
+      `${nodeType} requires your approval to proceed`,
+  );
+  const userId = context.userId ?? "anonymous";
+  const workflowId = context.workflowId ?? "unknown";
+
+  await createApprovalRequest({
+    userId,
+    workflowId,
+    nodeId,
+    nodeType,
+    prompt: approvalPrompt,
+    proposedAction: result,
+    metadata: { nodeType, executedAt: new Date().toISOString() },
+    dedupeKey: `approval:${workflowId}:${nodeId}`,
+  });
+
+  await pauseWorkflowAndNotify({
+    workflowId,
+    userId,
+    reason: `${nodeType} at "${nodeId}" has proposed an action that requires your approval: "${approvalPrompt}"`,
+    nodeLabel: nodeId,
+  });
+
+  pushStep(steps, {
+    nodeId,
+    nodeType,
+    status: "PendingApproval",
+    message: `Awaiting approval: ${approvalPrompt}`,
+    terminalFailure: false,
   });
 }

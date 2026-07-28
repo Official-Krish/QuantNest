@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import type { IconType } from "react-icons";
 import { HiOutlineBolt } from "react-icons/hi2";
 import { BiLogoPostgresql } from "react-icons/bi";
@@ -8,6 +7,7 @@ import {
   SiGoogledrive,
   SiGooglesheets,
   SiNotion,
+  SiOpenai,
   SiSlack,
   SiTelegram,
   SiWhatsapp,
@@ -21,6 +21,7 @@ type ServiceBrand = {
   colorClassName: string;
   tintClassName: string;
   borderClassName: string;
+  imageUrl?: string;
 };
 
 const SERVICE_BRANDS: Record<string, ServiceBrand> = {
@@ -96,6 +97,44 @@ const SERVICE_BRANDS: Record<string, ServiceBrand> = {
     tintClassName: "bg-emerald-400/12",
     borderClassName: "border-emerald-400/25",
   },
+  "ai-decision": {
+    icon: SiOpenai,
+    colorClassName: "text-violet-400",
+    tintClassName: "bg-violet-400/12",
+    borderClassName: "border-violet-400/25",
+  },
+  "ai-classify": {
+    icon: SiOpenai,
+    colorClassName: "text-emerald-400",
+    tintClassName: "bg-emerald-400/12",
+    borderClassName: "border-emerald-400/25",
+  },
+  "ai-extract": {
+    icon: SiOpenai,
+    colorClassName: "text-sky-400",
+    tintClassName: "bg-sky-400/12",
+    borderClassName: "border-sky-400/25",
+  },
+  "ai-generate": {
+    icon: SiOpenai,
+    colorClassName: "text-amber-400",
+    tintClassName: "bg-amber-400/12",
+    borderClassName: "border-amber-400/25",
+  },
+  "solana-swap": {
+    icon: TbPlugConnected,
+    colorClassName: "text-[#9945FF]",
+    tintClassName: "bg-[#9945FF]/12",
+    borderClassName: "border-[#9945FF]/25",
+    imageUrl: "/solana.png",
+  },
+  "solana-balance": {
+    icon: TbPlugConnected,
+    colorClassName: "text-[#9945FF]",
+    tintClassName: "bg-[#9945FF]/12",
+    borderClassName: "border-[#9945FF]/25",
+    imageUrl: "/solana.png",
+  },
 };
 
 const DEFAULT_BRAND: ServiceBrand = {
@@ -119,6 +158,18 @@ export function ServiceLogo({
   className?: string;
 }) {
   const brand = getServiceBrand(service);
+
+  if (brand.imageUrl) {
+    return (
+      <img
+        src={brand.imageUrl}
+        alt={service}
+        className={`${brand.colorClassName} ${className}`.trim()}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
   const Icon = brand.icon;
 
   return (

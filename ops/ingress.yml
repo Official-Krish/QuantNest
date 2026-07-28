@@ -20,6 +20,9 @@ spec:
         - api.quantnest.krishlabs.tech
       secretName: quantnest-backend-tls
     - hosts:
+        - ws.quantnest.krishlabs.tech
+      secretName: quantnest-ws-tls
+    - hosts:
         - ai.quantnest.krishlabs.tech
       secretName: quantnest-ai-builder-tls
 
@@ -45,6 +48,17 @@ spec:
                 name: quantnest-backend
                 port:
                   number: 80
+
+    - host: ws.quantnest.krishlabs.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: quantnest-backend
+                port:
+                  number: 9000
 
     - host: ai.quantnest.krishlabs.tech
       http:

@@ -18,6 +18,7 @@ import {
   apiGetWorkflow,
   apiVerifyBrokerCredentials,
   apiUpdateWorkflow,
+  apiVerifyAgent,
 } from "@/http";
 import { Button } from "@/components/ui/button";
 import { OrangeButton } from "@/components/ui/button-orange";
@@ -37,6 +38,7 @@ import {
   buildWorkflowSnapshot,
   collectBrokerVerificationPayloads,
   normalizeWorkflowForBuilder,
+  stripNodeCredentials,
 } from "@/components/workflow/workflow-builder.utils";
 
 const POSITION_OFFSET = 50;
@@ -65,9 +67,25 @@ export const CreateWorkflow = () => {
   } | null>(null);
   const [showActionSheetEdit, setShowActionSheetEdit] = useState(false);
   const [editingNode, setEditingNode] = useState<NodeType | null>(null);
-  const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(null);
-  const [executionMode, setExecutionMode] = useState<"live" | "dry-run">("live");
-  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(null);
+  const [marketType, setMarketType] = useState<"Indian" | "Crypto" | null>(
+    null,
+  );
+  const [executionMode, setExecutionMode] = useState<"live" | "dry-run">(
+    "live",
+  );
+  const [useOpenClaw, setUseOpenClaw] = useState(false);
+  const [openclawChoiceLocked, setOpenclawChoiceLocked] = useState(false);
+  const [showOpenClawDialog, setShowOpenClawDialog] = useState(false);
+  const [agentConnected, setAgentConnected] = useState(false);
+  const [agentInfo, setAgentInfo] = useState<{
+    hostname: string;
+    version: string;
+    capabilities: string[];
+  } | null>(null);
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(
+    null,
+  );
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [aiBuilderContext, setAiBuilderContext] = useState<{
     draftId: string;
@@ -105,10 +123,17 @@ export const CreateWorkflow = () => {
     setNodes((generatedPlan.nodes || []) as NodeType[]);
     setEdges((generatedPlan.edges || []) as EdgeType[]);
     setWorkflowName(String(generatedPlan.workflowName || ""));
-    setMarketType((generatedPlan.marketType || "Indian") as "Indian" | "Crypto");
-    setExecutionMode((generatedPlan.executionMode || "live") as "live" | "dry-run");
+    setMarketType(
+      (generatedPlan.marketType || "Indian") as "Indian" | "Crypto",
+    );
+    setExecutionMode(
+      (generatedPlan.executionMode || "live") as "live" | "dry-run",
+    );
 
-    if (state.aiBuilderContext?.draftId && Array.isArray(state.aiBuilderContext.versions)) {
+    if (
+      state.aiBuilderContext?.draftId &&
+      Array.isArray(state.aiBuilderContext.versions)
+    ) {
       setAiBuilderContext({
         draftId: state.aiBuilderContext.draftId,
         versions: state.aiBuilderContext.versions,
@@ -116,7 +141,9 @@ export const CreateWorkflow = () => {
       setActiveAiVersionId(
         String(
           state.aiBuilderContext.activeVersionId ||
-            state.aiBuilderContext.versions[state.aiBuilderContext.versions.length - 1]?.id ||
+            state.aiBuilderContext.versions[
+              state.aiBuilderContext.versions.length - 1
+            ]?.id ||
             "",
         ),
       );
@@ -128,26 +155,47 @@ export const CreateWorkflow = () => {
 
   const handleLoadAiVersion = useCallback(
     async (versionId: string) => {
-      if (!aiBuilderContext?.draftId || !versionId || versionId === activeAiVersionId) return;
+      if (
+        !aiBuilderContext?.draftId ||
+        !versionId ||
+        versionId === activeAiVersionId
+      )
+        return;
 
       setSwitchingAiVersion(true);
       setSaveError(null);
       try {
-        const payload = await apiGetAiStrategyDraftVersion(aiBuilderContext.draftId, versionId);
+        const payload = await apiGetAiStrategyDraftVersion(
+          aiBuilderContext.draftId,
+          versionId,
+        );
         const setupOverrides = payload.setupState?.metadataOverrides || {};
-        const normalizedNodes = normalizeGeneratedNodes(payload.version.response.plan, setupOverrides);
+        const normalizedNodes = normalizeGeneratedNodes(
+          payload.version.response.plan,
+          setupOverrides,
+        );
         setNodes((normalizedNodes || []) as NodeType[]);
         setEdges((payload.version.response.plan.edges || []) as EdgeType[]);
         setWorkflowName(
           String(
-            payload.setupState?.workflowName || payload.version.response.plan.workflowName || "",
+            payload.setupState?.workflowName ||
+              payload.version.response.plan.workflowName ||
+              "",
           ),
         );
-        setMarketType((payload.version.response.plan.marketType || "Indian") as "Indian" | "Crypto");
+        setMarketType(
+          (payload.version.response.plan.marketType || "Indian") as
+            | "Indian"
+            | "Crypto",
+        );
         setActiveAiVersionId(versionId);
         setLastSavedSnapshot(null);
       } catch (e: any) {
-        setSaveError(e?.response?.data?.message ?? e?.message ?? "Failed to load AI version");
+        setSaveError(
+          e?.response?.data?.message ??
+            e?.message ??
+            "Failed to load AI version",
+        );
       } finally {
         setSwitchingAiVersion(false);
       }
@@ -179,14 +227,17 @@ export const CreateWorkflow = () => {
             nodes: normalizedWorkflow.nodes,
             edges: normalizedWorkflow.edges,
             executionMode: normalizedWorkflow.executionMode,
+            useOpenClaw: normalizedWorkflow.useOpenClaw,
           }),
         );
-        setExecutionMode((normalizedWorkflow.executionMode || "live") as "live" | "dry-run");
+        setExecutionMode(
+          (normalizedWorkflow.executionMode || "live") as "live" | "dry-run",
+        );
+        setUseOpenClaw(normalizedWorkflow.useOpenClaw || false);
+        setOpenclawChoiceLocked(true);
       } catch (e: any) {
         setSaveError(
-          e?.response?.data?.message ??
-            e?.message ??
-            "Failed to load workflow",
+          e?.response?.data?.message ?? e?.message ?? "Failed to load workflow",
         );
       } finally {
         setLoading(false);
@@ -201,8 +252,8 @@ export const CreateWorkflow = () => {
       setNodes((nodesSnapshot) =>
         applyNodeChanges(
           changes,
-          nodesSnapshot.map((node) => ({ ...node, id: node.nodeId }))
-        )
+          nodesSnapshot.map((node) => ({ ...node, id: node.nodeId })),
+        ),
       ),
     [],
   );
@@ -212,22 +263,19 @@ export const CreateWorkflow = () => {
     [],
   );
   // Custom onConnect to capture handleId (true/false) for conditional branching
-  const onConnect = useCallback(
-    (params: any) => {
-      const edgeId = `e${params.source}-${params.sourceHandle || "default"}-${params.target}`;
-      setEdges((edgesSnapshot) => [
-        ...edgesSnapshot,
-        {
-          id: edgeId,
-          source: params.source,
-          sourceHandle: params.sourceHandle, // 'true' or 'false' for conditional
-          target: params.target,
-          targetHandle: params.targetHandle,
-        },
-      ]);
-    },
-    [],
-  );
+  const onConnect = useCallback((params: any) => {
+    const edgeId = `e${params.source}-${params.sourceHandle || "default"}-${params.target}`;
+    setEdges((edgesSnapshot) => [
+      ...edgesSnapshot,
+      {
+        id: edgeId,
+        source: params.source,
+        sourceHandle: params.sourceHandle, // 'true' or 'false' for conditional
+        target: params.target,
+        targetHandle: params.targetHandle,
+      },
+    ]);
+  }, []);
 
   const onNodeClick = useCallback(
     (event: any, node: any) => {
@@ -244,7 +292,10 @@ export const CreateWorkflow = () => {
 
   const onConnectEnd = useCallback((_params: any, connectionInfo: any) => {
     if (!connectionInfo.isValid) {
-      const sourceHandle = connectionInfo.fromHandle?.id || connectionInfo.handleId || connectionInfo.sourceHandle;
+      const sourceHandle =
+        connectionInfo.fromHandle?.id ||
+        connectionInfo.handleId ||
+        connectionInfo.sourceHandle;
       setSelectedAction({
         startingNodeId: connectionInfo.fromNode.id,
         position: {
@@ -256,29 +307,40 @@ export const CreateWorkflow = () => {
     }
   }, []);
 
-  const canSave = useMemo(
-    () => {
-      if (nodes.length === 0 || loading) return false;
-      if (workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH) return false;
-      if (!workflowId) return true;
+  const canSave = useMemo(() => {
+    if (nodes.length === 0 || loading) return false;
+    if (workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH) return false;
+    if (useOpenClaw && !agentConnected) return false;
+    if (!workflowId) return true;
 
-      return (
-        buildWorkflowSnapshot({
-          workflowName,
-          nodes,
-          edges,
-          executionMode,
-        }) !== lastSavedSnapshot
-      );
-    },
-    [nodes, edges, workflowName, executionMode, workflowId, loading, lastSavedSnapshot],
-  );
+    return (
+      buildWorkflowSnapshot({
+        workflowName,
+        nodes,
+        edges,
+        executionMode,
+        useOpenClaw,
+      }) !== lastSavedSnapshot
+    );
+  }, [
+    nodes,
+    edges,
+    workflowName,
+    executionMode,
+    useOpenClaw,
+    agentConnected,
+    workflowId,
+    loading,
+    lastSavedSnapshot,
+  ]);
   const hasZerodhaAction = useMemo(
     () =>
       nodes.some(
         (node) =>
           String(node.data?.kind || "").toLowerCase() === "action" &&
-          ["zerodha", "groww", "lighter"].includes(String(node.type || "").toLowerCase()),
+          ["zerodha", "groww", "lighter"].includes(
+            String(node.type || "").toLowerCase(),
+          ),
       ),
     [nodes],
   );
@@ -286,7 +348,9 @@ export const CreateWorkflow = () => {
   const onSave = useCallback(async () => {
     const normalizedWorkflowName = workflowName.trim();
     if (normalizedWorkflowName.length < MIN_WORKFLOW_NAME_LENGTH) {
-      setSaveError(`Workflow name must be at least ${MIN_WORKFLOW_NAME_LENGTH} characters.`);
+      setSaveError(
+        `Workflow name must be at least ${MIN_WORKFLOW_NAME_LENGTH} characters.`,
+      );
       setShowNameDialog(true);
       return;
     }
@@ -294,15 +358,21 @@ export const CreateWorkflow = () => {
     setSaveError(null);
     setSaving(true);
     try {
-      for (const payload of collectBrokerVerificationPayloads(nodes).values()) {
-        await apiVerifyBrokerCredentials(payload);
+      if (!useOpenClaw) {
+        for (const payload of collectBrokerVerificationPayloads(
+          nodes,
+        ).values()) {
+          await apiVerifyBrokerCredentials(payload);
+        }
       }
 
+      const stippedNodes = useOpenClaw ? stripNodeCredentials(nodes) : nodes;
       const payload = {
         workflowName: normalizedWorkflowName,
-        nodes,
+        nodes: stippedNodes,
         edges,
         executionMode,
+        useOpenClaw,
       };
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
@@ -319,13 +389,13 @@ export const CreateWorkflow = () => {
             nodes,
             edges,
             executionMode,
+            useOpenClaw,
           }),
         );
         toast.success("Workflow updated successfully");
       }
     } catch (e: any) {
-      const message =
-        e?.response?.data?.message ?? e?.message ?? "Save failed";
+      const message = e?.response?.data?.message ?? e?.message ?? "Save failed";
       const normalized = String(message).toLowerCase();
       if (
         normalized.includes("verification") ||
@@ -341,7 +411,15 @@ export const CreateWorkflow = () => {
     } finally {
       setSaving(false);
     }
-  }, [nodes, edges, workflowId, workflowName, executionMode, navigate]);
+  }, [
+    nodes,
+    edges,
+    workflowId,
+    workflowName,
+    executionMode,
+    useOpenClaw,
+    navigate,
+  ]);
 
   const handleNameDialogSubmit = () => {
     const normalizedWorkflowName = workflowName.trim();
@@ -349,11 +427,20 @@ export const CreateWorkflow = () => {
       setWorkflowName(normalizedWorkflowName);
       setSaveError(null);
       setShowNameDialog(false);
-      setShowTriggerSheet(true);
+      setShowOpenClawDialog(true);
       return;
     }
 
-    setSaveError(`Workflow name must be at least ${MIN_WORKFLOW_NAME_LENGTH} characters.`);
+    setSaveError(
+      `Workflow name must be at least ${MIN_WORKFLOW_NAME_LENGTH} characters.`,
+    );
+  };
+
+  const handleOpenClawConfirm = (useIt: boolean) => {
+    setUseOpenClaw(useIt);
+    setOpenclawChoiceLocked(true);
+    setShowOpenClawDialog(false);
+    setShowTriggerSheet(true);
   };
 
   const openEditMenuNode = useCallback(() => {
@@ -393,7 +480,9 @@ export const CreateWorkflow = () => {
     if (!nodeMenu) return;
     const nodeId = nodeMenu.node.nodeId;
     setNodes((prev) => prev.filter((node) => node.nodeId !== nodeId));
-    setEdges((prev) => prev.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    setEdges((prev) =>
+      prev.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
+    );
     setNodeMenu(null);
     setEditingNode((current) => (current?.nodeId === nodeId ? null : current));
   }, [nodeMenu]);
@@ -417,7 +506,40 @@ export const CreateWorkflow = () => {
     setShowNameDialog(true);
     setAiBuilderContext(null);
     setActiveAiVersionId("");
+    setUseOpenClaw(false);
+    setOpenclawChoiceLocked(false);
   }, []);
+
+  useEffect(() => {
+    if (!useOpenClaw) {
+      setAgentConnected(false);
+      setAgentInfo(null);
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      setAgentLoading(true);
+      try {
+        const resp = await apiVerifyAgent();
+        if (cancelled) return;
+        setAgentConnected(resp.connected);
+        setAgentInfo(resp.agents[0] || null);
+      } catch {
+        if (!cancelled) {
+          setAgentConnected(false);
+          setAgentInfo(null);
+        }
+      } finally {
+        if (!cancelled) setAgentLoading(false);
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [useOpenClaw]);
 
   const resetWorkflowBuilder = useCallback(() => {
     setShowResetDialog(true);
@@ -462,9 +584,11 @@ export const CreateWorkflow = () => {
                     placeholder="Untitled workflow"
                     className="h-10 w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-950 px-3 text-lg font-medium tracking-tight text-neutral-50 outline-none transition focus:border-[#f17463]/70"
                   />
-                  {workflowName.trim().length > 0 && workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH ? (
+                  {workflowName.trim().length > 0 &&
+                  workflowName.trim().length < MIN_WORKFLOW_NAME_LENGTH ? (
                     <p className="text-xs text-amber-300">
-                      Workflow name must be at least {MIN_WORKFLOW_NAME_LENGTH} characters.
+                      Workflow name must be at least {MIN_WORKFLOW_NAME_LENGTH}{" "}
+                      characters.
                     </p>
                   ) : null}
                 </div>
@@ -477,25 +601,87 @@ export const CreateWorkflow = () => {
                 <div className="flex items-center gap-2">
                   <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
                     <span className="mr-1 text-neutral-500">Mode:</span>
-                    <span className={executionMode === "dry-run" ? "font-medium text-amber-300" : "font-medium text-emerald-300"}>
+                    <span
+                      className={
+                        executionMode === "dry-run"
+                          ? "font-medium text-amber-300"
+                          : "font-medium text-emerald-300"
+                      }
+                    >
                       {executionMode === "dry-run" ? "Dry Run" : "Live"}
                     </span>
                   </div>
-                  {routeWorkflowId && <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
-                    <span className="mr-1 text-neutral-500">Name:</span>
-                    <span className="font-mono text-neutral-200">
-                      {workflowName || "-"}
+                  {openclawChoiceLocked && (
+                    <span className="text-[12px] text-neutral-500 italic">
+                      Secrets managed by{" "}
+                      <span
+                        className={
+                          useOpenClaw
+                            ? "text-orange-300 not-italic"
+                            : "text-neutral-300 not-italic"
+                        }
+                      >
+                        {useOpenClaw ? "your local OpenClaw" : "QuantNest"}{" "}
+                      </span>
+                      - reset to change
                     </span>
-                  </div>}
-                {workflowId && (
-                  <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
-                    <span className="mr-1 text-neutral-500">Workflow ID:</span>
-                    <span className="font-mono text-neutral-200">
-                      {workflowId.slice(0, 6)}...
-                    </span>
+                  )}
+                  {routeWorkflowId && (
+                    <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
+                      <span className="mr-1 text-neutral-500">Name:</span>
+                      <span className="font-mono text-neutral-200">
+                        {workflowName || "-"}
+                      </span>
+                    </div>
+                  )}
+                  {workflowId && (
+                    <div className="rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1 text-neutral-400">
+                      <span className="mr-1 text-neutral-500">
+                        Workflow ID:
+                      </span>
+                      <span className="font-mono text-neutral-200">
+                        {workflowId.slice(0, 6)}...
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {useOpenClaw && (
+                  <div className="mt-2 flex items-center gap-2">
+                    {agentLoading ? (
+                      <span className="h-8 flex items-center text-xs text-neutral-400">
+                        Checking agent connection...
+                      </span>
+                    ) : agentConnected ? (
+                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-1.5">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                        <span className="text-xs text-emerald-300">
+                          Agent connected
+                        </span>
+                        {agentInfo && (
+                          <span className="ml-2 text-xs text-neutral-500">
+                            {agentInfo.hostname} v{agentInfo.version}
+                            {agentInfo.capabilities.length > 0 &&
+                              ` • ${agentInfo.capabilities.length} capabilities`}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-1.5">
+                        <span className="h-2 w-2 rounded-full bg-red-400" />
+                        <span className="text-xs text-red-300">
+                          Agent not connected
+                        </span>
+                        <span className="ml-1 text-xs text-neutral-500">
+                          Run{" "}
+                          <code className="rounded bg-neutral-800 px-1 py-0.5 font-mono text-neutral-300">
+                            quantnest
+                          </code>{" "}
+                          to start
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
-                </div>
                 {saveError && (
                   <div className="max-w-xs rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
                     {saveError}
@@ -504,14 +690,26 @@ export const CreateWorkflow = () => {
                 <div className="flex gap-2">
                   <Select
                     value={executionMode}
-                    onValueChange={(value) => setExecutionMode(value as "live" | "dry-run")}
+                    onValueChange={(value) =>
+                      setExecutionMode(value as "live" | "dry-run")
+                    }
                   >
                     <SelectTrigger className="mt-1 h-9 min-w-34 rounded-xl border-neutral-800 bg-neutral-950 px-3 text-xs font-medium text-neutral-200">
                       <SelectValue placeholder="Execution mode" />
                     </SelectTrigger>
                     <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-                      <SelectItem value="live" className="text-xs cursor-pointer">Live mode</SelectItem>
-                      <SelectItem value="dry-run" className="text-xs cursor-pointer">Dry run mode</SelectItem>
+                      <SelectItem
+                        value="live"
+                        className="text-xs cursor-pointer"
+                      >
+                        Live mode
+                      </SelectItem>
+                      <SelectItem
+                        value="dry-run"
+                        className="text-xs cursor-pointer"
+                      >
+                        Dry run mode
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   {aiBuilderContext?.versions?.length ? (
@@ -525,7 +723,11 @@ export const CreateWorkflow = () => {
                       </SelectTrigger>
                       <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
                         {aiBuilderContext.versions.map((version, index) => (
-                          <SelectItem key={version.id} value={version.id} className="text-xs cursor-pointer">
+                          <SelectItem
+                            key={version.id}
+                            value={version.id}
+                            className="text-xs cursor-pointer"
+                          >
                             v{index + 1} - {version.label}
                           </SelectItem>
                         ))}
@@ -540,12 +742,12 @@ export const CreateWorkflow = () => {
                     {switchingAiVersion
                       ? "Loading version..."
                       : saving
-                      ? "Saving..."
-                      : workflowId
-                        ? "Update workflow"
-                        : "Save workflow"}
+                        ? "Saving..."
+                        : workflowId
+                          ? "Update workflow"
+                          : "Save workflow"}
                   </OrangeButton>
-                  {routeWorkflowId && 
+                  {routeWorkflowId && (
                     <Button
                       variant="outline"
                       className="mt-1 border-neutral-800 bg-neutral-950 px-5 py-2 text-xs font-medium text-neutral-200 md:text-sm cursor-pointer"
@@ -563,7 +765,7 @@ export const CreateWorkflow = () => {
                     >
                       New workflow
                     </Button>
-                  }
+                  )}
                 </div>
               </div>
             </div>
@@ -603,16 +805,20 @@ export const CreateWorkflow = () => {
           onActionSelect={(type, metadata) => {
             if (!selectedAction) return;
             // Use the sourceHandle from selectedAction (set by onConnectEnd)
-            let branch: 'true' | 'false' | undefined = undefined;
-            if (selectedAction.sourceHandle === 'true' || selectedAction.sourceHandle === 'false') {
+            let branch: "true" | "false" | undefined = undefined;
+            if (
+              selectedAction.sourceHandle === "true" ||
+              selectedAction.sourceHandle === "false"
+            ) {
               branch = selectedAction.sourceHandle;
             }
             // Set condition boolean for conditional triggers
             let condition: boolean | undefined = undefined;
-            if (branch === 'true') condition = true;
-            if (branch === 'false') condition = false;
+            if (branch === "true") condition = true;
+            if (branch === "false") condition = false;
             const nodeId = Math.random().toString();
-            const preservesOwnBranching = type === "conditional-trigger" || type === "if";
+            const preservesOwnBranching =
+              type === "conditional-trigger" || type === "if";
             const ignoresBranchCondition = type === "merge";
             setNodes([
               ...nodes,
@@ -621,9 +827,14 @@ export const CreateWorkflow = () => {
                 type,
                 data: {
                   kind: "action",
-                  metadata: preservesOwnBranching || ignoresBranchCondition
-                    ? { ...metadata }
-                    : { ...metadata, branch, ...(condition !== undefined ? { condition } : {}) },
+                  metadata:
+                    preservesOwnBranching || ignoresBranchCondition
+                      ? { ...metadata }
+                      : {
+                          ...metadata,
+                          branch,
+                          ...(condition !== undefined ? { condition } : {}),
+                        },
                 },
                 position: selectedAction.position,
               },
@@ -685,6 +896,7 @@ export const CreateWorkflow = () => {
           marketType={marketType}
           setMarketType={setMarketType}
           hasZerodhaAction={hasZerodhaAction}
+          useOpenClaw={useOpenClaw}
         />
         <WorkflowNameDialog
           open={showNameDialog}
@@ -693,6 +905,118 @@ export const CreateWorkflow = () => {
           onChangeName={setWorkflowName}
           onSubmit={handleNameDialogSubmit}
         />
+
+        <Dialog
+          open={showOpenClawDialog}
+          onOpenChange={(open) => {
+            if (!open) setShowOpenClawDialog(false);
+          }}
+        >
+          <DialogContent className="max-w-md border-neutral-800 bg-neutral-950 text-neutral-100">
+            <DialogHeader>
+              <DialogTitle className="text-base">Secret management</DialogTitle>
+              <DialogDescription className="text-neutral-400">
+                Where should broker credentials and API keys be stored?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <button
+                onClick={() => setUseOpenClaw(true)}
+                className={`w-full cursor-pointer rounded-xl border p-3 text-left transition-colors ${
+                  useOpenClaw
+                    ? "border-orange-500/50 bg-orange-500/10"
+                    : "border-neutral-800 bg-neutral-900/50 hover:border-neutral-700"
+                }`}
+              >
+                <p className="text-sm font-medium text-neutral-100">
+                  OpenClaw (local)
+                </p>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Credentials stay on your machine inside your local OpenClaw
+                  instance.
+                </p>
+              </button>
+              <button
+                onClick={() => setUseOpenClaw(false)}
+                className={`w-full cursor-pointer rounded-xl border p-3 text-left transition-colors ${
+                  !useOpenClaw
+                    ? "border-orange-500/50 bg-orange-500/10"
+                    : "border-neutral-800 bg-neutral-900/50 hover:border-neutral-700"
+                }`}
+              >
+                <p className="text-sm font-medium text-neutral-100">
+                  QuantNest (managed)
+                </p>
+                <p className="mt-1 text-xs text-neutral-400">
+                  Secrets are stored and managed by QuantNest (default).
+                </p>
+              </button>
+              {useOpenClaw && (
+                <div className="space-y-2 pt-2">
+                  <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-3 py-2.5 text-xs text-neutral-300">
+                    <p>
+                      The QuantNest Agent runs locally and connects via
+                      WebSocket. No URL or token needed.
+                    </p>
+                    <p className="mt-2 text-neutral-400">Run</p>
+                    <div className="mt-1 flex items-stretch gap-0">
+                      <code className="flex-1 rounded-l bg-neutral-800 px-2.5 py-1.5 font-mono text-xs text-neutral-200 leading-relaxed break-all">
+                        curl -sL
+                        https://cdn.krishlabs.tech/quantnest/agent/v0.1.0/dist/index.js
+                        | node
+                      </code>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(
+                              "curl -sL https://cdn.krishlabs.tech/quantnest/agent/v0.1.0/dist/index.js | node",
+                            );
+                            toast.success("Copied to clipboard");
+                          } catch {
+                            toast.error("Failed to copy");
+                          }
+                        }}
+                        className="flex items-center rounded-r bg-neutral-800 px-2.5 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 transition-colors border-l border-neutral-700"
+                        title="Copy command"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect
+                            width="14"
+                            height="14"
+                            x="8"
+                            y="8"
+                            rx="2"
+                            ry="2"
+                          />
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                className={`cursor-pointer ${"bg-white text-neutral-900 hover:bg-gray-200"}`}
+                onClick={() => handleOpenClawConfirm(useOpenClaw)}
+              >
+                Confirm
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
           <DialogContent className="max-w-md border-neutral-800 bg-neutral-950 text-neutral-100">
