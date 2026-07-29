@@ -9,13 +9,14 @@ export async function executeActionNode(
 ): Promise<void> {
   const { node, context } = params;
 
-  if (context.useOpenClaw) {
+  const type = String(node.type || "").toLowerCase();
+  const registryEntry = getNodeRegistryEntry(type);
+
+  if (context.useOpenClaw && registryEntry?.requiresAgent) {
     await dispatchActionToOpenClaw(params);
     return;
   }
 
-  const type = String(node.type || "").toLowerCase();
-  const registryEntry = getNodeRegistryEntry(type);
   const handlerId = registryEntry?.executorActionHandlerId;
   const reusableSecretService = registryEntry?.reusableSecretService;
   const resolvedMetadata =
