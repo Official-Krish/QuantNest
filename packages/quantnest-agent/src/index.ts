@@ -1,13 +1,6 @@
 import "./polyfill";
-import {
-  intro,
-  outro,
-  select,
-  spinner,
-  log,
-  isCancel,
-  cancel,
-} from "@clack/prompts";
+import { execSync } from "node:child_process";
+import { intro, outro, log } from "@clack/prompts";
 import color from "picocolors";
 import {
   readCredentials,
@@ -27,6 +20,7 @@ import {
 } from "./install";
 import { runWizard } from "./wizard";
 import { queryAudit, clearAudit } from "./audit";
+import { startWebDashboard } from "./ui";
 
 async function main() {
   const cmd = process.argv[2];
@@ -179,6 +173,33 @@ async function main() {
       log.success("QuantNest Agent fully uninstalled");
       break;
 
+    case "ui": {
+      intro(color.bold(color.red("QuantNest Agent")));
+      log.info("Starting local web dashboard...");
+      await ensureOpenclaw();
+      await ensureOpenclawGateway();
+      const { server: uiServer, url: uiUrl } = startWebDashboard();
+      log.success("Dashboard running at " + color.cyan(uiUrl));
+      try {
+        execSync(`open "${uiUrl}"`, { timeout: 3000 });
+      } catch {
+        log.info("Open " + color.cyan(uiUrl) + " in your browser");
+      }
+      await new Promise<void>((resolve) => {
+        process.on("SIGINT", () => {
+          uiServer.close();
+          console.log("\nDashboard stopped.");
+          resolve();
+        });
+        process.on("SIGTERM", () => {
+          uiServer.close();
+          console.log("\nDashboard stopped.");
+          resolve();
+        });
+      });
+      break;
+    }
+
     case "logout":
       clearCredentials();
       clearAllWorkflowCreds();
@@ -209,6 +230,9 @@ async function main() {
         "    " +
           color.cyan("log") +
           "        Show audit trail (--clear to purge)",
+      );
+      console.log(
+        "    " + color.cyan("ui") + "         Open local web dashboard",
       );
       console.log(
         "    " + color.cyan("logout") + "     Clear all stored credentials",
