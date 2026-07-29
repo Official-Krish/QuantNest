@@ -97,6 +97,13 @@ export async function updateWorkflowForUser(params: {
   );
 }
 
+export async function pauseOpenClawWorkflowsForUser(userId: string) {
+  return WorkflowModel.updateMany(
+    { userId, status: "active", useOpenClaw: true },
+    { $set: { status: "paused" } },
+  );
+}
+
 export async function updateWorkflowStatusForUser(params: {
   userId?: string;
   workflowId: string;
