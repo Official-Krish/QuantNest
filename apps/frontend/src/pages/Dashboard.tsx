@@ -5,6 +5,7 @@ import type { Workflow } from "@/types/api";
 import { WorkflowTable } from "../components/dashboard/WorkflowTable";
 import { AppBackground } from "@/components/background";
 import { OrangeButton } from "@/components/ui/button-orange";
+import { LoadingState } from "@/components/LoadingState";
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -21,9 +22,7 @@ export const Dashboard = () => {
       setWorkflows(res.workflows ?? []);
     } catch (e: any) {
       setError(
-        e?.response?.data?.message ??
-          e?.message ??
-          "Failed to load workflows",
+        e?.response?.data?.message ?? e?.message ?? "Failed to load workflows",
       );
     } finally {
       setLoading(false);
@@ -57,9 +56,7 @@ export const Dashboard = () => {
             >
               + Create new workflow
             </OrangeButton>
-            {error && (
-              <p className="max-w-xs text-xs text-red-300">{error}</p>
-            )}
+            {error && <p className="max-w-xs text-xs text-red-300">{error}</p>}
           </div>
         </section>
 
@@ -77,12 +74,7 @@ export const Dashboard = () => {
           </div>
 
           {loading ? (
-            <div className="flex h-40 items-center justify-center text-sm text-neutral-400">
-              <div className="flex items-center gap-3">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-600 border-t-transparent" />
-                <span>Loading your workflows…</span>
-              </div>
-            </div>
+            <LoadingState message="Loading your workflows…" />
           ) : workflows.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center text-center text-sm text-neutral-400">
               <p>No workflows yet.</p>
@@ -95,8 +87,8 @@ export const Dashboard = () => {
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border border-neutral-800/80 bg-neutral-950/60">
-              <WorkflowTable 
-                workflows={workflows} 
+              <WorkflowTable
+                workflows={workflows}
                 loading={loading}
                 onWorkflowDeleted={loadWorkflows}
                 onWorkflowStatusChanged={loadWorkflows}

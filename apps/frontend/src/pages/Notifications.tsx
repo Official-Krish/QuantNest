@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
-import { Bell, CheckCheck, AlertTriangle, Info, ShieldAlert } from "lucide-react";
-import { apiGetNotifications, apiMarkAllNotificationsRead, apiMarkNotificationRead } from "@/http";
+import {
+  Bell,
+  CheckCheck,
+  AlertTriangle,
+  Info,
+  ShieldAlert,
+} from "lucide-react";
+import {
+  apiGetNotifications,
+  apiMarkAllNotificationsRead,
+  apiMarkNotificationRead,
+} from "@/http";
 import type { UserNotification } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AppBackground } from "@/components/background";
+import { LoadingState } from "@/components/LoadingState";
 
 const severityMap = {
   info: {
@@ -32,7 +43,8 @@ export const Notifications = () => {
       setNotifications(response.notifications);
     } catch (error: any) {
       toast.error("Failed to load notifications", {
-        description: error?.response?.data?.message ?? "Could not fetch your alerts.",
+        description:
+          error?.response?.data?.message ?? "Could not fetch your alerts.",
       });
     } finally {
       setLoading(false);
@@ -90,7 +102,8 @@ export const Notifications = () => {
               Notifications
             </p>
             <p className="mt-2 max-w-2xl text-sm text-neutral-400">
-              Stay updated with important alerts from your workflows and integrations.
+              Stay updated with important alerts from your workflows and
+              integrations.
             </p>
           </div>
           <Button
@@ -105,12 +118,7 @@ export const Notifications = () => {
 
         <section className="rounded-3xl border border-neutral-800 bg-linear-to-b from-neutral-950 via-black to-neutral-950/80 p-4 md:p-6">
           {loading ? (
-            <div className="flex h-40 items-center justify-center text-sm text-neutral-400">
-              <div className="flex items-center gap-3">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-600 border-t-transparent" />
-                <span>Loading notifications…</span>
-              </div>
-            </div>
+            <LoadingState message="Loading notifications…" />
           ) : notifications.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center gap-3 text-center text-sm text-neutral-400">
               <Bell className="h-8 w-8 text-neutral-600" />
@@ -138,13 +146,19 @@ export const Notifications = () => {
                   >
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div className="flex gap-3">
-                        <div className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl border ${severity.badge}`}>
+                        <div
+                          className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl border ${severity.badge}`}
+                        >
                           <SeverityIcon className="h-4 w-4" />
                         </div>
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-sm font-medium text-neutral-100">{notification.title}</h2>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] ${severity.badge}`}>
+                            <h2 className="text-sm font-medium text-neutral-100">
+                              {notification.title}
+                            </h2>
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] ${severity.badge}`}
+                            >
                               {notification.severity}
                             </span>
                             {!notification.read && (
@@ -153,13 +167,21 @@ export const Notifications = () => {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-neutral-300">{notification.message}</p>
+                          <p className="text-sm text-neutral-300">
+                            {notification.message}
+                          </p>
                           <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
-                            <span>{new Date(notification.createdAt).toLocaleString()}</span>
+                            <span>
+                              {new Date(
+                                notification.createdAt,
+                              ).toLocaleString()}
+                            </span>
                             {notification.workflowName && (
                               <span>Workflow: {notification.workflowName}</span>
                             )}
-                            <span className="uppercase tracking-[0.16em]">{notification.type.replaceAll("_", " ")}</span>
+                            <span className="uppercase tracking-[0.16em]">
+                              {notification.type.replaceAll("_", " ")}
+                            </span>
                           </div>
                         </div>
                       </div>

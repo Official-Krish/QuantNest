@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  apiGetExamples,
-  hasAuthSession,
-} from "@/http";
+import { apiGetExamples, hasAuthSession } from "@/http";
 import type { WorkflowExample } from "@/types/api";
 import { ArrowRight } from "lucide-react";
+import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
 import { ExampleCard } from "../components/examples/ExampleCard";
 import {
@@ -38,7 +36,9 @@ function buildDraftNodes(
 
 function inferMarketType(example: WorkflowExample): "Indian" | "Crypto" {
   const hasCryptoNode = example.nodes.some((node) => {
-    const rawMarket = String((node as any)?.data?.metadata?.marketType || "").toLowerCase();
+    const rawMarket = String(
+      (node as any)?.data?.metadata?.marketType || "",
+    ).toLowerCase();
     return rawMarket === "crypto" || rawMarket === "web3";
   });
 
@@ -52,10 +52,14 @@ export const Examples = () => {
   const [examples, setExamples] = useState<WorkflowExample[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedExample, setSelectedExample] = useState<WorkflowExample | null>(null);
+  const [selectedExample, setSelectedExample] =
+    useState<WorkflowExample | null>(null);
   const [workflowName, setWorkflowName] = useState("");
-  const [executionMode, setExecutionMode] = useState<"live" | "dry-run">("live");
-  const [metadataOverrides, setMetadataOverrides] = useState<ExampleMetadataOverrides>({});
+  const [executionMode, setExecutionMode] = useState<"live" | "dry-run">(
+    "live",
+  );
+  const [metadataOverrides, setMetadataOverrides] =
+    useState<ExampleMetadataOverrides>({});
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -136,10 +140,10 @@ export const Examples = () => {
               Real workflow patterns you can adapt, not empty templates
             </h1>
             <p className="text-base leading-7 text-neutral-400 md:text-lg">
-              These examples show how QuantNest can be used for alerts, execution,
-              reporting, and AI-assisted review. Treat them as production-style
-              starting points and adapt the trigger, logic, and action chain to your
-              setup.
+              These examples show how QuantNest can be used for alerts,
+              execution, reporting, and AI-assisted review. Treat them as
+              production-style starting points and adapt the trigger, logic, and
+              action chain to your setup.
             </p>
             <button
               type="button"
@@ -157,9 +161,11 @@ export const Examples = () => {
         </div>
 
         {loading ? (
-          <div className="mt-8 rounded-[1.75rem] border border-neutral-800 bg-neutral-950/70 p-8 text-sm text-neutral-400">
-            Loading example workflows...
-          </div>
+          <LoadingState
+            variant="card"
+            message="Loading example workflows..."
+            className="mt-8"
+          />
         ) : error ? (
           <div className="mt-8 rounded-[1.75rem] border border-red-500/20 bg-red-500/5 p-8 text-sm text-red-200">
             {error}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { LoadingState } from "@/components/LoadingState";
 import {
   AlertCircle,
   CheckCircle2,
@@ -250,12 +251,7 @@ export const ExecutionHistory = ({
 
       {/* Content */}
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <div className="flex items-center gap-3 text-zinc-500">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-700 border-t-zinc-300" />
-            <span className="text-sm">Loading executions…</span>
-          </div>
-        </div>
+        <LoadingState message="Loading executions…" height="md" />
       ) : executions.length === 0 ? (
         <div className="flex min-h-80 items-center justify-center px-6 py-10">
           <div className="max-w-sm text-center">

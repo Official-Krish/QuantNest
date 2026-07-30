@@ -5,11 +5,13 @@ import { apiGetApprovals, apiApproveApproval, apiRejectApproval } from "@/http";
 import type { ApprovalRequestSummary } from "@/http";
 import { ApprovalsList } from "../components/approvals/ApprovalsList";
 import { AppBackground } from "@/components/background";
+import { ErrorState } from "@/components/ErrorState";
 
 export const Approvals = () => {
   const navigate = useNavigate();
   const [approvals, setApprovals] = useState<ApprovalRequestSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
 
   const fetchApprovals = useCallback(async () => {
@@ -19,8 +21,10 @@ export const Approvals = () => {
       if (statusFilter !== "all") params.status = statusFilter;
       const data = await apiGetApprovals(params);
       setApprovals(data);
-    } catch (error) {
-      console.error("Failed to fetch approvals:", error);
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.message ?? e?.message ?? "Could not load approvals.",
+      );
     } finally {
       setLoading(false);
     }
@@ -60,15 +64,23 @@ export const Approvals = () => {
           </div>
         </div>
 
-        <ApprovalsList
-          loading={loading}
-          approvals={approvals}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          onRefresh={() => void fetchApprovals()}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
+        {error ? (
+          <ErrorState
+            message={error}
+            description="We could not load your approvals. Please try again."
+            onRetry={() => void fetchApprovals()}
+          />
+        ) : (
+          <ApprovalsList
+            loading={loading}
+            approvals={approvals}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            onRefresh={() => void fetchApprovals()}
+            onApprove={handleApprove}
+            onReject={handleReject}
+          />
+        )}
       </div>
     </div>
   );
