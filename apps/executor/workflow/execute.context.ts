@@ -1,4 +1,5 @@
 import type {
+  RiskLimits,
   TriggerEvaluationSnapshot,
   ExecutionTraceBranchDecision,
   ExecutionTraceNodeEntry,
@@ -7,6 +8,7 @@ import type { EdgeType, NodeType } from "../types";
 
 export interface ExecutionContext {
   executionMode?: "live" | "dry-run";
+  workflowRiskLimits?: RiskLimits;
   eventType?:
     | "buy"
     | "sell"

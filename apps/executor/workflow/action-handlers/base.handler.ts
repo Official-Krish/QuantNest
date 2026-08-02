@@ -3,8 +3,17 @@ import { getMarketStatus } from "@quantnest-trading/executor-utils";
 import { isMarketOpen } from "@quantnest-trading/market";
 import { acquireLock } from "@quantnest-trading/redis/lock";
 import { shouldSkipActionByCondition } from "../execute.context";
-import { ActionConfigurationError, executeActionWithRetry } from "./shared";
+import {
+  ActionConfigurationError,
+  RiskLimitExceededError,
+  executeActionWithRetry,
+  handleBrokerApprovalGate,
+} from "./shared";
 import type { ActionHandlerParams } from "./shared";
+import {
+  assertOrderAllowed,
+  recordDailyExposure,
+} from "../../services/riskGuard";
 
 const TRADE_IDEM_KEY_TTL_MS = 60_000;
 
@@ -68,12 +77,46 @@ export abstract class BrokerHandler implements IActionHandler {
 
         await this.validateTokens?.(context, resolvedMetadata);
 
+        const riskEvaluation = await assertOrderAllowed({
+          broker: this.brokerName.toLowerCase() as any,
+          metadata: resolvedMetadata,
+          nodeRiskLimits: (resolvedMetadata as any)?.riskLimits,
+          workflowRiskLimits: context.workflowRiskLimits,
+          userId: context.userId,
+          workflowId: context.workflowId,
+        });
+
+        if (riskEvaluation.approvalRequired) {
+          await handleBrokerApprovalGate({
+            prompt: `Order notional ${riskEvaluation.notional.toFixed(2)} exceeds approval threshold ${(riskEvaluation.effectiveLimits.requireApprovalAbove as number)?.toFixed(2)}.`,
+            nodeId: node.nodeId || node.id,
+            nodeType: this.brokerName.toLowerCase(),
+            context,
+            result: {
+              broker: this.brokerName.toLowerCase(),
+              symbol: (resolvedMetadata as any)?.symbol,
+              qty:
+                (resolvedMetadata as any)?.qty ||
+                (resolvedMetadata as any)?.amount,
+              notional: riskEvaluation.notional,
+              riskEvaluation,
+            },
+            steps,
+          });
+        }
+
         const idempotent = await checkTradeIdempotency(context, node);
         if (!idempotent) {
           return this.skipDuplicateTrade(resolvedMetadata, context);
         }
 
         const result = await this.executeTrade(resolvedMetadata, context);
+
+        await recordDailyExposure(
+          context.userId || "anonymous",
+          riskEvaluation.notional,
+        );
+
         return result;
       },
       onFinalFailure: async (error) => {

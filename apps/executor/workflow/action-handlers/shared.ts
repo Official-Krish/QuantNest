@@ -15,12 +15,22 @@ import {
   CircuitBreakerOpenError,
 } from "../../services/circuit-breaker";
 import { rateLimiter } from "../../services/rate-limiter";
+import { sendRiskAlertEmail } from "../../services/riskAlerts";
 
 export class ActionConfigurationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ActionConfigurationError";
   }
+}
+
+export class RiskLimitExceededError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RiskLimitExceededError";
+    this.retryable = false;
+  }
+  retryable: boolean;
 }
 
 export type ResolvedRetryPolicy = {
@@ -388,4 +398,66 @@ export async function handleApprovalGate(params: {
     message: `Awaiting approval: ${approvalPrompt}`,
     terminalFailure: false,
   });
+}
+
+/**
+ * Hard approval gate for broker nodes. Unlike handleApprovalGate (which lets
+ * the current run continue), this raises the order into an approval request,
+ * pauses the workflow, and THROWS so the order is never placed. The throw is
+ * non-retryable and is caught by the caller's error handling.
+ */
+export async function handleBrokerApprovalGate(params: {
+  prompt: string;
+  nodeId: string;
+  nodeType: string;
+  context: ExecutionContext;
+  result: Record<string, unknown>;
+  steps: ExecutionStep[];
+}): Promise<never> {
+  const { prompt, nodeId, nodeType, context, result, steps } = params;
+  const userId = context.userId ?? "anonymous";
+  const workflowId = context.workflowId ?? "unknown";
+
+  await createApprovalRequest({
+    userId,
+    workflowId,
+    nodeId,
+    nodeType,
+    prompt,
+    proposedAction: result,
+    metadata: {
+      nodeType,
+      riskGate: true,
+      executedAt: new Date().toISOString(),
+    },
+    dedupeKey: `risk-approval:${workflowId}:${nodeId}`,
+  });
+
+  await pauseWorkflowAndNotify({
+    workflowId,
+    userId,
+    reason: `${nodeType} at "${nodeId}" exceeded your approval threshold: "${prompt}"`,
+    nodeLabel: nodeId,
+  });
+
+  if (userId !== "anonymous") {
+    await sendRiskAlertEmail({
+      userId,
+      workflowId,
+      reason: "approval",
+      message: prompt,
+    });
+  }
+
+  pushStep(steps, {
+    nodeId,
+    nodeType,
+    status: "PendingApproval",
+    message: `Awaiting approval: ${prompt}`,
+    terminalFailure: false,
+  });
+
+  throw new RiskLimitExceededError(
+    `Order blocked by risk policy. Awaiting approval: ${prompt}`,
+  );
 }

@@ -1,5 +1,6 @@
 import type { ExecutionContext } from "./execute.context";
 import type { NodeType } from "../types";
+import type { RiskLimits } from "@quantnest-trading/types";
 
 export class ExecutionContextBuilder {
   private ctx: ExecutionContext = {
@@ -17,6 +18,11 @@ export class ExecutionContextBuilder {
 
   setWorkflow(workflowId?: string): this {
     this.ctx.workflowId = workflowId;
+    return this;
+  }
+
+  setWorkflowRiskLimits(riskLimits?: RiskLimits): this {
+    this.ctx.workflowRiskLimits = riskLimits;
     return this;
   }
 

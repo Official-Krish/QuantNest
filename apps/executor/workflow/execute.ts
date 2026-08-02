@@ -3,6 +3,7 @@ import type {
   ExecutionStep,
   ExecutionTraceBranchDecision,
   ExecutionTraceNodeEntry,
+  RiskLimits,
   TriggerEvaluationSnapshot,
 } from "@quantnest-trading/types";
 import { executeActionNode } from "./execute.actions";
@@ -23,6 +24,7 @@ export class WorkflowEngine {
     useOpenClaw?: boolean,
     openclawUrl?: string,
     openclawToken?: string,
+    workflowRiskLimits?: RiskLimits,
   ): Promise<
     ExecutionResponseType & {
       trace?: {
@@ -59,6 +61,7 @@ export class WorkflowEngine {
       .setCondition(condition)
       .setTrigger(trigger, nodes)
       .setOpenClaw(useOpenClaw, openclawUrl, openclawToken)
+      .setWorkflowRiskLimits(workflowRiskLimits)
       .build();
 
     if (context.trace && triggerSnapshot) {
@@ -209,6 +212,7 @@ export async function executeWorkflow(
   useOpenClaw?: boolean,
   openclawUrl?: string,
   openclawToken?: string,
+  workflowRiskLimits?: RiskLimits,
 ): Promise<
   ExecutionResponseType & {
     trace?: {
@@ -229,5 +233,6 @@ export async function executeWorkflow(
     useOpenClaw,
     openclawUrl,
     openclawToken,
+    workflowRiskLimits,
   );
 }
