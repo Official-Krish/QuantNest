@@ -6,6 +6,7 @@ import {
   AnimatePresence,
 } from "motion/react";
 import { ProfileDropDown } from "./Profile-Dropdown";
+import { NotificationBell } from "./NotificationBell";
 import { ShieldCheck, Database } from "lucide-react";
 import {
   AUTH_STATE_EVENT,
@@ -192,6 +193,7 @@ export const Appbar = () => {
             </>
           ) : (
             <>
+              <NotificationBell />
               <a
                 href="/approvals"
                 className="relative flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-200 no-underline"

@@ -6,6 +6,14 @@ import { agentRegistry } from "./agentRegistry";
 import type { WsData } from "./agentRegistry";
 import { pendingRequests } from "./pendingRequests";
 import crypto from "crypto";
+import {
+  AgentEventModel,
+  UserModel,
+  WorkflowModel,
+} from "@quantnest-trading/db/client";
+import { createUserNotification } from "@quantnest-trading/executor-utils";
+import { pauseOpenClawWorkflowsForUser } from "../services/workflowCrud";
+import { sendAgentDownEmail } from "../services/emailVerification";
 
 const PING_INTERVAL = 30_000;
 const WS_PORT = 9000;
@@ -66,6 +74,27 @@ const handlers = {
           type: "HELLO_ACK",
           payload: { agentId, serverVersion: "0.1.0" },
         });
+
+        WorkflowModel.countDocuments({
+          userId: ws.data.userId,
+          status: "paused",
+          useOpenClaw: true,
+        })
+          .then((count) => {
+            if (count > 0) {
+              createUserNotification({
+                userId: ws.data.userId,
+                type: "agent_reconnected",
+                severity: "info",
+                title: "Agent reconnected",
+                message: `Your agent is back online. ${count} OpenClaw workflow${count > 1 ? "s" : ""} ${count > 1 ? "are" : "is"} paused — resume from the dashboard when ready.`,
+                metadata: { agentId, pausedCount: count },
+                dedupeKey: `agent-reconnect:${agentId}`,
+                dedupeWindowHours: 1,
+              }).catch(() => {});
+            }
+          })
+          .catch(() => {});
         break;
       }
 
@@ -123,6 +152,26 @@ const handlers = {
         break;
       }
 
+      case "AUDIT_EVENT": {
+        const p = msg.payload as Record<string, unknown> | undefined;
+        if (p && p.type) {
+          AgentEventModel.create({
+            userId: ws.data.userId,
+            workflowId: (p.workflowId as string) || undefined,
+            type: p.type as string,
+            jobId: (p.jobId as string) || undefined,
+            status: (p.status as string) || undefined,
+            duration: (p.duration as number) || undefined,
+            error: (p.error as string) || undefined,
+            metadata: (p.metadata as Record<string, unknown>) || undefined,
+            createdAt: (p.timestamp as string)
+              ? new Date(p.timestamp as string)
+              : new Date(),
+          }).catch((err) => console.error("AUDIT_EVENT save error:", err));
+        }
+        break;
+      }
+
       case "INSTALL_PLUGIN_RESULT":
       case "CONFIGURE_RESULT":
       case "PLUGINS_LIST":
@@ -137,11 +186,41 @@ const handlers = {
   close(ws: ServerWebSocket<WsData>) {
     if (ws.data.pingTimer) clearInterval(ws.data.pingTimer);
     if (ws.data.agentId) {
-      agentRegistry.unregister(ws.data.agentId);
-      pendingRequests.rejectByAgent(
-        ws.data.agentId,
-        new Error("Agent disconnected"),
-      );
+      const userId = ws.data.userId;
+      const agentId = ws.data.agentId;
+      agentRegistry.unregister(agentId);
+      pendingRequests.rejectByAgent(agentId, new Error("Agent disconnected"));
+
+      if (!agentRegistry.isOnline(userId)) {
+        pauseOpenClawWorkflowsForUser(userId).catch(() => {});
+
+        createUserNotification({
+          userId,
+          type: "agent_disconnected",
+          severity: "error",
+          title: "Agent disconnected",
+          message:
+            "Your agent went offline. OpenClaw workflows have been paused. Restart the agent and resume workflows from the dashboard.",
+          metadata: { agentId },
+          dedupeKey: `agent-down:${agentId}`,
+          dedupeWindowHours: 1,
+        }).catch(() => {});
+
+        UserModel.findById(userId)
+          .select("email displayName")
+          .lean()
+          .then((user) => {
+            if (user?.email) {
+              sendAgentDownEmail({
+                email: user.email,
+                username: user.displayName ?? "Trader",
+                agentId,
+                reason: "agent_disconnected",
+              }).catch(() => {});
+            }
+          })
+          .catch(() => {});
+      }
     }
   },
 

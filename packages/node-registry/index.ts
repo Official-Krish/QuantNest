@@ -88,6 +88,7 @@ export interface NodeRegistryEntry {
   secretFieldKeys?: string[];
   executorTriggerProcessorId?: ExecutorTriggerProcessorId;
   executorActionHandlerId?: ExecutorActionHandlerId;
+  requiresAgent?: boolean;
   aliases?: string[];
 }
 
@@ -317,6 +318,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
     reusableSecretService: "solana",
     secretFieldKeys: ["secretId"],
     executorActionHandlerId: "solana-swap",
+    requiresAgent: true,
   },
   {
     id: "zerodha",
@@ -328,6 +330,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
     builderFormId: "trading",
     builderRendererId: "zerodha",
     executorActionHandlerId: "zerodha",
+    requiresAgent: true,
     aiAllowed: true,
     aiPreferredAction: true,
     aiNodeType: "zerodha",
@@ -355,6 +358,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
     builderFormId: "trading",
     builderRendererId: "groww",
     executorActionHandlerId: "groww",
+    requiresAgent: true,
     aiAllowed: true,
     aiPreferredAction: true,
     aiNodeType: "groww",
@@ -381,6 +385,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
     builderFormId: "trading",
     builderRendererId: "lighter",
     executorActionHandlerId: "lighter",
+    requiresAgent: true,
     aiAllowed: true,
     aiPreferredAction: true,
     metadataFields: [

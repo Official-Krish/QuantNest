@@ -4,21 +4,23 @@ import { AppBackground } from "@/components/background";
 import { apiGetUsageSnapshot } from "@/http";
 import type { UsageSnapshot } from "@/types/api";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/LoadingState";
 
 type BillingUsageProps = {
   defaultTab: "billing" | "usage";
 };
 
-const TAB_COPY: Record<"billing" | "usage", { heading: string; sub: string }> = {
-  billing: {
-    heading: "Billing",
-    sub: "Track your current plan and upgrade-ready limits.",
-  },
-  usage: {
-    heading: "Usage",
-    sub: "Monitor workflow and AI chat quotas for your current plan.",
-  },
-};
+const TAB_COPY: Record<"billing" | "usage", { heading: string; sub: string }> =
+  {
+    billing: {
+      heading: "Billing",
+      sub: "Track your current plan and upgrade-ready limits.",
+    },
+    usage: {
+      heading: "Usage",
+      sub: "Monitor workflow and AI chat quotas for your current plan.",
+    },
+  };
 
 function formatPlan(plan: UsageSnapshot["plan"]) {
   if (plan === "pro") return "Pro";
@@ -45,7 +47,9 @@ export function BillingUsage({ defaultTab }: BillingUsageProps) {
         const next = await apiGetUsageSnapshot();
         setSnapshot(next);
       } catch (e: any) {
-        setError(e?.response?.data?.message || e?.message || "Failed to load usage.");
+        setError(
+          e?.response?.data?.message || e?.message || "Failed to load usage.",
+        );
       } finally {
         setLoading(false);
       }
@@ -73,11 +77,15 @@ export function BillingUsage({ defaultTab }: BillingUsageProps) {
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
         <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#f17463]">Account</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#f17463]">
+              Account
+            </p>
             <h1 className="mt-2 text-3xl font-medium tracking-tight text-neutral-50 md:text-4xl">
               {copy.heading}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-neutral-400">{copy.sub}</p>
+            <p className="mt-2 max-w-2xl text-sm text-neutral-400">
+              {copy.sub}
+            </p>
           </div>
 
           <div className="inline-flex rounded-xl border border-neutral-800 bg-neutral-950/80 p-1">
@@ -114,7 +122,7 @@ export function BillingUsage({ defaultTab }: BillingUsageProps) {
 
         <section className="rounded-3xl border border-neutral-800 bg-linear-to-b from-neutral-950 via-black to-neutral-950/80 p-5 md:p-6">
           {loading ? (
-            <div className="flex h-40 items-center justify-center text-sm text-neutral-400">Loading plan data...</div>
+            <LoadingState message="Loading plan data..." />
           ) : error ? (
             <div className="space-y-3">
               <p className="text-sm text-red-300">{error}</p>
@@ -129,8 +137,12 @@ export function BillingUsage({ defaultTab }: BillingUsageProps) {
             <div className="space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-400">Current plan</p>
-                  <p className="mt-1 text-xl font-semibold text-neutral-50">{formatPlan(snapshot.plan)}</p>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-neutral-400">
+                    Current plan
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-neutral-50">
+                    {formatPlan(snapshot.plan)}
+                  </p>
                 </div>
                 <span className="rounded-full border border-[#f17463]/40 bg-[#f17463]/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-[#ffb8ad]">
                   Upgrade paths available
@@ -139,39 +151,63 @@ export function BillingUsage({ defaultTab }: BillingUsageProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-950/60 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-400">Workflows</p>
-                  <p className="mt-2 text-sm text-neutral-200">
-                    {snapshot.usage.workflows} used / {snapshot.limits.maxWorkflows} total
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-400">
+                    Workflows
                   </p>
-                  <p className="mt-1 text-xs text-neutral-400">{workflowRemaining} remaining</p>
+                  <p className="mt-2 text-sm text-neutral-200">
+                    {snapshot.usage.workflows} used /{" "}
+                    {snapshot.limits.maxWorkflows} total
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    {workflowRemaining} remaining
+                  </p>
                 </div>
 
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-950/60 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-400">AI chats</p>
-                  <p className="mt-2 text-sm text-neutral-200">
-                    {snapshot.usage.aiChats} used / {snapshot.limits.maxAiChats} total
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-400">
+                    AI chats
                   </p>
-                  <p className="mt-1 text-xs text-neutral-400">{chatRemaining} remaining</p>
+                  <p className="mt-2 text-sm text-neutral-200">
+                    {snapshot.usage.aiChats} used / {snapshot.limits.maxAiChats}{" "}
+                    total
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    {chatRemaining} remaining
+                  </p>
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-950/60 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-400">AI iterations per chat</p>
-                  <p className="mt-2 text-sm text-neutral-200">{snapshot.limits.maxAiIterationsPerChat} max edits per chat</p>
-                  <p className="mt-1 text-xs text-neutral-400">For free tier this is capped at 5.</p>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-400">
+                    AI iterations per chat
+                  </p>
+                  <p className="mt-2 text-sm text-neutral-200">
+                    {snapshot.limits.maxAiIterationsPerChat} max edits per chat
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    For free tier this is capped at 5.
+                  </p>
                 </div>
 
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-950/60 p-4">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-400">AI request rate</p>
-                  <p className="mt-2 text-sm text-neutral-200">{snapshot.limits.aiRequestsPerMinute} requests/minute</p>
-                  <p className="mt-1 text-xs text-neutral-400">Tier-based rate limiting is active.</p>
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-neutral-400">
+                    AI request rate
+                  </p>
+                  <p className="mt-2 text-sm text-neutral-200">
+                    {snapshot.limits.aiRequestsPerMinute} requests/minute
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Tier-based rate limiting is active.
+                  </p>
                 </div>
               </div>
 
               {snapshot.plan === "free" ? (
                 <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
-                  Free tier limits: max 3 workflows, max 3 AI chats, and max 5 iterations per chat. Delete an existing chat to start a new one after reaching chat cap.
+                  Free tier limits: max 3 workflows, max 3 AI chats, and max 5
+                  iterations per chat. Delete an existing chat to start a new
+                  one after reaching chat cap.
                 </div>
               ) : null}
             </div>

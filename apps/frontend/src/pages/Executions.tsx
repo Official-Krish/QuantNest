@@ -23,6 +23,8 @@ import {
   sortExecutionsByStartTime,
 } from "../components/executions/utils";
 import { AppBackground } from "@/components/background";
+import { ErrorState } from "@/components/ErrorState";
+import { toast } from "sonner";
 
 export const Executions = () => {
   const { workflowId } = useParams<{ workflowId: string }>();
@@ -34,6 +36,7 @@ export const Executions = () => {
     "active",
   );
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hasZerodha, setHasZerodha] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<any>(null);
   const [marketStatus, setMarketStatus] = useState<any>(null);
@@ -75,12 +78,17 @@ export const Executions = () => {
           ]);
           setTokenStatus(tokenRes.tokenStatus);
           setMarketStatus(marketRes.marketStatus);
-        } catch (error) {
-          console.error("Failed to fetch status:", error);
+        } catch {
+          // secondary — stay silent, sidebar shows N/A
         }
       }
-    } catch (error) {
-      console.error("Failed to fetch executions:", error);
+      setError(null);
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.message ??
+          e?.message ??
+          "Could not load executions.",
+      );
     } finally {
       setLoading(false);
     }
@@ -152,8 +160,8 @@ export const Executions = () => {
       setIsUpdatingWorkflowStatus(true);
       const response = await apiUpdateWorkflowStatus(workflowId, nextStatus);
       setWorkflowStatus(response.workflow.status || nextStatus);
-    } catch (error) {
-      console.error("Failed to update workflow status:", error);
+    } catch {
+      toast.error("Failed to update workflow status");
     } finally {
       setIsUpdatingWorkflowStatus(false);
     }
@@ -170,52 +178,60 @@ export const Executions = () => {
           onOpenWorkflow={openWorkflow}
         />
 
-        <div className="grid items-start gap-6 lg:grid-cols-10">
-          <div className="space-y-5 lg:col-span-7">
-            <ExecutionHistory
-              loading={loading}
-              executions={filteredExecutions}
-              statusFilter={statusFilter}
-              searchTerm={searchTerm}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              onStatusFilterChange={setStatusFilter}
-              onSearchTermChange={setSearchTerm}
-              onDateFromChange={setDateFrom}
-              onDateToChange={setDateTo}
-              formatDate={formatDate}
-              calculateDuration={calculateDuration}
-              onExplain={(executionId) =>
-                setDebuggerExecutionId(
-                  debuggerExecutionId === executionId ? null : executionId,
-                )
-              }
-              activeExplainId={debuggerExecutionId}
-            />
-          </div>
+        {error ? (
+          <ErrorState
+            message={error}
+            description="We could not load execution data. This may be a network issue."
+            onRetry={() => void fetchData()}
+          />
+        ) : (
+          <div className="grid items-start gap-6 lg:grid-cols-10">
+            <div className="space-y-5 lg:col-span-7">
+              <ExecutionHistory
+                loading={loading}
+                executions={filteredExecutions}
+                statusFilter={statusFilter}
+                searchTerm={searchTerm}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onStatusFilterChange={setStatusFilter}
+                onSearchTermChange={setSearchTerm}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+                formatDate={formatDate}
+                calculateDuration={calculateDuration}
+                onExplain={(executionId) =>
+                  setDebuggerExecutionId(
+                    debuggerExecutionId === executionId ? null : executionId,
+                  )
+                }
+                activeExplainId={debuggerExecutionId}
+              />
+            </div>
 
-          <div className="lg:col-span-3">
-            {debuggerExecutionId ? (
-              <ExecutionDebugger
-                executionId={debuggerExecutionId}
-                workflowName={workflowName}
-                onClose={() => setDebuggerExecutionId(null)}
-              />
-            ) : (
-              <ExecutionHealthSidebar
-                metrics={metrics}
-                avgDurationLabel={avgDurationLabel}
-                lastExecutionLabel={lastExecutionLabel}
-                workflowStatus={workflowStatus}
-                onToggleWorkflowStatus={handleToggleWorkflowStatus}
-                isUpdatingWorkflowStatus={isUpdatingWorkflowStatus}
-                hasZerodha={hasZerodha}
-                tokenStatus={tokenStatus}
-                marketStatus={marketStatus}
-              />
-            )}
+            <div className="lg:col-span-3">
+              {debuggerExecutionId ? (
+                <ExecutionDebugger
+                  executionId={debuggerExecutionId}
+                  workflowName={workflowName}
+                  onClose={() => setDebuggerExecutionId(null)}
+                />
+              ) : (
+                <ExecutionHealthSidebar
+                  metrics={metrics}
+                  avgDurationLabel={avgDurationLabel}
+                  lastExecutionLabel={lastExecutionLabel}
+                  workflowStatus={workflowStatus}
+                  onToggleWorkflowStatus={handleToggleWorkflowStatus}
+                  isUpdatingWorkflowStatus={isUpdatingWorkflowStatus}
+                  hasZerodha={hasZerodha}
+                  tokenStatus={tokenStatus}
+                  marketStatus={marketStatus}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

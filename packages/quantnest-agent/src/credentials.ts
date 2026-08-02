@@ -21,6 +21,7 @@ export interface Credentials {
   refreshToken: string;
   apiUrl: string;
   wsUrl: string;
+  firstRunComplete?: boolean;
 }
 
 export interface WorkflowCreds {
@@ -84,6 +85,19 @@ export function writeCredentials(creds: Credentials): void {
     mode: 0o600,
   });
   chmodSync(CREDENTIALS_FILE, 0o600);
+}
+
+export function isFirstRun(): boolean {
+  const creds = readCredentials();
+  return !creds || !creds.firstRunComplete;
+}
+
+export function markFirstRunComplete(): void {
+  const creds = readCredentials();
+  if (creds) {
+    creds.firstRunComplete = true;
+    writeCredentials(creds);
+  }
 }
 
 export function clearCredentials(): void {

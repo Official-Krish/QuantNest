@@ -1,5 +1,6 @@
 import { Database, RefreshCw, Trash2 } from "lucide-react";
 import type { MemoryEntry } from "@/http";
+import { LoadingState } from "@/components/LoadingState";
 
 interface MemoriesListProps {
   loading: boolean;
@@ -74,12 +75,7 @@ export const MemoriesList = ({
       </div>
 
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <div className="flex items-center gap-3 text-zinc-500">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-700 border-t-zinc-300" />
-            <span className="text-sm">Loading memories…</span>
-          </div>
-        </div>
+        <LoadingState message="Loading memories…" height="md" />
       ) : memories.length === 0 ? (
         <div className="flex min-h-80 items-center justify-center px-6 py-10">
           <div className="max-w-sm text-center">

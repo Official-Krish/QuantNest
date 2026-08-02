@@ -1,18 +1,13 @@
 import "./polyfill";
-import {
-  intro,
-  outro,
-  select,
-  spinner,
-  log,
-  isCancel,
-  cancel,
-} from "@clack/prompts";
+import { execSync } from "node:child_process";
+import { intro, outro, log } from "@clack/prompts";
 import color from "picocolors";
 import {
   readCredentials,
   clearCredentials,
   clearAllWorkflowCreds,
+  isFirstRun,
+  markFirstRunComplete,
 } from "./credentials";
 import { login } from "./login";
 import { configure } from "./configure";
@@ -21,7 +16,11 @@ import {
   ensureOpenclaw,
   ensureOpenclawGateway,
   ensureQuantnestPlugin,
+  uninstallEverything,
 } from "./install";
+import { runWizard } from "./wizard";
+import { queryAudit, clearAudit } from "./audit";
+import { startWebDashboard } from "./ui";
 
 async function main() {
   const cmd = process.argv[2];
@@ -57,7 +56,12 @@ async function main() {
     outro("Starting agent...");
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        await startAgent();
+        await startAgent(async () => {
+          if (isFirstRun()) {
+            await runWizard();
+            markFirstRunComplete();
+          }
+        });
         return;
       } catch (err) {
         if (
@@ -112,6 +116,90 @@ async function main() {
       log.success("Disconnected");
       break;
 
+    case "log": {
+      const args = process.argv.slice(3);
+      if (args.includes("--clear")) {
+        clearAudit();
+        log.success("Audit log cleared");
+        return;
+      }
+      const typeFilter = args.find((a) => !a.startsWith("-"));
+      const entries = queryAudit({
+        tail: true,
+        limit: 50,
+        type: typeFilter,
+      });
+      if (entries.length === 0) {
+        log.info("No audit entries found");
+        return;
+      }
+      console.log("");
+      for (const e of entries) {
+        const ts = e.timestamp.slice(0, 19).replace("T", " ");
+        const icon =
+          e.type === "EXECUTE_AI"
+            ? color.cyan("▶")
+            : e.type === "VERIFY_CREDENTIALS"
+              ? color.yellow("🔑")
+              : e.type === "AGENT_CONNECT"
+                ? color.green("↑")
+                : e.type === "AGENT_DISCONNECT"
+                  ? color.red("↓")
+                  : color.dim("•");
+        const tag = e.type.padEnd(20);
+        const st =
+          e.status === "success"
+            ? color.green("✔")
+            : e.status === "error"
+              ? color.red("✘")
+              : color.dim("–");
+        console.log(
+          `  ${icon} ${color.dim(ts)} ${tag} ${st}` +
+            (e.workflowId ? ` ${color.dim(e.workflowId)}` : "") +
+            (e.error ? ` ${color.red(e.error.slice(0, 80))}` : ""),
+        );
+      }
+      console.log(
+        color.dim(
+          `\n  ${entries.length} entries. Use --clear to purge. Filter by type: quantnest log EXECUTE_AI`,
+        ),
+      );
+      break;
+    }
+
+    case "uninstall":
+      stopAgent();
+      await uninstallEverything();
+      log.success("QuantNest Agent fully uninstalled");
+      break;
+
+    case "ui": {
+      intro(color.bold(color.red("QuantNest Agent")));
+      log.info("Starting local web dashboard...");
+      await ensureOpenclaw();
+      await ensureOpenclawGateway();
+      const { server: uiServer, url: uiUrl } = startWebDashboard();
+      log.success("Dashboard running at " + color.cyan(uiUrl));
+      try {
+        execSync(`open "${uiUrl}"`, { timeout: 3000 });
+      } catch {
+        log.info("Open " + color.cyan(uiUrl) + " in your browser");
+      }
+      await new Promise<void>((resolve) => {
+        process.on("SIGINT", () => {
+          uiServer.close();
+          console.log("\nDashboard stopped.");
+          resolve();
+        });
+        process.on("SIGTERM", () => {
+          uiServer.close();
+          console.log("\nDashboard stopped.");
+          resolve();
+        });
+      });
+      break;
+    }
+
     case "logout":
       clearCredentials();
       clearAllWorkflowCreds();
@@ -139,7 +227,20 @@ async function main() {
         "    " + color.cyan("status") + "     Show current login state",
       );
       console.log(
+        "    " +
+          color.cyan("log") +
+          "        Show audit trail (--clear to purge)",
+      );
+      console.log(
+        "    " + color.cyan("ui") + "         Open local web dashboard",
+      );
+      console.log(
         "    " + color.cyan("logout") + "     Clear all stored credentials",
+      );
+      console.log(
+        "    " +
+          color.cyan("uninstall") +
+          "  Remove everything — agent, OpenClaw, config",
       );
       console.log("    " + color.cyan("--help") + "     Show this help");
       console.log("");

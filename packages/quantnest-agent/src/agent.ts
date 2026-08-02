@@ -8,6 +8,7 @@ import {
   saveWorkflowCreds,
 } from "./credentials";
 import { renderTui, clearTui } from "./tui";
+import { type AuditEntry, auditLog } from "./audit";
 
 interface Message {
   id: string;
@@ -59,6 +60,15 @@ function send(msg: Message) {
   if (ws?.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(msg));
   }
+}
+
+function broadcastAudit(entry: AuditEntry): void {
+  auditLog(entry);
+  send({
+    id: crypto.randomUUID(),
+    type: "AUDIT_EVENT",
+    payload: entry as unknown as Record<string, unknown>,
+  });
 }
 
 async function getWsToken(
@@ -296,9 +306,21 @@ async function handleVerifyCredentials(payload: Record<string, unknown>) {
   };
   if (!jobId || !workflowId || !brokers?.length) return;
 
+  const startedAt = Date.now();
   const { verified, errors } = await promptOverlay(() =>
     collectBrokerCreds(workflowId, brokers),
   );
+
+  auditLog({
+    timestamp: new Date().toISOString(),
+    type: "VERIFY_CREDENTIALS",
+    jobId,
+    workflowId,
+    status: verified ? "success" : "error",
+    duration: Date.now() - startedAt,
+    error: errors.length > 0 ? errors.join("; ") : undefined,
+    metadata: { brokers },
+  });
 
   send({
     id: crypto.randomUUID(),
@@ -319,6 +341,9 @@ async function handleExecuteAi(payload: Record<string, unknown>) {
   };
   if (!jobId || (!prompt && !messages)) return;
 
+  const startedAt = Date.now();
+  const workflowId = (payload.workflowId as string) ?? undefined;
+
   try {
     const openclawPayload: Record<string, unknown> = {
       model: "quantnest",
@@ -338,20 +363,39 @@ async function handleExecuteAi(payload: Record<string, unknown>) {
     clearTimeout(t);
 
     const data = await res.json();
+    const status = res.ok ? "success" : "error";
+
+    broadcastAudit({
+      timestamp: new Date().toISOString(),
+      type: "EXECUTE_AI",
+      jobId,
+      workflowId,
+      status,
+      duration: Date.now() - startedAt,
+      error: res.ok ? undefined : `OpenClaw returned ${res.status}`,
+    });
+
     send({
       id: crypto.randomUUID(),
       type: "EXECUTE_AI_RESULT",
-      payload: { jobId, status: res.ok ? "success" : "error", data },
+      payload: { jobId, status, data },
     });
   } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    broadcastAudit({
+      timestamp: new Date().toISOString(),
+      type: "EXECUTE_AI",
+      jobId,
+      workflowId,
+      status: "error",
+      duration: Date.now() - startedAt,
+      error: errorMsg,
+    });
+
     send({
       id: crypto.randomUUID(),
       type: "EXECUTE_AI_RESULT",
-      payload: {
-        jobId,
-        status: "error",
-        message: err instanceof Error ? err.message : String(err),
-      },
+      payload: { jobId, status: "error", message: errorMsg },
     });
   }
 }
@@ -528,6 +572,12 @@ function connect(wsUrl: string, token: string) {
 
   ws.onopen = () => {
     status.connected = true;
+    broadcastAudit({
+      timestamp: new Date().toISOString(),
+      type: "AGENT_CONNECT",
+      status: "success",
+      metadata: { url: wsUrl.replace(/\/ws\?token=.*$/, "/ws") },
+    });
     send({
       id: crypto.randomUUID(),
       type: "HELLO",
@@ -592,6 +642,14 @@ function connect(wsUrl: string, token: string) {
 
   ws.onclose = () => {
     status.connected = false;
+    if (running) {
+      broadcastAudit({
+        timestamp: new Date().toISOString(),
+        type: "AGENT_DISCONNECT",
+        status: "info",
+        metadata: { willReconnect: true },
+      });
+    }
     if (pingTimer) {
       clearInterval(pingTimer);
       pingTimer = null;
@@ -662,7 +720,7 @@ function ensureNodeVersion(): void {
 
 // ── Public API ───────────────────────────────────────────
 
-export async function startAgent() {
+export async function startAgent(onReady?: () => Promise<void>) {
   ensureNodeVersion();
 
   const creds = readCredentials();
@@ -682,6 +740,11 @@ export async function startAgent() {
       `Failed to connect: ${err instanceof Error ? err.message : String(err)}`,
     );
     process.exit(1);
+  }
+
+  if (onReady) {
+    await waitForConnection();
+    await onReady();
   }
 
   renderTui(getStatus);
@@ -723,6 +786,18 @@ export async function startAgent() {
       console.log("\nAgent stopped.");
       resolve();
     });
+  });
+}
+
+function waitForConnection(): Promise<void> {
+  return new Promise((resolve) => {
+    if (status.connected) return resolve();
+    const check = setInterval(() => {
+      if (status.connected) {
+        clearInterval(check);
+        resolve();
+      }
+    }, 100);
   });
 }
 

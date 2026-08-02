@@ -5,11 +5,13 @@ import { apiGetMemories, apiDeleteMemory } from "@/http";
 import type { MemoryEntry } from "@/http";
 import { MemoriesList } from "../components/memories/MemoriesList";
 import { AppBackground } from "@/components/background";
+import { ErrorState } from "@/components/ErrorState";
 
 export const Memories = () => {
   const navigate = useNavigate();
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [workflowFilter, setWorkflowFilter] = useState("");
 
   const fetchMemories = useCallback(async () => {
@@ -19,8 +21,10 @@ export const Memories = () => {
       if (workflowFilter) params.workflowId = workflowFilter;
       const data = await apiGetMemories(params);
       setMemories(data);
-    } catch (error) {
-      console.error("Failed to fetch memories:", error);
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.message ?? e?.message ?? "Could not load memories.",
+      );
     } finally {
       setLoading(false);
     }
@@ -60,15 +64,23 @@ export const Memories = () => {
           </div>
         </div>
 
-        <MemoriesList
-          loading={loading}
-          memories={memories}
-          onRefresh={() => void fetchMemories()}
-          onDelete={handleDelete}
-          workflowFilter={workflowFilter}
-          onWorkflowFilterChange={setWorkflowFilter}
-          workflowIds={workflowIds}
-        />
+        {error ? (
+          <ErrorState
+            message={error}
+            description="We could not load your AI memories. Please try again."
+            onRetry={() => void fetchMemories()}
+          />
+        ) : (
+          <MemoriesList
+            loading={loading}
+            memories={memories}
+            onRefresh={() => void fetchMemories()}
+            onDelete={handleDelete}
+            workflowFilter={workflowFilter}
+            onWorkflowFilterChange={setWorkflowFilter}
+            workflowIds={workflowIds}
+          />
+        )}
       </div>
     </div>
   );

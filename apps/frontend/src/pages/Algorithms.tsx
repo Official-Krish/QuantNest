@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  apiGetPracticalAlgos,
-  hasAuthSession,
-} from "@/http";
+import { apiGetPracticalAlgos, hasAuthSession } from "@/http";
 import type { WorkflowExample } from "@/types/api";
 import { ArrowRight } from "lucide-react";
+import { LoadingState } from "@/components/LoadingState";
 import { toast } from "sonner";
 import { ExampleCard } from "../components/examples/ExampleCard";
 import {
@@ -38,7 +36,9 @@ function buildDraftNodes(
 
 function inferMarketType(example: WorkflowExample): "Indian" | "Crypto" {
   const hasCryptoNode = example.nodes.some((node) => {
-    const rawMarket = String((node as any)?.data?.metadata?.marketType || "").toLowerCase();
+    const rawMarket = String(
+      (node as any)?.data?.metadata?.marketType || "",
+    ).toLowerCase();
     return rawMarket === "crypto" || rawMarket === "web3";
   });
 
@@ -52,10 +52,14 @@ export const Algorithms = () => {
   const [algorithms, setAlgorithms] = useState<WorkflowExample[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAlgorithm, setSelectedAlgorithm] = useState<WorkflowExample | null>(null);
+  const [selectedAlgorithm, setSelectedAlgorithm] =
+    useState<WorkflowExample | null>(null);
   const [workflowName, setWorkflowName] = useState("");
-  const [executionMode, setExecutionMode] = useState<"live" | "dry-run">("live");
-  const [metadataOverrides, setMetadataOverrides] = useState<ExampleMetadataOverrides>({});
+  const [executionMode, setExecutionMode] = useState<"live" | "dry-run">(
+    "live",
+  );
+  const [metadataOverrides, setMetadataOverrides] =
+    useState<ExampleMetadataOverrides>({});
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -64,7 +68,9 @@ export const Algorithms = () => {
         const res = await apiGetPracticalAlgos();
         setAlgorithms(res.examples);
       } catch (e: any) {
-        setError(e?.response?.data?.message ?? "Could not load practical algorithms.");
+        setError(
+          e?.response?.data?.message ?? "Could not load practical algorithms.",
+        );
       } finally {
         setLoading(false);
       }
@@ -136,10 +142,11 @@ export const Algorithms = () => {
               Real-trader strategies ready to launch
             </h1>
             <p className="text-base leading-7 text-neutral-400 md:text-lg">
-              These practical algorithms represent patterns and confirmations that real traders use
-              for breakout detection, mean reversion, and risk management. Use them as proven
-              starting points, adapt them to your market conditions, and combine them with your
-              own signal filters and confirmations.
+              These practical algorithms represent patterns and confirmations
+              that real traders use for breakout detection, mean reversion, and
+              risk management. Use them as proven starting points, adapt them to
+              your market conditions, and combine them with your own signal
+              filters and confirmations.
             </p>
             <button
               type="button"
@@ -157,9 +164,11 @@ export const Algorithms = () => {
         </div>
 
         {loading ? (
-          <div className="mt-8 rounded-[1.75rem] border border-neutral-800 bg-neutral-950/70 p-8 text-sm text-neutral-400">
-            Loading practical algorithms...
-          </div>
+          <LoadingState
+            variant="card"
+            message="Loading practical algorithms..."
+            className="mt-8"
+          />
         ) : error ? (
           <div className="mt-8 rounded-[1.75rem] border border-red-500/20 bg-red-500/5 p-8 text-sm text-red-200">
             {error}

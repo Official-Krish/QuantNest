@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { AppBackground } from "@/components/background";
+import { LoadingState } from "@/components/LoadingState";
 import {
   apiGetProfile,
   apiGetReusableSecrets,
@@ -35,8 +36,10 @@ export default function Profile() {
   const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarPreviewUrl] = useState("");
   const [avatarFiles, setAvatarFiles] = useState<File[]>([]);
-  const [defaultMarket, setDefaultMarket] = useState<MarketPreference>("Indian");
-  const [defaultBroker, setDefaultBroker] = useState<BrokerPreference>("Zerodha");
+  const [defaultMarket, setDefaultMarket] =
+    useState<MarketPreference>("Indian");
+  const [defaultBroker, setDefaultBroker] =
+    useState<BrokerPreference>("Zerodha");
   const [theme, setTheme] = useState<ThemePreference>("Dark");
   const [integrations, setIntegrations] = useState<IntegrationItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -50,9 +53,11 @@ export default function Profile() {
   const [memberSince, setMemberSince] = useState("Jan 2026");
   const [accountStatus, setAccountStatus] = useState("Active");
   const [saving, setSaving] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
     const loadProfile = async () => {
+      setProfileLoading(true);
       try {
         const [res, secretList] = await Promise.all([
           apiGetProfile(),
@@ -79,6 +84,8 @@ export default function Profile() {
           description: "Please sign in again to continue.",
         });
         navigate("/signin");
+      } finally {
+        setProfileLoading(false);
       }
     };
 
@@ -86,11 +93,16 @@ export default function Profile() {
   }, [navigate]);
 
   const connectedCount = useMemo(
-    () => integrations.filter((integration) => integration.status === "connected").length,
+    () =>
+      integrations.filter((integration) => integration.status === "connected")
+        .length,
     [integrations],
   );
 
-  const usagePercent = Math.min(100, Math.round((executionsThisMonth / executionQuota) * 100));
+  const usagePercent = Math.min(
+    100,
+    Math.round((executionsThisMonth / executionQuota) * 100),
+  );
 
   const handleSaveAccount = async () => {
     setSaving(true);
@@ -129,6 +141,11 @@ export default function Profile() {
       toast.success("Profile updated", {
         description: "Your profile preferences were saved.",
       });
+    } catch (e: any) {
+      toast.error("Could not save profile", {
+        description:
+          e?.response?.data?.message ?? e?.message ?? "Please try again later.",
+      });
     } finally {
       setSaving(false);
     }
@@ -156,85 +173,96 @@ export default function Profile() {
           </Button>
 
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[#f17463]">Profile</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight">Settings & Account</h1>
+            <p className="text-xs uppercase tracking-[0.3em] text-[#f17463]">
+              Profile
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+              Settings & Account
+            </h1>
             <p className="mt-1 text-sm text-neutral-400">
-              Manage your account, integrations, preferences, and billing from one place.
+              Manage your account, integrations, preferences, and billing from
+              one place.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <ProfileSidebar
-            activeTab={activeTab}
-            onSelectTab={setActiveTab}
-            displayName={displayName}
-            email={email}
-            avatarUrl={avatarUrl}
-            onAvatarChange={setAvatarFiles}
-          />
+        {profileLoading ? (
+          <LoadingState message="Loading profile..." height="lg" />
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <ProfileSidebar
+              activeTab={activeTab}
+              onSelectTab={setActiveTab}
+              displayName={displayName}
+              email={email}
+              avatarUrl={avatarUrl}
+              onAvatarChange={setAvatarFiles}
+            />
 
-          <main className="space-y-6">
-            <div className="rounded-[28px] border border-neutral-800 bg-neutral-950/75 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-md">
-              {activeTab === "account" ? (
-                <ProfileAccountTab
-                  displayName={displayName}
-                  setDisplayName={setDisplayName}
-                  username={username}
-                  email={email}
-                  saving={saving}
-                  onSave={handleSaveAccount}
-                  defaultMarket={defaultMarket}
-                  setDefaultMarket={setDefaultMarket}
-                  defaultBroker={defaultBroker}
-                  setDefaultBroker={setDefaultBroker}
-                  theme={theme}
-                  setTheme={setTheme}
-                />
-              ) : null}
+            <main className="space-y-6">
+              <div className="rounded-[28px] border border-neutral-800 bg-neutral-950/75 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-md">
+                {activeTab === "account" ? (
+                  <ProfileAccountTab
+                    displayName={displayName}
+                    setDisplayName={setDisplayName}
+                    username={username}
+                    email={email}
+                    saving={saving}
+                    onSave={handleSaveAccount}
+                    defaultMarket={defaultMarket}
+                    setDefaultMarket={setDefaultMarket}
+                    defaultBroker={defaultBroker}
+                    setDefaultBroker={setDefaultBroker}
+                    theme={theme}
+                    setTheme={setTheme}
+                  />
+                ) : null}
 
-              {/* {activeTab === "integrations" ? (
+                {/* {activeTab === "integrations" ? (
                 <ProfileIntegrationsTab integrations={integrations} />
               ) : null} */}
 
-              {activeTab === "secrets" ? (
-                <ProfileSecretsTab
-                  secrets={secrets}
-                  setSecrets={setSecrets}
-                />
-              ) : null}
+                {activeTab === "secrets" ? (
+                  <ProfileSecretsTab
+                    secrets={secrets}
+                    setSecrets={setSecrets}
+                  />
+                ) : null}
 
-              {activeTab === "billing" ? (
-                <ProfileBillingTab
-                  billingPlan={billingPlan}
-                  nextBillingDate={nextBillingDate}
-                  executionsThisMonth={executionsThisMonth}
-                  executionQuota={executionQuota}
-                  usagePercent={usagePercent}
-                />
-              ) : null}
+                {activeTab === "billing" ? (
+                  <ProfileBillingTab
+                    billingPlan={billingPlan}
+                    nextBillingDate={nextBillingDate}
+                    executionsThisMonth={executionsThisMonth}
+                    executionQuota={executionQuota}
+                    usagePercent={usagePercent}
+                  />
+                ) : null}
 
-              {activeTab === "notifications" ? (
-                <ProfileNotificationsTab
-                  notificationsEnabled={notificationsEnabled}
-                  setNotificationsEnabled={setNotificationsEnabled}
-                  saving={saving}
-                  onSave={handleSaveAccount}
-                />
-              ) : null}
+                {activeTab === "notifications" ? (
+                  <ProfileNotificationsTab
+                    notificationsEnabled={notificationsEnabled}
+                    setNotificationsEnabled={setNotificationsEnabled}
+                    saving={saving}
+                    onSave={handleSaveAccount}
+                  />
+                ) : null}
 
-              {activeTab === "danger" ? <ProfileDangerTab onSignout={handleSignout} /> : null}
-            </div>
+                {activeTab === "danger" ? (
+                  <ProfileDangerTab onSignout={handleSignout} />
+                ) : null}
+              </div>
 
-            <ProfileStatsGrid
-              totalWorkflows={totalWorkflows}
-              totalExecutions={totalExecutions}
-              memberSince={memberSince}
-              accountStatus={accountStatus}
-              connectedCount={connectedCount}
-            />
-          </main>
-        </div>
+              <ProfileStatsGrid
+                totalWorkflows={totalWorkflows}
+                totalExecutions={totalExecutions}
+                memberSince={memberSince}
+                accountStatus={accountStatus}
+                connectedCount={connectedCount}
+              />
+            </main>
+          </div>
+        )}
       </div>
     </div>
   );

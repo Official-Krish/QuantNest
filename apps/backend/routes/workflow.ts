@@ -241,6 +241,17 @@ workFlowRouter.patch(
     }
 
     try {
+      if (parsedStatus.data.status === "active") {
+        const existing = await getWorkflowForUser(userId, workflowId);
+        if (existing?.useOpenClaw && !agentRegistry.isOnline(userId!)) {
+          res.status(400).json({
+            message:
+              "Cannot resume — your QuantNest Agent is offline. Start it with `quantnest start` and try again.",
+          });
+          return;
+        }
+      }
+
       const workflow = await updateWorkflowStatusForUser({
         userId,
         workflowId,
