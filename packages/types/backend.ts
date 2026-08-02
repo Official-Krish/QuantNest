@@ -840,6 +840,18 @@ function validateWorkflowNodes(
   });
 }
 
+export const RiskLimitsSchema = z
+  .object({
+    maxOrderAmount: z.number().nonnegative().optional(),
+    maxQty: z.number().nonnegative().optional(),
+    maxSlippageBps: z.number().int().nonnegative().optional(),
+    maxDailyExposure: z.number().nonnegative().optional(),
+    requireApprovalAbove: z.number().nonnegative().optional(),
+    approvalPrompt: z.string().max(500).optional(),
+  })
+  .strict()
+  .optional();
+
 export const CreateWorkflowSchema = z
   .object({
     workflowName: z.string().min(3).max(100),
@@ -847,6 +859,7 @@ export const CreateWorkflowSchema = z
     edges: z.array(WorkflowEdgeSchema),
     executionMode: z.enum(["live", "dry-run"]).optional(),
     useOpenClaw: z.boolean().optional(),
+    riskLimits: RiskLimitsSchema,
   })
   .superRefine((data, ctx) => {
     validateWorkflowNodes(data.nodes, ctx);
@@ -858,6 +871,7 @@ export const UpdateWorkflowSchema = z
     edges: z.array(WorkflowEdgeSchema),
     executionMode: z.enum(["live", "dry-run"]).optional(),
     useOpenClaw: z.boolean().optional(),
+    riskLimits: RiskLimitsSchema,
   })
   .superRefine((data, ctx) => {
     validateWorkflowNodes(data.nodes, ctx);

@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { type EdgeType, type NodeType } from "@quantnest-trading/types";
+import {
+  type EdgeType,
+  type NodeType,
+  type RiskLimits,
+} from "@quantnest-trading/types";
 import { WorkflowCanvas } from "../components/workflow/WorkflowCanvas";
 import { WorkflowNameDialog } from "../components/workflow/WorkflowNameDialog";
 import {
@@ -74,6 +78,7 @@ export const CreateWorkflow = () => {
     "live",
   );
   const [useOpenClaw, setUseOpenClaw] = useState(false);
+  const [workflowRiskLimits, setWorkflowRiskLimits] = useState<RiskLimits>({});
   const [openclawChoiceLocked, setOpenclawChoiceLocked] = useState(false);
   const [showOpenClawDialog, setShowOpenClawDialog] = useState(false);
   const [agentConnected, setAgentConnected] = useState(false);
@@ -221,6 +226,7 @@ export const CreateWorkflow = () => {
         setWorkflowId(normalizedWorkflow.workflowId);
         setWorkflowName(normalizedWorkflow.workflowName);
         setMarketType(normalizedWorkflow.marketType);
+        setWorkflowRiskLimits((normalizedWorkflow as any).riskLimits || {});
         setLastSavedSnapshot(
           buildWorkflowSnapshot({
             workflowName: normalizedWorkflow.workflowName,
@@ -228,6 +234,7 @@ export const CreateWorkflow = () => {
             edges: normalizedWorkflow.edges,
             executionMode: normalizedWorkflow.executionMode,
             useOpenClaw: normalizedWorkflow.useOpenClaw,
+            riskLimits: (normalizedWorkflow as any).riskLimits,
           }),
         );
         setExecutionMode(
@@ -320,6 +327,7 @@ export const CreateWorkflow = () => {
         edges,
         executionMode,
         useOpenClaw,
+        riskLimits: workflowRiskLimits,
       }) !== lastSavedSnapshot
     );
   }, [
@@ -328,6 +336,7 @@ export const CreateWorkflow = () => {
     workflowName,
     executionMode,
     useOpenClaw,
+    workflowRiskLimits,
     agentConnected,
     workflowId,
     loading,
@@ -338,7 +347,7 @@ export const CreateWorkflow = () => {
       nodes.some(
         (node) =>
           String(node.data?.kind || "").toLowerCase() === "action" &&
-          ["zerodha", "groww", "lighter"].includes(
+          ["zerodha", "groww", "lighter", "solana-swap"].includes(
             String(node.type || "").toLowerCase(),
           ),
       ),
@@ -373,6 +382,7 @@ export const CreateWorkflow = () => {
         edges,
         executionMode,
         useOpenClaw,
+        riskLimits: workflowRiskLimits,
       };
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
@@ -390,6 +400,7 @@ export const CreateWorkflow = () => {
             edges,
             executionMode,
             useOpenClaw,
+            riskLimits: workflowRiskLimits,
           }),
         );
         toast.success("Workflow updated successfully");
@@ -418,6 +429,7 @@ export const CreateWorkflow = () => {
     workflowName,
     executionMode,
     useOpenClaw,
+    workflowRiskLimits,
     navigate,
   ]);
 
@@ -507,6 +519,7 @@ export const CreateWorkflow = () => {
     setAiBuilderContext(null);
     setActiveAiVersionId("");
     setUseOpenClaw(false);
+    setWorkflowRiskLimits({});
     setOpenclawChoiceLocked(false);
   }, []);
 
@@ -904,6 +917,9 @@ export const CreateWorkflow = () => {
           workflowName={workflowName}
           onChangeName={setWorkflowName}
           onSubmit={handleNameDialogSubmit}
+          showRiskPanel={hasZerodhaAction}
+          riskLimits={workflowRiskLimits}
+          onChangeRiskLimits={setWorkflowRiskLimits}
         />
 
         <Dialog

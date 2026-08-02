@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 import { ReliabilitySection } from "./ReliabilitySection";
+import { RiskGuardSection } from "./RiskGuardSection";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { api } from "@/http";
 import bs58 from "bs58";
@@ -338,6 +339,8 @@ export function SolanaSwapForm({
           placeholder="100"
         />
       </div>
+
+      <RiskGuardSection metadata={metadata} setMetadata={setMetadata} />
 
       <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>

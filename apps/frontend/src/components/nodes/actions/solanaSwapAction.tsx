@@ -1,5 +1,6 @@
 import { Handle, Position } from "@xyflow/react";
 import { ServiceLogo } from "@/components/workflow/service-branding";
+import { RiskBadge } from "@/components/nodes/RiskBadge";
 
 export const solanaSwapAction = ({
   data,
@@ -9,10 +10,11 @@ export const solanaSwapAction = ({
       fromToken?: string;
       toToken?: string;
       amount?: number;
+      riskLimits?: any;
     };
   };
 }) => {
-  const { fromToken, toToken, amount } = data.metadata || {};
+  const { fromToken, toToken, amount, riskLimits } = data.metadata || {};
 
   return (
     <div className="min-w-57.5 rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#99f6e4] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
@@ -24,6 +26,9 @@ export const solanaSwapAction = ({
         <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
           SWAP
         </span>
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <RiskBadge riskLimits={riskLimits} />
       </div>
       <div className="mt-2 text-sm font-medium text-neutral-100">
         {amount

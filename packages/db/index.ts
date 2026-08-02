@@ -343,6 +343,10 @@ const WorkflowSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  riskLimits: {
+    type: Schema.Types.Mixed,
+    required: false,
+  },
   nextRunAt: {
     type: Date,
     required: false,

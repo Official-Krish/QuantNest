@@ -1,4 +1,4 @@
-import type { EdgeType, NodeType } from "@quantnest-trading/types";
+import type { EdgeType, NodeType, RiskLimits } from "@quantnest-trading/types";
 import type { Workflow } from "@/types/api";
 
 export interface BrokerVerificationPayload {
@@ -37,11 +37,13 @@ export function buildWorkflowSnapshot(params: {
   edges: EdgeType[];
   executionMode?: "live" | "dry-run";
   useOpenClaw?: boolean;
+  riskLimits?: RiskLimits;
 }) {
   return JSON.stringify({
     workflowName: params.workflowName.trim(),
     executionMode: params.executionMode || "live",
     useOpenClaw: params.useOpenClaw ?? false,
+    riskLimits: params.riskLimits || undefined,
     nodes: params.nodes.map(normalizeNodeForCompare),
     edges: params.edges.map(normalizeEdgeForCompare),
   });
@@ -185,6 +187,7 @@ export function normalizeWorkflowForBuilder(workflow: Workflow) {
     executionMode: workflow.executionMode || "live",
     marketType: workflow.marketType || "Indian",
     useOpenClaw: workflow.useOpenClaw ?? false,
+    riskLimits: workflow.riskLimits,
   };
 }
 

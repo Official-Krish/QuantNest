@@ -25,6 +25,7 @@ export async function createWorkflowForUser(params: {
   nodes: WorkflowNodeInput;
   edges: WorkflowEdgeInput;
   executionMode?: "live" | "dry-run";
+  riskLimits?: Record<string, unknown>;
 }) {
   await assertWorkflowCreationAllowed(params.userId);
 
@@ -40,6 +41,7 @@ export async function createWorkflowForUser(params: {
     edges: params.edges,
     executionMode,
     status: "active",
+    riskLimits: params.riskLimits,
     ...deriveWorkflowTriggerState(params.nodes as any),
   });
 
@@ -65,6 +67,7 @@ export async function updateWorkflowForUser(params: {
   nodes: WorkflowNodeInput;
   edges: WorkflowEdgeInput;
   executionMode?: "live" | "dry-run";
+  riskLimits?: Record<string, unknown>;
 }) {
   const existingWorkflow = await WorkflowModel.findOne({
     _id: params.workflowId,
@@ -86,6 +89,10 @@ export async function updateWorkflowForUser(params: {
 
   if (params.executionMode) {
     nextSet.executionMode = params.executionMode;
+  }
+
+  if (params.riskLimits) {
+    nextSet.riskLimits = params.riskLimits;
   }
 
   return WorkflowModel.findOneAndUpdate(

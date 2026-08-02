@@ -60,6 +60,23 @@ export async function redisDel(key: string): Promise<void> {
   }
 }
 
+export async function redisIncrBy(
+  key: string,
+  amount: number,
+  ttlMs?: number,
+): Promise<number> {
+  try {
+    const value = await redisSubscriber.incrBy(key, Math.trunc(amount));
+    if (ttlMs !== undefined) {
+      await redisSubscriber.expire(key, Math.ceil(ttlMs / 1000), "NX");
+    }
+    return value;
+  } catch (err) {
+    console.error("[redis] incrBy error:", err);
+    return 0;
+  }
+}
+
 export async function redisCache<T>(
   key: string,
   fetcher: () => Promise<T>,

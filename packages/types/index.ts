@@ -197,6 +197,21 @@ export interface PortfolioPnlDrawdownTriggerMetadata {
   apiKeyIndex?: number;
 }
 
+export interface RiskLimits {
+  /** Max notional per order (INR / USD / token units). Best-effort for Indian brokers (qty × live price). */
+  maxOrderAmount?: number;
+  /** Hard max quantity per order. Deterministic — always enforced. */
+  maxQty?: number;
+  /** Hard max slippage in bps. Solana / Lighter only. */
+  maxSlippageBps?: number;
+  /** Max total notional executed today across all brokers. Backed by a Redis daily ledger. */
+  maxDailyExposure?: number;
+  /** Notional above which a human approval is forced before the order executes. */
+  requireApprovalAbove?: number;
+  /** Prompt shown to the reviewer in the Approvals UI. */
+  approvalPrompt?: string;
+}
+
 export interface TradingMetadata {
   type: "buy" | "sell" | "long" | "short";
   qty: number;
@@ -207,6 +222,7 @@ export interface TradingMetadata {
   exchange: "NSE" | "BSE";
   condition?: boolean;
   retryPolicy?: RetryPolicyMetadata;
+  riskLimits?: RiskLimits;
 }
 
 export interface NotificationMetadata {
@@ -262,6 +278,7 @@ export interface LighterMetadata {
   secretId?: string;
   condition?: boolean;
   retryPolicy?: RetryPolicyMetadata;
+  riskLimits?: RiskLimits;
 }
 
 export interface PostgresMetadata {
@@ -288,6 +305,7 @@ export interface SolanaSwapMetadata {
   slippageBps: number;
   secretId: string;
   retryPolicy?: RetryPolicyMetadata;
+  riskLimits?: RiskLimits;
 }
 
 export {

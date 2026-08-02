@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 import { ReliabilitySection } from "./ReliabilitySection";
+import { RiskGuardSection } from "./RiskGuardSection";
 import { useMarketAssets } from "./useMarketAssets";
 
 interface TradingFormProps {
@@ -366,6 +367,8 @@ export const TradingForm = ({
           )}
         </>
       )}
+
+      <RiskGuardSection metadata={metadata} setMetadata={setMetadata} />
 
       <ReliabilitySection metadata={metadata} setMetadata={setMetadata} />
     </div>
