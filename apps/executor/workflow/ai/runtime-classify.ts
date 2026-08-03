@@ -7,7 +7,11 @@ import { getAIProvider } from "./provider-factory";
 import type { ChatMessage } from "./provider";
 import { collectUpstreamContext } from "./context-collector";
 import { buildReasoningInstruction } from "./reasoning";
-import { collectMemoryContext, writeMemory } from "./memory";
+import {
+  retrieveMemoryContext,
+  storeMemoryDocuments,
+  writeMemory,
+} from "./memory";
 import type { EdgeType, NodeType } from "../../types";
 import type { ExecutionContext } from "../execute.context";
 
@@ -56,12 +60,14 @@ Output valid JSON with these fields:
     metadata.reasoningEnabled,
   );
 
-  const memoryContext = await collectMemoryContext(
-    context.userId ?? "",
-    context.workflowId ?? "",
-    nodeId,
-    { memoryEnabled: metadata.memoryEnabled, memoryTtl: metadata.memoryTtl },
-  );
+  const memoryContext = metadata.memoryEnabled
+    ? await retrieveMemoryContext({
+        userId: context.userId ?? "",
+        workflowId: context.workflowId ?? "",
+        query: metadata.systemPrompt?.trim() || `${nodeId} prior executions`,
+        k: metadata.contextDepth,
+      })
+    : "";
 
   const messages: ChatMessage[] = [
     {
@@ -114,6 +120,14 @@ Output valid JSON with these fields:
       result as unknown as Record<string, unknown>,
       metadata.memoryTtl,
     );
+    await storeMemoryDocuments({
+      userId: context.userId ?? "",
+      workflowId: context.workflowId ?? "",
+      nodeId,
+      source: "node",
+      content: JSON.stringify(result),
+      ttlHours: metadata.memoryTtl,
+    });
   }
 
   return result;

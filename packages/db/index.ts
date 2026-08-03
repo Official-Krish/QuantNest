@@ -984,6 +984,52 @@ AiMemorySchema.index(
 );
 AiMemorySchema.index({ ttl: 1 }, { expireAfterSeconds: 0 });
 
+const MemoryDocumentSchema = new Schema(
+  {
+    userId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Users",
+      required: true,
+      index: true,
+    },
+    workflowId: {
+      type: mongoose.Types.ObjectId,
+      ref: "Workflows",
+      required: false,
+      index: true,
+    },
+    nodeId: {
+      type: String,
+      required: false,
+    },
+    source: {
+      type: String,
+      enum: ["node", "trade", "note"],
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    embedding: {
+      type: [Number],
+      required: false,
+    },
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: () => ({}),
+    },
+    ttl: {
+      type: Date,
+      required: false,
+    },
+  },
+  { timestamps: true },
+);
+
+MemoryDocumentSchema.index({ userId: 1, workflowId: 1, source: 1 });
+MemoryDocumentSchema.index({ ttl: 1 }, { expireAfterSeconds: 0 });
+
 const AiRoleSchema = new Schema({
   userId: {
     type: mongoose.Types.ObjectId,
@@ -1107,4 +1153,8 @@ export const ApprovalRequestModel = mongoose.model(
   ApprovalRequestSchema,
 );
 export const AiMemoryModel = mongoose.model("AiMemories", AiMemorySchema);
+export const MemoryDocumentModel = mongoose.model(
+  "MemoryDocuments",
+  MemoryDocumentSchema,
+);
 export const AgentEventModel = mongoose.model("AgentEvents", AgentEventSchema);

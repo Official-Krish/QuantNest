@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.42.0",
+    "@quantnest-trading/embeddings": "workspace:^",
     "@notionhq/client": "^5.9.0",
     "@slack/web-api": "^7.15.0",
     "@types/node": "^26.1.2",
