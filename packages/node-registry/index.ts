@@ -39,7 +39,8 @@ export type BuilderFormId =
   | "ai-decision"
   | "ai-classify"
   | "ai-extract"
-  | "ai-generate";
+  | "ai-generate"
+  | "ai-agent-pipeline";
 export type ExecutorTriggerProcessorId =
   | "timer"
   | "price-trigger"
@@ -68,7 +69,8 @@ export type ExecutorActionHandlerId =
   | "ai-decision"
   | "ai-classify"
   | "ai-extract"
-  | "ai-generate";
+  | "ai-generate"
+  | "ai-agent-pipeline";
 
 export interface NodeRegistryEntry {
   id: string;
@@ -148,6 +150,12 @@ export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
   role: "Role",
   contextDepth: "Context depth",
   minConfidence: "Min confidence",
+  executionMode: "Execution mode",
+  symbol: "Symbol",
+  qty: "Quantity",
+  side: "Side",
+  brokerSecretId: "Broker credential",
+  riskLimits: "Risk limits",
 };
 
 export const NODE_REGISTRY: NodeRegistryEntry[] = [
@@ -783,6 +791,50 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "reasoningEnabled",
       "memoryEnabled",
       "memoryTtl",
+    ],
+  },
+  {
+    id: "ai-agent-pipeline",
+    title: "AI Agent Pipeline",
+    description:
+      "Research, strategy, risk, execution and review agents working together on a trade",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "AI",
+    builderFormId: "ai-agent-pipeline",
+    builderRendererId: "ai-agent-pipeline",
+    executorActionHandlerId: "ai-agent-pipeline",
+    metadataFields: [
+      "systemPrompt",
+      "model",
+      "temperature",
+      "maxTokens",
+      "contextDepth",
+      "enableTools",
+      "reasoningEnabled",
+      "memoryEnabled",
+      "memoryTtl",
+      "secretId",
+      "maxCostPerExecution",
+      "monthlyBudget",
+      "approvalRequired",
+      "approvalPrompt",
+      "executionMode",
+      "broker",
+      "symbol",
+      "qty",
+      "side",
+      "brokerSecretId",
+      "apiKey",
+      "accessToken",
+      "network",
+      "fromToken",
+      "toToken",
+      "slippageBps",
+      "accountIndex",
+      "apiKeyIndex",
+      "minConfidence",
+      "riskLimits",
     ],
   },
 ];

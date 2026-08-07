@@ -97,6 +97,14 @@ function inferNodeTypeFromMetadata(node: any): string {
     return "zerodha";
   }
   if (
+    metadata.broker !== undefined &&
+    metadata.qty !== undefined &&
+    metadata.side !== undefined &&
+    metadata.executionMode !== undefined
+  ) {
+    return "ai-agent-pipeline";
+  }
+  if (
     metadata.notionApiKey !== undefined ||
     metadata.parentPageId !== undefined ||
     metadata.aiConsent !== undefined
@@ -251,6 +259,7 @@ const CREDENTIAL_KEYS = new Set([
   "accountIndex",
   "apiKeyIndex",
   "secretId",
+  "brokerSecretId",
   "slackBotToken",
   "slackUserId",
   "telegramBotToken",

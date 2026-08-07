@@ -317,6 +317,11 @@ export {
   AIExtractResultSchema,
   AIGenerateMetadataSchema,
   AIGenerateResultSchema,
+  AIAgentPipelineMetadataSchema,
+  AIAgentPipelineResultSchema,
+  AIPipelineStageSchema,
+  AIPipelineExecutionSchema,
+  PipelineRiskLimitsSchema,
 } from "./ai-runtime";
 export type {
   AIDecisionMetadata,
@@ -327,6 +332,11 @@ export type {
   AIExtractResult,
   AIGenerateMetadata,
   AIGenerateResult,
+  AIAgentPipelineMetadata,
+  AIAgentPipelineResult,
+  AIPipelineStage,
+  AIPipelineExecution,
+  PipelineRiskLimits,
 } from "./ai-runtime";
 
 export interface RetryPolicyMetadata {

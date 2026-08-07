@@ -31,10 +31,12 @@ import { aiDecisionNode } from "@/components/nodes/actions/aiDecisionNode";
 import { aiClassifyNode } from "@/components/nodes/actions/aiClassifyNode";
 import { aiExtractNode } from "@/components/nodes/actions/aiExtractNode";
 import { aiGenerateNode } from "@/components/nodes/actions/aiGenerateNode";
+import { aiAgentPipelineNode } from "@/components/nodes/actions/aiAgentPipelineNode";
 import { AIDecisionForm } from "./sheets/AIDecisionForm";
 import { AIClassifyForm } from "./sheets/AIClassifyForm";
 import { AIExtractForm } from "./sheets/AIExtractForm";
 import { AIGenerateForm } from "./sheets/AIGenerateForm";
+import { AIAgentPipelineForm } from "./sheets/AIAgentPipelineForm";
 import { PriceTriggerForm } from "./sheets/PriceTriggerForm";
 import { BreakoutRetestTriggerForm } from "./sheets/BreakoutRetestTriggerForm";
 import { ConditionalTriggerForm } from "./sheets/CondtionalTriggerForm";
@@ -99,6 +101,7 @@ export const builderNodeRenderers = {
   "ai-classify": aiClassifyNode,
   "ai-extract": aiExtractNode,
   "ai-generate": aiGenerateNode,
+  "ai-agent-pipeline": aiAgentPipelineNode,
 } as const;
 
 export const builderFormRegistry = {
@@ -126,6 +129,7 @@ export const builderFormRegistry = {
   "ai-classify": AIClassifyForm,
   "ai-extract": AIExtractForm,
   "ai-generate": AIGenerateForm,
+  "ai-agent-pipeline": AIAgentPipelineForm,
 } as const;
 
 export function getBuilderFormComponent(nodeType: string) {
@@ -335,6 +339,13 @@ export function renderBuilderForm(
     case "ai-generate":
       return (
         <AIGenerateForm
+          metadata={props.metadata as any}
+          setMetadata={props.setMetadata}
+        />
+      );
+    case "ai-agent-pipeline":
+      return (
+        <AIAgentPipelineForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
         />
