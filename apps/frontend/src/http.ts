@@ -886,6 +886,10 @@ export interface AgentInfo {
   hostname: string;
   capabilities: string[];
   connectedAt: string;
+  availableModels?: string[];
+  selectedModel?: string | null;
+  modelReady?: boolean;
+  modelError?: string | null;
 }
 
 export interface VerifyAgentResponse {
@@ -895,5 +899,17 @@ export interface VerifyAgentResponse {
 
 export async function apiVerifyAgent(): Promise<VerifyAgentResponse> {
   const res = await api.post<VerifyAgentResponse>("/verify-agent");
+  return res.data;
+}
+
+export async function apiSetAgentModel(
+  model: string,
+  action: "set" | "test",
+): Promise<{ status?: string; message?: string; data?: unknown }> {
+  const res = await api.post<{
+    status?: string;
+    message?: string;
+    data?: unknown;
+  }>("/internal/agent-model", { model, action });
   return res.data;
 }

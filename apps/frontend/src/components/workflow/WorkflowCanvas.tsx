@@ -230,6 +230,25 @@ export const WorkflowCanvas = ({
         </div>
       )}
 
+      {nodes.length > 0 && edges.length === 0 && !loading && (
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-10 flex justify-center px-4 mr-8">
+          <div className="flex items-center gap-2 rounded-2xl border border-[#f17463]/50 border-l-4 border-l-[#f17463] bg-[#f17463]/10 px-4 py-2.5 shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#f17463] opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#f17463]" />
+            </span>
+            <p className="text-xs text-neutral-100">
+              <span className="font-semibold text-[#ffb8ad]">Next:</span> drag
+              the{" "}
+              <span className="font-semibold text-[#ffb8ad]">
+                dot on the right edge
+              </span>{" "}
+              of your trigger to add your first action node.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-950/85 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.28)] backdrop-blur-sm">
         <button
           type="button"

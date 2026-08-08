@@ -105,7 +105,9 @@ const handlers = {
       }
 
       case "EXECUTE_AI_RESULT":
-      case "VERIFY_CREDENTIALS_RESULT": {
+      case "VERIFY_CREDENTIALS_RESULT":
+      case "SET_MODEL_RESULT":
+      case "TEST_MODEL_RESULT": {
         const payload = msg.payload as
           | {
               jobId?: string;
@@ -134,6 +136,10 @@ const handlers = {
                     version: string;
                     capabilities: string[];
                   }>;
+                  availableModels?: string[];
+                  selectedModel?: string | null;
+                  modelReady?: boolean;
+                  modelError?: string | null;
                 }
               | undefined;
             if (payload?.plugins) {
@@ -146,6 +152,18 @@ const handlers = {
             }
             if (payload?.openclawVersion !== undefined) {
               (agent as any).openclawVersion = payload.openclawVersion;
+            }
+            if (payload?.availableModels !== undefined) {
+              agent.availableModels = payload.availableModels;
+            }
+            if (payload?.selectedModel !== undefined) {
+              agent.selectedModel = payload.selectedModel;
+            }
+            if (payload?.modelReady !== undefined) {
+              agent.modelReady = payload.modelReady;
+            }
+            if (payload?.modelError !== undefined) {
+              agent.modelError = payload.modelError;
             }
           }
         }

@@ -1,16 +1,17 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Bot,
-  ShieldCheck,
   Brain,
   Database,
   Globe,
@@ -21,12 +22,8 @@ import {
 import { AIAgentPipelineMetadataSchema } from "@quantnest-trading/types";
 import { ReusableSecretPicker } from "./ReusableSecretPicker";
 import { RiskGuardSection } from "./RiskGuardSection";
+import { useMarketAssets } from "./useMarketAssets";
 import type { ReusableSecretService } from "@/types/api";
-
-const PROVIDERS = [
-  { label: "Gemini", value: "gemini" },
-  { label: "OpenClaw", value: "openclaw" },
-];
 
 const DEFAULT_MODELS = [
   { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
@@ -60,11 +57,13 @@ const BROKER_SECRET_SERVICES: Record<string, ReusableSecretService> = {
 interface AIAgentPipelineFormProps {
   metadata: Record<string, unknown>;
   setMetadata: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  useOpenClaw?: boolean;
 }
 
 export const AIAgentPipelineForm = ({
   metadata,
   setMetadata,
+  useOpenClaw = false,
 }: AIAgentPipelineFormProps) => {
   const validationErrors = useMemo(() => {
     const result = AIAgentPipelineMetadataSchema.safeParse(metadata);
@@ -74,11 +73,25 @@ export const AIAgentPipelineForm = ({
     return {};
   }, [metadata]);
 
+  const [hasInteracted, setHasInteracted] = useState(false);
+
   const set = (key: string, value: unknown) => {
+    setHasInteracted(true);
     setMetadata((current) => ({ ...current, [key]: value }));
   };
 
+  useEffect(() => {
+    const desired = useOpenClaw ? "openclaw" : "gemini";
+    if ((metadata.provider as string) !== desired) {
+      setMetadata((current) => ({ ...current, provider: desired }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useOpenClaw]);
+
+  const { indianAssets, cryptoAssets } = useMarketAssets();
+
   const fieldError = (key: string) => {
+    if (!hasInteracted) return null;
     const errs = validationErrors[key as keyof typeof validationErrors];
     return errs && errs.length > 0 ? errs[0] : null;
   };
@@ -208,12 +221,34 @@ export const AIAgentPipelineForm = ({
               <span className="text-xs font-bold text-teal-400">SOL</span>
             </div>
           ) : (
-            <Input
+            <Select
               value={(metadata.symbol as string) ?? ""}
-              onChange={(e) => set("symbol", e.target.value)}
-              className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100"
-              placeholder={isLighter ? "BTC / ETH / SOL" : "e.g. RELIANCE"}
-            />
+              onValueChange={(v) => set("symbol", v)}
+            >
+              <SelectTrigger className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
+                <SelectValue
+                  placeholder={
+                    isLighter ? "Select crypto asset" : "Select stock"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
+                <SelectGroup>
+                  <SelectLabel className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">
+                    {isLighter ? "Crypto Assets" : "Stock Assets"}
+                  </SelectLabel>
+                  {(isLighter ? cryptoAssets : indianAssets).map((asset) => (
+                    <SelectItem
+                      key={asset}
+                      value={asset}
+                      className="cursor-pointer text-sm text-neutral-100 focus:text-neutral-100 focus:bg-neutral-800"
+                    >
+                      {asset}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           )}
           {fieldError("symbol") && (
             <p className="text-xs text-red-400">{fieldError("symbol")}</p>
@@ -478,40 +513,19 @@ export const AIAgentPipelineForm = ({
       <RiskGuardSection metadata={metadata} setMetadata={setMetadata} />
 
       {/* AI model config */}
-      <div className="space-y-2">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-          Provider
-        </p>
-        <Select
-          value={(metadata.provider as string) ?? "gemini"}
-          onValueChange={(v) => set("provider", v)}
-        >
-          <SelectTrigger className="border-neutral-800 bg-neutral-900 text-sm text-neutral-100">
-            <SelectValue placeholder="Select provider" />
-          </SelectTrigger>
-          <SelectContent className="border-neutral-800 bg-neutral-950 text-neutral-100">
-            {PROVIDERS.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {(metadata.provider as string) === "openclaw" && (
+      {useOpenClaw && (
         <div className="space-y-3 rounded-xl border border-orange-500/20 bg-orange-500/5 p-3">
           <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-orange-400">
             <Globe className="h-3 w-3" /> Local Agent
           </p>
           <p className="text-xs text-neutral-400">
-            Execution routes through your local QuantNest Agent via WebSocket.
-            No URL or token needed.
+            AI runs through your local QuantNest Agent (OpenClaw). Pick the
+            model in the workflow&apos;s OpenClaw settings.
           </p>
         </div>
       )}
 
-      {(metadata.provider as string) !== "openclaw" && (
+      {!useOpenClaw && (
         <div className="space-y-2">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
             Model
@@ -619,36 +633,6 @@ export const AIAgentPipelineForm = ({
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
           Advanced
         </p>
-
-        <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
-          <Checkbox
-            id="approvalRequired-pipeline"
-            checked={(metadata.approvalRequired as boolean) ?? false}
-            onCheckedChange={(v) => set("approvalRequired", v === true)}
-            className="cursor-pointer"
-          />
-          <label
-            htmlFor="approvalRequired-pipeline"
-            className="flex cursor-pointer items-center gap-2 text-sm text-neutral-300"
-          >
-            <ShieldCheck className="h-3.5 w-3.5 text-neutral-500" />
-            Require approval before AI decision
-          </label>
-        </div>
-        {(metadata.approvalRequired as boolean) && (
-          <div className="space-y-2 pl-6">
-            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500">
-              Approval prompt
-            </p>
-            <textarea
-              value={(metadata.approvalPrompt as string) ?? ""}
-              onChange={(e) => set("approvalPrompt", e.target.value)}
-              className="w-full rounded-lg border border-neutral-800 bg-neutral-950 p-2 text-xs text-neutral-100 placeholder-neutral-600 focus:border-[#f17463]/50 focus:outline-none"
-              rows={2}
-              placeholder="e.g. Review the full pipeline output before executing the order."
-            />
-          </div>
-        )}
 
         <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
           <Checkbox

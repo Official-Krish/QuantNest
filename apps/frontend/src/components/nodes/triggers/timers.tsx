@@ -1,5 +1,6 @@
 import type { TimerNodeMetadata } from "@quantnest-trading/types";
 import { Handle, Position } from "@xyflow/react";
+import { formatInterval } from "@/components/workflow/workflow-builder.utils";
 
 export const Timer = ({
   data,
@@ -11,7 +12,7 @@ export const Timer = ({
   isConnectable: boolean;
 }) => {
   const time = data.metadata?.time || 3600;
-  const hours = time / 3600;
+  const label = formatInterval(time);
 
   return (
     <div className="min-w-[220px] rounded-2xl border border-neutral-700/80 border-l-[5px] border-l-[#f17463] bg-neutral-950/90 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_0_1px_rgba(255,255,255,0.04)]">
@@ -20,11 +21,11 @@ export const Timer = ({
           Timer
         </span>
         <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
-          {hours}h
+          {label}
         </span>
       </div>
       <div className="mt-2 text-sm font-medium text-neutral-100">
-        Every {hours} hours
+        Every {label}
       </div>
       <div className="mt-1 text-[11px] text-neutral-400">
         Schedules downstream actions on this cadence.
@@ -37,4 +38,4 @@ export const Timer = ({
       />
     </div>
   );
-}
+};

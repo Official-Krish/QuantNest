@@ -320,6 +320,7 @@ export function renderBuilderForm(
         <AIDecisionForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "ai-classify":
@@ -327,6 +328,7 @@ export function renderBuilderForm(
         <AIClassifyForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "ai-extract":
@@ -334,6 +336,7 @@ export function renderBuilderForm(
         <AIExtractForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "ai-generate":
@@ -341,6 +344,7 @@ export function renderBuilderForm(
         <AIGenerateForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     case "ai-agent-pipeline":
@@ -348,6 +352,7 @@ export function renderBuilderForm(
         <AIAgentPipelineForm
           metadata={props.metadata as any}
           setMetadata={props.setMetadata}
+          useOpenClaw={props.useOpenClaw}
         />
       );
     default:

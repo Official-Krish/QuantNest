@@ -212,9 +212,12 @@ export const ActionSheet = ({
   const groupOptions = useMemo(() => {
     return ACTION_GROUP_OPTIONS.filter(
       (option) =>
-        hasZerodhaAction || option.id !== ("Reporting" as BuilderPanelGroup),
+        (hasZerodhaAction ||
+          option.id !== ("Reporting" as BuilderPanelGroup)) &&
+        (option.id !== ("On-chain" as BuilderPanelGroup) ||
+          marketType === "Crypto"),
     );
-  }, [hasZerodhaAction]);
+  }, [hasZerodhaAction, marketType]);
 
   const activeGroup = initialAction || undefined;
   const selectedActionConfig = availableActions.find(
