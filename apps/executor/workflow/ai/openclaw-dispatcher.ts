@@ -79,6 +79,7 @@ ${JSON.stringify(
         userId: context.userId,
         prompt,
         timeout: 30_000,
+        model: context.openclawModel || "openclaw/default",
       }),
       signal: AbortSignal.timeout(60000),
     });

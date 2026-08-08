@@ -183,6 +183,9 @@ workFlowRouter.post("/", authMiddleware, async (req, res) => {
       nodes: data.nodes,
       edges: data.edges,
       executionMode: data.executionMode,
+      riskLimits: data.riskLimits,
+      useOpenClaw: data.useOpenClaw,
+      openclawModel: data.openclawModel,
     });
     res
       .status(200)
@@ -334,6 +337,9 @@ workFlowRouter.put("/:workflowId", authMiddleware, async (req, res) => {
       nodes: data.nodes,
       edges: data.edges,
       executionMode: data.executionMode,
+      riskLimits: data.riskLimits,
+      useOpenClaw: data.useOpenClaw,
+      openclawModel: data.openclawModel,
     });
     if (!workflow) {
       res.status(404).json({ message: "Workflow not found" });

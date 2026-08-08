@@ -4,11 +4,17 @@ import {
   AiStrategyDraftVersionModel,
   AiStrategySessionModel,
   AiMemoryModel,
+  MemoryDocumentModel,
   ApprovalRequestModel,
   ExecutionModel,
   ExecutionTraceModel,
   WorkflowModel,
 } from "@quantnest-trading/db/client";
+import {
+  cosineSimilarity,
+  embedText,
+  embedTexts,
+} from "@quantnest-trading/embeddings";
 import {
   aiStrategyDraftSessionSchema,
   type AiDebugQueryRequest,
@@ -875,6 +881,11 @@ aiRouter.get("/memories", authMiddleware, async (req, res) => {
       .limit(100)
       .lean();
 
+    const docs = await MemoryDocumentModel.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
     const mapped = memories.map((m) => ({
       id: m._id,
       workflowId: m.workflowId,
@@ -886,13 +897,211 @@ aiRouter.get("/memories", authMiddleware, async (req, res) => {
       updatedAt: m.updatedAt,
     }));
 
-    res.status(200).json({ success: true, data: mapped });
+    const mappedDocs = docs.map((d) => ({
+      id: d._id,
+      workflowId: d.workflowId,
+      nodeId: d.nodeId,
+      key: "default",
+      source: d.source,
+      content: d.content,
+      metadata: d.metadata,
+      ttl: d.ttl,
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+    }));
+
+    const merged = [...mapped, ...mappedDocs].sort((a, b) => {
+      const at = new Date(a.updatedAt ?? a.createdAt ?? 0).getTime();
+      const bt = new Date(b.updatedAt ?? b.createdAt ?? 0).getTime();
+      return bt - at;
+    });
+
+    res.status(200).json({ success: true, data: merged });
   } catch (error) {
     res.status(500).json({
       success: false,
       code: "MEMORY_ERROR",
       message:
         error instanceof Error ? error.message : "Failed to list memories.",
+    });
+  }
+});
+
+aiRouter.get("/memories/search", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const query = String(req.query.q || "").trim();
+    const workflowId = String(req.query.workflowId || "").trim();
+    const source = String(req.query.source || "").trim();
+    const limit = Math.min(
+      Math.max(parseInt(String(req.query.limit || "5"), 10) || 5, 1),
+      20,
+    );
+
+    if (!query) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_QUERY",
+        message: "Query parameter 'q' is required.",
+      });
+      return;
+    }
+
+    const filter: Record<string, unknown> = { userId };
+    if (workflowId) filter.workflowId = workflowId;
+    if (source) filter.source = source;
+
+    const docs = await MemoryDocumentModel.find(filter)
+      .select({
+        content: 1,
+        source: 1,
+        workflowId: 1,
+        nodeId: 1,
+        embedding: 1,
+        metadata: 1,
+        createdAt: 1,
+      })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+
+    const queryEmbedding = await embedText(query);
+    let results: Array<{
+      id: unknown;
+      content: string;
+      source: string;
+      workflowId?: unknown;
+      nodeId?: string | null;
+      score: number;
+      metadata?: Record<string, unknown>;
+      createdAt?: Date;
+    }> = [];
+
+    if (queryEmbedding) {
+      for (const doc of docs) {
+        if (!doc.embedding || doc.embedding.length === 0) continue;
+        const score = cosineSimilarity(queryEmbedding, doc.embedding);
+        if (score <= 0) continue;
+        results.push({
+          id: doc._id,
+          content: doc.content,
+          source: doc.source,
+          workflowId: doc.workflowId,
+          nodeId: doc.nodeId,
+          score,
+          metadata: doc.metadata as Record<string, unknown> | undefined,
+          createdAt: doc.createdAt,
+        });
+      }
+      results.sort((a, b) => b.score - a.score);
+      results = results.slice(0, limit);
+    }
+
+    if (results.length === 0) {
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(escaped, "i");
+      results = docs
+        .filter((doc) => regex.test(doc.content))
+        .slice(0, limit)
+        .map((doc) => ({
+          id: doc._id,
+          content: doc.content,
+          source: doc.source,
+          workflowId: doc.workflowId,
+          nodeId: doc.nodeId,
+          score: 0,
+          metadata: doc.metadata as Record<string, unknown> | undefined,
+          createdAt: doc.createdAt,
+        }));
+    }
+
+    res.status(200).json({ success: true, data: results });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "MEMORY_ERROR",
+      message:
+        error instanceof Error ? error.message : "Failed to search memories.",
+    });
+  }
+});
+
+aiRouter.post("/memories/notes", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        code: "UNAUTHORIZED",
+        message: "Unauthorized",
+      });
+      return;
+    }
+
+    const content = String(req.body?.content || "").trim();
+    const workflowId = String(req.body?.workflowId || "").trim() || undefined;
+    const ttlHours = Number(req.body?.ttlHours);
+
+    if (!content) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_CONTENT",
+        message: "Note content is required.",
+      });
+      return;
+    }
+
+    const notes = content
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (notes.length === 0) {
+      res.status(400).json({
+        success: false,
+        code: "INVALID_CONTENT",
+        message: "Note content is required.",
+      });
+      return;
+    }
+
+    const embeddings = await embedTexts(notes);
+    const ttl =
+      ttlHours > 0 ? new Date(Date.now() + ttlHours * 3600 * 1000) : undefined;
+
+    const docs = notes.map((note, index) => ({
+      userId,
+      workflowId,
+      source: "note",
+      content: note,
+      embedding: embeddings[index] ?? undefined,
+      metadata: { kind: "manual-note" },
+      ttl,
+    }));
+
+    const inserted = await MemoryDocumentModel.insertMany(docs);
+
+    res.status(201).json({
+      success: true,
+      data: inserted.map((doc) => ({ id: doc._id, content: doc.content })),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      code: "MEMORY_ERROR",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to create memory note.",
     });
   }
 });
@@ -913,7 +1122,11 @@ aiRouter.delete("/memories/:memoryId", authMiddleware, async (req, res) => {
       _id: req.params.memoryId,
       userId,
     });
-    if (result.deletedCount === 0) {
+    const docResult = await MemoryDocumentModel.deleteOne({
+      _id: req.params.memoryId,
+      userId,
+    });
+    if (result.deletedCount === 0 && docResult.deletedCount === 0) {
       res.status(404).json({
         success: false,
         code: "NOT_FOUND",

@@ -4,6 +4,7 @@ import type {
   IndicatorKind,
   IndicatorMarket,
   IndicatorTimeframe,
+  RiskLimits,
 } from "@quantnest-trading/types";
 import type {
   AiModelDescriptor,
@@ -124,6 +125,7 @@ export interface Workflow {
   status?: "active" | "paused";
   marketType?: "Indian" | "Crypto";
   useOpenClaw?: boolean;
+  riskLimits?: RiskLimits;
 }
 
 export interface WorkflowPreviewSnapshotEntry {

@@ -1,6 +1,7 @@
 import type { TradingMetadata } from "@quantnest-trading/types";
 import { Handle, Position } from "@xyflow/react";
 import { ServiceLogo } from "@/components/workflow/service-branding";
+import { RiskBadge } from "@/components/nodes/RiskBadge";
 
 export const growwAction = ({
   data,
@@ -9,7 +10,8 @@ export const growwAction = ({
     metadata: TradingMetadata;
   };
 }) => {
-  const { type, qty, symbol, secretId } = (data.metadata || {}) as TradingMetadata & {
+  const { type, qty, symbol, secretId, riskLimits } = (data.metadata ||
+    {}) as TradingMetadata & {
     secretId?: string;
   };
   const hasSecret = Boolean(String(secretId || "").trim());
@@ -24,6 +26,9 @@ export const growwAction = ({
         <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-mono text-neutral-300">
           {type?.toUpperCase()}
         </span>
+      </div>
+      <div className="mt-1 flex items-center gap-2">
+        <RiskBadge riskLimits={riskLimits} />
       </div>
       <div className="mt-2 text-sm font-medium text-neutral-100">
         {qty ?? "-"} units on {symbol ?? "-"}
@@ -48,4 +53,4 @@ export const growwAction = ({
       />
     </div>
   );
-}
+};

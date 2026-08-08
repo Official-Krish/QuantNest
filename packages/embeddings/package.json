@@ -1,0 +1,18 @@
+{
+  "name": "@quantnest-trading/embeddings",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@google/genai": "^1.42.0"
+  }
+}

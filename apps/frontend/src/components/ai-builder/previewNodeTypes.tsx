@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { Handle, Position } from "@xyflow/react";
 import { ServiceLogo } from "@/components/workflow/service-branding";
+import { formatInterval } from "@/components/workflow/workflow-builder.utils";
 
 function PreviewShell({
   accent,
@@ -146,20 +147,19 @@ export function PreviewBreakoutRetestTrigger({ data }: any) {
 }
 
 export function PreviewTimer({ data }: any) {
-  const { time = 1 } = data.metadata || {};
+  const time = Number(data.metadata?.time || 0);
   return (
     <PreviewShell
       accent="#f17463"
       tone="trigger"
       kindBadge="Trigger"
       label="Timer"
-      title={`Every ${time}h`}
+      title={`Every ${formatInterval(time)}`}
       subtitle="Runs on schedule"
       showTarget={false}
     />
   );
 }
-
 export function PreviewConditional({ data }: any) {
   const groups = data.metadata?.groups?.length || 1;
   const expression = data.metadata?.expression;

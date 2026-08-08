@@ -56,6 +56,50 @@ export async function sendAgentDownEmail(input: {
   });
 }
 
+export async function sendRiskAlertEmail(input: {
+  email: string;
+  username: string;
+  workflowName: string;
+  reason: "blocked" | "approval";
+  message: string;
+}): Promise<void> {
+  if (!resend) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("Resend not configured — cannot send risk alert");
+    }
+    return;
+  }
+
+  const isBlocked = input.reason === "blocked";
+  const subject = isBlocked
+    ? `QuantNest Order Blocked by Risk Policy`
+    : `QuantNest Order Requires Your Approval`;
+
+  await resend.emails.send({
+    from: emailFrom,
+    to: input.email,
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827; max-width: 560px; margin: 0 auto;">
+        <h2 style="color: ${isBlocked ? "#ef4444" : "#f17463"};">${isBlocked ? "Order Blocked" : "Approval Required"}</h2>
+        <p>Hello ${input.username},</p>
+        <p>Workflow <strong>${input.workflowName}</strong> was stopped by your risk guardrails.</p>
+        <p style="margin-top: 16px; padding: 16px; background: ${isBlocked ? "#fef2f2" : "#fff7ed"}; border-radius: 8px; border-left: 4px solid ${isBlocked ? "#ef4444" : "#f17463"}; font-size: 14px;">
+          ${input.message}
+        </p>
+        ${
+          !isBlocked
+            ? `<p>The order was <strong>not placed</strong>. Approve or reject it from the Approvals page before the workflow can resume.</p>`
+            : `<p>No order was placed. Review the workflow's risk limits to allow this trade.</p>`
+        }
+        <p style="margin-top: 24px; color: #6b7280; font-size: 13px;">
+          QuantNest Trading &bull; <a href="${getFrontendBaseUrl()}" style="color: #f17463;">Dashboard</a>
+        </p>
+      </div>
+    `,
+  });
+}
+
 export function getEmailVerificationExpiry(): Date {
   return new Date(Date.now() + 24 * 60 * 60 * 1000);
 }

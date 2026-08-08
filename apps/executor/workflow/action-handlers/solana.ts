@@ -10,7 +10,11 @@ import {
 import type { SolanaSwapMetadata } from "@quantnest-trading/types";
 import { ErrorCode } from "../../services/errors/codes";
 import type { IActionHandler } from "./base.handler";
-import { executeActionWithRetry } from "./shared";
+import { executeActionWithRetry, handleBrokerApprovalGate } from "./shared";
+import {
+  assertOrderAllowed,
+  recordDailyExposure,
+} from "../../services/riskGuard";
 import { env } from "../../config/env";
 import { AppError } from "../../services/errors/base.error";
 
@@ -44,6 +48,33 @@ export class SolanaSwapHandler implements IActionHandler {
             false,
             SOURCE,
           );
+        }
+
+        const riskEvaluation = await assertOrderAllowed({
+          broker: "solana",
+          metadata: resolvedMetadata,
+          nodeRiskLimits: (resolvedMetadata as any)?.riskLimits,
+          workflowRiskLimits: context.workflowRiskLimits,
+          userId: context.userId,
+          workflowId: context.workflowId,
+        });
+
+        if (riskEvaluation.approvalRequired) {
+          await handleBrokerApprovalGate({
+            prompt: `Swap notional ${riskEvaluation.notional.toFixed(2)} exceeds approval threshold ${(riskEvaluation.effectiveLimits.requireApprovalAbove as number)?.toFixed(2)}.`,
+            nodeId: node.nodeId || node.id,
+            nodeType: "solana-swap",
+            context,
+            result: {
+              broker: "solana",
+              fromToken: metadata.fromToken,
+              toToken: metadata.toToken,
+              amount: metadata.amount,
+              notional: riskEvaluation.notional,
+              riskEvaluation,
+            },
+            steps,
+          });
         }
 
         const secret = await UserReusableSecretModel.findOne({
@@ -90,6 +121,11 @@ export class SolanaSwapHandler implements IActionHandler {
           outAmount: result.outAmount,
           priceImpactPct: result.priceImpactPct,
         };
+
+        await recordDailyExposure(
+          context.userId || "anonymous",
+          riskEvaluation.notional,
+        );
 
         return { message: `Swapped successfully: tx ${result.txSignature}` };
       },

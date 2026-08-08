@@ -46,6 +46,7 @@
       "name": "@quantnest-trading/backend",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.1053.0",
+        "@quantnest-trading/embeddings": "workspace:^",
         "@quantnest-trading/plan-guards": "workspace:^",
         "@solana/web3.js": "^1.98.0",
         "@types/bcrypt": "^6.0.0",
@@ -94,7 +95,9 @@
       "dependencies": {
         "@google/genai": "^1.42.0",
         "@notionhq/client": "^5.9.0",
+        "@quantnest-trading/embeddings": "workspace:^",
         "@slack/web-api": "^7.15.0",
+        "@types/node": "^26.1.2",
         "bullmq": "^5.80.10",
         "dotenv": "^17.2.3",
         "google-auth-library": "^10.6.1",
@@ -180,6 +183,18 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/node": "^25.9.1",
+      },
+      "peerDependencies": {
+        "typescript": "^6.0.3",
+      },
+    },
+    "packages/embeddings": {
+      "name": "@quantnest-trading/embeddings",
+      "dependencies": {
+        "@google/genai": "^1.42.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
       },
       "peerDependencies": {
         "typescript": "^6.0.3",
@@ -680,6 +695,8 @@
     "@quantnest-trading/backend": ["@quantnest-trading/backend@workspace:apps/backend"],
 
     "@quantnest-trading/db": ["@quantnest-trading/db@workspace:packages/db"],
+
+    "@quantnest-trading/embeddings": ["@quantnest-trading/embeddings@workspace:packages/embeddings"],
 
     "@quantnest-trading/engine": ["@quantnest-trading/engine@workspace:apps/executor"],
 
@@ -2747,6 +2764,8 @@
 
     "@quantnest-trading/backend/dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
 
+    "@quantnest-trading/engine/@types/node": ["@types/node@26.1.2", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg=="],
+
     "@quantnest-trading/engine/dotenv": ["dotenv@17.4.2", "", {}, "sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw=="],
 
     "@quantnest-trading/lighter-sdk-ts/@types/node": ["@types/node@24.10.1", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ=="],
@@ -3182,6 +3201,8 @@
     "@isaacs/cliui/wrap-ansi/ansi-styles": ["ansi-styles@6.2.3", "", {}, "sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg=="],
 
     "@modelcontextprotocol/sdk/ajv/json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
+
+    "@quantnest-trading/engine/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
 
     "@quantnest-trading/lighter-sdk-ts/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 

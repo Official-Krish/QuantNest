@@ -39,7 +39,8 @@ export type BuilderFormId =
   | "ai-decision"
   | "ai-classify"
   | "ai-extract"
-  | "ai-generate";
+  | "ai-generate"
+  | "ai-agent-pipeline";
 export type ExecutorTriggerProcessorId =
   | "timer"
   | "price-trigger"
@@ -68,7 +69,8 @@ export type ExecutorActionHandlerId =
   | "ai-decision"
   | "ai-classify"
   | "ai-extract"
-  | "ai-generate";
+  | "ai-generate"
+  | "ai-agent-pipeline";
 
 export interface NodeRegistryEntry {
   id: string;
@@ -148,6 +150,12 @@ export const NODE_METADATA_FIELD_LABELS: Record<string, string> = {
   role: "Role",
   contextDepth: "Context depth",
   minConfidence: "Min confidence",
+  executionMode: "Execution mode",
+  symbol: "Symbol",
+  qty: "Quantity",
+  side: "Side",
+  brokerSecretId: "Broker credential",
+  riskLimits: "Risk limits",
 };
 
 export const NODE_REGISTRY: NodeRegistryEntry[] = [
@@ -314,6 +322,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "slippageBps",
       "secretId",
       "retryPolicy",
+      "riskLimits",
     ],
     reusableSecretService: "solana",
     secretFieldKeys: ["secretId"],
@@ -344,6 +353,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "accessToken",
       "exchange",
       "retryPolicy",
+      "riskLimits",
     ],
     reusableSecretService: "zerodha",
     secretFieldKeys: ["apiKey", "accessToken"],
@@ -371,6 +381,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "accessToken",
       "exchange",
       "retryPolicy",
+      "riskLimits",
     ],
     reusableSecretService: "groww",
     secretFieldKeys: ["accessToken"],
@@ -396,6 +407,7 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "accountIndex",
       "apiKeyIndex",
       "retryPolicy",
+      "riskLimits",
     ],
     reusableSecretService: "lighter",
     secretFieldKeys: ["apiKey", "accountIndex", "apiKeyIndex"],
@@ -781,6 +793,50 @@ export const NODE_REGISTRY: NodeRegistryEntry[] = [
       "memoryTtl",
     ],
   },
+  {
+    id: "ai-agent-pipeline",
+    title: "AI Agent Pipeline",
+    description:
+      "Research, strategy, risk, execution and review agents working together on a trade",
+    kind: "action",
+    builderCategory: "Flow",
+    builderPanelGroup: "AI",
+    builderFormId: "ai-agent-pipeline",
+    builderRendererId: "ai-agent-pipeline",
+    executorActionHandlerId: "ai-agent-pipeline",
+    metadataFields: [
+      "systemPrompt",
+      "model",
+      "temperature",
+      "maxTokens",
+      "contextDepth",
+      "enableTools",
+      "reasoningEnabled",
+      "memoryEnabled",
+      "memoryTtl",
+      "secretId",
+      "maxCostPerExecution",
+      "monthlyBudget",
+      "approvalRequired",
+      "approvalPrompt",
+      "executionMode",
+      "broker",
+      "symbol",
+      "qty",
+      "side",
+      "brokerSecretId",
+      "apiKey",
+      "accessToken",
+      "network",
+      "fromToken",
+      "toToken",
+      "slippageBps",
+      "accountIndex",
+      "apiKeyIndex",
+      "minConfidence",
+      "riskLimits",
+    ],
+  },
 ];
 
 export function getNodeRegistryEntry(nodeType: string) {
@@ -847,12 +903,13 @@ export function getBuilderPanelActions(
     if (entry.id === "whatsapp") return false;
     if (group === "Reporting" && !hasZerodhaAction) return false;
     if (
-      group === "Order Execution" &&
+      (group === "Order Execution" || group === "On-chain") &&
       marketType &&
       entry.builderCategory !== marketType
     )
       return false;
-    if (group === "Order Execution" && !marketType) return false;
+    if ((group === "Order Execution" || group === "On-chain") && !marketType)
+      return false;
     return true;
   }).map((entry) => ({
     id: entry.id,

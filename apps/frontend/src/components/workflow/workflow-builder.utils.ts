@@ -1,5 +1,21 @@
-import type { EdgeType, NodeType } from "@quantnest-trading/types";
+import type { EdgeType, NodeType, RiskLimits } from "@quantnest-trading/types";
 import type { Workflow } from "@/types/api";
+
+export function formatInterval(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "1h";
+  const s = Math.round(seconds);
+  if (s < 60) return `${s}s`;
+  const minutes = Math.floor(s / 60);
+  const remainingSeconds = s % 60;
+  if (minutes < 60) {
+    return remainingSeconds > 0
+      ? `${minutes}m ${remainingSeconds}s`
+      : `${minutes}m`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
 
 export interface BrokerVerificationPayload {
   brokerType: "zerodha" | "groww" | "lighter";
@@ -37,11 +53,15 @@ export function buildWorkflowSnapshot(params: {
   edges: EdgeType[];
   executionMode?: "live" | "dry-run";
   useOpenClaw?: boolean;
+  openclawModel?: string;
+  riskLimits?: RiskLimits;
 }) {
   return JSON.stringify({
     workflowName: params.workflowName.trim(),
     executionMode: params.executionMode || "live",
     useOpenClaw: params.useOpenClaw ?? false,
+    openclawModel: params.openclawModel || undefined,
+    riskLimits: params.riskLimits || undefined,
     nodes: params.nodes.map(normalizeNodeForCompare),
     edges: params.edges.map(normalizeEdgeForCompare),
   });
@@ -93,6 +113,14 @@ function inferNodeTypeFromMetadata(node: any): string {
     metadata.symbol !== undefined
   ) {
     return "zerodha";
+  }
+  if (
+    metadata.broker !== undefined &&
+    metadata.qty !== undefined &&
+    metadata.side !== undefined &&
+    metadata.executionMode !== undefined
+  ) {
+    return "ai-agent-pipeline";
   }
   if (
     metadata.notionApiKey !== undefined ||
@@ -185,6 +213,7 @@ export function normalizeWorkflowForBuilder(workflow: Workflow) {
     executionMode: workflow.executionMode || "live",
     marketType: workflow.marketType || "Indian",
     useOpenClaw: workflow.useOpenClaw ?? false,
+    riskLimits: workflow.riskLimits,
   };
 }
 
@@ -248,6 +277,7 @@ const CREDENTIAL_KEYS = new Set([
   "accountIndex",
   "apiKeyIndex",
   "secretId",
+  "brokerSecretId",
   "slackBotToken",
   "slackUserId",
   "telegramBotToken",

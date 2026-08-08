@@ -1,40 +1,30 @@
-import { AiMemoryModel } from "@quantnest-trading/db/client";
+import {
+  AiMemoryModel,
+  MemoryDocumentModel,
+} from "@quantnest-trading/db/client";
+import {
+  cosineSimilarity,
+  embedText,
+  embedTexts,
+} from "@quantnest-trading/embeddings";
 
-export interface StoredMemory {
-  key: string;
-  value: Record<string, unknown>;
-  updatedAt: Date;
+export type MemorySource = "node" | "trade" | "note";
+
+export interface StoreMemoryDocumentsInput {
+  userId: string;
+  workflowId?: string;
+  nodeId?: string;
+  source: MemorySource;
+  content: string;
+  metadata?: Record<string, unknown>;
+  ttlHours?: number;
 }
 
-export async function readMemory(
-  userId: string,
-  workflowId: string,
-  nodeId: string,
-  key = "default",
-): Promise<StoredMemory | null> {
-  try {
-    const doc = await AiMemoryModel.findOne({
-      userId,
-      workflowId,
-      nodeId,
-      key,
-    }).lean();
-    if (!doc) return null;
-
-    if (doc.ttl && new Date() > new Date(doc.ttl)) {
-      await AiMemoryModel.deleteOne({ _id: doc._id });
-      return null;
-    }
-
-    return {
-      key: doc.key,
-      value: (doc.value ?? {}) as Record<string, unknown>,
-      updatedAt: doc.updatedAt ?? doc.createdAt,
-    };
-  } catch (error) {
-    console.error("Error reading AI memory:", error);
-    return null;
-  }
+export interface RetrieveMemoryContextInput {
+  userId: string;
+  workflowId?: string;
+  query: string;
+  k?: number;
 }
 
 export async function writeMemory(
@@ -67,37 +57,115 @@ export async function writeMemory(
   }
 }
 
-export async function clearMemory(
-  userId: string,
-  workflowId: string,
-  nodeId: string,
-  key?: string,
+function chunkText(text: string, size = 500, overlap = 50): string[] {
+  const clean = text.trim();
+  if (!clean) return [];
+  if (clean.length <= size) return [clean];
+
+  const chunks: string[] = [];
+  const step = Math.max(size - overlap, 1);
+  for (let i = 0; i < clean.length; i += step) {
+    chunks.push(clean.slice(i, i + size));
+  }
+  return chunks;
+}
+
+export async function storeMemoryDocuments(
+  input: StoreMemoryDocumentsInput,
 ): Promise<void> {
+  const { userId, workflowId, nodeId, source, content, metadata, ttlHours } =
+    input;
+  if (!userId || !content?.trim()) return;
+
   try {
-    const filter: Record<string, unknown> = { userId, workflowId, nodeId };
-    if (key) filter.key = key;
-    await AiMemoryModel.deleteMany(filter);
+    const chunks = chunkText(content);
+    if (chunks.length === 0) return;
+
+    const embeddings = await embedTexts(chunks);
+    const ttl =
+      ttlHours && ttlHours > 0
+        ? new Date(Date.now() + ttlHours * 3600 * 1000)
+        : undefined;
+
+    const docs = chunks.map((chunk, index) => ({
+      userId,
+      workflowId,
+      nodeId,
+      source,
+      content: chunk,
+      embedding: embeddings[index] ?? undefined,
+      metadata: metadata ?? {},
+      ttl,
+    }));
+
+    await MemoryDocumentModel.insertMany(docs);
   } catch (error) {
-    console.error("Error clearing AI memory:", error);
+    console.error("Error storing memory documents:", error);
   }
 }
 
-export async function collectMemoryContext(
-  userId: string,
-  workflowId: string,
-  nodeId: string,
-  metadata: { memoryEnabled?: boolean; memoryTtl?: number },
+export async function retrieveMemoryContext(
+  input: RetrieveMemoryContextInput,
 ): Promise<string> {
-  if (!metadata.memoryEnabled) return "";
+  const { userId, workflowId, query, k = 3 } = input;
+  if (!userId || !query?.trim()) return "";
 
-  const stored = await readMemory(userId, workflowId, nodeId);
-  if (!stored) return "";
+  try {
+    const queryEmbedding = await embedText(query);
+    if (!queryEmbedding) return "";
 
-  const ageHours = Math.round(
-    (Date.now() - new Date(stored.updatedAt).getTime()) / 3600000,
-  );
+    const filter: Record<string, unknown> = { userId };
+    if (workflowId) filter.workflowId = workflowId;
 
-  return `[Previous Execution Context]:
-This is what the AI decided in its last run (${ageHours}h ago):
-${JSON.stringify(stored.value, null, 2)}`;
+    const docs = await MemoryDocumentModel.find(filter)
+      .select({
+        content: 1,
+        source: 1,
+        workflowId: 1,
+        nodeId: 1,
+        embedding: 1,
+        createdAt: 1,
+      })
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
+
+    const scored: Array<{
+      content: string;
+      source: MemorySource;
+      score: number;
+      createdAt?: Date;
+    }> = [];
+
+    for (const doc of docs) {
+      if (!doc.embedding || doc.embedding.length === 0) continue;
+      const score = cosineSimilarity(queryEmbedding, doc.embedding);
+      if (score <= 0) continue;
+      scored.push({
+        content: doc.content,
+        source: doc.source as MemorySource,
+        score,
+        createdAt: doc.createdAt,
+      });
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, Math.max(1, Math.min(10, k)));
+
+    if (top.length === 0) return "";
+
+    const lines = top.map(
+      (entry, i) =>
+        `[${i + 1}] (${entry.source}, score ${entry.score.toFixed(3)}) ${
+          entry.content
+        }`,
+    );
+
+    return `[Relevant Memory]:
+Top relevant prior records retrieved from your knowledge base:
+${lines.join("\n\n")}`;
+  } catch (error) {
+    console.error("Error retrieving memory context:", error);
+    return "";
+  }
 }

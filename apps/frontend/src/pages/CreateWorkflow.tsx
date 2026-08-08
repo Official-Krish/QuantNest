@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { type EdgeType, type NodeType } from "@quantnest-trading/types";
+import {
+  type EdgeType,
+  type NodeType,
+  type RiskLimits,
+} from "@quantnest-trading/types";
 import { WorkflowCanvas } from "../components/workflow/WorkflowCanvas";
 import { WorkflowNameDialog } from "../components/workflow/WorkflowNameDialog";
 import {
@@ -19,6 +23,7 @@ import {
   apiVerifyBrokerCredentials,
   apiUpdateWorkflow,
   apiVerifyAgent,
+  apiSetAgentModel,
 } from "@/http";
 import { Button } from "@/components/ui/button";
 import { OrangeButton } from "@/components/ui/button-orange";
@@ -74,6 +79,8 @@ export const CreateWorkflow = () => {
     "live",
   );
   const [useOpenClaw, setUseOpenClaw] = useState(false);
+  const [openclawModel, setOpenclawModel] = useState("");
+  const [workflowRiskLimits, setWorkflowRiskLimits] = useState<RiskLimits>({});
   const [openclawChoiceLocked, setOpenclawChoiceLocked] = useState(false);
   const [showOpenClawDialog, setShowOpenClawDialog] = useState(false);
   const [agentConnected, setAgentConnected] = useState(false);
@@ -81,6 +88,10 @@ export const CreateWorkflow = () => {
     hostname: string;
     version: string;
     capabilities: string[];
+    availableModels?: string[];
+    selectedModel?: string | null;
+    modelReady?: boolean;
+    modelError?: string | null;
   } | null>(null);
   const [agentLoading, setAgentLoading] = useState(false);
   const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string | null>(
@@ -221,6 +232,7 @@ export const CreateWorkflow = () => {
         setWorkflowId(normalizedWorkflow.workflowId);
         setWorkflowName(normalizedWorkflow.workflowName);
         setMarketType(normalizedWorkflow.marketType);
+        setWorkflowRiskLimits((normalizedWorkflow as any).riskLimits || {});
         setLastSavedSnapshot(
           buildWorkflowSnapshot({
             workflowName: normalizedWorkflow.workflowName,
@@ -228,12 +240,15 @@ export const CreateWorkflow = () => {
             edges: normalizedWorkflow.edges,
             executionMode: normalizedWorkflow.executionMode,
             useOpenClaw: normalizedWorkflow.useOpenClaw,
+            openclawModel: (normalizedWorkflow as any).openclawModel,
+            riskLimits: (normalizedWorkflow as any).riskLimits,
           }),
         );
         setExecutionMode(
           (normalizedWorkflow.executionMode || "live") as "live" | "dry-run",
         );
         setUseOpenClaw(normalizedWorkflow.useOpenClaw || false);
+        setOpenclawModel((normalizedWorkflow as any).openclawModel || "");
         setOpenclawChoiceLocked(true);
       } catch (e: any) {
         setSaveError(
@@ -320,6 +335,8 @@ export const CreateWorkflow = () => {
         edges,
         executionMode,
         useOpenClaw,
+        openclawModel,
+        riskLimits: workflowRiskLimits,
       }) !== lastSavedSnapshot
     );
   }, [
@@ -328,6 +345,8 @@ export const CreateWorkflow = () => {
     workflowName,
     executionMode,
     useOpenClaw,
+    openclawModel,
+    workflowRiskLimits,
     agentConnected,
     workflowId,
     loading,
@@ -338,7 +357,7 @@ export const CreateWorkflow = () => {
       nodes.some(
         (node) =>
           String(node.data?.kind || "").toLowerCase() === "action" &&
-          ["zerodha", "groww", "lighter"].includes(
+          ["zerodha", "groww", "lighter", "solana-swap"].includes(
             String(node.type || "").toLowerCase(),
           ),
       ),
@@ -373,6 +392,8 @@ export const CreateWorkflow = () => {
         edges,
         executionMode,
         useOpenClaw,
+        openclawModel: openclawModel || undefined,
+        riskLimits: workflowRiskLimits,
       };
       if (!workflowId) {
         const res = await apiCreateWorkflow(payload);
@@ -390,6 +411,8 @@ export const CreateWorkflow = () => {
             edges,
             executionMode,
             useOpenClaw,
+            openclawModel,
+            riskLimits: workflowRiskLimits,
           }),
         );
         toast.success("Workflow updated successfully");
@@ -418,6 +441,8 @@ export const CreateWorkflow = () => {
     workflowName,
     executionMode,
     useOpenClaw,
+    openclawModel,
+    workflowRiskLimits,
     navigate,
   ]);
 
@@ -507,6 +532,8 @@ export const CreateWorkflow = () => {
     setAiBuilderContext(null);
     setActiveAiVersionId("");
     setUseOpenClaw(false);
+    setOpenclawModel("");
+    setWorkflowRiskLimits({});
     setOpenclawChoiceLocked(false);
   }, []);
 
@@ -904,6 +931,9 @@ export const CreateWorkflow = () => {
           workflowName={workflowName}
           onChangeName={setWorkflowName}
           onSubmit={handleNameDialogSubmit}
+          showRiskPanel={hasZerodhaAction}
+          riskLimits={workflowRiskLimits}
+          onChangeRiskLimits={setWorkflowRiskLimits}
         />
 
         <Dialog
@@ -1003,6 +1033,164 @@ export const CreateWorkflow = () => {
                         </svg>
                       </button>
                     </div>
+                  </div>
+                  <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-3 py-2.5">
+                    <p className="text-xs font-medium text-neutral-200">
+                      AI Model
+                    </p>
+                    <p className="mt-1 text-[11px] text-neutral-400">
+                      Choose which model OpenClaw uses for AI nodes. Auto uses
+                      your default configured in OpenClaw.
+                    </p>
+                    <select
+                      value={openclawModel || "auto"}
+                      onChange={async (e) => {
+                        const next =
+                          e.target.value === "auto" ? "" : e.target.value;
+                        setOpenclawModel(next);
+                        if (!next || !agentConnected) return;
+                        try {
+                          await apiSetAgentModel(next, "set");
+                        } catch {
+                          toast.error("Failed to apply model on agent");
+                        }
+                      }}
+                      className="mt-2 w-full rounded-md border border-neutral-700 bg-neutral-900 px-2.5 py-2 text-xs text-neutral-200 outline-none focus:border-neutral-500"
+                    >
+                      <option value="auto">Auto (openclaw/default)</option>
+                      {(agentInfo?.availableModels || []).map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                      {(agentInfo?.availableModels || []).length === 0 && (
+                        <option value="" disabled>
+                          No models detected — run openclaw configure first
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {agentLoading ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-1 text-[11px] text-neutral-400">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-neutral-500" />
+                        Checking models...
+                      </span>
+                    ) : agentInfo?.modelReady ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-800/60 bg-emerald-950/40 px-2.5 py-1 text-[11px] text-emerald-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        Model ready:{" "}
+                        {agentInfo.selectedModel ||
+                          openclawModel ||
+                          "openclaw/default"}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-800/60 bg-amber-950/40 px-2.5 py-1 text-[11px] text-amber-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                        {agentInfo?.modelError ||
+                          "No AI model configured on your agent"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-amber-800/40 bg-amber-950/20 px-3 py-2.5 text-[11px] text-amber-200/90">
+                    <p className="font-medium text-amber-200">
+                      Add an API key (one-time, on your machine)
+                    </p>
+                    <p className="mt-1 text-amber-200/70">
+                      1. Install OpenClaw:
+                    </p>
+                    <div className="mt-1 flex items-stretch gap-0">
+                      <code className="flex-1 rounded-l bg-neutral-900 px-2.5 py-1.5 font-mono text-[11px] text-amber-100 leading-relaxed break-all">
+                        curl -fsSL https://openclaw.ai/install | bash
+                      </code>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(
+                              "curl -fsSL https://openclaw.ai/install | bash",
+                            );
+                            toast.success("Copied to clipboard");
+                          } catch {
+                            toast.error("Failed to copy");
+                          }
+                        }}
+                        className="flex items-center rounded-r bg-neutral-900 px-2.5 text-amber-200/70 hover:text-amber-100 transition-colors border-l border-neutral-800"
+                        title="Copy command"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect
+                            width="14"
+                            height="14"
+                            x="8"
+                            y="8"
+                            rx="2"
+                            ry="2"
+                          />
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p className="mt-2 text-amber-200/70">
+                      2. Configure a provider (e.g. Anthropic/OpenAI/Google) and
+                      paste your API key:
+                    </p>
+                    <div className="mt-1 flex items-stretch gap-0">
+                      <code className="flex-1 rounded-l bg-neutral-900 px-2.5 py-1.5 font-mono text-[11px] text-amber-100 leading-relaxed break-all">
+                        openclaw configure
+                      </code>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(
+                              "openclaw configure",
+                            );
+                            toast.success("Copied to clipboard");
+                          } catch {
+                            toast.error("Failed to copy");
+                          }
+                        }}
+                        className="flex items-center rounded-r bg-neutral-900 px-2.5 text-amber-200/70 hover:text-amber-100 transition-colors border-l border-neutral-800"
+                        title="Copy command"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect
+                            width="14"
+                            height="14"
+                            x="8"
+                            y="8"
+                            rx="2"
+                            ry="2"
+                          />
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p className="mt-1 text-amber-200/70">
+                      3. Restart the agent so it picks up the new model, then
+                      refresh.
+                    </p>
                   </div>
                 </div>
               )}

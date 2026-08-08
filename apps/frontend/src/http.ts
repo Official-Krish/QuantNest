@@ -813,10 +813,25 @@ export interface MemoryEntry {
   workflowId: string;
   nodeId: string;
   key: string;
-  value: Record<string, unknown>;
+  value?: Record<string, unknown>;
+  content?: string;
+  source?: string;
+  metadata?: Record<string, unknown>;
+  score?: number;
   ttl: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MemorySearchResult {
+  id: string;
+  content: string;
+  source: string;
+  workflowId?: string;
+  nodeId?: string | null;
+  score: number;
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
 }
 
 export async function apiGetMemories(params?: {
@@ -827,6 +842,31 @@ export async function apiGetMemories(params?: {
     "/ai/memories",
     { params },
   );
+  return res.data.data;
+}
+
+export async function apiSearchMemories(params: {
+  q: string;
+  workflowId?: string;
+  source?: string;
+  limit?: number;
+}): Promise<MemorySearchResult[]> {
+  const res = await api.get<{ success: boolean; data: MemorySearchResult[] }>(
+    "/ai/memories/search",
+    { params },
+  );
+  return res.data.data;
+}
+
+export async function apiCreateMemoryNote(input: {
+  content: string;
+  workflowId?: string;
+  ttlHours?: number;
+}): Promise<{ id: string; content: string }[]> {
+  const res = await api.post<{
+    success: boolean;
+    data: { id: string; content: string }[];
+  }>("/ai/memories/notes", input);
   return res.data.data;
 }
 
@@ -846,6 +886,10 @@ export interface AgentInfo {
   hostname: string;
   capabilities: string[];
   connectedAt: string;
+  availableModels?: string[];
+  selectedModel?: string | null;
+  modelReady?: boolean;
+  modelError?: string | null;
 }
 
 export interface VerifyAgentResponse {
@@ -855,5 +899,17 @@ export interface VerifyAgentResponse {
 
 export async function apiVerifyAgent(): Promise<VerifyAgentResponse> {
   const res = await api.post<VerifyAgentResponse>("/verify-agent");
+  return res.data;
+}
+
+export async function apiSetAgentModel(
+  model: string,
+  action: "set" | "test",
+): Promise<{ status?: string; message?: string; data?: unknown }> {
+  const res = await api.post<{
+    status?: string;
+    message?: string;
+    data?: unknown;
+  }>("/internal/agent-model", { model, action });
   return res.data;
 }

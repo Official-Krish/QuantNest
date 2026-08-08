@@ -1,4 +1,5 @@
 import type { WorkflowExample } from "@/types/api";
+import { formatInterval } from "@/components/workflow/workflow-builder.utils";
 
 const NODE_SIZE = {
   width: 220,
@@ -78,7 +79,7 @@ function getNodeBadge(type: string, metadata: Record<string, any>) {
 function getNodeTitle(type: string, metadata: Record<string, any>) {
   switch (type) {
     case "timer":
-      return `Every ${(metadata.time || 0) / 60} minutes`;
+      return `Every ${formatInterval(Number(metadata.time))}`;
     case "price-trigger":
     case "price":
       return `${metadata.asset || "-"} ${metadata.condition || "above"} ${metadata.targetPrice || 0}`;
@@ -145,7 +146,11 @@ function getNodeDescription(type: string, metadata: Record<string, any>) {
   }
 }
 
-export function ExampleWorkflowGraph({ example }: { example: WorkflowExample }) {
+export function ExampleWorkflowGraph({
+  example,
+}: {
+  example: WorkflowExample;
+}) {
   const maxX = Math.max(
     ...example.nodes.map((node) => node.position.x + NODE_SIZE.width),
     NODE_SIZE.width,
@@ -165,8 +170,12 @@ export function ExampleWorkflowGraph({ example }: { example: WorkflowExample }) 
           viewBox={`0 0 ${width} ${height}`}
         >
           {example.edges.map((edge) => {
-            const sourceNode = example.nodes.find((node) => node.nodeId === edge.source);
-            const targetNode = example.nodes.find((node) => node.nodeId === edge.target);
+            const sourceNode = example.nodes.find(
+              (node) => node.nodeId === edge.source,
+            );
+            const targetNode = example.nodes.find(
+              (node) => node.nodeId === edge.target,
+            );
 
             if (!sourceNode || !targetNode) return null;
 

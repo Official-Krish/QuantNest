@@ -2,6 +2,7 @@ import type mongoose from "mongoose";
 import type {
   BreakoutRetestTriggerMetadata,
   IndicatorConditionGroup,
+  RiskLimits,
 } from "@quantnest-trading/types";
 
 export interface EdgeType {
@@ -84,6 +85,8 @@ export type WorkflowType = {
   useOpenClaw?: boolean;
   openclawUrl?: string;
   openclawToken?: string;
+  openclawModel?: string;
+  riskLimits?: RiskLimits;
   nodes: mongoose.Types.DocumentArray<{
     id: string;
     nodeId: string;

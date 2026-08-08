@@ -19,6 +19,7 @@ import { aiDecisionHandler } from "./ai-decision";
 import { aiClassifyHandler } from "./ai-classify";
 import { aiExtractHandler } from "./ai-extract";
 import { aiGenerateHandler } from "./ai-generate";
+import { aiAgentPipelineHandler } from "./ai-agent-pipeline";
 
 export const actionHandlerFactory = new ActionHandlerFactory();
 
@@ -46,6 +47,7 @@ register(aiDecisionHandler);
 register(aiClassifyHandler);
 register(aiExtractHandler);
 register(aiGenerateHandler);
+register(aiAgentPipelineHandler);
 
 export type {
   ActionHandler,

@@ -16,6 +16,10 @@ export interface Agent {
   capabilities: string[];
   connectedAt: Date;
   lastPing: Date;
+  availableModels?: string[];
+  selectedModel?: string | null;
+  modelReady?: boolean;
+  modelError?: string | null;
 }
 
 export class AgentRegistry {

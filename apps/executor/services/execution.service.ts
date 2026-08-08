@@ -101,6 +101,8 @@ export async function executeWorkflowSafe(
       workflow.useOpenClaw,
       workflow.openclawUrl,
       workflow.openclawToken,
+      workflow.openclawModel,
+      workflow.riskLimits,
     );
     execution.status = res.status;
     execution.set("steps", res.steps);

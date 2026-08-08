@@ -25,6 +25,9 @@ export async function createWorkflowForUser(params: {
   nodes: WorkflowNodeInput;
   edges: WorkflowEdgeInput;
   executionMode?: "live" | "dry-run";
+  riskLimits?: Record<string, unknown>;
+  useOpenClaw?: boolean;
+  openclawModel?: string;
 }) {
   await assertWorkflowCreationAllowed(params.userId);
 
@@ -40,6 +43,9 @@ export async function createWorkflowForUser(params: {
     edges: params.edges,
     executionMode,
     status: "active",
+    riskLimits: params.riskLimits,
+    useOpenClaw: params.useOpenClaw,
+    openclawModel: params.openclawModel,
     ...deriveWorkflowTriggerState(params.nodes as any),
   });
 
@@ -65,6 +71,9 @@ export async function updateWorkflowForUser(params: {
   nodes: WorkflowNodeInput;
   edges: WorkflowEdgeInput;
   executionMode?: "live" | "dry-run";
+  riskLimits?: Record<string, unknown>;
+  useOpenClaw?: boolean;
+  openclawModel?: string;
 }) {
   const existingWorkflow = await WorkflowModel.findOne({
     _id: params.workflowId,
@@ -86,6 +95,18 @@ export async function updateWorkflowForUser(params: {
 
   if (params.executionMode) {
     nextSet.executionMode = params.executionMode;
+  }
+
+  if (params.riskLimits) {
+    nextSet.riskLimits = params.riskLimits;
+  }
+
+  if (params.useOpenClaw !== undefined) {
+    nextSet.useOpenClaw = params.useOpenClaw;
+  }
+
+  if (params.openclawModel !== undefined) {
+    nextSet.openclawModel = params.openclawModel;
   }
 
   return WorkflowModel.findOneAndUpdate(

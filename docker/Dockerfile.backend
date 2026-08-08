@@ -13,6 +13,7 @@ COPY packages/plan-guards/package.json packages/plan-guards/package.json
 COPY packages/types/package.json packages/types/package.json
 COPY packages/executor-utils/package.json packages/executor-utils/package.json
 COPY packages/redis/package.json packages/redis/package.json
+COPY packages/embeddings/package.json packages/embeddings/package.json
 
 RUN bun install
 
@@ -25,6 +26,7 @@ COPY packages/plan-guards/ packages/plan-guards/
 COPY packages/types/ packages/types/
 COPY packages/executor-utils/ packages/executor-utils/
 COPY packages/redis/ packages/redis/
+COPY packages/embeddings/ packages/embeddings/
 
 # Build backend
 WORKDIR /app/apps/backend
