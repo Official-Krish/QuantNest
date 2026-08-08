@@ -24,6 +24,7 @@ export class WorkflowEngine {
     useOpenClaw?: boolean,
     openclawUrl?: string,
     openclawToken?: string,
+    openclawModel?: string,
     workflowRiskLimits?: RiskLimits,
   ): Promise<
     ExecutionResponseType & {
@@ -60,7 +61,7 @@ export class WorkflowEngine {
       .setExecutionMode(executionMode)
       .setCondition(condition)
       .setTrigger(trigger, nodes)
-      .setOpenClaw(useOpenClaw, openclawUrl, openclawToken)
+      .setOpenClaw(useOpenClaw, openclawUrl, openclawToken, openclawModel)
       .setWorkflowRiskLimits(workflowRiskLimits)
       .build();
 
@@ -212,6 +213,7 @@ export async function executeWorkflow(
   useOpenClaw?: boolean,
   openclawUrl?: string,
   openclawToken?: string,
+  openclawModel?: string,
   workflowRiskLimits?: RiskLimits,
 ): Promise<
   ExecutionResponseType & {
@@ -233,6 +235,7 @@ export async function executeWorkflow(
     useOpenClaw,
     openclawUrl,
     openclawToken,
+    openclawModel,
     workflowRiskLimits,
   );
 }

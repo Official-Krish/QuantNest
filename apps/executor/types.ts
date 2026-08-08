@@ -85,6 +85,7 @@ export type WorkflowType = {
   useOpenClaw?: boolean;
   openclawUrl?: string;
   openclawToken?: string;
+  openclawModel?: string;
   riskLimits?: RiskLimits;
   nodes: mongoose.Types.DocumentArray<{
     id: string;

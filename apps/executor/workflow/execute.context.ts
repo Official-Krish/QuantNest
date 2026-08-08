@@ -22,6 +22,7 @@ export interface ExecutionContext {
   useOpenClaw?: boolean;
   openclawUrl?: string;
   openclawToken?: string;
+  openclawModel?: string;
   trace?: {
     triggerSnapshot?: TriggerEvaluationSnapshot;
     nodeEntries: ExecutionTraceNodeEntry[];

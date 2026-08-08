@@ -903,12 +903,13 @@ export function getBuilderPanelActions(
     if (entry.id === "whatsapp") return false;
     if (group === "Reporting" && !hasZerodhaAction) return false;
     if (
-      group === "Order Execution" &&
+      (group === "Order Execution" || group === "On-chain") &&
       marketType &&
       entry.builderCategory !== marketType
     )
       return false;
-    if (group === "Order Execution" && !marketType) return false;
+    if ((group === "Order Execution" || group === "On-chain") && !marketType)
+      return false;
     return true;
   }).map((entry) => ({
     id: entry.id,

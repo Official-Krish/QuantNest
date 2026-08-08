@@ -343,6 +343,10 @@ const WorkflowSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  openclawModel: {
+    type: String,
+    required: false,
+  },
   riskLimits: {
     type: Schema.Types.Mixed,
     required: false,

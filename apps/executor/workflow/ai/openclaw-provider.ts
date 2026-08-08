@@ -111,6 +111,7 @@ export class OpenClawProvider implements AIProvider {
           messages,
           prompt,
           timeout: 30_000,
+          model: config.model || "openclaw/default",
         }),
         signal: AbortSignal.timeout(60000),
       },

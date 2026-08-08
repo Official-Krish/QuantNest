@@ -98,7 +98,10 @@ Output valid JSON with these fields:
         providerName === "openclaw"
           ? (rawMetadata.openclawToken as string) || ""
           : resolvedApiKey,
-      model: providerName === "openclaw" ? "openclaw/default" : metadata.model,
+      model:
+        providerName === "openclaw"
+          ? (context.openclawModel as string) || "openclaw/default"
+          : metadata.model,
       baseUrl:
         providerName === "openclaw"
           ? (rawMetadata.openclawUrl as string)

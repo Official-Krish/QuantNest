@@ -34,6 +34,10 @@ export interface AgentStatus {
   version: string;
   uptime: number;
   openclawRunning: boolean;
+  availableModels: string[];
+  selectedModel: string | null;
+  modelReady: boolean;
+  modelError: string | null;
   lastPing: Date | null;
 }
 
@@ -46,6 +50,10 @@ const status: AgentStatus = {
   version: "0.1.0",
   uptime: 0,
   openclawRunning: false,
+  availableModels: [],
+  selectedModel: null,
+  modelReady: false,
+  modelError: null,
   lastPing: null,
 };
 
@@ -331,13 +339,92 @@ async function handleVerifyCredentials(payload: Record<string, unknown>) {
 
 // ── AI execution ─────────────────────────────────────────
 
+async function refreshAvailableModels(): Promise<string[]> {
+  try {
+    const res = await fetch(`${OPENCLAWS_BASE}/v1/models`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as
+      | { data?: Array<{ id?: string }> }
+      | Array<{ id?: string }>
+      | string[]
+      | undefined;
+    if (Array.isArray(data)) {
+      return data
+        .map((m) => (typeof m === "string" ? m : m?.id))
+        .filter((id): id is string => Boolean(id));
+    }
+    return (data?.data || [])
+      .map((m) => m?.id)
+      .filter((id): id is string => Boolean(id));
+  } catch {
+    return [];
+  }
+}
+
+async function testModel(
+  model: string,
+): Promise<{ ok: boolean; error: string | null }> {
+  try {
+    const res = await fetch(`${OPENCLAWS_BASE}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model || "openclaw/default",
+        messages: [{ role: "user", content: "ping" }],
+        max_tokens: 1,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      let detail = "";
+      try {
+        const body = (await res.json()) as { error?: { message?: string } };
+        detail = body?.error?.message || "";
+      } catch {
+        /* ignore */
+      }
+      return { ok: false, error: detail || `OpenClaw returned ${res.status}` };
+    }
+    return { ok: true, error: null };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+async function refreshModelStatus() {
+  const models = await refreshAvailableModels();
+  status.availableModels = models;
+  if (status.availableModels.length === 0) {
+    status.modelReady = false;
+    status.modelError =
+      "No AI model configured. Run `openclaw configure` on your machine to add a provider API key.";
+    return;
+  }
+  const target =
+    (status.selectedModel && models.includes(status.selectedModel)
+      ? status.selectedModel
+      : models.includes("openclaw/default")
+        ? "openclaw/default"
+        : models[0]) ?? "openclaw/default";
+  if (!status.selectedModel) status.selectedModel = target;
+  const result = await testModel(target);
+  status.modelReady = result.ok;
+  status.modelError = result.ok ? null : result.error;
+}
+
 async function handleExecuteAi(payload: Record<string, unknown>) {
-  const { jobId, prompt, messages, tools, timeout } = payload as {
+  const { jobId, prompt, messages, tools, timeout, model } = payload as {
     jobId?: string;
     prompt?: string;
     messages?: Array<{ role: string; content: string }>;
     tools?: string[];
     timeout?: number;
+    model?: string;
   };
   if (!jobId || (!prompt && !messages)) return;
 
@@ -346,7 +433,7 @@ async function handleExecuteAi(payload: Record<string, unknown>) {
 
   try {
     const openclawPayload: Record<string, unknown> = {
-      model: "quantnest",
+      model: model || "openclaw/default",
       messages: messages ?? [{ role: "user", content: prompt ?? "" }],
     };
     if (tools?.length) openclawPayload.tools = tools;
@@ -365,6 +452,14 @@ async function handleExecuteAi(payload: Record<string, unknown>) {
     const data = await res.json();
     const status = res.ok ? "success" : "error";
 
+    const raw = data as {
+      choices?: Array<{ message?: { content?: string } }>;
+      error?: { message?: string };
+    };
+    const content = raw.choices?.[0]?.message?.content;
+    const message =
+      content ?? raw.error?.message ?? "OpenClaw returned no content";
+
     broadcastAudit({
       timestamp: new Date().toISOString(),
       type: "EXECUTE_AI",
@@ -378,7 +473,7 @@ async function handleExecuteAi(payload: Record<string, unknown>) {
     send({
       id: crypto.randomUUID(),
       type: "EXECUTE_AI_RESULT",
-      payload: { jobId, status, data },
+      payload: { jobId, status, data, message },
     });
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -409,6 +504,7 @@ async function handleVerify() {
     });
     const gatewayRunning = res.ok;
     status.openclawRunning = gatewayRunning;
+    await refreshModelStatus();
     send({
       id: crypto.randomUUID(),
       type: "STATUS",
@@ -417,10 +513,16 @@ async function handleVerify() {
         gatewayRunning,
         os: status.os,
         hostname: status.hostname,
+        availableModels: status.availableModels,
+        selectedModel: status.selectedModel,
+        modelReady: status.modelReady,
+        modelError: status.modelError,
       },
     });
   } catch {
     status.openclawRunning = false;
+    status.modelReady = false;
+    status.modelError = "OpenClaw gateway is not running.";
     send({
       id: crypto.randomUUID(),
       type: "STATUS",
@@ -429,9 +531,88 @@ async function handleVerify() {
         gatewayRunning: false,
         os: status.os,
         hostname: status.hostname,
+        availableModels: status.availableModels,
+        selectedModel: status.selectedModel,
+        modelReady: false,
+        modelError: status.modelError,
       },
     });
   }
+}
+
+async function handleSetModel(payload: Record<string, unknown>) {
+  const { model, jobId } = payload as { model?: string; jobId?: string };
+  if (!model) {
+    send({
+      id: crypto.randomUUID(),
+      type: "SET_MODEL_RESULT",
+      payload: { jobId, success: false, message: "model is required" },
+    });
+    return;
+  }
+  status.selectedModel = model;
+  const result = await testModel(model);
+  status.modelReady = result.ok;
+  status.modelError = result.ok ? null : result.error;
+  send({
+    id: crypto.randomUUID(),
+    type: "SET_MODEL_RESULT",
+    payload: {
+      jobId,
+      success: result.ok,
+      model,
+      modelReady: result.ok,
+      message: result.ok
+        ? `Model "${model}" selected and verified.`
+        : `Model "${model}" could not be reached: ${result.error}`,
+    },
+  });
+  send({
+    id: crypto.randomUUID(),
+    type: "STATUS",
+    payload: {
+      openclawVersion: status.openclawRunning ? "running" : "unknown",
+      gatewayRunning: status.openclawRunning,
+      os: status.os,
+      hostname: status.hostname,
+      availableModels: status.availableModels,
+      selectedModel: status.selectedModel,
+      modelReady: status.modelReady,
+      modelError: status.modelError,
+    },
+  });
+}
+
+async function handleTestModel(payload: Record<string, unknown>) {
+  const { model, jobId } = payload as { model?: string; jobId?: string };
+  const target = model || status.selectedModel || "openclaw/default";
+  const result = await testModel(target);
+  status.modelReady = result.ok;
+  status.modelError = result.ok ? null : result.error;
+  send({
+    id: crypto.randomUUID(),
+    type: "TEST_MODEL_RESULT",
+    payload: {
+      jobId,
+      model: target,
+      modelReady: result.ok,
+      message: result.ok ? "Model is ready." : result.error,
+    },
+  });
+  send({
+    id: crypto.randomUUID(),
+    type: "STATUS",
+    payload: {
+      openclawVersion: status.openclawRunning ? "running" : "unknown",
+      gatewayRunning: status.openclawRunning,
+      os: status.os,
+      hostname: status.hostname,
+      availableModels: status.availableModels,
+      selectedModel: status.selectedModel,
+      modelReady: status.modelReady,
+      modelError: status.modelError,
+    },
+  });
 }
 
 async function handleInstallPlugin(payload: Record<string, unknown>) {
@@ -631,6 +812,12 @@ function connect(wsUrl: string, token: string) {
       case "OPENCLAWS_STATUS":
         handleOpenclawStatus();
         break;
+      case "SET_MODEL":
+        handleSetModel(msg.payload ?? {});
+        break;
+      case "TEST_MODEL":
+        handleTestModel(msg.payload ?? {});
+        break;
       case "LOGS":
         handleLogs();
         break;
@@ -755,10 +942,11 @@ export async function startAgent(onReady?: () => Promise<void>) {
         signal: AbortSignal.timeout(3000),
       });
       status.openclawRunning = res.ok;
+      if (res.ok) await refreshModelStatus();
     } catch {
       status.openclawRunning = false;
     }
-  }, 10_000);
+  }, 30_000);
 
   try {
     const res = await fetch(`${OPENCLAWS_BASE}/v1/models`, {
